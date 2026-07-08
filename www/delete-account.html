@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="google" content="notranslate">
+<title>Luna · Delete Account</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Noto Sans Thai', 'Segoe UI', sans-serif;
+    background: #f4f2f9;
+    color: #2d2640;
+    min-height: 100vh;
+  }
+  .header {
+    background: linear-gradient(135deg, #7c5cbf, #b49de0);
+    padding: 48px 20px 28px;
+    text-align: center;
+    color: #fff;
+  }
+  .header .icon { font-size: 40px; margin-bottom: 10px; }
+  .header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .header .sub { font-size: 13px; opacity: 0.85; }
+  .lang-switch {
+    display: flex; gap: 8px; justify-content: center; margin-top: 16px;
+  }
+  .lang-btn {
+    padding: 6px 18px; border-radius: 20px; border: none; font-size: 13px;
+    cursor: pointer; font-family: inherit; font-weight: 600; transition: all .2s;
+  }
+  .lang-btn.active { background: #fff; color: #7c5cbf; }
+  .lang-btn.inactive { background: rgba(255,255,255,0.2); color: #fff; border: 1.5px solid rgba(255,255,255,0.4); }
+
+  .container { max-width: 600px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .updated { font-size: 12px; color: #a89ec8; text-align: center; margin-bottom: 20px; }
+
+  .section {
+    background: #fff; border-radius: 18px;
+    padding: 20px 18px; margin-bottom: 14px;
+    box-shadow: 0 2px 12px rgba(124,92,191,0.07);
+  }
+  .section-title {
+    font-size: 15px; font-weight: 700; color: #7c5cbf;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section p {
+    font-size: 13.5px; color: #4a4060; line-height: 1.9;
+  }
+  .item {
+    display: flex; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid #f0ecfa;
+    font-size: 13.5px; color: #4a4060; line-height: 1.8;
+  }
+  .item:last-child { border-bottom: none; padding-bottom: 0; }
+  .bullet { color: #7c5cbf; font-size: 16px; flex-shrink: 0; }
+
+  .step {
+    display: flex; gap: 12px; padding: 12px 0;
+    border-bottom: 1px solid #f0ecfa;
+    align-items: flex-start;
+  }
+  .step:last-child { border-bottom: none; padding-bottom: 0; }
+  .step-num {
+    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+    background: #7c5cbf; color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-text { font-size: 13.5px; color: #4a4060; line-height: 1.8; }
+  .step-text strong { color: #2d2640; }
+
+  .highlight-box {
+    background: #fdf2f5; border: 1px solid #f6d8e2; border-radius: 14px;
+    padding: 14px 16px; margin-top: 10px; font-size: 13px; color: #8a3a55; line-height: 1.8;
+  }
+
+  .contact-box {
+    background: #ede8f8; border-radius: 14px; padding: 16px 18px; margin-top: 8px;
+  }
+  .contact-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 14px; }
+  .contact-icon { font-size: 18px; width: 24px; text-align: center; }
+
+  .back-btn {
+    display: block; width: 100%; padding: 14px;
+    background: linear-gradient(135deg, #7c5cbf, #b49de0);
+    color: #fff; border: none; border-radius: 14px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit; margin-top: 8px; text-align: center;
+    box-shadow: 0 4px 14px rgba(124,92,191,0.3);
+  }
+  .back-btn:active { opacity: 0.85; }
+</style>
+</head>
+<body>
+
+<div class="header" style="position:relative;">
+  <button onclick="goBack()" aria-label="close" style="position:absolute; top:16px; right:16px; width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,0.25); color:#fff; font-size:18px; cursor:pointer; font-family:inherit; line-height:1; display:flex; align-items:center; justify-content:center;">✕</button>
+  <div class="icon">🗑️</div>
+  <h1 id="pageTitle">ลบบัญชีและข้อมูล</h1>
+  <div class="sub" id="pageSubtitle">Luna Calm · วิธีลบบัญชีของคุณ</div>
+  <div class="lang-switch">
+    <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')">🇨🇳 中文</button>
+    <button class="lang-btn active"   id="btnTh" onclick="setLang('th')">🇹🇭 ภาษาไทย</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: มิถุนายน 2026 (v1)</div>
+
+  <!-- 1 关于 -->
+  <div class="section">
+    <div class="section-title">📱 <span id="s1title">เกี่ยวกับแอปนี้</span></div>
+    <p id="s1body"></p>
+  </div>
+
+  <!-- 2 删除步骤 -->
+  <div class="section">
+    <div class="section-title">🧭 <span id="s2title">วิธีลบ</span></div>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text" id="s2step1"></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text" id="s2step2"></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text" id="s2step3"></div>
+    </div>
+  </div>
+
+  <!-- 3 删除范围说明（区分数据删除 vs 账号注销） -->
+  <div class="section">
+    <div class="section-title">📋 <span id="s3title">ลบอะไรบ้าง</span></div>
+    <div class="item"><span class="bullet">•</span><span id="s3i1"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="s3i2"></span></div>
+    <div class="highlight-box" id="s3note"></div>
+  </div>
+
+  <!-- 4 处理时限 -->
+  <div class="section">
+    <div class="section-title">⏱️ <span id="s4title">ระยะเวลาดำเนินการ</span></div>
+    <div class="item"><span class="bullet">•</span><span id="s4i1"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="s4i2"></span></div>
+  </div>
+
+  <!-- 5 保留例外 -->
+  <div class="section">
+    <div class="section-title">⚖️ <span id="s5title">ข้อมูลที่อาจเก็บไว้ตามกฎหมาย</span></div>
+    <p id="s5body"></p>
+  </div>
+
+  <!-- 6 联系 -->
+  <div class="section">
+    <div class="section-title">📞 <span id="s6title">ติดต่อเรา</span></div>
+    <p id="s6body"></p>
+    <div class="contact-box">
+      <div class="contact-row"><span class="contact-icon">📧</span><span id="s6email"></span></div>
+    </div>
+  </div>
+
+  <button class="back-btn" id="backBtn" onclick="goBack()">← กลับ</button>
+</div>
+
+<script>
+function goBack() {
+  location.href = '/';
+}
+const CONTENT = {
+  th: {
+    pageTitle: 'ลบบัญชีและข้อมูล',
+    pageSubtitle: 'Luna Calm · วิธีลบบัญชีของคุณ',
+    updatedTxt: 'อัปเดตล่าสุด: มิถุนายน 2026 (v1)',
+    s1title: 'เกี่ยวกับแอปนี้',
+    s1body: 'หน้านี้อธิบายวิธีลบข้อมูลและบัญชีของคุณในแอป Luna Calm (Luna 月记) ซึ่งเป็นแอปบันทึกและติดตามรอบเดือน อาการ และอารมณ์',
+    s2title: 'วิธีลบ',
+    s2step1: '<strong>ลบข้อมูลในแอป (เฉพาะข้อมูล):</strong> เปิดแอป Luna Calm ไปที่ "ฉัน (โปรไฟล์)" → "ลบข้อมูล" ระบบจะลบข้อมูลสุขภาพและบันทึกส่วนตัวของคุณทันที แต่ยังคงสถานะสมาชิกไว้',
+    s2step2: '<strong>ลบบัญชีถาวรในแอป (แนะนำ):</strong> เปิดแอป Luna Calm ไปที่ "ฉัน (โปรไฟล์)" → "ลบบัญชีถาวร" ยืนยัน 2 ครั้ง ระบบจะลบข้อมูลทั้งหมดพร้อมสิทธิ์สมาชิกและบัญชีเข้าสู่ระบบทันที ไม่ต้องรอ ไม่ต้องติดต่อใคร',
+    s2step3: '<strong>หากเข้าแอปไม่ได้:</strong> ส่งอีเมลคำขอมาที่ <strong>lunacalm00@gmail.com</strong> ระบุอีเมลที่ใช้เข้าสู่ระบบ เราจะช่วยลบบัญชีให้ด้วยตนเอง (ใช้เฉพาะกรณีเข้าแอปไม่ได้เท่านั้น)',
+    s3title: 'ลบอะไรบ้าง',
+    s3i1: '<strong>ลบข้อมูลในแอป</strong> จะลบ: บันทึกรอบเดือน อาการ อารมณ์ และข้อมูลส่วนตัวที่คุณบันทึกไว้ทั้งหมด (ยังคงสถานะสมาชิกไว้)',
+    s3i2: '<strong>ลบบัญชีถาวร</strong> (ในแอป หรือทางอีเมล) จะลบเพิ่มเติม: ข้อมูลบัญชี (ชื่อ อีเมล รูปโปรไฟล์) สถานะสมาชิกและสิทธิ์การใช้งานทั้งหมดอย่างถาวร รวมถึงบัญชีเข้าสู่ระบบเอง',
+    s3note: '⚠️ หมายเหตุ: การ "ลบข้อมูล" ในแอป จะลบเฉพาะข้อมูลส่วนตัว/สุขภาพ แต่ <strong>จะไม่ลบสถานะสมาชิกของคุณ</strong> เพื่อป้องกันไม่ให้คุณเสียสิทธิ์สมาชิกที่ชำระเงินไว้โดยไม่ตั้งใจ หากต้องการลบบัญชีและสิทธิ์สมาชิกทั้งหมดอย่างสมบูรณ์ ให้ใช้ปุ่ม "ลบบัญชีถาวร" ในแอปโดยตรง (ขั้นตอนที่ 2) จะรวดเร็วที่สุด',
+    s4title: 'ระยะเวลาดำเนินการ',
+    s4i1: 'ลบข้อมูลในแอป / ลบบัญชีถาวรในแอป: มีผลทันที ไม่ต้องรอ',
+    s4i2: 'ลบบัญชีผ่านอีเมล (เฉพาะกรณีเข้าแอปไม่ได้): ดำเนินการให้เสร็จภายใน 7 วันทำการ นับจากวันที่ได้รับคำขอ',
+    s5title: 'ข้อมูลที่อาจเก็บไว้ตามกฎหมาย',
+    s5body: 'เราอาจเก็บข้อมูลธุรกรรมการชำระเงินบางส่วนไว้ตามที่กฎหมายกำหนด (เช่น เพื่อการตรวจสอบบัญชีหรือป้องกันการฉ้อโกง) เป็นระยะเวลาจำกัด แม้หลังจากบัญชีถูกลบแล้ว ข้อมูลสุขภาพและข้อมูลส่วนตัวอื่น ๆ จะไม่ถูกเก็บไว้',
+    s6title: 'ติดต่อเรา',
+    s6body: 'หากมีคำถามเกี่ยวกับการลบบัญชีหรือข้อมูลของคุณ ติดต่อเราได้ที่:',
+    s6email: 'lunacalm00@gmail.com',
+    backBtn: '← กลับ',
+  },
+  zh: {
+    pageTitle: '删除账号与数据',
+    pageSubtitle: 'Luna Calm · 如何删除您的账号',
+    updatedTxt: '最后更新：2026年6月 (v1)',
+    s1title: '关于本App',
+    s1body: '本页面说明如何删除您在 Luna Calm（Luna 月记，经期与症状/心情记录App）中的数据和账号。',
+    s2title: '删除方式',
+    s2step1: '<strong>App内删除数据（仅数据）：</strong>打开 Luna Calm App → 「我的」→「删除数据」，系统会立即删除您的健康数据和个人记录，但会保留会员资格。',
+    s2step2: '<strong>App内永久删除账号（推荐）：</strong>打开 Luna Calm App → 「我的」→「永久删除账号」，二次确认后，系统会立即删除全部数据、会员资格及登录账号本身，无需等待、无需联系任何人。',
+    s2step3: '<strong>如果无法登录App：</strong>发送邮件至 <strong>lunacalm00@gmail.com</strong>，注明您登录使用的邮箱，我们会为您手动删除账号（仅限无法登录App的情况使用）。',
+    s3title: '会删除哪些内容',
+    s3i1: '<strong>App内"删除数据"</strong> 会删除：您填写的经期记录、症状、心情等全部个人健康数据（会员资格保留）',
+    s3i2: '<strong>"永久删除账号"</strong>（App内操作或邮件申请均可）会额外删除：账号信息（姓名、邮箱、头像）、会员状态及全部使用权限，以及登录账号本身，且永久不可恢复',
+    s3note: '⚠️ 注意：App内的"删除数据"只会清除您的隐私/健康数据，<strong>不会删除您的会员身份</strong>，这是为了避免您不小心误删已购买的会员权益。如需连同会员资格一起彻底删除账号，直接在App「我的」页面点"永久删除账号"即可（上方步骤2），最快最方便。',
+    s4title: '处理时限',
+    s4i1: 'App内删除数据 / App内永久删除账号：立即生效，无需等待',
+    s4i2: '邮件申请删除账号（仅限无法登录App时使用）：我们将在收到申请后 7 个工作日内处理完毕',
+    s5title: '法律要求保留的信息',
+    s5body: '出于法律合规要求（如交易审计、防欺诈），我们可能会在账号删除后的一定期限内保留部分支付交易记录，但不会保留您的健康数据或其他个人资料。',
+    s6title: '联系我们',
+    s6body: '如对删除账号或数据有任何疑问，请通过以下方式联系我们：',
+    s6email: 'lunacalm00@gmail.com',
+    backBtn: '← 返回',
+  }
+};
+
+function setLang(lang) {
+  const d = CONTENT[lang];
+  Object.keys(d).forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.innerHTML = d[id];
+  });
+  document.getElementById('btnZh').className = 'lang-btn ' + (lang==='zh' ? 'active' : 'inactive');
+  document.getElementById('btnTh').className = 'lang-btn ' + (lang==='th' ? 'active' : 'inactive');
+  document.documentElement.lang = lang==='zh' ? 'zh-CN' : 'th';
+  localStorage.setItem('luna_lang', lang);
+}
+
+const savedLang = localStorage.getItem('luna_lang') || 'th';
+setLang(savedLang);
+</script>
+</body>
+</html>

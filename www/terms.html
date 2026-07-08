@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
+<title>ข้อกำหนดการใช้งาน · Luna Calm</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --purple:#7c5cbf;--purple-pale:#ede8f8;--pink:#f07fa0;
+  --text:#2d2640;--muted:#8a849e;--bg:#f4f2f9;--card:#fff;
+}
+body{font-family:-apple-system,'PingFang SC','Hiragino Sans GB',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;}
+.wrap{max-width:680px;margin:0 auto;padding:32px 20px 60px;}
+
+/* Header */
+.top{display:flex;align-items:center;gap:14px;margin-bottom:32px;}
+.logo{width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,#9b72e6,#c47ab0);
+  display:flex;align-items:center;justify-content:center;font-size:26px;}
+.top h1{font-size:20px;font-weight:700;color:var(--text);}
+.top p{font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* Lang toggle */
+.lang-row{display:flex;gap:8px;margin-bottom:28px;}
+.lang-btn{padding:7px 20px;border-radius:20px;border:1.5px solid #ddd;
+  font-size:13px;font-family:inherit;cursor:pointer;font-weight:500;
+  background:#fff;color:var(--muted);transition:all .2s;}
+.lang-btn.on{background:var(--purple);color:#fff;border-color:var(--purple);font-weight:600;}
+
+/* Updated date */
+.updated{font-size:12px;color:var(--muted);margin-bottom:24px;}
+
+/* Section */
+.section{background:var(--card);border-radius:18px;padding:22px 20px;
+  margin-bottom:14px;box-shadow:0 2px 12px rgba(124,92,191,0.07);}
+.section h2{font-size:15px;font-weight:700;color:var(--purple);
+  margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.section p,.section li{font-size:14px;color:var(--text);line-height:1.9;margin-bottom:6px;}
+.section ul{padding-left:18px;}
+.section li{margin-bottom:4px;}
+
+/* Contact box */
+.contact-box{background:var(--purple-pale);border-radius:14px;padding:16px 18px;margin-top:10px;}
+.contact-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:14px;}
+.contact-icon{font-size:18px;width:24px;text-align:center;}
+
+/* Footer */
+.footer{text-align:center;font-size:12px;color:var(--muted);margin-top:24px;line-height:1.8;}
+
+.lang-content{display:none;}
+.lang-content.show{display:block;}
+</style>
+</head>
+<body>
+<div class="wrap" style="position:relative;">
+
+  <button onclick="goBack()" aria-label="close" style="position:absolute; top:0; right:0; width:38px; height:38px; border-radius:50%; border:none; background:#ede8f8; color:#7c5cbf; font-size:18px; cursor:pointer; font-family:inherit; line-height:1; display:flex; align-items:center; justify-content:center; z-index:10;">✕</button>
+
+  <div class="top">
+    <div class="logo">🌙</div>
+    <div>
+      <h1 id="pageTitle">ข้อกำหนดการใช้งาน</h1>
+      <p id="pageApp">Luna Calm</p>
+    </div>
+  </div>
+
+  <div class="lang-row">
+    <button class="lang-btn on" onclick="setLang('th')">🇹🇭 ภาษาไทย</button>
+    <button class="lang-btn" onclick="setLang('zh')">🇨🇳 中文</button>
+  </div>
+
+  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: 7 มิถุนายน 2026</div>
+
+  <!-- ══ THAI ══ -->
+  <div id="th" class="lang-content show">
+
+    <div class="section">
+      <h2>📋 1. การยอมรับข้อกำหนด</h2>
+      <p>การเข้าใช้งานแอปพลิเคชัน <strong>Luna Calm</strong> ถือว่าคุณได้อ่าน เข้าใจ และยอมรับข้อกำหนดการใช้งานเหล่านี้ทั้งหมด หากคุณไม่ยอมรับ กรุณาหยุดใช้งานแอปนี้</p>
+    </div>
+
+    <div class="section">
+      <h2>📱 2. วัตถุประสงค์ของแอป</h2>
+      <p>Luna Calm เป็นแอปสำหรับบันทึกและติดตามรอบเดือน อาการ และสุขภาพส่วนตัวของผู้ใช้งาน</p>
+      <ul>
+        <li>ข้อมูลในแอปใช้สำหรับการบันทึกและติดตามเท่านั้น</li>
+        <li>ไม่สามารถใช้แทนคำแนะนำหรือการวินิจฉัยทางการแพทย์</li>
+        <li>หากมีปัญหาสุขภาพ กรุณาปรึกษาแพทย์โดยตรง</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>👤 3. บัญชีผู้ใช้</h2>
+      <ul>
+        <li>ผู้ใช้ต้องลงทะเบียนผ่าน Google เพื่อใช้งานฟีเจอร์เต็มรูปแบบ</li>
+        <li>บัญชีหนึ่งบัญชีต่อผู้ใช้หนึ่งคน ห้ามแชร์บัญชีให้ผู้อื่น</li>
+        <li>ผู้ใช้รับผิดชอบต่อกิจกรรมทั้งหมดที่เกิดขึ้นในบัญชีของตนเอง</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>💎 4. การใช้งานและการชำระเงิน</h2>
+      <p><strong>โหมดทดลอง:</strong> ทดลองใช้งานฟรี 14 วัน บันทึกข้อมูลได้เต็มรูปแบบ หลังครบกำหนดต้องเปิดใช้งานสมาชิกเพื่อใช้ต่อ</p>
+      <p><strong>สมาชิกพรีเมียม (ชำระเงิน):</strong> ปลดล็อกฟีเจอร์บันทึกข้อมูลและฟีเจอร์พิเศษทั้งหมด</p>
+      <ul>
+        <li>ราคาและระยะเวลาสมาชิกตามที่ตกลงกันในขณะสมัคร</li>
+        <li>การชำระเงินผ่านช่องทางที่ผู้ดูแลระบุเท่านั้น</li>
+        <li>สิทธิ์สมาชิกไม่สามารถโอนให้ผู้อื่นได้</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>↩️ 5. นโยบายการคืนเงิน</h2>
+      <p>แอปนี้มี <strong>ทดลองใช้งานฟรี 14 วัน</strong> ผู้ใช้สามารถทดลองใช้ฟีเจอร์ทั้งหมดได้อย่างเต็มที่ โปรดเปิดใช้งานสมาชิกหลังจากพอใจแล้ว</p>
+      <p><strong>กรณีที่ขอคืนเงินได้:</strong></p>
+      <ul>
+        <li>เกิดข้อผิดพลาดของระบบจากฝั่งผู้พัฒนาจนไม่สามารถใช้งานได้ และแจ้งภายใน <strong>7 วัน</strong> นับจากวันชำระเงิน</li>
+        <li>ถูกเรียกเก็บเงินซ้ำสำหรับสมาชิกรายการเดียวกัน</li>
+      </ul>
+      <p><strong>กรณีที่ไม่สามารถคืนเงินได้:</strong></p>
+      <ul>
+        <li>เปิดใช้งานและใช้งานไปแล้วเกิน 7 วัน</li>
+        <li>ขอคืนเงินด้วยเหตุผลส่วนตัวของผู้ใช้ (เปลี่ยนใจ ไม่ต้องการใช้ คิดว่าไม่เหมาะสม ฯลฯ)</li>
+        <li>ปัญหาการใช้งานที่เกิดจากอุปกรณ์ เครือข่าย หรือเบราว์เซอร์ของผู้ใช้</li>
+        <li>บัญชีถูกระงับเนื่องจากละเมิดข้อกำหนด</li>
+      </ul>
+      <p><strong>วิธีขอคืนเงิน:</strong> โปรดติดต่อผ่านอีเมลด้านล่าง พร้อมระบุรหัสสมาชิกและข้อมูลการชำระเงิน เราจะดำเนินการตรวจสอบภายใน <strong>7 วันทำการ</strong> หลังได้รับคำขอ และหากเข้าเงื่อนไขจะคืนเงิน <strong>ผ่านช่องทางการชำระเงินเดิม</strong> สิทธิ์ในการตีความขั้นสุดท้ายเป็นของผู้พัฒนา</p>
+    </div>
+
+    <div class="section">
+      <h2>🚫 6. ข้อห้าม</h2>
+      <ul>
+        <li>ห้ามใช้แอปในทางที่ผิดกฎหมายหรือก่อให้เกิดความเสียหาย</li>
+        <li>ห้ามพยายามเจาะระบบหรือละเมิดความปลอดภัยของแอป</li>
+        <li>ห้ามนำข้อมูลของผู้ใช้คนอื่นไปใช้โดยไม่ได้รับอนุญาต</li>
+        <li>ห้ามใช้แอปเพื่อวัตถุประสงค์ทางการค้าโดยไม่ได้รับอนุญาต</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>⚖️ 7. ข้อจำกัดความรับผิด</h2>
+      <p>ผู้พัฒนาไม่รับผิดชอบต่อความเสียหายที่เกิดจาก:</p>
+      <ul>
+        <li>การใช้ข้อมูลในแอปแทนคำแนะนำทางการแพทย์</li>
+        <li>ข้อมูลสูญหายอันเนื่องมาจากอุปกรณ์หรือเบราว์เซอร์ของผู้ใช้</li>
+        <li>การหยุดให้บริการชั่วคราวเพื่อบำรุงรักษาระบบ</li>
+      </ul>
+      <p>ผู้ใช้รับทราบและยอมรับว่า การตัดสินใจใช้งานแอปนี้และวิธีการใช้งาน เป็นดุลยพินิจของผู้ใช้เอง และผู้ใช้ยอมรับผลที่ตามมาและความเสี่ยงทั้งหมดที่เกิดขึ้นด้วยตนเอง แอปนี้ให้บริการตาม "สภาพที่เป็นอยู่" โดยไม่รับประกันความถูกต้อง ความสมบูรณ์ หรือความเหมาะสมไม่ว่าโดยชัดแจ้งหรือโดยปริยาย</p>
+    </div>
+
+    <div class="section">
+      <h2>🔄 8. การเปลี่ยนแปลงข้อกำหนด</h2>
+      <p>ผู้พัฒนาสงวนสิทธิ์ในการเปลี่ยนแปลงข้อกำหนดเหล่านี้ได้ตลอดเวลา การใช้งานต่อเนื่องหลังจากมีการเปลี่ยนแปลงถือว่าคุณยอมรับข้อกำหนดใหม่</p>
+    </div>
+
+    <div class="section">
+      <h2>⚕️ 9. ข้อจำกัดความรับผิดทางการแพทย์</h2>
+      <p>ผลการทำนายรอบเดือน การทำนายการตกไข่ การแจ้งเตือนสุขภาพ และการวิเคราะห์ข้อมูลต่างๆ ที่ Luna Calm ให้บริการ มีไว้เพื่อการอ้างอิงเท่านั้น</p>
+      <p>แอปนี้ไม่ถือเป็นคำแนะนำทางการแพทย์ ความเห็นในการวินิจฉัย หรือแผนการรักษา และไม่สามารถใช้แทนบริการของแพทย์ โรงพยาบาล หรือสถานพยาบาลผู้เชี่ยวชาญอื่นๆ ได้</p>
+      <p>หากผู้ใช้มีอาการเลือดออกผิดปกติ ปวดท้องรุนแรง ประจำเดือนผิดปกติเป็นเวลานาน ปัญหาเกี่ยวกับการตั้งครรภ์ หรือภาวะสุขภาพอื่นๆ โปรดปรึกษาแพทย์ผู้เชี่ยวชาญโดยทันที</p>
+      <p>ผู้พัฒนาไม่รับผิดชอบต่อความเสียหายทั้งทางตรงและทางอ้อมที่เกิดจากการที่ผู้ใช้พึ่งพาผลการทำนายของแอปนี้</p>
+    </div>
+
+    <div class="section">
+      <h2>👨‍👩‍👧 10. ข้อกำหนดการใช้งานสำหรับผู้เยาว์</h2>
+      <p>Luna Calm ให้ความสำคัญกับการคุ้มครองความเป็นส่วนตัวและความปลอดภัยของผู้ใช้ที่เป็นผู้เยาว์</p>
+      <ul>
+        <li>แอปนี้สามารถใช้งานโดยผู้เยาว์ได้ แต่ผู้ใช้ที่อายุต่ำกว่า 20 ปี (ตามอายุบรรลุนิติภาวะที่กฎหมายไทยกำหนด) แนะนำให้ใช้งานภายใต้การดูแลของบิดามารดา ผู้ปกครอง หรือผู้แทนโดยชอบธรรม</li>
+        <li>แอปนี้ให้บริการเฉพาะการบันทึกรอบเดือน การแจ้งเตือนสุขภาพ การวิเคราะห์ข้อมูล และบริการข้อมูลที่เกี่ยวข้อง ไม่ได้ให้บริการวินิจฉัยทางการแพทย์ คำแนะนำในการรักษา หรือบริการการแพทย์ฉุกเฉิน</li>
+        <li>ขณะใช้งานแอป ผู้เยาว์ไม่ควรอัปโหลดข้อมูลที่ผิดกฎหมาย ละเมิดสิทธิ์ของผู้อื่น หรือไม่เหมาะสมต่อการเปิดเผย</li>
+        <li>หากผู้ปกครองพบว่าผู้เยาว์ให้ข้อมูลส่วนบุคคลโดยไม่ได้รับอนุญาต สามารถติดต่อเราผ่านช่องทางทางการ เราจะช่วยดำเนินการเกี่ยวกับข้อมูลดังกล่าวภายในเวลาอันสมควร</li>
+        <li>แอปนี้จะไม่เก็บข้อมูลส่วนบุคคลที่อ่อนไหวตามที่กฎหมายกำหนดจากผู้เยาว์โดยตรง และจะไม่ขอข้อมูลส่วนตัวเพิ่มเติมนอกเหนือจากที่จำเป็นต่อการทำงานหลักของแอป</li>
+        <li>การใช้งานแอปต่อไป ถือว่าผู้ใช้ได้อ่านและยอมรับข้อกำหนดนี้แล้ว</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>📩 11. ติดต่อเรา</h2>
+      <p>หากมีข้อสงสัยหรือต้องการความช่วยเหลือ ติดต่อได้ที่:</p>
+      <div class="contact-box">
+        <div class="contact-row">
+          <span class="contact-icon">📧</span>
+          <span>Email: <strong>lunacalm00@gmail.com</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🐾 12. เกี่ยวกับฟีเจอร์เพื่อน Lumi</h2>
+      <p>Lumi เป็นตัวละครเพื่อนเสมือนภายในแอป มีไว้เพื่อความบันเทิงและให้กำลังใจแบบเบา ๆ ตามข้อมูลรอบเดือนและการโต้ตอบของคุณเท่านั้น Lumi ไม่ใช่บุคคลจริง ไม่ใช่นักจิตวิทยา นักให้คำปรึกษา หรือบุคลากรทางการแพทย์</p>
+      <p>คำตอบที่ Lumi แสดงมาจากการจับคู่คำสำคัญและกฎที่ตั้งไว้ล่วงหน้า ไม่ใช่การวิเคราะห์โดยมนุษย์หรือปัญญาประดิษฐ์เชิงลึก และไม่ถือเป็นคำแนะนำทางจิตวิทยาหรือการแพทย์ใด ๆ</p>
+      <p>หากคุณกำลังเผชิญกับความทุกข์ทางอารมณ์ วิกฤตทางจิตใจ หรือความคิดทำร้ายตัวเอง โปรดติดต่อผู้เชี่ยวชาญ สายด่วนสุขภาพจิต หรือคนที่คุณไว้ใจโดยทันที อย่าพึ่งพา Lumi ในสถานการณ์ฉุกเฉิน</p>
+      <p>"แสงจันทร์" (Moon Points) ที่ได้จากการใช้งาน Lumi เป็นสกุลเงินเสมือนภายในแอปเท่านั้น ไม่มีมูลค่าเป็นตัวเงินจริง ไม่สามารถแลกเปลี่ยน โอน หรือขอคืนเป็นเงินได้</p>
+      <p>เนื้อหาที่คุณเขียนในมุมความลับของ Lumi ต้องไม่ผิดกฎหมาย ไม่ละเมิดสิทธิ์ผู้อื่น และไม่ใช่เนื้อหาที่ไม่เหมาะสม เช่นเดียวกับข้อกำหนดการใช้งานทั่วไปของแอปในข้อ 6</p>
+    </div>
+
+  </div>
+
+  <!-- ══ CHINESE ══ -->
+  <div id="zh" class="lang-content">
+
+    <div class="section">
+      <h2>📋 1. 接受条款</h2>
+      <p>使用 <strong>Luna Calm</strong> 即表示您已阅读、理解并同意本服务条款的全部内容。如不同意，请停止使用本应用。</p>
+    </div>
+
+    <div class="section">
+      <h2>📱 2. 应用用途</h2>
+      <p>Luna Calm 是一款用于记录和追踪月经周期、症状及个人健康状态的应用。</p>
+      <ul>
+        <li>应用内信息仅用于个人记录与追踪参考</li>
+        <li>不能替代专业医疗建议或诊断</li>
+        <li>如有健康问题，请直接咨询医生</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>👤 3. 用户账号</h2>
+      <ul>
+        <li>需通过 Google 登录才能使用完整功能</li>
+        <li>每个账号仅限本人使用，不得与他人共享</li>
+        <li>用户对自己账号内发生的所有活动负责</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>💎 4. 使用与付费</h2>
+      <p><strong>试用模式：</strong>14天免费试用，可完整记录数据；试用期结束后需开通会员继续使用</p>
+      <p><strong>正式会员（付费）：</strong>解锁数据保存及所有专属功能</p>
+      <ul>
+        <li>价格与会员期限以订阅时约定为准</li>
+        <li>仅通过管理员指定渠道付款</li>
+        <li>会员权益不可转让给他人</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>↩️ 5. 退款政策</h2>
+      <p>本应用提供 <strong>14 天免费试用</strong>，用户可在试用期内充分体验全部功能，请在确认满意后再开通会员。</p>
+      <p><strong>可退款情形：</strong></p>
+      <ul>
+        <li>因开发者一方的系统故障导致无法正常使用，且在付款后 <strong>7 天内</strong> 提出</li>
+        <li>同一笔会员被重复扣款</li>
+      </ul>
+      <p><strong>不予退款情形：</strong></p>
+      <ul>
+        <li>已开通并使用超过 7 天</li>
+        <li>因用户个人原因（改变主意、不再需要、主观认为不合适等）申请退款</li>
+        <li>因用户设备、网络或浏览器问题导致的使用障碍</li>
+        <li>违反本条款被停用账号</li>
+      </ul>
+      <p><strong>申请方式：</strong>请通过下方联系邮箱提出退款申请，并说明会员码与付款信息，我们将在收到后 <strong>7 个工作日内</strong> 审核处理，符合条件的将按 <strong>原支付渠道原路退回</strong>。退款最终解释权归开发者所有。</p>
+    </div>
+
+    <div class="section">
+      <h2>🚫 6. 禁止行为</h2>
+      <ul>
+        <li>禁止将应用用于违法或有害目的</li>
+        <li>禁止尝试入侵或破坏应用安全</li>
+        <li>禁止未经授权使用其他用户数据</li>
+        <li>禁止未经授权将应用用于商业目的</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>⚖️ 7. 责任限制</h2>
+      <p>开发者不对以下情况造成的损失负责：</p>
+      <ul>
+        <li>将应用数据替代专业医疗建议使用</li>
+        <li>因用户设备或浏览器导致的数据丢失</li>
+        <li>系统维护期间的临时服务中断</li>
+      </ul>
+      <p>用户理解并同意：是否使用本应用及如何使用，由用户自行判断和决定，并自行承担由此产生的全部后果与风险。本应用按"现状"提供，不对其准确性、完整性或适用性作任何明示或默示的保证。</p>
+    </div>
+
+    <div class="section">
+      <h2>🔄 8. 条款变更</h2>
+      <p>开发者保留随时修改本条款的权利。继续使用应用即表示您接受修改后的条款。</p>
+    </div>
+
+    <div class="section">
+      <h2>⚕️ 9. 医疗免责声明</h2>
+      <p>Luna Calm 提供的经期预测、排卵预测、健康提醒及相关数据分析结果，仅供参考。</p>
+      <p>本应用不构成医疗建议、诊断意见或治疗方案，也不能替代医生、医院或其他专业医疗机构的服务。</p>
+      <p>如用户出现异常出血、严重腹痛、月经长期紊乱、怀孕相关问题或其他健康状况，请及时咨询专业医生。</p>
+      <p>开发者不对因用户依赖本应用预测结果而产生的直接或间接损失承担责任。</p>
+    </div>
+
+    <div class="section">
+      <h2>👨‍👩‍👧 10. 未成年人使用条款</h2>
+      <p>Luna Calm 致力于保护未成年用户的隐私与安全。</p>
+      <ul>
+        <li>本应用可供未成年人使用，但未满 20 周岁的用户（依据泰国法律规定的成年年龄）建议在父母、监护人或法定代理人的指导下使用本应用。</li>
+        <li>本应用仅提供经期记录、健康提醒、数据统计及相关信息服务，不提供医疗诊断、治疗建议或紧急医疗服务。</li>
+        <li>未成年人在使用本应用时，不应上传任何违法、侵害他人权益或不适宜公开的信息。</li>
+        <li>若监护人发现未成年人未经授权提供个人信息，可通过官方联系方式与我们联系，我们将在合理时间内协助处理相关数据。</li>
+        <li>本应用不会主动向未成年人收集法律规定的敏感个人信息，除实现核心功能所必要的信息外，不会要求提供额外个人资料。</li>
+        <li>用户继续使用本应用，即表示已阅读并同意本条款内容。</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>📩 11. 联系我们</h2>
+      <p>如有疑问或需要帮助，请通过以下方式联系：</p>
+      <div class="contact-box">
+        <div class="contact-row">
+          <span class="contact-icon">📧</span>
+          <span>Email: <strong>lunacalm00@gmail.com</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🐾 12. 关于 Lumi 陪伴功能</h2>
+      <p>Lumi 是应用内的虚拟陪伴角色，仅用于娱乐和轻量情绪陪伴，其表现基于您记录的周期数据和互动生成。Lumi 不是真实人物，不是心理咨询师，也不是医疗专业人员。</p>
+      <p>Lumi 的回应基于预设关键词匹配和规则自动生成，不涉及人工或深度人工智能分析，不构成任何心理或医疗建议。</p>
+      <p>如果您正经历情绪困扰、心理危机或自伤念头，请立即联系专业人士、心理健康热线或您信任的人，请勿在紧急情况下依赖 Lumi。</p>
+      <p>通过使用 Lumi 获得的"月光值"仅为应用内虚拟货币，不具有真实货币价值，不可兑换、转让或申请退款。</p>
+      <p>您在 Lumi 秘密空间中书写的内容，同样需遵守本应用第 6 条的一般使用条款，不得包含违法、侵权或不适宜公开的内容。</p>
+    </div>
+
+  </div>
+
+  <button onclick="goBack()" id="termsBackBtn" style="display:block; width:100%; padding:14px; background:linear-gradient(135deg,#9b72e6,#c47ab0); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; margin:8px 0 16px; box-shadow:0 4px 14px rgba(124,92,191,0.3);">← กลับ / 返回</button>
+
+  <div class="footer">Luna Calm · 个人开发 · Personal Project<br>© 2026 Luna Calm. All rights reserved.</div>
+
+</div>
+
+<script>
+// 返回：直接回 App 首页（同域，最稳，不会跳出或关闭 App）
+function goBack() {
+  location.href = '/';
+}
+
+function setLang(lang) {
+  document.querySelectorAll('.lang-content').forEach(el => el.classList.remove('show'));
+  const target = document.getElementById(lang);
+  if(target) target.classList.add('show');
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('on'));
+  if(lang === 'th') {
+    document.getElementById('pageTitle').textContent = 'ข้อกำหนดการใช้งาน';
+    document.getElementById('updatedTxt').textContent = 'อัปเดตล่าสุด: 7 มิถุนายน 2026';
+    if(document.querySelectorAll('.lang-btn')[0]) document.querySelectorAll('.lang-btn')[0].classList.add('on');
+    document.documentElement.lang = 'th';
+  } else {
+    document.getElementById('pageTitle').textContent = '服务条款';
+    document.getElementById('updatedTxt').textContent = '最后更新：2026年6月7日';
+    if(document.querySelectorAll('.lang-btn')[1]) document.querySelectorAll('.lang-btn')[1].classList.add('on');
+    document.documentElement.lang = 'zh-CN';
+  }
+  localStorage.setItem('luna_lang', lang);
+}
+
+// 跟随 App 当前语言，只显示一种（默认泰文）
+const saved = localStorage.getItem('luna_lang') || 'th';
+setLang(saved === 'zh' ? 'zh' : 'th');
+</script>
+</body>
+</html>

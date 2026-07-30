@@ -3541,7 +3541,7 @@ _markFbReady();
 
 // ── Google 登录（原生 App 内用 Capacitor 原生插件，网页/PWA 用 popup）──
 window.signInWithGoogle = async function(statusElId) {
-  const isTh = window._gateLang === 'th';
+  const isTh = window._appLang ? window._appLang === 'th' : window._gateLang === 'th'; // 优先跟着当前界面语言走，避免切换语言后这里的提示语跟别处不同步
   const errEl = document.getElementById(statusElId || 'codeErr');
 
   // 判断是否在 Capacitor 原生 App 环境里运行
@@ -3610,6 +3610,7 @@ window.signInWithGoogle = async function(statusElId) {
     console.error('Google login error (1st try):', e1);
     if(isCancelledByUser(e1)) { if(errEl) errEl.textContent = ''; return; }
 
+    let lastErr = e1;
     // ② 网络类错误：安静重试一次，成功了用户完全看不到中间那次失败
     if(isNetworkish(e1)) {
       await new Promise(function(r){ setTimeout(r, 1200); });
@@ -3619,10 +3620,14 @@ window.signInWithGoogle = async function(statusElId) {
       } catch(e2) {
         console.error('Google login error (2nd try):', e2);
         if(isCancelledByUser(e2)) { if(errEl) errEl.textContent = ''; return; }
+        lastErr = e2;
       }
     }
 
-    if(errEl) errEl.textContent = isTh ? '❌ เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่' : '❌ 登录失败，请重试';
+    // 🩹 临时调试用：把真实报错的 code/message 一起显示出来，方便截图定位问题。
+    // 确认 Google 登录正常之后，把下面这行 _debugMsg 拼接删掉，恢复成只显示通用提示语即可。
+    const _debugMsg = lastErr ? ' [' + (lastErr.code || '') + ' ' + (lastErr.message || '') + ']' : '';
+    if(errEl) errEl.textContent = (isTh ? '❌ เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่' : '❌ 登录失败，请重试') + _debugMsg;
   }
 };
 
@@ -8893,6 +8898,13 @@ window.setLang = setLang;
     if(tt) tt.textContent = (_appLang==='zh' ? titleZh : titleTh);
     fr.src = url;                 // 加载独立 html（内容零改动，合规完整版）
     ov.style.display = 'block';
+    // iOS Safari 上单靠 overflow:hidden 锁不住背后页面的橡皮筋滚动（安卓上没这问题）。
+    // 这里额外把背后的 body 钉死在当前滚动位置，关闭时再精确还原，避免"关闭后停在莫名其妙的位置"这类 iOS 专属怪状态
+    window._legalScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = (-window._legalScrollY) + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
     document.body.style.overflow = 'hidden';
   }
   function closeLegal(){
@@ -8900,7 +8912,12 @@ window.setLang = setLang;
     const fr = document.getElementById('legalFrame');
     if(ov) ov.style.display = 'none';
     if(fr) fr.src = 'about:blank';  // 卸载内容，下次重新加载干净
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
     document.body.style.overflow = '';
+    window.scrollTo(0, window._legalScrollY || 0); // 精确回到打开前的位置，不会"卡"在别处
   }
   window.closeLegal = closeLegal;
   // 接收 iframe（隐私/条款/帮助页）内✕或返回按钮发来的关闭请求
@@ -11785,7 +11802,10 @@ window.setLang = setLang;
     panel._edgeSwipeBound = true;
     panel.style.position = panel.style.position || 'fixed';
 
-    let startX = 0, startY = 0, dx = 0, tracking = false, committed = false, shadow = null;
+    const phone = document.querySelector('.phone'); // 底下一直在跑的首页容器，滑动露出时做"模糊→清晰"过渡用
+    const MAX_BLUR = 6; // px，刚开始滑动时的模糊程度，滑到底时刚好完全清晰
+
+    let startX = 0, startY = 0, dx = 0, tracking = false, committed = false, shadow = null, panelW = 0;
     const EDGE_ZONE = 60;   // 只有从最左边60px以内按下，才算是"从侧边滑"
     const V_CANCEL = 45;    // 如果竖直方向移动明显更大，判定为想上下滚动，取消这次手势
 
@@ -11802,7 +11822,9 @@ window.setLang = setLang;
     function onStart(x, y){
       if(x > EDGE_ZONE) { tracking = false; return; }
       startX = x; startY = y; dx = 0; tracking = true; committed = false;
+      panelW = panel.offsetWidth || window.innerWidth;
       panel.style.transition = 'none';
+      if(phone) phone.style.transition = 'none';
     }
 
     function onMove(x, y, evt){
@@ -11818,25 +11840,33 @@ window.setLang = setLang;
       dx = Math.max(0, ddx); // 只允许往右拖（往回翻），不允许往左
       panel.style.transform = `translateX(${dx}px)`;
       if(shadow) shadow.style.opacity = String(Math.max(0, 1 - dx / 200));
+      // 底下首页随拖动进度从"稍微模糊"过渡到"完全清晰"，跟手实时变化，滑到底刚好清晰
+      if(phone){
+        const progress = panelW > 0 ? Math.min(1, dx / panelW) : 1;
+        const blur = MAX_BLUR * (1 - progress);
+        phone.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : '';
+      }
     }
 
     function onEnd(){
       if(!tracking) return;
       tracking = false;
       if(!committed){ return; }
-      const panelW = panel.offsetWidth || window.innerWidth;
       const threshold = panelW * 0.28; // 拖过约1/4屏宽，判定为"要退出"
       panel.style.transition = 'transform .22s ease';
       if(dx > threshold){
         // 顺着滑完，退出页面——复用跟点按钮同一套动画函数
         if(shadow) shadow.style.display = 'none';
+        if(phone){ phone.style.transition = 'filter .22s ease'; phone.style.filter = ''; } // 剩余的模糊跟着这次动画一起淡完，退出时刚好清晰
         playExitSlide(panel, backFn);
       } else {
         // 拖得不够，像弹簧一样弹回原位
         panel.style.transform = 'translateX(0)';
+        if(phone){ phone.style.transition = 'filter .22s ease'; phone.style.filter = `blur(${MAX_BLUR}px)`; } // 弹回去的同时模糊也弹回初始程度
         setTimeout(function(){
           panel.style.transition = 'none';
           if(shadow) shadow.style.display = 'none';
+          if(phone){ phone.style.transition = 'none'; phone.style.filter = ''; } // 已经被面板重新盖住，清空滤镜，不影响下次手势
         }, 220);
       }
     }
@@ -14991,11 +15021,11 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
 <!-- 根治 cycle 串台：App 内点隐私/条款/帮助用 iframe 嵌独立 html，不整页跳转 -->
 <!-- z-index:10010 高于登录页 codeGate(9999)，确保能盖在登录页之上（文档19.4教训）-->
 <div id="legalOverlay" style="display:none; position:fixed; top:0; right:0; bottom:0; left:0; z-index:10010; background:var(--bg, #f4f2f9);">
-  <!-- 顶栏：标题 + 关闭✕ -->
-  <div style="position:fixed; top:0; left:0; right:0; height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; background:linear-gradient(135deg,#7c5cbf,#c47ab0); box-shadow:0 2px 8px rgba(124,92,191,0.25); z-index:2;">
+  <!-- 顶栏：标题 + 关闭✕。顶部额外让出 safe-area-inset-top，避免在 iPhone 刘海/灵动岛机型上被系统状态栏顶到贴脸 -->
+  <div style="position:fixed; top:0; left:0; right:0; height:calc(54px + env(safe-area-inset-top, 0px)); padding-top:env(safe-area-inset-top, 0px); box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; padding-left:16px; padding-right:16px; background:linear-gradient(135deg,#7c5cbf,#c47ab0); box-shadow:0 2px 8px rgba(124,92,191,0.25); z-index:2;">
     <span id="legalTitle" style="color:#fff; font-size:16px; font-weight:600; font-family:inherit;">นโยบายความเป็นส่วนตัว</span>
     <button onclick="closeLegal()" aria-label="close" style="width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,0.22); color:#fff; font-size:18px; cursor:pointer; font-family:inherit; line-height:1; display:flex; align-items:center; justify-content:center; flex-shrink:0;">✕</button>
   </div>
-  <!-- iframe 内容区（顶部留出 54px 给顶栏）-->
-  <iframe id="legalFrame" src="about:blank" title="legal" style="position:absolute; top:54px; left:0; width:100%; height:calc(100% - 54px); border:none; background:#fff;"></iframe>
+  <!-- iframe 内容区（顶部留出顶栏高度，同样加上 safe-area-inset-top）-->
+  <iframe id="legalFrame" src="about:blank" title="legal" style="position:absolute; top:calc(54px + env(safe-area-inset-top, 0px)); left:0; width:100%; height:calc(100% - 54px - env(safe-area-inset-top, 0px)); border:none; background:#fff;"></iframe>
 </div>

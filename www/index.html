@@ -3558,22 +3558,58 @@ window.signInWithGoogle = async function(statusElId) {
     let user;
 
     if (isNativeApp) {
-      // ── 原生 App：用 @codetrix-studio/capacitor-google-auth 原生登录 ──
-      const GoogleAuthPlugin = window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth;
-      if (!GoogleAuthPlugin) throw new Error('GoogleAuth native plugin not found');
+      const platform = (window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || '';
 
-      if(errEl) errEl.textContent = isTh ? 'กำลังเข้าสู่ระบบ...' : '登录中...';
+      if (platform === 'ios') {
+        // ── iOS：改用 @capgo/capacitor-social-login ──
+        // 旧插件 @codetrix-studio/capacitor-google-auth 已被作者放弃维护，且只支持 CocoaPods，
+        // 不支持本项目使用的 Swift Package Manager，导致 iOS 上一直报 "native plugin not found"。
+        // 安卓不受影响（走独立的 Gradle/Java 原生注册），继续用原来的插件，不动它。（2026-07-30 切换）
+        const SocialLoginPlugin = window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
+        if (!SocialLoginPlugin) throw new Error('SocialLogin native plugin not found');
 
-      // 部分版本插件需要先 initialize()（重复调用无副作用，用 try/catch 兜底）
-      try { await GoogleAuthPlugin.initialize(); } catch(initErr) {}
+        if(errEl) errEl.textContent = isTh ? 'กำลังเข้าสู่ระบบ...' : '登录中...';
 
-      const nativeResult = await GoogleAuthPlugin.signIn();
-      const idToken = nativeResult && nativeResult.authentication && nativeResult.authentication.idToken;
-      if (!idToken) throw new Error('No idToken returned from native GoogleAuth');
+        // 只需要真正初始化一次，重复调用无副作用，用标记位避免每次登录都重新初始化
+        if (!window._socialLoginInited) {
+          await SocialLoginPlugin.initialize({
+            google: {
+              webClientId: '830021751175-9ef5aqlgoegsmuspni08adji2ejp8ssf.apps.googleusercontent.com',
+              iOSClientId: '830021751175-iovnl8kaakh7i72853kpr3ecdkn7f1ke.apps.googleusercontent.com'
+            }
+          });
+          window._socialLoginInited = true;
+        }
 
-      const credential = GoogleAuthProvider.credential(idToken);
-      const result = await signInWithCredential(auth, credential);
-      user = result.user;
+        const loginRes = await SocialLoginPlugin.login({
+          provider: 'google',
+          options: { scopes: ['email', 'profile'] }
+        });
+        const idToken = loginRes && loginRes.result && loginRes.result.idToken;
+        if (!idToken) throw new Error('No idToken returned from SocialLogin');
+
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        user = result.user;
+
+      } else {
+        // ── 安卓：继续用 @codetrix-studio/capacitor-google-auth，正式版已跑得很稳，不动它 ──
+        const GoogleAuthPlugin = window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth;
+        if (!GoogleAuthPlugin) throw new Error('GoogleAuth native plugin not found');
+
+        if(errEl) errEl.textContent = isTh ? 'กำลังเข้าสู่ระบบ...' : '登录中...';
+
+        // 部分版本插件需要先 initialize()（重复调用无副作用，用 try/catch 兜底）
+        try { await GoogleAuthPlugin.initialize(); } catch(initErr) {}
+
+        const nativeResult = await GoogleAuthPlugin.signIn();
+        const idToken = nativeResult && nativeResult.authentication && nativeResult.authentication.idToken;
+        if (!idToken) throw new Error('No idToken returned from native GoogleAuth');
+
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        user = result.user;
+      }
     } else {
       // ── 普通网页 / PWA：保持原来的 popup 方式不变 ──
       const result = await signInWithPopup(auth, googleProvider);

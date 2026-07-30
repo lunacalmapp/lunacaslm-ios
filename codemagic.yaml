@@ -4,23 +4,19 @@ workflows:
     max_build_duration: 60
     environment:
       vars:
-        XCODE_WORKSPACE: "App.xcworkspace"
+        XCODE_PROJECT: "App.xcodeproj"
         XCODE_SCHEME: "App"
       node: latest
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Install npm dependencies
         script: npm install
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios/App && pod install
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \
-            --workspace "$CM_BUILD_DIR/ios/App/$XCODE_WORKSPACE" \
+            --project "$CM_BUILD_DIR/ios/App/$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa

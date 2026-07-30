@@ -3,6 +3,9 @@ workflows:
     name: iOS Workflow
     max_build_duration: 60
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.lunacalm.flow.ios
       vars:
         XCODE_PROJECT: "App.xcodeproj"
         XCODE_SCHEME: "App"

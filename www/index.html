@@ -3553,6 +3553,10 @@ window.signInWithGoogle = async function(statusElId) {
     return;
   }
 
+  // ② 上一次登录还没跑完（比如卡在原生弹窗那一步）就不再重复触发，避免叠加发起多个请求把状态弄得更乱
+  if (window._googleSignInBusy) return;
+  window._googleSignInBusy = true;
+
   // 实际执行一次登录的完整流程，抽成内部函数方便失败后重试一次
   async function attemptLogin() {
     let user;
@@ -3641,29 +3645,33 @@ window.signInWithGoogle = async function(statusElId) {
   }
 
   try {
-    await attemptLogin();
-  } catch(e1) {
-    console.error('Google login error (1st try):', e1);
-    if(isCancelledByUser(e1)) { if(errEl) errEl.textContent = ''; return; }
+    try {
+      await attemptLogin();
+    } catch(e1) {
+      console.error('Google login error (1st try):', e1);
+      if(isCancelledByUser(e1)) { if(errEl) errEl.textContent = ''; return; }
 
-    let lastErr = e1;
-    // ② 网络类错误：安静重试一次，成功了用户完全看不到中间那次失败
-    if(isNetworkish(e1)) {
-      await new Promise(function(r){ setTimeout(r, 1200); });
-      try {
-        await attemptLogin();
-        return; // 重试成功，直接结束
-      } catch(e2) {
-        console.error('Google login error (2nd try):', e2);
-        if(isCancelledByUser(e2)) { if(errEl) errEl.textContent = ''; return; }
-        lastErr = e2;
+      let lastErr = e1;
+      // ③ 网络类错误：安静重试一次，成功了用户完全看不到中间那次失败
+      if(isNetworkish(e1)) {
+        await new Promise(function(r){ setTimeout(r, 1200); });
+        try {
+          await attemptLogin();
+          return; // 重试成功，直接结束
+        } catch(e2) {
+          console.error('Google login error (2nd try):', e2);
+          if(isCancelledByUser(e2)) { if(errEl) errEl.textContent = ''; return; }
+          lastErr = e2;
+        }
       }
-    }
 
-    // 🩹 临时调试用：把真实报错的 code/message 一起显示出来，方便截图定位问题。
-    // 确认 Google 登录正常之后，把下面这行 _debugMsg 拼接删掉，恢复成只显示通用提示语即可。
-    const _debugMsg = lastErr ? ' [' + (lastErr.code || '') + ' ' + (lastErr.message || '') + ']' : '';
-    if(errEl) errEl.textContent = (isTh ? '❌ เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่' : '❌ 登录失败，请重试') + _debugMsg;
+      // 🩹 临时调试用：把真实报错的 code/message 一起显示出来，方便截图定位问题。
+      // 确认 Google 登录正常之后，把下面这行 _debugMsg 拼接删掉，恢复成只显示通用提示语即可。
+      const _debugMsg = lastErr ? ' [' + (lastErr.code || '') + ' ' + (lastErr.message || '') + ']' : '';
+      if(errEl) errEl.textContent = (isTh ? '❌ เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่' : '❌ 登录失败，请重试') + _debugMsg;
+    }
+  } finally {
+    window._googleSignInBusy = false; // 不管成功/失败/取消，最后都把"忙碌"状态解开，允许下次再点
   }
 };
 

@@ -11,6 +11,7 @@ workflows:
       vars:
         XCODE_PROJECT: "App.xcodeproj"
         XCODE_SCHEME: "App"
+        APP_STORE_APPLE_ID: 6796192825
       node: latest
       xcode: latest
     scripts:
@@ -18,6 +19,14 @@ workflows:
         script: npm install
       - name: Sync web assets into iOS project
         script: npx cap sync ios
+      - name: Increment build number
+        script: |
+          #!/bin/sh
+          set -e
+          cd "$CM_BUILD_DIR/ios/App"
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID")
+          echo "Latest build number on App Store Connect: $LATEST_BUILD_NUMBER"
+          agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Build ipa for distribution

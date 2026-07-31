@@ -3575,15 +3575,27 @@ window.signInWithGoogle = async function(statusElId) {
 
         if(errEl) errEl.textContent = isTh ? 'กำลังเข้าสู่ระบบ...' : '登录中...';
 
-        // 🩹 临时调试用：给每一步都加上超时兜底，卡住的话会明确报出是哪一步超时，而不是无限转圈。
-        // 确认登录稳定之后可以把 _withTimeout 这层包装去掉，恢复成直接 await 原调用即可。
+        // 🩹 临时调试用：给每一步都加上超时兜底 + 实时跳动的秒数，卡住的话能明确看到是哪一步、卡了多久，
+        // 而不是无限转圈也不知道 JS 还在不在正常运转。确认登录稳定之后可以把这一整段调试包装去掉。
         function _withTimeout(promise, ms, label) {
+          let tickHandle;
+          let sec = 0;
+          if (errEl) {
+            tickHandle = setInterval(function(){
+              sec++;
+              errEl.textContent = (isTh ? 'กำลังเข้าสู่ระบบ' : '登录中') + '... (' + label + ' ' + sec + 's)';
+            }, 1000);
+          }
           return Promise.race([
             promise,
             new Promise(function(_, reject){
-              setTimeout(function(){ reject(new Error('[TIMEOUT] ' + label + ' 超过 ' + (ms/1000) + ' 秒无响应')); }, ms);
+              setTimeout(function(){
+                const err = new Error('[NORESPONSE] ' + label + ' 超过 ' + (ms/1000) + ' 秒无响应'); // 特意不用 "timeout" 这个词，避免被下面的网络错误判断误抓去"安静重试"
+                err._isDiagTimeout = true; // 打个标记，让 isNetworkish 认得出这是我们自己的诊断超时，不要当网络错误处理
+                reject(err);
+              }, ms);
             })
-          ]);
+          ]).finally(function(){ if (tickHandle) clearInterval(tickHandle); });
         }
 
         // 只需要真正初始化一次，重复调用无副作用，用标记位避免每次登录都重新初始化
@@ -3593,14 +3605,14 @@ window.signInWithGoogle = async function(statusElId) {
               webClientId: '830021751175-9ef5aqlgoegsmuspni08adji2ejp8ssf.apps.googleusercontent.com',
               iOSClientId: '830021751175-iovnl8kaakh7i72853kpr3ecdkn7f1ke.apps.googleusercontent.com'
             }
-          }), 15000, 'SocialLogin.initialize()');
+          }), 15000, 'initialize()');
           window._socialLoginInited = true;
         }
 
         const loginRes = await _withTimeout(SocialLoginPlugin.login({
           provider: 'google',
           options: { scopes: ['email', 'profile'] }
-        }), 60000, 'SocialLogin.login()');
+        }), 60000, 'login()');
         const idToken = loginRes && loginRes.result && loginRes.result.idToken;
         if (!idToken) throw new Error('No idToken returned from SocialLogin');
 
@@ -3652,6 +3664,7 @@ window.signInWithGoogle = async function(statusElId) {
   function isNetworkish(e) {
     const code = (e && e.code) || '';
     const msg = ((e && e.message) || '').toLowerCase();
+    if (e && e._isDiagTimeout) return false; // 我们自己抛出的诊断超时，不要当网络错误安静重试，直接原样报出来
     return code === 'auth/network-request-failed' || code === 'auth/timeout'
         || msg.indexOf('network') !== -1 || msg.indexOf('timeout') !== -1 || msg.indexOf('failed to fetch') !== -1;
   }

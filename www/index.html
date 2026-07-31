@@ -3934,8 +3934,15 @@ async function handleAuthUser(user) {
         localStorage.removeItem('luna_expiry');
         if(typeof showTrialBanner === 'function') showTrialBanner();
       } else {
-        // 老用户 — 只更新 lastLogin
+        // 老用户 — 除了 lastLogin，顺便把这次登录拿到的资料补写/刷新一遍。
+        // 之前这里只更新 lastLogin：如果账号是在某次登录资料缺失（比如登录流程还没修好那会儿）时
+        // 第一次被创建的，资料字段就会一直空着、永远没有机会被补上——这正是这次踩到的坑。
+        // 只在这次真的拿到值时才覆盖，避免用空值把已有的好数据冲掉。
         await window._fb.set('users/' + uid + '/lastLogin', now);
+        if (user.email)       await window._fb.set('users/' + uid + '/email', user.email).catch(()=>{});
+        if (user.displayName) await window._fb.set('users/' + uid + '/displayName', user.displayName).catch(()=>{});
+        if (user.photoURL)    await window._fb.set('users/' + uid + '/photoURL', user.photoURL).catch(()=>{});
+        if (user.provider)    await window._fb.set('users/' + uid + '/provider', user.provider).catch(()=>{});
         const isActivated = window.IS_PLAY_BUILD ? true : (userData.activated === true || userData.activated === 1 || userData.activated === '1' || userData.activated === 'true');
         localStorage.setItem('luna_activated', isActivated ? '1' : '0');
         if(userData.expiry) localStorage.setItem('luna_expiry', String(userData.expiry));
@@ -3962,6 +3969,18 @@ async function handleAuthUser(user) {
 
 // ── 登出 ──
 window.signOutGoogle = async function() {
+  // iOS 上原生 Google 登录插件会缓存上次登录的账号，只退出 Firebase 这边的登录状态，
+  // 下次点"使用 Google 登录"会跳过账号选择框、直接沿用上次那个账号。
+  // 这里额外让原生层也退出一次，退出后再次登录才会重新弹出选择账号的框。
+  try {
+    const isIOS = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'ios');
+    if (isIOS) {
+      const SocialLoginPlugin = window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
+      if (SocialLoginPlugin && SocialLoginPlugin.logout) {
+        await SocialLoginPlugin.logout({ provider: 'google' });
+      }
+    }
+  } catch(e) {}
   try { await signOut(auth); } catch(e) {}
   // ★彻底清掉当前账号的本地痕迹★ —— 否则换号登录时，残留的 luna_logs/luna_period_days
   // 会让新号串显示上个号的记录，残留的 luna_consent 会让新号跳过"欢迎/同意条款"页。

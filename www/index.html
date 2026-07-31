@@ -3598,26 +3598,35 @@ window.signInWithGoogle = async function(statusElId) {
           ]).finally(function(){ if (tickHandle) clearInterval(tickHandle); });
         }
 
-        // 只需要真正初始化一次，重复调用无副作用，用标记位避免每次登录都重新初始化
+        // ====== iOS Google Login Debug：每一步都用系统级弹窗打卡，精确定位卡在哪一步 ======
         if (!window._socialLoginInited) {
-          await _withTimeout(SocialLoginPlugin.initialize({
+          alert('① initialize() 开始');
+          const initResult = await _withTimeout(SocialLoginPlugin.initialize({
             google: {
               webClientId: '830021751175-9ef5aqlgoegsmuspni08adji2ejp8ssf.apps.googleusercontent.com',
-              iOSClientId: '830021751175-iovnl8kaakh7i72853kpr3ecdkn7f1ke.apps.googleusercontent.com'
+              iOSClientId: '830021751175-iovnl8kaakh7i72853kpr3ecdkn7f1ke.apps.googleusercontent.com',
+              mode: 'online'
             }
           }), 15000, 'initialize()');
+          alert('② initialize() 完成\n\n' + JSON.stringify(initResult));
           window._socialLoginInited = true;
         }
 
+        alert('③ login() 开始');
         const loginRes = await _withTimeout(SocialLoginPlugin.login({
           provider: 'google',
           options: { scopes: ['email', 'profile'] }
         }), 60000, 'login()');
+        alert('④ login() 返回\n\n' + JSON.stringify(loginRes));
+
         const idToken = loginRes && loginRes.result && loginRes.result.idToken;
+        alert('⑤ idToken\n\n' + (idToken || 'NULL'));
         if (!idToken) throw new Error('No idToken returned from SocialLogin');
 
+        alert('⑥ Firebase Credential');
         const credential = GoogleAuthProvider.credential(idToken);
         const result = await signInWithCredential(auth, credential);
+        alert('⑦ Firebase 登录成功');
         user = result.user;
 
       } else {

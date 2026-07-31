@@ -3362,7 +3362,7 @@ window.installPWA = function() {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, get, set, remove, onValue, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential,
+import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithCredential,
   onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getMessaging, getToken, onMessage }
@@ -3379,7 +3379,14 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
-const auth = getAuth(app);
+// 🩹 Firebase 官方已知 bug（firebase-js-sdk#5497）：在 Capacitor 的 iOS WKWebView 里，
+// 用默认的 getAuth() 时，signInWithCredential() 会永远卡住不返回（既不成功也不报错）。
+// 官方社区反复验证过的解法：原生环境下改用 initializeAuth + 显式指定 indexedDBLocalPersistence。
+// 网页/PWA 环境不受影响，继续用原来的 getAuth() 就好。
+const isNativeShell = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const auth = isNativeShell
+  ? initializeAuth(app, { persistence: indexedDBLocalPersistence })
+  : getAuth(app);
 window.auth = auth; // 暴露到 window，方便其他非 module 脚本区域（比如 AI 分析那段）也能拿到
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });

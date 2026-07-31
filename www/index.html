@@ -697,14 +697,16 @@ window.installPWA = function() {
     position: relative;
     overflow: hidden;
     padding-top: calc(16px + env(safe-area-inset-top, 0px));
-    padding-bottom: 100px;
+    padding-bottom: 145px;
     transition: background .4s ease;
     display: flex;
     flex-direction: column;
     /* 大屏手机（比如 iPhone 15 Pro Max）内容撑不满整屏，之前多余的空间会全部堆在最下面，
        看起来"空一大截"。这里改成把多出来的空间，均匀地拆成卡片之间的间距——
-       矮屏手机上 3vh 很小，间距接近原来的样子；高屏手机上间距会跟着变宽，不会全部堆积在底部。 */
-    gap: clamp(0px, 2.6vh, 28px);
+       矮屏手机上 3vh 很小，间距接近原来的样子；高屏手机上间距会跟着变宽，不会全部堆积在底部。
+       上限收窄到 16px（原本 28px 在中间卡片上下留白太多），同时把底部预留空间加大到 145px，
+       给最后一张卡片留出更保险的安全距离，避免矮屏手机（如 iPhone 11）上跟底部导航栏贴在一起。 */
+    gap: clamp(0px, 1.6vh, 16px);
   }
 
   /* ─── Header ─── */

@@ -3541,6 +3541,7 @@ _markFbReady();
 
 // ── Google 登录（原生 App 内用 Capacitor 原生插件，网页/PWA 用 popup）──
 window.signInWithGoogle = async function(statusElId) {
+  alert('DEBUG-MARK 2026-07-31-a：signInWithGoogle 已触发'); // 🩹 临时诊断用：确认新代码是否真的在跑，确认后删掉这一行
   const isTh = window._appLang ? window._appLang === 'th' : window._gateLang === 'th'; // 优先跟着当前界面语言走，避免切换语言后这里的提示语跟别处不同步
   const errEl = document.getElementById(statusElId || 'codeErr');
 

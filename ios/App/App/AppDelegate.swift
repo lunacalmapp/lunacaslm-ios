@@ -1,6 +1,8 @@
 import UIKit
 import Capacitor
 import GoogleSignIn
+import FirebaseCore
+import FirebaseMessaging
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -9,6 +11,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        // 用来把"苹果原始设备编号"翻译成 Firebase 真正认识的推送令牌（读取项目里已有的 GoogleService-Info.plist，不用额外配置）。
+        FirebaseApp.configure()
         return true
     }
 
@@ -34,10 +38,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
-    // 苹果推送注册成功/失败后，系统会调用这两个方法——必须手动把结果转发给 Capacitor 的推送插件，
-    // 不然插件永远收不到"办完了"的通知，前端那边会一直卡在等待、最终超时（这正是这次踩到的坑）。
+    // 苹果推送注册成功/失败后，系统会调用这两个方法。
+    // 上次只是把苹果给的"原始设备编号"直接转发出去——这个编号 Firebase 后台不认识，发送时会失败。
+    // 这次交给 Firebase Messaging 翻译一遍，拿到真正的推送令牌（格式跟安卓那边一致）再转发给插件。
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+        Messaging.messaging().apnsToken = deviceToken
+        Messaging.messaging().token(completion: { (token, error) in
+            if let error = error {
+                NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+            } else if let token = token {
+                NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: token)
+            }
+        })
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {

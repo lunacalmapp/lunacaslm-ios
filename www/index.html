@@ -2003,6 +2003,56 @@ window.installPWA = function() {
   }
   .theme-pro { position:relative; }
 
+  /* 🎠 主题选择器：改成横向丝滑滑动条，卡片本身的渐变/图标/文字样式完全不变，只改排布方式 */
+  .theme-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .theme-strip::-webkit-scrollbar { display: none; }
+  .theme-strip .theme-pick {
+    flex: 0 0 calc((100% - 16px) / 3);
+    scroll-snap-align: start;
+  }
+  .theme-tier-tag {
+    flex: 0 0 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 4px;
+    border-radius: 14px;
+    scroll-snap-align: start;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.25;
+    white-space: normal;
+  }
+  .theme-tier-tag.tag-free { background: linear-gradient(145deg,#E3F2E6,#8FC79A); color:#2F5E38; }
+  .theme-tier-tag.tag-moon { background: linear-gradient(145deg,var(--purple-light),var(--purple)); color:#fff; }
+  .theme-tier-tag.tag-vip  { background: linear-gradient(145deg,#F0C479,#B8763A); color:#fff; }
+  .theme-tier-tag .tt-icon { font-size: 18px; }
+
+  /* 🎠 左右滑动箭头：浮在滑动条两侧，点一下横向滚一段，明确告诉用户"还能滑" */
+  .theme-strip-wrap { position: relative; }
+  .theme-strip-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 26px; height: 26px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.92); color: var(--purple);
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(124,92,191,0.28); z-index: 3;
+  }
+  .theme-strip-arrow:active { transform: translateY(-50%) scale(0.9); }
+  .theme-strip-arrow.left  { left: -6px; }
+  .theme-strip-arrow.right { right: -6px; }
+
   /* ⚙️ 日历设置齿轮按钮（精致版：渐变+柔投影+内高光+按压反馈）*/
   .cal-gear-btn {
     width:40px; height:40px; border-radius:13px;
@@ -2770,42 +2820,30 @@ window.installPWA = function() {
         <div style="margin-top:14px;background:var(--mine-chip-bg);border:1px solid var(--mine-chip-border);border-radius:12px;padding:10px 12px;font-size:11.5px;color:var(--mine-accent);line-height:1.6;">
           <span data-i18n="theme_moon_hint">🌙 สะสมแสงจันทร์จากการบันทึกและความสำเร็จ เพื่อปลดล็อกธีมสวย ๆ — ปลดล็อกแล้วเป็นของคุณถาวร</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">
+        <div class="theme-strip-wrap">
+          <button class="theme-strip-arrow left" aria-label="prev" onclick="scrollThemeStrip(-1)">‹</button>
+          <button class="theme-strip-arrow right" aria-label="next" onclick="scrollThemeStrip(1)">›</button>
+          <div class="theme-strip" id="themeStripEl" style="margin-top:12px;">
+          <!-- ══ ฟรี / 免费 ══ -->
+          <div class="theme-tier-tag tag-free"><span class="tt-icon">✨</span><span data-i18n="theme_tier_free">ฟรี</span></div>
           <button class="theme-pick" data-theme="default" onclick="pickTheme(this,'default')" style="background:linear-gradient(145deg,#FDE8EF,#E89BB8);">
             <div style="font-size:22px;">🌸</div><div class="tp-label" style="color:#C2477A;" data-i18n="theme_default">ค่าเริ่มต้น</div>
           </button>
-          <button class="theme-pick theme-pro" data-theme="moonlotus" onclick="pickThemeOrUpgrade(this,'moonlotus')" style="background:linear-gradient(160deg,#12507a 0%,#1c6f94 55%,#2f93ab 100%);position:relative;">
-            <div id="lock-moonlotus" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🪷</div><div class="tp-label" style="color:#eef7fb;" data-i18n="theme_moonlotus">ราตรีบัว</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="aurora" onclick="pickThemeOrUpgrade(this,'aurora')" style="background:linear-gradient(150deg,#1f7a6e 0%,#6a3aa8 45%,#c968b8 100%);position:relative;">
-            <div id="lock-aurora" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🌌</div><div class="tp-label" style="color:#f3ecff;" data-i18n="theme_aurora">ออโรร่าม่วง</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="amber" onclick="pickThemeOrUpgrade(this,'amber')" style="background:linear-gradient(150deg,#8a5a2a 0%,#c17f3e 50%,#f0c479 100%);position:relative;">
-            <div id="lock-amber" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🍯</div><div class="tp-label" style="color:#fdf3e2;" data-i18n="theme_amber">อำพันทอง</div>
-          </button>
-          <!-- 🌫️ 浅色高级款三件套：泰文名先给的直译，麻烦你核对一下用词对不对 -->
-          <button class="theme-pick theme-pro" data-theme="mistteal" onclick="pickThemeOrUpgrade(this,'mistteal')" style="background:linear-gradient(145deg,#A8CDCE,#4C8792);position:relative;">
-            <div id="lock-mistteal" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🌲</div><div class="tp-label" style="color:#eef7f7;" data-i18n="theme_mistteal">หมอกสน</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="goldsand" onclick="pickThemeOrUpgrade(this,'goldsand')" style="background:linear-gradient(145deg,#E3BE7C,#B9853A);position:relative;">
-            <div id="lock-goldsand" class="theme-lock-overlay" style="display:none;">🔒</div>
+          <button class="theme-pick" data-theme="goldsand" onclick="pickTheme(this,'goldsand')" style="background:linear-gradient(145deg,#E3BE7C,#B9853A);">
             <div style="font-size:22px;">🌾</div><div class="tp-label" style="color:#3f2a0e;" data-i18n="theme_goldsand">ทรายทอง</div>
           </button>
-          <button class="theme-pick theme-pro" data-theme="duskmauve" onclick="pickThemeOrUpgrade(this,'duskmauve')" style="background:linear-gradient(145deg,#D3AFC5,#8C5F7D);position:relative;">
-            <div id="lock-duskmauve" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🌆</div><div class="tp-label" style="color:#fdf3f8;" data-i18n="theme_duskmauve">ม่วงสนธยา</div>
+          <button class="theme-pick" data-theme="aurora" onclick="pickTheme(this,'aurora')" style="background:linear-gradient(150deg,#1f7a6e 0%,#6a3aa8 45%,#c968b8 100%);">
+            <div style="font-size:22px;">🌌</div><div class="tp-label" style="color:#f3ecff;" data-i18n="theme_aurora">ออโรร่าม่วง</div>
           </button>
+          <button class="theme-pick" data-theme="peach" onclick="pickTheme(this,'peach')" style="background:linear-gradient(145deg,#FCEAE0,#F5C0A8);">
+            <div style="font-size:22px;">🍑</div><div class="tp-label" style="color:#B85C3C;" data-i18n="theme_peach">พีช</div>
+          </button>
+
+          <!-- ══ 🌙 ใช้แสงจันทร์แลก 200 / 月光值 200 换 ══ -->
+          <div class="theme-tier-tag tag-moon"><span class="tt-icon">🌙</span><span data-i18n="theme_tier_moon">200</span></div>
           <button class="theme-pick theme-pro" data-theme="lotus" onclick="pickThemeOrUpgrade(this,'lotus')" style="background:linear-gradient(145deg,#F3E3F0,#C98ABF);position:relative;">
             <div id="lock-lotus" class="theme-lock-overlay" style="display:none;">🔒</div>
             <div style="font-size:22px;">🪷</div><div class="tp-label" style="color:#8A3A78;" data-i18n="theme_lotus">บัวหลวง</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="jasmine" onclick="pickThemeOrUpgrade(this,'jasmine')" style="background:linear-gradient(145deg,#E3F2E6,#8FC79A);position:relative;">
-            <div id="lock-jasmine" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🌿</div><div class="tp-label" style="color:#3F7A4A;" data-i18n="theme_jasmine">มะลิ</div>
           </button>
           <button class="theme-pick theme-pro" data-theme="rose" onclick="pickThemeOrUpgrade(this,'rose')" style="background:linear-gradient(145deg,#FBE7DF,#E89980);position:relative;">
             <div id="lock-rose" class="theme-lock-overlay" style="display:none;">🔒</div>
@@ -2819,25 +2857,51 @@ window.installPWA = function() {
             <div id="lock-sky" class="theme-lock-overlay" style="display:none;">🔒</div>
             <div style="font-size:22px;">🩵</div><div class="tp-label" style="color:#3A6FB0;" data-i18n="theme_sky">ฟ้า</div>
           </button>
+          <button class="theme-pick theme-pro" data-theme="mint" onclick="pickThemeOrUpgrade(this,'mint')" style="background:linear-gradient(145deg,#DCF2EF,#7FC9C4);position:relative;">
+            <div id="lock-mint" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🍃</div><div class="tp-label" style="color:#1F7572;" data-i18n="theme_mint">มินต์</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="lavender" onclick="pickThemeOrUpgrade(this,'lavender')" style="background:linear-gradient(145deg,#EDE6F5,#B9A4DC);position:relative;">
+            <div id="lock-lavender" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🪻</div><div class="tp-label" style="color:#3D2459;" data-i18n="theme_lavender">ลาเวนเดอร์</div>
+          </button>
+
+          <!-- ══ 👑 VIP เท่านั้น / VIP 专属 ══ -->
+          <div class="theme-tier-tag tag-vip"><span class="tt-icon">👑</span><span data-i18n="theme_tier_vip">VIP</span></div>
+          <button class="theme-pick theme-pro" data-theme="moonlotus" onclick="pickThemeOrUpgrade(this,'moonlotus')" style="background:linear-gradient(160deg,#12507a 0%,#1c6f94 55%,#2f93ab 100%);position:relative;">
+            <div id="lock-moonlotus" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🪷</div><div class="tp-label" style="color:#eef7fb;" data-i18n="theme_moonlotus">ราตรีบัว</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="amber" onclick="pickThemeOrUpgrade(this,'amber')" style="background:linear-gradient(150deg,#8a5a2a 0%,#c17f3e 50%,#f0c479 100%);position:relative;">
+            <div id="lock-amber" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🍯</div><div class="tp-label" style="color:#fdf3e2;" data-i18n="theme_amber">อำพันทอง</div>
+          </button>
+          <!-- 🌫️ 浅色高级款三件套：泰文名先给的直译，麻烦你核对一下用词对不对 -->
+          <button class="theme-pick theme-pro" data-theme="mistteal" onclick="pickThemeOrUpgrade(this,'mistteal')" style="background:linear-gradient(145deg,#A8CDCE,#4C8792);position:relative;">
+            <div id="lock-mistteal" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🌲</div><div class="tp-label" style="color:#eef7f7;" data-i18n="theme_mistteal">หมอกสน</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="duskmauve" onclick="pickThemeOrUpgrade(this,'duskmauve')" style="background:linear-gradient(145deg,#D3AFC5,#8C5F7D);position:relative;">
+            <div id="lock-duskmauve" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🌆</div><div class="tp-label" style="color:#fdf3f8;" data-i18n="theme_duskmauve">ม่วงสนธยา</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="jasmine" onclick="pickThemeOrUpgrade(this,'jasmine')" style="background:linear-gradient(145deg,#E3F2E6,#8FC79A);position:relative;">
+            <div id="lock-jasmine" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🌿</div><div class="tp-label" style="color:#3F7A4A;" data-i18n="theme_jasmine">มะลิ</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="dream" onclick="pickThemeOrUpgrade(this,'dream')" style="background:linear-gradient(145deg,#EDE6F8,#B49CDB);position:relative;">
+            <div id="lock-dream" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">💜</div><div class="tp-label" style="color:#6B4FA8;" data-i18n="theme_dream">ม่วงฝัน</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="sakura" onclick="pickThemeOrUpgrade(this,'sakura')" style="background:linear-gradient(145deg,#FCE0E8,#F4A8C0);position:relative;">
+            <div id="lock-sakura" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🌷</div><div class="tp-label" style="color:#7A1F3D;" data-i18n="theme_sakura">ซากุระ</div>
+          </button>
           <button class="theme-pick theme-pro" data-theme="cream" onclick="pickThemeOrUpgrade(this,'cream')" style="background:linear-gradient(145deg,#F9F3EE,#C9B29A);position:relative;">
             <div id="lock-cream" class="theme-lock-overlay" style="display:none;">🔒</div>
             <div style="font-size:22px;">🤍</div><div class="tp-label" style="color:#8A6F5A;" data-i18n="theme_cream">ครีม</div>
           </button>
-          <button class="theme-pick" data-theme="mint" onclick="pickTheme(this,'mint')" style="background:linear-gradient(145deg,#DCF2EF,#7FC9C4);">
-            <div style="font-size:22px;">🍃</div><div class="tp-label" style="color:#1F7572;" data-i18n="theme_mint">มินต์</div>
-          </button>
-          <button class="theme-pick" data-theme="dream" onclick="pickTheme(this,'dream')" style="background:linear-gradient(145deg,#EDE6F8,#B49CDB);">
-            <div style="font-size:22px;">💜</div><div class="tp-label" style="color:#6B4FA8;" data-i18n="theme_dream">ม่วงฝัน</div>
-          </button>
-          <button class="theme-pick" data-theme="sakura" onclick="pickTheme(this,'sakura')" style="background:linear-gradient(145deg,#FCE0E8,#F4A8C0);">
-            <div style="font-size:22px;">🌷</div><div class="tp-label" style="color:#7A1F3D;" data-i18n="theme_sakura">ซากุระ</div>
-          </button>
-          <button class="theme-pick" data-theme="lavender" onclick="pickTheme(this,'lavender')" style="background:linear-gradient(145deg,#EDE6F5,#B9A4DC);">
-            <div style="font-size:22px;">🪻</div><div class="tp-label" style="color:#3D2459;" data-i18n="theme_lavender">ลาเวนเดอร์</div>
-          </button>
-          <button class="theme-pick" data-theme="peach" onclick="pickTheme(this,'peach')" style="background:linear-gradient(145deg,#FCEAE0,#F5C0A8);">
-            <div style="font-size:22px;">🍑</div><div class="tp-label" style="color:#B85C3C;" data-i18n="theme_peach">พีช</div>
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -5386,7 +5450,7 @@ window.setLang = setLang;
           </div>
           <div style="font-size:13px;color:#4a4060;line-height:2;">
             ✅ ${isTh ? 'บันทึกได้ไม่จำกัด' : '无限制保存记录'}<br>
-            ✅ ${isTh ? 'ปลดล็อกธีมทั้ง 7 แบบ' : '解锁全部7个主题'}<br>
+            ✅ ${isTh ? 'ปลดล็อกธีม VIP สุดพิเศษทั้งหมด' : '解锁全部VIP专属主题'}<br>
             ✅ ${isTh ? 'ประวัติย้อนหลัง 120 วัน' : '查看120天历史记录'}<br>
             ✅ ${isTh ? 'สถิติครบถ้วน' : '完整统计分析'}<br>
             ✅ ${isTh ? 'Luna วิเคราะห์สุขภาพเชิงลึก (VIP)' : 'Luna 智能健康洞察 (VIP)'}<br>
@@ -5431,8 +5495,15 @@ window.setLang = setLang;
   }
   window._lunaAdminId = _lunaAdminId;
 
+  // 🍎 iOS 走全新的付费订阅页（3 档定价 + 苹果内购占位接口），其他平台维持原本的"会员码 + LINE"流程不变
   function showTrialLockModal() {
     if(IS_PLAY_BUILD) return; // Play 版不弹试用锁定窗（含 LINE 入口）
+    const platform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || '';
+    if(platform === 'ios') { showVipPaywall(); return; }
+    _showMemberCodeModal();
+  }
+
+  function _showMemberCodeModal() {
     const existing = document.getElementById('trialLockModal');
     if(existing) { existing.style.display='flex'; return; }
     const code = _lunaAdminId();
@@ -5481,6 +5552,158 @@ window.setLang = setLang;
     m.addEventListener('click', e => { if(e.target===m) m.style.display='none'; });
     document.body.appendChild(m);
   }
+
+  // ═══════════ 🍎 iOS 专属付费订阅页：3 档定价 + 苹果内购占位接口 ═══════════
+  // 商品 ID 需与 App Store Connect「订阅」里创建的 3 个订阅产品完全一致
+  const VIP_PLANS = {
+    weekly:  { id:'app.lunacalm.flow.ios.weekly',  price:49,  period_th:'รายสัปดาห์', period_zh:'每周',
+               sub_th:'≈7 บาท/วัน', sub_zh:'≈7 泰铢/天' },
+    monthly: { id:'app.lunacalm.flow.ios.monthly', price:129, period_th:'รายเดือน',   period_zh:'每月',
+               sub_th:'≈4.3 บาท/วัน', sub_zh:'≈4.3 泰铢/天',
+               badge_th:'ยอดนิยม', badge_zh:'最受欢迎' },
+    yearly:  { id:'app.lunacalm.flow.ios.yearly',  price:699, period_th:'รายปี',      period_zh:'每年',
+               sub_th:'เฉลี่ย 58 บาท/เดือน', sub_zh:'折合每月 58 泰铢',
+               badge_th:'คุ้มที่สุด -55%', badge_zh:'最划算 省55%' },
+  };
+  let _vipSelectedPlan = 'monthly';
+
+  function showVipPaywall() {
+    document.querySelectorAll('#vipPaywallModal').forEach(el => el.remove());
+    _vipSelectedPlan = 'monthly';
+    const isTh = _appLang === 'th';
+    const m = document.createElement('div');
+    m.id = 'vipPaywallModal';
+    m.style.cssText = `position:fixed;inset:0;z-index:9998;background:rgba(44,36,64,0.45);
+      backdrop-filter:blur(5px);display:flex;align-items:flex-end;justify-content:center;`;
+
+    const featuresHTML = `
+      ✅ ${isTh?'บันทึกได้ไม่จำกัด':'无限制保存记录'}<br>
+      ✅ ${isTh?'ปลดล็อกธีม VIP สุดพิเศษทั้งหมด':'解锁全部VIP专属主题'}<br>
+      ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน':'查看120天历史记录'}<br>
+      ✅ ${isTh?'สถิติครบถ้วน':'完整统计分析'}<br>
+      ✅ ${isTh?'Luna วิเคราะห์สุขภาพเชิงลึก (VIP)':'Luna 智能健康洞察 (VIP)'}<br>
+      ✅ ${isTh?'ป้ายสมาชิกพรีเมียม 👑':'正版会员专属徽章 👑'}`;
+
+    m.innerHTML = `
+      <div style="background:#fff;border-radius:28px 28px 0 0;padding:24px 22px 32px;
+        width:100%;max-width:390px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+        animation:slideUp .3s cubic-bezier(0.34,1.56,0.64,1);position:relative;">
+        <button onclick="document.getElementById('vipPaywallModal').remove()"
+          style="position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;
+          border:none;background:#f0edf8;color:#8a849e;font-size:15px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;font-family:inherit;">✕</button>
+        <div style="width:40px;height:4px;background:#e0dcea;border-radius:2px;margin:0 auto 18px;"></div>
+
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:42px;margin-bottom:6px;">👑</div>
+          <div style="font-size:18px;font-weight:700;color:#2d2640;margin-bottom:4px;">
+            ${isTh?'Luna Calm พรีเมียม':'Luna Calm 会员'}
+          </div>
+          <div style="font-size:13px;color:#8a849e;">
+            ${isTh?'ปลดล็อกทุกฟีเจอร์ บันทึกได้ไม่จำกัด':'解锁全部功能，无限制保存记录'}
+          </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,#f9f0ff,#fff0fa);border-radius:16px;
+          padding:14px 16px;margin-bottom:20px;">
+          <div style="font-size:13px;color:#4a4060;line-height:2;">${featuresHTML}</div>
+        </div>
+
+        <div id="vipPlanList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+          ${Object.keys(VIP_PLANS).map(key => _vipPlanCardHTML(key, isTh)).join('')}
+        </div>
+
+        <button id="vipSubscribeBtn" onclick="startVipPurchase()"
+          style="width:100%;padding:15px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);
+          border:none;border-radius:16px;color:#fff;font-size:16px;font-weight:700;
+          cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(124,92,191,0.4);">
+          ${_vipSubscribeBtnLabel(isTh)}
+        </button>
+
+        <div style="text-align:center;margin-top:12px;">
+          <button onclick="restoreVipPurchase()" style="background:none;border:none;
+            color:#7c5cbf;font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline;">
+            ${isTh?'เคยซื้อแล้ว? กู้คืนการซื้อ':'已购买过？恢复购买'}
+          </button>
+        </div>
+
+        <div style="font-size:10.5px;color:#b0a8c4;line-height:1.7;margin-top:16px;text-align:center;">
+          ${isTh
+            ? `การสมัครสมาชิกจะต่ออายุอัตโนมัติ เว้นแต่คุณจะยกเลิกล่วงหน้าอย่างน้อย 24 ชั่วโมงก่อนสิ้นสุดรอบ จัดการหรือยกเลิกได้ที่ การตั้งค่า iPhone → [ชื่อของคุณ] → สมัครสมาชิก อ่านเพิ่มเติมที่ <span onclick="showTerms()" style="color:#7c5cbf;text-decoration:underline;">ข้อกำหนดการใช้งาน</span> และ <span onclick="showPrivacy()" style="color:#7c5cbf;text-decoration:underline;">นโยบายความเป็นส่วนตัว</span>`
+            : `订阅将自动续期，除非您在当前周期结束前至少24小时取消。可在 设置 → [您的名字] → 订阅 中管理或取消。详见 <span onclick="showTerms()" style="color:#7c5cbf;text-decoration:underline;">使用条款</span> 与 <span onclick="showPrivacy()" style="color:#7c5cbf;text-decoration:underline;">隐私政策</span>`}
+        </div>
+      </div>`;
+    m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+    document.body.appendChild(m);
+  }
+  window.showVipPaywall = showVipPaywall;
+
+  function _vipPlanCardHTML(key, isTh) {
+    const p = VIP_PLANS[key];
+    const selected = _vipSelectedPlan === key;
+    const badge = isTh ? p.badge_th : p.badge_zh;
+    return `
+      <div onclick="selectVipPlan('${key}')" data-plan="${key}"
+        style="position:relative;display:flex;align-items:center;gap:12px;padding:14px 16px;
+        border-radius:16px;cursor:pointer;transition:all .15s;
+        border:2px solid ${selected?'#7c5cbf':'#ece7f5'};
+        background:${selected?'linear-gradient(135deg,#f9f0ff,#fff5fa)':'#fff'};">
+        ${badge ? `<div style="position:absolute;top:-9px;right:14px;background:linear-gradient(135deg,#ff9cc0,#ffb8a3);
+          color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;
+          box-shadow:0 2px 6px rgba(255,140,170,0.4);">${badge}</div>` : ''}
+        <div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;
+          border:2px solid ${selected?'#7c5cbf':'#d8d2e8'};
+          display:flex;align-items:center;justify-content:center;">
+          ${selected?'<div style="width:10px;height:10px;border-radius:50%;background:#7c5cbf;"></div>':''}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:14.5px;font-weight:700;color:#2d2640;">${isTh?p.period_th:p.period_zh}</div>
+          <div style="font-size:11.5px;color:#a89ec8;margin-top:2px;">${isTh?p.sub_th:p.sub_zh}</div>
+        </div>
+        <div style="font-size:17px;font-weight:700;color:#7c5cbf;">${p.price}<span style="font-size:11px;font-weight:500;color:#a89ec8;"> ${isTh?'บาท':'泰铢'}</span></div>
+      </div>`;
+  }
+
+  function _vipSubscribeBtnLabel(isTh) {
+    const p = VIP_PLANS[_vipSelectedPlan];
+    return isTh
+      ? `สมัครสมาชิก · ${p.price} บาท / ${p.period_th}`
+      : `订阅 · ${p.price} 泰铢 / ${p.period_zh}`;
+  }
+
+  function selectVipPlan(key) {
+    if(!VIP_PLANS[key]) return;
+    _vipSelectedPlan = key;
+    const isTh = _appLang === 'th';
+    const list = document.getElementById('vipPlanList');
+    if(list) list.innerHTML = Object.keys(VIP_PLANS).map(k => _vipPlanCardHTML(k, isTh)).join('');
+    const btn = document.getElementById('vipSubscribeBtn');
+    if(btn) btn.textContent = _vipSubscribeBtnLabel(isTh);
+  }
+  window.selectVipPlan = selectVipPlan;
+
+  // 🍎 真正调起苹果内购的入口——之后接好 RevenueCat 原生插件后，往 window.LunaIAP 上挂 purchase(productId)/restore()
+  //    两个方法即可，这里的调用逻辑不用再改；插件还没接好之前，点击会友好提示"准备中"，不会像坏掉一样没反应
+  function startVipPurchase() {
+    const p = VIP_PLANS[_vipSelectedPlan];
+    const isTh = _appLang === 'th';
+    if(window.LunaIAP && typeof window.LunaIAP.purchase === 'function'){
+      window.LunaIAP.purchase(p.id).catch(function(err){ console.log('IAP purchase error:', err); });
+    } else {
+      showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸');
+    }
+  }
+  window.startVipPurchase = startVipPurchase;
+
+  function restoreVipPurchase() {
+    const isTh = _appLang === 'th';
+    if(window.LunaIAP && typeof window.LunaIAP.restore === 'function'){
+      window.LunaIAP.restore().catch(function(err){ console.log('IAP restore error:', err); });
+    } else {
+      showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸');
+    }
+  }
+  window.restoreVipPurchase = restoreVipPurchase;
 
   // 试用横幅 — fixed 顶部始终可见
   function showTrialBanner() {
@@ -5752,13 +5975,17 @@ window.setLang = setLang;
   // 判断是否正版
   function isPro() { if(window.IS_PLAY_BUILD) return true; return localStorage.getItem('luna_activated') === '1'; }
   // 主题权限：正式会员 或 试用期内 都可用全部主题（试用到期后回退）
-  // ── 主题解锁门槛（月光值达标式：月光值只涨不减，达到数值即永久解锁）──
-  // jasmine(绿色)设为免费，和 default 一样人人可用；其余按月光值解锁
-  const THEME_UNLOCK = { lotus:100, rose:200, orange:300, sky:400, cream:500 }; // 🪷 莲夜水暂时开放试用，未设解锁门槛（要恢复VIP限制时把 moonlotus:1000 加回这里即可）
-  // default 主题人人免费；其余按月光值达标解锁
+  // ── 主题三档 ──
+  // 免费：default / goldsand / aurora / peach（永久免费，不在下面两个表里）
+  // 月光值 200 兑换：lotus / rose / orange / sky / mint / lavender
+  // VIP 专属：moonlotus / amber / mistteal / duskmauve / jasmine / dream / sakura / cream（不能用月光值买，只能开会员）
+  const THEME_UNLOCK = { lotus:200, rose:200, orange:200, sky:200, mint:200, lavender:200 };
+  const VIP_THEMES = ['moonlotus','amber','mistteal','duskmauve','jasmine','dream','sakura','cream'];
   function isThemeUnlocked(key){
-    if(key==='default' || !THEME_UNLOCK[key]) return true;
-    return getMoonPoints() >= THEME_UNLOCK[key];
+    if(key==='default') return true;
+    if(VIP_THEMES.indexOf(key) !== -1) return isPro();
+    if(THEME_UNLOCK[key]) return getMoonPoints() >= THEME_UNLOCK[key];
+    return true; // 不在任何一张表里的主题（goldsand/aurora/peach）永久免费
   }
   window.isThemeUnlocked = isThemeUnlocked;
   function canUseThemes() { return true; } // 兼容旧调用
@@ -5798,13 +6025,16 @@ window.setLang = setLang;
   // 主题锁定/解锁
   function initThemeLocks() {
     if(typeof applyThemePanelState === 'function') applyThemePanelState(); // 恢复主题面板展开/收起状态，不受重新渲染影响
-    const isTh=(localStorage.getItem('luna_lang')||'th')!=='zh';
     document.querySelectorAll('.theme-pick.theme-pro').forEach(btn => {
       const key = btn.getAttribute('data-theme');
       const lockEl = btn.querySelector('.theme-lock-overlay');
       if(!lockEl) return;
       if(isThemeUnlocked(key)){
         lockEl.style.display = 'none';
+      } else if(VIP_THEMES.indexOf(key) !== -1) {
+        // VIP 专属主题：锁上显示皇冠，不显示月光值数字（这个不能用月光值买）
+        lockEl.style.display = 'flex';
+        lockEl.innerHTML = '🔒<span style="font-size:9px;font-weight:700;margin-top:1px;">👑VIP</span>';
       } else {
         // 锁上显示所需月光值
         lockEl.style.display = 'flex';
@@ -5813,19 +6043,31 @@ window.setLang = setLang;
     });
   }
 
-  // 主题选择（达标式解锁）
+  // 主题选择（达标式解锁 / VIP 专属）
   function pickThemeOrUpgrade(btn, key) {
     if(!isThemeUnlocked(key)) {
-      const need = THEME_UNLOCK[key] - getMoonPoints();
       const isTh=(localStorage.getItem('luna_lang')||'th')!=='zh';
-      showToast(isTh
-        ? '🌙 สะสมแสงจันทร์อีก '+need+' ดวงเพื่อปลดล็อกธีมนี้'
-        : '🌙 再攒 '+need+' 月光值即可解锁这个主题');
+      if(VIP_THEMES.indexOf(key) !== -1){
+        showToast(isTh ? '👑 ธีมนี้สำหรับสมาชิก VIP เท่านั้น' : '👑 该主题为 VIP 专属');
+      } else {
+        const need = THEME_UNLOCK[key] - getMoonPoints();
+        showToast(isTh
+          ? '🌙 สะสมแสงจันทร์อีก '+need+' ดวงเพื่อปลดล็อกธีมนี้'
+          : '🌙 再攒 '+need+' 月光值即可解锁这个主题');
+      }
       return;
     }
     pickTheme(btn, key);
   }
   window.pickThemeOrUpgrade = pickThemeOrUpgrade;
+
+  // 🎠 主题横滑条：点左右箭头滚一段（约等于一张卡片宽度+间距）
+  function scrollThemeStrip(dir) {
+    const el = document.getElementById('themeStripEl');
+    if(!el) return;
+    el.scrollBy({ left: dir * 130, behavior: 'smooth' });
+  }
+  window.scrollThemeStrip = scrollThemeStrip;
 
   // 历史记录天数限制
   function getHistoryDays() { return isPro() ? 120 : 31; }
@@ -6345,8 +6587,8 @@ window.setLang = setLang;
        zh:'🌙 Lumi 的衣柜一共有 6 套衣服哦 👗 而且全部免费换,不用花月光值:\n🎀 星愿裙(粉色)\n🪄 魔法袍(紫色)\n🌿 自然裙(绿色)\n🌙 月光睡衣(蓝色)\n🎵 音乐装(橘色)\n🎒 旅行装(卡其色)\n打开她的资料卡,点想穿的那套就能马上换啦',
        fuTh:[], fuZh:[]},
       {kw:['lumi房间','有几个房间','lumi房间怎么买','怎么解锁房间','买房间','房间要多少月光值','ห้องของลูมิ','มีห้องกี่แบบ','ปลดล็อกห้อง','ซื้อห้อง','ห้องราคาเท่าไหร่'],
-       th:'🌙 ห้องของ Lumi มีทั้งหมด 6 สไตล์ค่ะ 🏠\n🌙 สไตล์จันทราแฟนตาซี — ได้เลยฟรี ๆ\n🎀 สไตล์สาวหวานสีชมพู — 120 แสงจันทร์\n🌿 สไตล์สวนป่าเขียว — 150 แสงจันทร์\n📖 สไตล์ห้องสมุดย้อนยุค — 150 แสงจันทร์\n🌊 สไตล์ทะเล — 180 แสงจันทร์\n🌷 สไตล์ระเบียงสวน — 200 แสงจันทร์\nสะสมแสงจันทร์พอแล้วกดปลดล็อกได้เลย เป็นของคุณถาวรไม่มีหมดอายุ หรือถ้าสุ่มได้กุญแจจากห้องสมบัติ ก็เอามาปลดล็อกได้ฟรีไม่ต้องเสียแสงจันทร์เลยนะ 🔑',
-       zh:'🌙 Lumi 的房间一共有 6 种风格哦 🏠\n🌙 梦幻月亮风 — 一开始就免费拥有\n🎀 少女粉色风 — 120 月光值\n🌿 森系绿植风 — 150 月光值\n📖 复古书房风 — 150 月光值\n🌊 海洋风 — 180 月光值\n🌷 阳台庭院风 — 200 月光值\n攒够月光值,点解锁就能永久拥有,不会过期;如果宝物阁抽到钥匙,也能直接免费解锁,不用花月光值 🔑',
+       th:'🌙 ห้องของ Lumi มีทั้งหมด 6 สไตล์ค่ะ 🏠\n🌙 สไตล์จันทราแฟนตาซี — ฟรี\n🎀 สไตล์สาวหวานสีชมพู — ฟรี\n🌿 สไตล์สวนป่าเขียว — 200 แสงจันทร์\n📖 สไตล์ห้องสมุดย้อนยุค — 200 แสงจันทร์\n🌊 สไตล์ทะเล — สำหรับสมาชิก VIP เท่านั้น\n🌷 สไตล์ระเบียงสวน — สำหรับสมาชิก VIP เท่านั้น\nสองสไตล์แรกได้เลยฟรี ๆ ถัดมาสะสมแสงจันทร์พอแล้วกดปลดล็อกได้เลย เป็นของคุณถาวรไม่มีหมดอายุ หรือถ้าสุ่มได้กุญแจจากห้องสมบัติ ก็เอามาปลดล็อกสองห้องนี้ได้ฟรีไม่ต้องเสียแสงจันทร์ ส่วนห้องทะเลกับระเบียงสวนต้องเป็นสมาชิก VIP เท่านั้นนะคะ 👑',
+       zh:'🌙 Lumi 的房间一共有 6 种风格哦 🏠\n🌙 梦幻月亮风 — 永久免费\n🎀 少女粉色风 — 永久免费\n🌿 森系绿植风 — 200 月光值\n📖 复古书房风 — 200 月光值\n🌊 海洋风 — VIP 专属\n🌷 阳台庭院风 — VIP 专属\n前两个直接免费拥有,后两个攒够月光值点解锁就能永久拥有,不会过期;如果宝物阁抽到钥匙,也能直接免费解锁这两个,不用花月光值;海洋风和阳台庭院风只有开通 VIP 才能用哦 👑',
        fuTh:['อยากรู้วิธีสะสมแสงจันทร์ไหมคะ'], fuZh:['想知道怎么攒月光值吗?']},
       {kw:['lumi户外','户外场景','lumi有户外吗','可以出门吗','lumi出去玩','ฉากกลางแจ้งลูมิ','ลูมิออกไปข้างนอกได้ไหม','ฉากนอกบ้าน'],
        th:'🌙 นอกจากอยู่ในห้อง Lumi ยังออกไปเดินเล่นข้างนอกได้ด้วยนะคะ 🌌 ตอนนี้มีฉากกลางแจ้งให้ดู 3 แบบ (เข้าได้ฟรีทุกฉาก):\n🌌 ภูเขาใต้ดาว\n🌇 ทะเลสาบยามเย็น\n🔭 จุดชมทางช้างเผือก\nแถมตรงหน้าต่าง/ประตูห้อง ยังสลับดูวิวได้ระหว่างซากุระกับป่าสนด้วยค่ะ ในอนาคตจะทยอยเพิ่มฉากใหม่ ๆ ให้เรื่อย ๆ นะ',
@@ -8359,6 +8601,14 @@ window.setLang = setLang;
         checkGrowthMilestone(zh);
 
         const petCv = document.getElementById('petCanvas');
+        // 🌙 眼睛模糊修复：canvas 之前固定按 150x150 物理像素画，但手机屏幕基本都是 2x/3x 视网膜屏，
+        //   浏览器把这张低分辨率位图拉伸显示到 150px 的 CSS 尺寸时，细节（尤其眼睛这种小面积）就会发糊。
+        //   这里按屏幕实际像素比例把画布物理分辨率调高，CSS 显示尺寸不变，画面自然变清晰。
+        if(petCv){
+          const _petDpr = window.devicePixelRatio || 1;
+          petCv.width = 150 * _petDpr;
+          petCv.height = 150 * _petDpr;
+        }
         if(petCv && window.LumiAvatar) window.LumiAvatar.draw(petCv, costume, { phase: phaseForAvatar, eyeCloseAmt });
         applyMoodFx(mood);
 
@@ -9066,7 +9316,7 @@ window.setLang = setLang;
     'amber':    { primary:'#B8763A', light:'#D99A4E', pale:'#F5E6D0', hero:['#FBF0DE','#F0DCB8','#E4C593'], bg:'#FBF6EE', petal:'#E0A559', emoji:'🍯' },
     // 🌫️ 浅色高级款三件套（2026-07-16 新增）：比基础12个更深一档、更有质感，卡片带主题色调（card 字段），
     // 首页还会叠加一层跟主题色自动联动的柔光雾感层（.home-premium-glow，见 body.theme-mistteal/goldsand/duskmauve）。
-    // 解锁门槛暂未定，先保持免费可选（不在 THEME_UNLOCK 里）。
+    // 三档定档后：mistteal/duskmauve 归入 VIP 专属，goldsand 归入永久免费（见 isThemeUnlocked）。
     'mistteal': { primary:'#1F4E58', light:'#4C8792', pale:'#A8CDCE', hero:['#8FBEC0','#5C9AA0','#3D7A82'], bg:'#C7DEDE', petal:'#4C8792', card:'#EFF7F7', emoji:'🌲' },
     'goldsand': { primary:'#6E4A18', light:'#B9853A', pale:'#E3BE7C', hero:['#DCB878','#C4934A','#A97530'], bg:'#EAD5A0', petal:'#B9853A', card:'#FCF4E4', emoji:'🌾' },
     'duskmauve':{ primary:'#4A2F42', light:'#8C5F7D', pale:'#D3AFC5', hero:['#CC9DBB','#B378A0','#96588A'], bg:'#E3C4D8', petal:'#8C5F7D', card:'#FAF0F5', emoji:'🌆' }
@@ -9651,20 +9901,18 @@ window.setLang = setLang;
     const container = document.getElementById('logListWrap');
     if (!container) return;
     const isTh = _appLang === 'th';
-    const pro = (typeof isPro === 'function') && isPro();
-    const FREE_LIMIT = 31;
 
     // 始终以 localStorage 为准读取最新记录，避免内存变量过时导致"时有时无"
     try {
       const stored = JSON.parse(localStorage.getItem('luna_logs') || '[]');
       if (Array.isArray(stored)) logs = stored;
     } catch(e) {}
-    // 强制按日期倒序（新在前），保证"最近31条"准确
+    // 强制按日期倒序（新在前）
     logs.sort((a,b)=> (a&&a.date && b&&b.date) ? (a.date>b.date?-1:1) : 0);
 
-    // logs 已按日期倒序（新的在前）。免费用户最多看 31 条
+    // 🌸 情绪与备注永久免费：不限条数，人人都能看完整记录
     const total = logs.length;
-    const shown = pro ? logs : logs.slice(0, FREE_LIMIT);
+    const shown = logs;
 
     if (total === 0) {
       container.innerHTML = `
@@ -9711,19 +9959,6 @@ window.setLang = setLang;
           ${noteHtml}
         </div>`;
     }).join('');
-
-    // 免费用户且记录超过上限 → 会员提示
-    if (!pro && total > FREE_LIMIT) {
-      html += `
-        <div onclick="if(window.showTrialLockModal)showTrialLockModal()"
-          style="text-align:center; margin-top:6px; padding:16px; cursor:pointer;
-          background:linear-gradient(135deg,#fff,var(--purple-pale)); border:1.5px solid rgba(var(--purple-rgb),0.25); border-radius:16px;">
-          <div style="font-size:13.5px; font-weight:700; color:var(--purple); display:flex; align-items:center; justify-content:center; gap:6px;">
-            <span style="font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;padding:2px 9px;border-radius:20px;">VIP</span>
-            ${isTh ? 'อัปเกรดเพื่อดูข้อความที่เหลือ' : '升级查看全部记录'}
-          </div>
-        </div>`;
-    }
 
     container.innerHTML = html;
   }
@@ -13792,6 +14027,12 @@ const LANG = {
     theme_moonlotus: 'ราตรีบัว',
     theme_aurora: 'ออโรร่าม่วง',
     theme_amber: 'อำพันทอง',
+    theme_mistteal: 'หมอกสน',
+    theme_goldsand: 'ทรายทอง',
+    theme_duskmauve: 'ม่วงสนธยา',
+    theme_tier_free: 'ฟรี',
+    theme_tier_moon: '200',
+    theme_tier_vip: 'VIP',
     ok_btn: 'ตกลง ✓',
     about_desc1: 'แอปนี้ช่วยบันทึกรอบเดือนและสุขภาพร่างกาย',
     about_desc2: 'เพื่อให้คุณเข้าใจร่างกายตัวเองมากขึ้น 🌸',
@@ -14015,6 +14256,9 @@ const LANG = {
     theme_mistteal: '雾松青',
     theme_goldsand: '暖金沙',
     theme_duskmauve: '暮霭藕紫',
+    theme_tier_free: '免费',
+    theme_tier_moon: '200月光值',
+    theme_tier_vip: 'VIP专属',
     ok_btn: '好的 ✓',
     about_desc1: '这个App用于记录月经周期与身体状态',
     about_desc2: '帮助你更了解自己的身体 🌸',

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#7c5cbf">
 <title id="pageTitle">Lumi · 月之谷</title>
@@ -1134,6 +1134,8 @@ const TEXT_MAP = {
 "夜晚":"ช่วงกลางคืน",
 "当前房间":"ห้องปัจจุบัน",
 "还没有钥匙，去宝物阁抽卡试试～":"ยังไม่มีกุญแจเลย ลองไปสุ่มที่ห้องสมบัติดูสิ～",
+"这个房间是 VIP 专属，开通会员才能使用":"ห้องนี้สำหรับสมาชิก VIP เท่านั้น สมัครสมาชิกก่อนนะ",
+"开通会员即可使用":"สมัครสมาชิกเพื่อใช้งาน",
 "记录秘密":"บันทึกความลับ",
 "记录心事":"บันทึกความในใจ",
 "记录节日心得":"บันทึกความรู้สึกวันพิเศษ",
@@ -10232,9 +10234,12 @@ const KEY_PITY=[10,20,25,30,40,50,50];
 let pullsSinceKey=0;   // 距上一把钥匙已经抽了几次
 let keysWonCount=0;    // 已经抽到过几把钥匙（决定下一次的门槛）
 let keysOwned=0;       // 手上现在有几把钥匙，可以直接换开一个场景
-// ✨ 房间解锁：默认只有第一个（梦幻月亮风）解锁，其它要花月光值或用钥匙才能开
-const ROOM_UNLOCK_COST=[0,120,150,150,180,200];
-let unlockedThemes=new Set([0]);
+// ✨ 房间解锁：三档——0/1 永久免费；2/3 花月光值200解锁；4/5 仅 VIP 会员可用（月光值/钥匙都换不了）
+const ROOM_UNLOCK_COST=[0,0,200,200,null,null];
+const VIP_ROOMS=new Set([4,5]);
+function isRoomPro(){ try{ return localStorage.getItem('luna_activated')==='1'; }catch(e){ return false; } }
+function isRoomUnlocked(i){ return unlockedThemes.has(i) || (VIP_ROOMS.has(i) && isRoomPro()); }
+let unlockedThemes=new Set([0,1]);
 function drawCharmByRarity(){
   const roll=Math.random();
   const pool = roll<0.08 ? CHARMS.filter(c=>c.rarity==='special')
@@ -10432,7 +10437,7 @@ function enterOutdoorScene(id){
 function buildRoomPickerGrid(){
   const grid=$('roomPickerGrid'); if(!grid) return; grid.innerHTML='';
   ROOM_THEMES.forEach((th,i)=>{
-    const unlocked=unlockedThemes.has(i);
+    const unlocked=isRoomUnlocked(i);
     const isCurrent=unlocked&&room.theme===i;
     const cost=ROOM_UNLOCK_COST[i];
     const cell=document.createElement('div');
@@ -10446,6 +10451,10 @@ function buildRoomPickerGrid(){
       bodyHtml += isCurrent
         ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;">${T('当前房间')}</div>`
         : `<button class="rp-enter-btn" data-idx="${i}" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;">${T('进入')}</button>`;
+    } else if(VIP_ROOMS.has(i)){
+      bodyHtml += `<div style="font-size:10.5px;color:#c9902e;font-weight:700;margin-top:4px;">👑 VIP</div>
+        <div style="font-size:9.5px;color:var(--muted);margin-top:4px;">${T('开通会员即可使用')}</div>
+        <button class="rp-preview-btn" data-idx="${i}" style="margin-top:5px;font-size:9.5px;padding:4px 9px;border-radius:8px;border:1px dashed var(--purple-light);background:transparent;color:var(--purple);">${T('👀 预览(临时)')}</button>`;
     } else {
       bodyHtml += `<div style="font-size:10.5px;color:var(--muted);margin-top:4px;">🌙 ${cost}</div>
         <div style="display:flex;gap:4px;margin-top:6px;justify-content:center;">
@@ -10464,7 +10473,7 @@ function buildRoomPickerGrid(){
   grid.querySelectorAll('.rp-preview-btn').forEach(b=>b.onclick=()=>previewEnterRoom(+b.dataset.idx));   // TEMP_PREVIEW_ENTRANCE：连这一行也一起删
 }
 function enterRoom(i){
-  if(!unlockedThemes.has(i)) return;
+  if(!isRoomUnlocked(i)) return;
   room.theme=i; buildRoom(); buildCreatures();
   toast(tRoomChanged(ROOM_THEMES[i].name)); markTaskDone('room');
   $('roomPickerSheet').classList.remove('show');
@@ -10483,7 +10492,8 @@ function previewEnterRoom(i){
 }
 /* ▲▲▲ TEMP_PREVIEW_ENTRANCE 结束 ▲▲▲ */
 function unlockRoomWithStars(i){
-  if(unlockedThemes.has(i)) return;
+  if(isRoomUnlocked(i)) return;
+  if(VIP_ROOMS.has(i)){ toast('👑 '+T('这个房间是 VIP 专属，开通会员才能使用')); return; }
   const cost=ROOM_UNLOCK_COST[i];
   if(starCount<cost){ toast('🌙 '+T('月光值还不够，再攒 ')+(cost-starCount)+T(' 点就够啦')); return; }
   starCount-=cost; $('starCount').textContent=starCount; syncLv(); pushStarsToMoonPoints();
@@ -10492,7 +10502,8 @@ function unlockRoomWithStars(i){
   buildRoomPickerGrid();
 }
 function unlockRoomWithKey(i){
-  if(unlockedThemes.has(i)) return;
+  if(isRoomUnlocked(i)) return;
+  if(VIP_ROOMS.has(i)){ toast('👑 '+T('这个房间是 VIP 专属，开通会员才能使用')); return; }
   if(keysOwned<=0){ toast('🗝️ '+T('还没有钥匙，去宝物阁抽卡试试～')); return; }
   keysOwned--; unlockedThemes.add(i); saveGame();
   toast('🗝️ '+T('用钥匙解锁了：')+T(ROOM_THEMES[i].name));
@@ -11926,9 +11937,9 @@ function init(){applyLangToDOM();resize();lumi.x=0;buildWorld();buildCreatures()
     if(save.lumiBirthday && typeof save.lumiBirthday.m==='number' && typeof save.lumiBirthday.d==='number') lumiBirthday=save.lumiBirthday;
     if(save.userBirthday && (typeof save.userBirthday.m==='number'||save.userBirthday.m===null)) userBirthday=save.userBirthday;
     if(typeof window.__refreshBirthdayRows==='function') window.__refreshBirthdayRows();
-    unlockedThemes.add(0);   // 第一个房间永远解锁，保底防止存档异常导致进不去任何房间
+    unlockedThemes.add(0); unlockedThemes.add(1);   // 前两个房间永远免费解锁，保底防止存档异常导致进不去任何房间
     // ✨ 修复：以前图鉴点一下能免费切到没解锁的房间，导致"去过的房间"里出现了本不该有的✓——这里把没真正解锁的记录清掉，两边对齐
-    visitedThemesSet=new Set([...visitedThemesSet].filter(i=>unlockedThemes.has(i)));
+    visitedThemesSet=new Set([...visitedThemesSet].filter(i=>isRoomUnlocked(i)));
     if(save.moodLow) applyMoodDecor(true);
     // ✨ 陪伴月光值：跨次打开也接着累计；但如果存的是之前某一天的，先清零重新算今天的
     if(typeof save.companionDayIndex==='number' && save.companionDayIndex===dayIndex()){

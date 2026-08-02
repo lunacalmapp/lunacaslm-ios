@@ -7661,11 +7661,12 @@ window.setLang = setLang;
 
     // ── 话题菜单（点输入栏弹出分类，点分类展开问题）──
     const TOPIC_NAMES = {
-      th:{period:'🩸 ประจำเดือน',emotion:'💭 อารมณ์ความรู้สึก',love:'❤️ ความรัก',lifestyle:'🌿 การดูแลตัวเอง',app:'📱 การใช้แอป',lumi:'🐱 เพื่อนลูมิ'},
-      zh:{period:'🩸 经期',emotion:'💭 情绪心情',love:'❤️ 感情',lifestyle:'🌿 生活调理',app:'📱 App使用',lumi:'🐱 Lumi小伙伴'}
+      th:{period:'🩸 ประจำเดือน',emotion:'💭 อารมณ์ความรู้สึก',love:'❤️ ความรัก',lifestyle:'🌿 การดูแลตัวเอง',app:'📱 การใช้แอป',lumi:'🐱 เพื่อนลูมิ',contact:'💌 ติดต่อเรา'},
+      zh:{period:'🩸 经期',emotion:'💭 情绪心情',love:'❤️ 感情',lifestyle:'🌿 生活调理',app:'📱 App使用',lumi:'🐱 Lumi小伙伴',contact:'💌 联系我们'}
     };
     function showTopicMenu(){
-      if(!canUseAI()) return;
+      // 免费用户（非VIP非试用）只能看到"App使用"这一类客服问答；VIP/试用期内解锁全部分类（含新加的"联系我们"）
+      const unlocked = canUseAI();
       // 在对话区底部插入一组"话题分类"气泡
       const old=document.getElementById('aiTopicMenu'); if(old) old.remove();
       const wrap=document.createElement('div'); wrap.id='aiTopicMenu';
@@ -7675,7 +7676,8 @@ window.setLang = setLang;
       tip.style.cssText='width:100%;text-align:center;font-size:12.5px;color:#9d7bd6;margin-bottom:4px;font-weight:600;';
       wrap.appendChild(tip);
       const names=TOPIC_NAMES[zh()?'zh':'th'];
-      Object.keys(names).forEach(function(cat, idx){
+      const catKeys = unlocked ? Object.keys(names) : ['app'];
+      catKeys.forEach(function(cat, idx){
         const c=document.createElement('span');
         c.textContent=names[cat];
         c.className='ai-chip-anim';
@@ -7683,15 +7685,54 @@ window.setLang = setLang;
         c.onclick=function(){ wrap.remove(); showTopicQuestions(cat); };
         wrap.appendChild(c);
       });
+      if(!unlocked){
+        const hint=document.createElement('div');
+        hint.textContent = zh()
+          ? '👑 开通会员，解锁经期/情绪/感情/生活调理话题，让 Luna 做你的健康顾问'
+          : '👑 เปิดใช้งานสมาชิก ปลดล็อกหัวข้อประจำเดือน/อารมณ์/ความรัก/การดูแลตัวเอง ให้ Luna เป็นที่ปรึกษาสุขภาพของคุณ';
+        hint.style.cssText='width:100%;text-align:center;font-size:11px;color:#a89ec8;margin-top:8px;cursor:pointer;text-decoration:underline;';
+        hint.onclick=function(){ if(window.showTrialLockModal) showTrialLockModal(); };
+        wrap.appendChild(hint);
+      }
       body.appendChild(wrap);
       body.scrollTop=body.scrollHeight;
     }
     function showTopicQuestions(cat){
+      if(cat === 'contact'){ showContactCard(); return; }
       const lang=zh()?'zh':'th';
       const qs=shuffle((SUGGEST_CATS[cat][lang]||[]).slice()).slice(0,6);
       showFollowUp(qs, qs[0]);
     }
     document.getElementById('aiTopicBtn').onclick=function(e){ e.stopPropagation(); showTopicMenu(); };
+
+    // ── 💌 联系我们卡片：VIP/试用期内解锁 Luna 之后，话题菜单里的额外一项 ──
+    function showContactCard(){
+      body.innerHTML='';
+      const w=document.createElement('div');
+      w.style.cssText='text-align:center;padding:26px 18px;';
+      w.innerHTML = (zh()
+        ? '<div style="font-size:38px;margin-bottom:10px;">💌</div>'
+          +'<div style="font-size:15px;font-weight:700;color:#2d2640;margin-bottom:14px;">联系我们</div>'
+          +'<div style="font-size:12.5px;color:#8b84a0;line-height:1.8;margin-bottom:20px;">🌙 Luna 会持续更新中！接下来会陆续加入更多好玩的功能，比如更懂你的 AI 健康建议、更多主题和小惊喜，敬请期待 💕</div>'
+        : '<div style="font-size:38px;margin-bottom:10px;">💌</div>'
+          +'<div style="font-size:15px;font-weight:700;color:#2d2640;margin-bottom:14px;">ติดต่อเรา</div>'
+          +'<div style="font-size:12.5px;color:#8b84a0;line-height:1.8;margin-bottom:20px;">🌙 Luna กำลังอัปเดตอย่างต่อเนื่อง! เร็ว ๆ นี้จะมีฟีเจอร์สนุก ๆ เพิ่มเข้ามาอีก เช่น คำแนะนำสุขภาพจาก AI ที่เข้าใจคุณมากขึ้น ธีมใหม่ ๆ และเซอร์ไพรส์เล็ก ๆ รอติดตามนะคะ 💕</div>');
+      const btnRow=document.createElement('div');
+      btnRow.style.cssText='display:flex;flex-direction:column;gap:10px;';
+      const lineBtn=document.createElement('button');
+      lineBtn.textContent = zh() ? '💬 LINE 联系管理员' : '💬 ติดต่อแอดมินทาง LINE';
+      lineBtn.style.cssText='border:none;background:linear-gradient(135deg,#06c755,#00b544);color:#fff;font-weight:700;font-size:13.5px;padding:12px 20px;border-radius:14px;cursor:pointer;font-family:inherit;';
+      lineBtn.onclick=()=>{ window.open('https://lin.ee/STIfOtU','_blank'); };
+      const mailBtn=document.createElement('button');
+      mailBtn.textContent = zh() ? '✉️ 邮箱联系我们' : '✉️ ติดต่อทางอีเมล';
+      mailBtn.style.cssText='border:none;background:linear-gradient(135deg,#9d7bd6,#e98ab0);color:#fff;font-weight:700;font-size:13.5px;padding:12px 20px;border-radius:14px;cursor:pointer;font-family:inherit;';
+      mailBtn.onclick=()=>{ window.location.href='mailto:lunacalm00@gmail.com'; };
+      btnRow.appendChild(lineBtn);
+      btnRow.appendChild(mailBtn);
+      w.appendChild(btnRow);
+      body.appendChild(w);
+      chips.style.display='none';
+    }
 
     // ── VIP 拦截：非会员非试用 → 引导升级 ──
     function showLockBubble(){
@@ -7745,8 +7786,7 @@ window.setLang = setLang;
       panel.style.display='flex';
       _aiJustOpened = Date.now();
       if(!isFull) positionPanel();
-      if(!canUseAI()){ showLockBubble(); }
-      else { startChat(); }
+      startChat(); // 免费用户也能打开，话题菜单里会自动按 canUseAI() 决定显示几类
     }
     function closeAi(){ panel.style.display='none'; }
     window._closeAiPanel = closeAi;
@@ -7754,7 +7794,7 @@ window.setLang = setLang;
     document.getElementById('aiClose').onclick=(e)=>{ e.stopPropagation(); closeAi(); isFull=false; applyFull2reset(); };
     function applyFull2reset(){ isFull=false; panel.style.width='330px'; panel.style.height='460px'; panel.style.borderRadius='26px'; }
 
-    document.getElementById('aiSend').onclick=(e)=>{ e.stopPropagation(); if(canUseAI()) showTopicMenu(); };
+    document.getElementById('aiSend').onclick=(e)=>{ e.stopPropagation(); showTopicMenu(); };
     panel.addEventListener('click',(e)=>e.stopPropagation());
 
     // ── 拖动（复用语录球思路）──

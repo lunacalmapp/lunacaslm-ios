@@ -2754,7 +2754,18 @@ window.installPWA = function() {
             cursor:pointer;font-family:inherit;font-weight:600;transition:all .2s;min-width:52px;"><span data-i18n="copy">คัดลอก</span></button>
         </div>
 
-        <!-- Play 版：会员付费走 Google Play Billing，此处不放任何外部支付入口 -->
+        <!-- 🎯 会员卡片：未开通时常驻显示（试用倒计时 / 已到期），点一下进入订阅页；
+             已是VIP时这张自动隐藏，改由上面的 proBadge 显示会员身份 -->
+        <div id="vipUpgradeCard" onclick="if(window.showTrialLockModal)showTrialLockModal()" style="display:none;margin-top:8px;
+          padding:14px 16px;border-radius:14px;cursor:pointer;
+          background:linear-gradient(135deg,var(--mine-accent),var(--mine-accent-light));
+          align-items:center;justify-content:space-between;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+            <span style="font-size:18px;">👑</span>
+            <span id="vipUpgradeCardText" style="font-size:13px;font-weight:600;color:var(--mine-accent-solid-fg);">--</span>
+          </div>
+          <span style="font-size:16px;font-weight:700;color:var(--mine-accent-solid-fg);">›</span>
+        </div>
 
       </div>
 
@@ -3780,6 +3791,8 @@ onAuthStateChanged(auth, async (user) => {
             localStorage.setItem('luna_activated', window.IS_PLAY_BUILD ? '1' : ((userData.activated === true || userData.activated === 1 || userData.activated === '1' || userData.activated === 'true') ? '1' : '0'));
             if(userData.expiry) localStorage.setItem('luna_expiry', userData.expiry);
             if(userData.firstLogin) localStorage.setItem('luna_first_login', userData.firstLogin);
+            // 🎫 当前订阅套餐（weekly/monthly/yearly），用于"我的"页显示当前套餐 + 付费页里标出"当前"、允许换到别的档
+            localStorage.setItem('luna_vip_plan', userData.vipPlan || '');
             await window._fb.set('users/' + uid + '/lastLogin', Date.now());
           }
         }
@@ -5336,6 +5349,13 @@ window.setLang = setLang;
           const reallyActive = (ud?.activated === true || ud?.activated === 1 || ud?.activated === '1' || ud?.activated === 'true') && notExpired;
           const currentlyActivated = isActivated();
 
+          // 🎫 当前套餐随时同步（不依赖激活状态变化），换套餐后10秒内"我的"页会自动刷新显示
+          const newPlan = ud?.vipPlan || '';
+          if(newPlan !== (localStorage.getItem('luna_vip_plan') || '')) {
+            localStorage.setItem('luna_vip_plan', newPlan);
+            if(typeof initProBadge === 'function') initProBadge();
+          }
+
           // 试用 → 激活（仅当真正激活且未过期）
           if(reallyActive && !currentlyActivated) {
             localStorage.setItem('luna_activated','1');
@@ -5569,7 +5589,9 @@ window.setLang = setLang;
 
   function showVipPaywall() {
     document.querySelectorAll('#vipPaywallModal').forEach(el => el.remove());
-    _vipSelectedPlan = 'monthly';
+    // 已是VIP的话，打开付费页默认选中"当前套餐"；不是VIP（或没记录到套餐）就照旧默认月卡
+    const curPlan = localStorage.getItem('luna_vip_plan') || '';
+    _vipSelectedPlan = (isPro() && VIP_PLANS[curPlan]) ? curPlan : 'monthly';
     const isTh = _appLang === 'th';
     const m = document.createElement('div');
     m.id = 'vipPaywallModal';
@@ -5641,16 +5663,18 @@ window.setLang = setLang;
   function _vipPlanCardHTML(key, isTh) {
     const p = VIP_PLANS[key];
     const selected = _vipSelectedPlan === key;
-    const badge = isTh ? p.badge_th : p.badge_zh;
+    const isCurrent = isPro() && (localStorage.getItem('luna_vip_plan') || '') === key;
+    const badge = isCurrent ? (isTh?'ปัจจุบัน':'当前套餐') : (isTh ? p.badge_th : p.badge_zh);
+    const badgeBg = isCurrent ? 'linear-gradient(135deg,#7fc98f,#4fae6a)' : 'linear-gradient(135deg,#ff9cc0,#ffb8a3)';
     return `
       <div onclick="selectVipPlan('${key}')" data-plan="${key}"
         style="position:relative;display:flex;align-items:center;gap:12px;padding:14px 16px;
         border-radius:16px;cursor:pointer;transition:all .15s;
         border:2px solid ${selected?'#7c5cbf':'#ece7f5'};
         background:${selected?'linear-gradient(135deg,#f9f0ff,#fff5fa)':'#fff'};">
-        ${badge ? `<div style="position:absolute;top:-9px;right:14px;background:linear-gradient(135deg,#ff9cc0,#ffb8a3);
+        ${badge ? `<div style="position:absolute;top:-9px;right:14px;background:${badgeBg};
           color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;
-          box-shadow:0 2px 6px rgba(255,140,170,0.4);">${badge}</div>` : ''}
+          box-shadow:0 2px 6px rgba(0,0,0,0.15);">${badge}</div>` : ''}
         <div style="width:20px;height:20px;border-radius:50%;flex-shrink:0;
           border:2px solid ${selected?'#7c5cbf':'#d8d2e8'};
           display:flex;align-items:center;justify-content:center;">
@@ -5666,6 +5690,11 @@ window.setLang = setLang;
 
   function _vipSubscribeBtnLabel(isTh) {
     const p = VIP_PLANS[_vipSelectedPlan];
+    const isCurrent = isPro() && (localStorage.getItem('luna_vip_plan') || '') === _vipSelectedPlan;
+    if(isCurrent) return isTh ? 'แพ็กเกจที่ใช้อยู่ในตอนนี้' : '这是你当前的套餐';
+    if(isPro()) return isTh
+      ? `เปลี่ยนเป็น ${p.period_th} · ${p.price} บาท`
+      : `切换到${p.period_zh} · ${p.price} 泰铢`;
     return isTh
       ? `สมัครสมาชิก · ${p.price} บาท / ${p.period_th}`
       : `订阅 · ${p.price} 泰铢 / ${p.period_zh}`;
@@ -5687,6 +5716,12 @@ window.setLang = setLang;
   function startVipPurchase() {
     const p = VIP_PLANS[_vipSelectedPlan];
     const isTh = _appLang === 'th';
+    // 选的就是当前正在用的套餐 → 不用真的发起购买，苹果那边同一订阅群组里换到自己已经在用的档也没意义
+    const isCurrent = isPro() && (localStorage.getItem('luna_vip_plan') || '') === _vipSelectedPlan;
+    if(isCurrent){
+      showToast(isTh ? 'นี่คือแพ็กเกจที่คุณใช้อยู่แล้วค่ะ 🌙' : '这已经是你正在用的套餐啦 🌙');
+      return;
+    }
     if(window.LunaIAP && typeof window.LunaIAP.purchase === 'function'){
       window.LunaIAP.purchase(p.id).catch(function(err){ console.log('IAP purchase error:', err); });
     } else {
@@ -5705,54 +5740,9 @@ window.setLang = setLang;
   }
   window.restoreVipPurchase = restoreVipPurchase;
 
-  // 试用横幅 — fixed 顶部始终可见
+  // 试用横幅 — 🚫 按需求已停用：不再常驻显示，只在用户点到需要VIP的功能时才弹付费页（showTrialLockModal）
   function showTrialBanner() {
-    if(IS_PLAY_BUILD) return; // Play 版不显示试用横幅
-    if(isActivated()) return;
-    if(document.getElementById('trialBanner')) return;
-
-    // 今天是否已被用户关掉
-    const _thT = getTodayTH();
-    const todayStr = _thT.getFullYear()+'-'+String(_thT.getMonth()+1).padStart(2,'0')+'-'+String(_thT.getDate()).padStart(2,'0');
-    if(localStorage.getItem('luna_banner_closed') === todayStr) return;
-
-    const isTh = _appLang === 'th';
-    const daysLeft = trialDaysLeft();
-    const inTrialNow = daysLeft > 0;
-
-    const banner = document.createElement('div');
-    banner.id = 'trialBanner';
-    banner.style.cssText = `position:fixed;top:0;left:0;right:0;z-index:998;
-      background:linear-gradient(135deg,#7c5cbf,#c47ab0);
-      color:#fff;text-align:center;padding:8px 16px;font-size:12px;
-      display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
-      box-shadow:0 2px 10px rgba(124,92,191,0.3);`;
-
-    let msg, btnText;
-    if(inTrialNow){
-      // 试用期内：显示剩余天数
-      msg = isTh
-        ? `🎁 ทดลองใช้งาน · เหลือ <strong>${daysLeft}</strong> วัน`
-        : `🎁 免费试用中 · 剩 <strong>${daysLeft}</strong> 天`;
-      btnText = isTh ? 'เปิดใช้งานเต็มรูปแบบ' : '开通会员';
-    } else {
-      // 试用结束：提示开通
-      msg = isTh
-        ? `⏰ ทดลองใช้ครบแล้ว · เปิดใช้งานเพื่อใช้ต่อ`
-        : `⏰ 试用已结束 · 开通会员继续使用`;
-      btnText = isTh ? 'จะเปิดใช้ได้อย่างไร？' : '如何开通？';
-    }
-
-    banner.innerHTML = `
-      <span>${msg}</span>
-      <button onclick="showTrialLockModal()" style="background:rgba(255,255,255,0.25);border:none;
-        color:#fff;border-radius:20px;padding:4px 12px;font-size:11px;cursor:pointer;font-family:inherit;
-        font-weight:600;">${btnText}</button>
-      <button onclick="closeTrialBanner()" style="background:none;border:none;color:rgba(255,255,255,0.85);
-        font-size:16px;cursor:pointer;padding:0 4px;line-height:1;font-family:inherit;">✕</button>`;
-    document.body.appendChild(banner);
-    const phone = document.querySelector('.phone');
-    if(phone) phone.style.paddingTop = '38px';
+    return; // 保留函数本体和所有调用点不动，直接短路即可，最不容易引入新问题
   }
 
   // 关闭横幅（记录今天日期，次日再现）
@@ -6006,19 +5996,39 @@ window.setLang = setLang;
       : `${d.getDate()} ${MONTHS_TH[d.getMonth()]}`;
   }
 
-  // 正版徽章
+  // 正版徽章 + 会员升级卡片
   function initProBadge() {
     const badge   = document.getElementById('proBadge');
     const badgeTxt= document.getElementById('proBadgeText');
     const expEl   = document.getElementById('proExpiry');
+    const upCard  = document.getElementById('vipUpgradeCard');
+    const upTxt   = document.getElementById('vipUpgradeCardText');
     if(!badge) return;
-    if(window.IS_PLAY_BUILD){ badge.style.display='none'; return; } // Play 版不显示会员徽章
+    if(window.IS_PLAY_BUILD){ badge.style.display='none'; if(upCard) upCard.style.display='none'; return; } // Play 版不显示会员徽章/升级卡片
+    const isTh = _appLang === 'th';
+    const planNames = { weekly: isTh?'รายสัปดาห์':'周卡', monthly: isTh?'รายเดือน':'月卡', yearly: isTh?'รายปี':'年卡' };
+    const curPlan = localStorage.getItem('luna_vip_plan') || '';
+    const curPlanName = planNames[curPlan] || '';
     if(isPro()) {
       badge.style.display = 'flex';
-      badgeTxt.textContent = _appLang==='zh' ? '正版会员' : 'สมาชิกพรีเมียม';
-      expEl.textContent = (_appLang==='zh'?'有效期至 ':'ถึง ') + getExpiryDisplay();
+      badgeTxt.textContent = (_appLang==='zh' ? '正版会员' : 'สมาชิกพรีเมียม') + (curPlanName ? ' · '+curPlanName : '');
+      if(expEl) expEl.style.display = 'none'; // 按需求隐藏到期日期，不显示具体天数/日期
+      // 🎫 已订阅也继续显示这张卡，改成"查看/更换套餐"入口，不隐藏 —— 方便随时切换到别的档
+      if(upCard && upTxt){
+        upTxt.textContent = curPlanName
+          ? (isTh ? `แพ็กเกจปัจจุบัน: ${curPlanName} · ดู/เปลี่ยนแพ็กเกจ` : `当前套餐: ${curPlanName} · 查看/更换套餐`)
+          : (isTh ? 'ดู/เปลี่ยนแพ็กเกจสมาชิก' : '查看/更换会员套餐');
+        upCard.style.display = 'flex';
+      }
     } else {
       badge.style.display = 'none';
+      if(upCard && upTxt){
+        const daysLeft = (typeof trialDaysLeft === 'function') ? trialDaysLeft() : 0;
+        upTxt.textContent = daysLeft > 0
+          ? (isTh ? `เหลือเวลาทดลองใช้ ${daysLeft} วัน · ดูแพ็กเกจสมาชิก` : `试用还剩 ${daysLeft} 天 · 查看会员套餐`)
+          : (isTh ? 'ทดลองใช้ครบแล้ว · เปิดใช้งานสมาชิก' : '试用已结束 · 开通会员');
+        upCard.style.display = 'flex';
+      }
     }
   }
 

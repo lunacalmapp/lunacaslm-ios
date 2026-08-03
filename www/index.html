@@ -3769,6 +3769,9 @@ window.signInWithGoogle = async function(statusElId) {
 onAuthStateChanged(auth, async (user) => {
   if(user && !window._authHandled) {
     const uid = user.uid;
+    // 🍎 RevenueCat：把内购身份跟这个 Firebase 账号绑在一起，webhook 才能靠 app_user_id 找到人
+    // 不 await，不阻塞后面的 UI 初始化；网页预览环境或插件没装好时会自己静默跳过
+    if(typeof window._lunaConfigureRevenueCat === 'function') window._lunaConfigureRevenueCat(uid);
     const existing = localStorage.getItem('luna_uid');
     // 只有已有 uid 记录的情况才自动恢复（避免重复触发）
     if(existing === uid) {
@@ -3909,6 +3912,10 @@ window.previewSkipLogin = function() {
 async function handleAuthUser(user) {
   if(!user) return;
   const uid = user.uid;
+
+  // 🍎 RevenueCat：把内购身份跟这个 Firebase 账号绑在一起，webhook 才能靠 app_user_id 找到人
+  // 不 await，不阻塞后面的 UI 初始化；网页预览环境或插件没装好时会自己静默跳过
+  if(typeof window._lunaConfigureRevenueCat === 'function') window._lunaConfigureRevenueCat(uid);
 
   // 0. 换账号检测：本机上一个账号与当前不同时，先清掉上个账号的本地残留，避免同机多账号记录串号
   try {
@@ -5712,6 +5719,103 @@ window.setLang = setLang;
     if(btn) btn.textContent = _vipSubscribeBtnLabel(isTh);
   }
   window.selectVipPlan = selectVipPlan;
+
+  // ═══════════ 🍎 RevenueCat 苹果内购接入 ═══════════
+  // ⚠️ 换成你在 RevenueCat 后台「Project Settings → API Keys」里，iOS App 那一行的
+  // Public app-specific API key（appl_ 开头那一串，不是 App Store Connect 那个 Key）
+  const REVENUECAT_IOS_API_KEY = 'appl_替换成你的RevenueCat公开密钥';
+  // ⚠️ 换成你在 RevenueCat 后台建的那个 Entitlement 的标识符（如果照之前建议叫的 "vip"，就不用改）
+  const RC_ENTITLEMENT_ID = 'pro';
+
+  let _rcConfigured = false;
+
+  // 登录成功后调用一次：让 RevenueCat 知道"这台设备上的购买行为"归哪个 Firebase 账号，
+  // 后台那个 revenuecatWebhook 云函数就是靠这个 uid（RevenueCat 里叫 app_user_id）
+  // 才知道该往 Firebase 的哪个 users/{uid} 写数据的。
+  window._lunaConfigureRevenueCat = async function(uid) {
+    try {
+      const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+      if (!isNativeApp || !Purchases || !uid) return; // 网页预览环境、或插件还没装好，静默跳过，不报错
+      if (!_rcConfigured) {
+        await Purchases.configure({ apiKey: REVENUECAT_IOS_API_KEY, appUserID: uid });
+        _rcConfigured = true;
+      } else {
+        await Purchases.logIn({ appUserID: uid }); // 同一次 App 运行期间切换了账号，改绑到新 uid
+      }
+    } catch (e) {
+      console.log('RevenueCat configure/logIn 失败:', e);
+    }
+  };
+
+  // 从 RevenueCat 返回的 customerInfo 里读该 Entitlement 是否生效，顺便反查出套餐名（weekly/monthly/yearly）
+  // 用来立刻更新本地 UI——不用死等 webhook 那一趟往返，购买/恢复一成功当场就能解锁
+  function _rcApplyCustomerInfo(customerInfo, isTh) {
+    try {
+      const active = customerInfo && customerInfo.entitlements && customerInfo.entitlements.active;
+      const ent = active && active[RC_ENTITLEMENT_ID];
+      if (!ent) return false;
+      const productId = ent.productIdentifier;
+      const planKey = Object.keys(VIP_PLANS).find(k => VIP_PLANS[k].id === productId) || '';
+      localStorage.setItem('luna_activated', '1');
+      if (planKey) localStorage.setItem('luna_vip_plan', planKey);
+      if (ent.expirationDate) localStorage.setItem('luna_expiry', String(new Date(ent.expirationDate).getTime()));
+      document.getElementById('vipPaywallModal')?.remove();
+      document.getElementById('trialBanner')?.remove();
+      document.getElementById('trialLockModal')?.remove();
+      if (typeof initProFeatures === 'function') initProFeatures();
+      if (typeof initThemeLocks === 'function') initThemeLocks();
+      showToast(isTh ? '🎉 เปิดใช้งานสมาชิกเรียบร้อยแล้ว!' : '🎉 会员已开通！');
+      return true;
+    } catch (e) {
+      console.log('_rcApplyCustomerInfo 出错:', e);
+      return false;
+    }
+  }
+
+  // 🍎 真正调起苹果内购的入口——window.LunaIAP.purchase(productId) / .restore()，
+  //    下面 startVipPurchase() / restoreVipPurchase() 已经在用这两个方法了，那边的调用逻辑不用再改。
+  window.LunaIAP = {
+    purchase: async function(productId) {
+      const isTh = _appLang === 'th';
+      const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+      if (!Purchases) { showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸'); return; }
+      try {
+        const offeringsResult = await Purchases.getOfferings();
+        const offeringList = (offeringsResult && offeringsResult.current && [offeringsResult.current]) ||
+          (offeringsResult && offeringsResult.all && Object.values(offeringsResult.all)) || [];
+        let pkg = null;
+        for (const offering of offeringList) {
+          const found = (offering.availablePackages || []).find(p => p.storeProduct && p.storeProduct.identifier === productId);
+          if (found) { pkg = found; break; }
+        }
+        if (!pkg) {
+          console.log('没在 RevenueCat Offerings 里找到 productId=' + productId + '，去后台确认 Offering 里加了这个商品没有');
+          showToast(isTh ? 'ไม่พบแพ็กเกจนี้ ลองใหม่อีกครั้ง 🌸' : '找不到这个套餐，请稍后重试 🌸');
+          return;
+        }
+        const result = await Purchases.purchasePackage({ packageToPurchase: pkg });
+        _rcApplyCustomerInfo(result && result.customerInfo, isTh);
+      } catch (err) {
+        if (err && (err.userCancelled || err.code === 'PURCHASE_CANCELLED_ERROR' || err.code === '1')) return; // 用户自己点了取消，不弹错误提示
+        console.log('IAP purchase error:', err);
+        showToast(isTh ? 'การชำระเงินไม่สำเร็จ ลองใหม่อีกครั้งนะคะ 🌸' : '购买没有成功，请稍后再试一下 🌸');
+      }
+    },
+    restore: async function() {
+      const isTh = _appLang === 'th';
+      const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+      if (!Purchases) { showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸'); return; }
+      try {
+        const result = await Purchases.restorePurchases();
+        const ok = _rcApplyCustomerInfo(result && result.customerInfo, isTh);
+        if (!ok) showToast(isTh ? 'ไม่พบการซื้อก่อนหน้านี้ในบัญชีนี้' : '这个账号下没有找到之前的购买记录');
+      } catch (err) {
+        console.log('IAP restore error:', err);
+        showToast(isTh ? 'กู้คืนไม่สำเร็จ ลองใหม่อีกครั้งนะคะ 🌸' : '恢复购买失败，请稍后再试一下 🌸');
+      }
+    }
+  };
 
   // 🍎 真正调起苹果内购的入口——之后接好 RevenueCat 原生插件后，往 window.LunaIAP 上挂 purchase(productId)/restore()
   //    两个方法即可，这里的调用逻辑不用再改；插件还没接好之前，点击会友好提示"准备中"，不会像坏掉一样没反应

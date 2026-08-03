@@ -5799,7 +5799,9 @@ window.setLang = setLang;
       } catch (err) {
         if (err && (err.userCancelled || err.code === 'PURCHASE_CANCELLED_ERROR' || err.code === '1')) return; // 用户自己点了取消，不弹错误提示
         console.log('IAP purchase error:', err);
-        showToast(isTh ? 'การชำระเงินไม่สำเร็จ ลองใหม่อีกครั้งนะคะ 🌸' : '购买没有成功，请稍后再试一下 🌸');
+        // 🩹 调试期先把真实错误亮出来（正式跑通后可以改回原来那句友好的通用提示）
+        const debugMsg = (err && (err.message || err.code)) ? String(err.message || err.code).slice(0, 90) : '未知错误';
+        showToast((isTh ? 'ผิดพลาด: ' : '失败原因: ') + debugMsg);
       }
     },
     restore: async function() {

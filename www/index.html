@@ -5782,16 +5782,26 @@ window.setLang = setLang;
       if (!Purchases) { showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸'); return; }
       try {
         const offeringsResult = await Purchases.getOfferings();
-        const offeringList = (offeringsResult && offeringsResult.current && [offeringsResult.current]) ||
-          (offeringsResult && offeringsResult.all && Object.values(offeringsResult.all)) || [];
+        const offeringList = [];
+        if (offeringsResult) {
+          if (offeringsResult.current) offeringList.push(offeringsResult.current);
+          if (offeringsResult.all) {
+            Object.values(offeringsResult.all).forEach(function(o) {
+              if (offeringList.indexOf(o) === -1) offeringList.push(o); // current 找不到时，其余 Offering 也都查一遍，不只盯着 Current 这一个
+            });
+          }
+        }
         let pkg = null;
         for (const offering of offeringList) {
           const found = (offering.availablePackages || []).find(p => p.storeProduct && p.storeProduct.identifier === productId);
           if (found) { pkg = found; break; }
         }
         if (!pkg) {
-          console.log('没在 RevenueCat Offerings 里找到 productId=' + productId + '，去后台确认 Offering 里加了这个商品没有');
-          showToast(isTh ? 'ไม่พบแพ็กเกจนี้ ลองใหม่อีกครั้ง 🌸' : '找不到这个套餐，请稍后重试 🌸');
+          // 🩹 调试期：把 RevenueCat 实际能看到的商品 ID 都列出来，方便对比到底差在哪
+          const seenIds = [];
+          offeringList.forEach(function(o) { (o.availablePackages || []).forEach(function(p) { if (p.storeProduct && p.storeProduct.identifier) seenIds.push(p.storeProduct.identifier); }); });
+          console.log('没在 RevenueCat Offerings 里找到 productId=' + productId + '，实际看到的商品ID列表:', seenIds);
+          showToast((isTh ? 'ต้องการ: ' : '要找: ') + productId + ' | ' + (isTh ? 'เจอ: ' : '实际有: ') + (seenIds.join(', ') || (isTh ? 'ไม่มีเลย' : '一个都没有')));
           return;
         }
         const result = await Purchases.purchasePackage({ packageToPurchase: pkg });

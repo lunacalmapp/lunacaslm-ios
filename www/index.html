@@ -3451,7 +3451,7 @@ window.installPWA = function() {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, get, set, remove, onValue, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, signInWithPopup, signInWithCredential,
+import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential,
   onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getMessaging, getToken, onMessage }
@@ -3481,6 +3481,7 @@ const auth = isIOSShell
 window.auth = auth; // 暴露到 window，方便其他非 module 脚本区域（比如 AI 分析那段）也能拿到
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
+const appleProvider = new OAuthProvider('apple.com'); // 供网页/PWA环境的 signInWithPopup 兜底用；原生App走下面的 Capacitor 插件
 
 // ── 原生 App 推送 token 监听（只注册一次，避免重复 addListener 堆积）──
 // registration/registrationError 事件由 Capacitor PushNotifications 插件在
@@ -3772,6 +3773,129 @@ window.signInWithGoogle = async function(statusElId) {
 };
 
 // ── 手机号登录已移除 ──
+
+// ── Apple 登录（苹果审核 4.8 条要求：用了第三方登录就必须同时提供 Apple 登录）──
+// 原生 App 内用 Capacitor 的 @capgo/capacitor-social-login 插件（跟 Google 走的是同一个插件），
+// 网页/PWA 环境用 popup 方式兜底，走法完全照抄 signInWithGoogle 的结构，方便对照维护。
+window.signInWithApple = async function(statusElId) {
+  const isTh = window._appLang ? window._appLang === 'th' : window._gateLang === 'th';
+  const errEl = document.getElementById(statusElId || 'codeErr');
+
+  const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+  if(typeof navigator.onLine === 'boolean' && !navigator.onLine) {
+    if(errEl) errEl.textContent = isTh ? '📡 กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต' : '📡 请检查网络连接';
+    return;
+  }
+
+  if (window._appleSignInBusy) return;
+  window._appleSignInBusy = true;
+
+  async function attemptLogin() {
+    let user;
+
+    if (isNativeApp) {
+      const platform = (window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || '';
+
+      if (platform === 'ios') {
+        const SocialLoginPlugin = window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
+        if (!SocialLoginPlugin) throw new Error('SocialLogin native plugin not found');
+
+        if(errEl) errEl.textContent = isTh ? 'กำลังเข้าสู่ระบบ...' : '登录中...';
+
+        if (!window._appleSocialLoginInited) {
+          await SocialLoginPlugin.initialize({ apple: {} });
+          window._appleSocialLoginInited = true;
+        }
+
+        const loginRes = await SocialLoginPlugin.login({
+          provider: 'apple',
+          options: { scopes: ['email', 'name'] }
+        });
+        const r = (loginRes && loginRes.result) || {};
+        // 🩹 调试期：不同插件版本字段名可能有出入，这里多试几种常见命名兼容一下；
+        // 万一还是拿不到，把完整返回结构打到 console，方便截图给我核对真实字段名
+        const idToken = r.identityToken || r.idToken || (r.accessToken && (r.accessToken.token || r.accessToken.identityToken));
+        const rawNonce = r.nonce || r.rawNonce;
+        if (!idToken) {
+          console.log('[signInWithApple] 没拿到 identityToken，完整返回内容:', JSON.stringify(loginRes));
+          throw new Error('No identityToken returned from SocialLogin(apple)');
+        }
+
+        const credential = rawNonce
+          ? appleProvider.credential({ idToken, rawNonce })
+          : appleProvider.credential({ idToken }); // 极少数版本不返回 nonce，退化成不带 nonce 也能登录，只是少一层重放校验
+        const result = await signInWithCredential(auth, credential);
+        user = result.user;
+
+        // 🍎 Apple 只有第一次登录才会给姓名/邮箱，之后每次登录都不再给了，
+        // 这里第一次拿到就存到 window 上，供下面 handleAuthUser 建档时使用，不然后面永远拿不到
+        const p = r.profile || {};
+        const appleName = [p.givenName, p.familyName].filter(Boolean).join(' ').trim();
+        window._appleFirstLoginName = appleName || user.displayName || '';
+        window._appleFirstLoginEmail = p.email || user.email || '';
+
+      } else {
+        // 安卓这次不接 Apple 登录（苹果只强制 iOS 端要提供，安卓不受这条审核规则约束）
+        throw new Error('Apple sign-in not available on this platform');
+      }
+    } else {
+      // 网页 / PWA：用 popup 方式
+      const result = await signInWithPopup(auth, appleProvider);
+      user = result.user;
+    }
+
+    window._authHandled = true;
+    try { sessionStorage.removeItem('luna_preview_mode'); } catch(e) {}
+    if(errEl) errEl.textContent = isTh ? 'กำลังเข้าสู่ระบบ...' : '登录中...';
+    await handleAuthUser({
+      uid: user.uid,
+      displayName: user.displayName || window._appleFirstLoginName || '',
+      email: user.email || window._appleFirstLoginEmail || '',
+      photoURL: user.photoURL || '',
+      provider: 'apple'
+    });
+  }
+
+  function isCancelledByUser(e) {
+    return e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request'
+        || e.message === 'User cancelled the interaction' || e.code === '1001'
+        || (e.message && e.message.toLowerCase().indexOf('cancel') !== -1);
+  }
+  function isNetworkish(e) {
+    const code = (e && e.code) || '';
+    const msg = ((e && e.message) || '').toLowerCase();
+    return code === 'auth/network-request-failed' || code === 'auth/timeout'
+        || msg.indexOf('network') !== -1 || msg.indexOf('timeout') !== -1 || msg.indexOf('failed to fetch') !== -1;
+  }
+
+  try {
+    try {
+      await attemptLogin();
+    } catch(e1) {
+      console.error('Apple login error (1st try):', e1);
+      if(isCancelledByUser(e1)) { if(errEl) errEl.textContent = ''; return; }
+
+      let lastErr = e1;
+      if(isNetworkish(e1)) {
+        await new Promise(function(r){ setTimeout(r, 1200); });
+        try {
+          await attemptLogin();
+          return;
+        } catch(e2) {
+          console.error('Apple login error (2nd try):', e2);
+          if(isCancelledByUser(e2)) { if(errEl) errEl.textContent = ''; return; }
+          lastErr = e2;
+        }
+      }
+      // 🩹 调试期先把真实错误显示出来，方便远程排查（确认跑通后可以改回统一的友好提示）
+      const dbg = (lastErr && (lastErr.message || lastErr.code)) ? String(lastErr.message || lastErr.code).slice(0, 100) : '';
+      if(errEl) errEl.textContent = (isTh ? '❌ เข้าสู่ระบบไม่สำเร็จ: ' : '❌ 登录失败: ') + dbg;
+    }
+  } finally {
+    window._appleSignInBusy = false;
+  }
+};
 onAuthStateChanged(auth, async (user) => {
   if(user && !window._authHandled) {
     const uid = user.uid;
@@ -5080,6 +5204,18 @@ onValue(ref(db,'notifications'), snap => {
           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
         </svg>
         <span id="gateEnterTxt">เข้าสู่ระบบด้วย Google</span>
+      </button>
+
+      <!-- Apple 登录按钮（苹果官方样式：黑底白字白图标，符合 Human Interface Guidelines）-->
+      <button onclick="if(window.signInWithApple){window.signInWithApple()}else{document.getElementById('codeErr').textContent='กรุณารอสักครู่แล้วลองใหม่ / 请稍候再试'}"
+        style="width:100%;padding:17px 20px;background:#000;border:none;
+        border-radius:16px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;
+        display:flex;align-items:center;justify-content:center;gap:10px;
+        box-shadow:0 2px 10px rgba(0,0,0,0.15);transition:all .2s;margin-bottom:10px;color:#fff;">
+        <svg width="18" height="18" viewBox="0 0 170 170" fill="#fff">
+          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.197-2.12-9.973-3.17-14.34-3.17-4.58 0-9.492 1.05-14.746 3.17-5.262 2.13-9.501 3.24-12.742 3.35-4.929 0.21-9.842-1.96-14.746-6.52-3.13-2.73-7.045-7.41-11.735-14.04-5.032-7.08-9.169-15.29-12.41-24.65-3.471-10.11-5.211-19.9-5.211-29.378 0-10.857 2.346-20.221 7.045-28.068 3.693-6.303 8.606-11.276 14.755-14.925s12.793-5.51 19.948-5.629c3.915 0 9.049 1.211 15.429 3.591 6.362 2.388 10.447 3.599 12.238 3.599 1.339 0 5.877-1.416 13.57-4.239 7.275-2.618 13.415-3.702 18.445-3.275 13.63 1.1 23.87 6.473 30.68 16.153-12.19 7.386-18.22 17.731-18.1 31.002 0.11 10.336 3.86 18.939 11.23 25.769 3.34 3.17 7.07 5.62 11.21 7.36-0.9 2.61-1.85 5.11-2.86 7.51zM119.11 7.24c0 8.102-2.96 15.667-8.86 22.669-7.12 8.324-15.732 13.134-25.071 12.375-0.119-0.972-0.188-1.995-0.188-3.07 0-7.778 3.386-16.102 9.399-22.908 3.002-3.446 6.821-6.311 11.45-8.597 4.62-2.252 8.99-3.497 13.1-3.71 0.12 1.083 0.17 2.166 0.17 3.24z"/>
+        </svg>
+        <span id="appleEnterTxt">Sign in with Apple</span>
       </button>
 
       <!-- 客服按钮（邮箱）-->
@@ -10337,6 +10473,16 @@ window.setLang = setLang;
       + '</svg>'
       + '<span>' + (isTh ? 'เข้าสู่ระบบด้วย Google' : '使用 Google 登录') + '</span>'
       + '</button>'
+      + '<button id="guestAppleBtn" onclick="guestAppleSignIn()" '
+      + 'style="width:100%;padding:15px 18px;background:#000;border:none;'
+      + 'border-radius:16px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;'
+      + 'display:flex;align-items:center;justify-content:center;gap:10px;'
+      + 'box-shadow:0 2px 10px rgba(0,0,0,0.15);color:#fff;margin-bottom:6px;">'
+      + '<svg width="16" height="16" viewBox="0 0 170 170" fill="#fff" style="flex-shrink:0;">'
+      + '<path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.197-2.12-9.973-3.17-14.34-3.17-4.58 0-9.492 1.05-14.746 3.17-5.262 2.13-9.501 3.24-12.742 3.35-4.929 0.21-9.842-1.96-14.746-6.52-3.13-2.73-7.045-7.41-11.735-14.04-5.032-7.08-9.169-15.29-12.41-24.65-3.471-10.11-5.211-19.9-5.211-29.378 0-10.857 2.346-20.221 7.045-28.068 3.693-6.303 8.606-11.276 14.755-14.925s12.793-5.51 19.948-5.629c3.915 0 9.049 1.211 15.429 3.591 6.362 2.388 10.447 3.599 12.238 3.599 1.339 0 5.877-1.416 13.57-4.239 7.275-2.618 13.415-3.702 18.445-3.275 13.63 1.1 23.87 6.473 30.68 16.153-12.19 7.386-18.22 17.731-18.1 31.002 0.11 10.336 3.86 18.939 11.23 25.769 3.34 3.17 7.07 5.62 11.21 7.36-0.9 2.61-1.85 5.11-2.86 7.51zM119.11 7.24c0 8.102-2.96 15.667-8.86 22.669-7.12 8.324-15.732 13.134-25.071 12.375-0.119-0.972-0.188-1.995-0.188-3.07 0-7.778 3.386-16.102 9.399-22.908 3.002-3.446 6.821-6.311 11.45-8.597 4.62-2.252 8.99-3.497 13.1-3.71 0.12 1.083 0.17 2.166 0.17 3.24z"/>'
+      + '</svg>'
+      + '<span>Sign in with Apple</span>'
+      + '</button>'
       + '<div id="guestLoginStatus" style="min-height:16px;text-align:center;font-size:12.5px;color:#8a849e;margin-bottom:4px;"></div>'
       + '<button onclick="document.getElementById(\'guestLoginModal\').style.display=\'none\';" '
       + 'style="width:100%;padding:13px;background:transparent;color:#8a849e;border:none;'
@@ -10363,6 +10509,21 @@ window.setLang = setLang;
     // 登录失败或用户取消：弹窗留在原地，状态提示文字里已经有原因，可以直接再点一次重试
   }
   window.guestGoogleSignIn = guestGoogleSignIn;
+
+  // 游客弹窗里的"用 Apple 登录"：跟 guestGoogleSignIn 完全平行的逻辑，只是换一个 provider
+  async function guestAppleSignIn(){
+    const btn = document.getElementById('guestAppleBtn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
+    try {
+      await window.signInWithApple('guestLoginStatus');
+    } catch(e) { console.error('guestAppleSignIn error:', e); }
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    if (typeof isGuest === 'function' && !isGuest()){
+      const modal = document.getElementById('guestLoginModal');
+      if (modal) modal.style.display = 'none';
+    }
+  }
+  window.guestAppleSignIn = guestAppleSignIn;
 
   function openModal() {
     if(!requireLogin()) return;  // 游客 → 弹"请先登录"，拦截

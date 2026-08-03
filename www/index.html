@@ -4005,7 +4005,8 @@ async function handleAuthUser(user) {
           active: true,
           firstLogin: now,
           lastLogin: now,
-          provider: user.provider || 'google'
+          provider: user.provider || 'google',
+          platform: 'ios'   // 供后台「平台记录」区分 iOS / APK 用，这个包固定写死 'ios'
         });
         localStorage.setItem('luna_activated', '0');
         localStorage.removeItem('luna_expiry');
@@ -4016,6 +4017,7 @@ async function handleAuthUser(user) {
         // 第一次被创建的，资料字段就会一直空着、永远没有机会被补上——这正是这次踩到的坑。
         // 只在这次真的拿到值时才覆盖，避免用空值把已有的好数据冲掉。
         await window._fb.set('users/' + uid + '/lastLogin', now);
+        await window._fb.set('users/' + uid + '/platform', 'ios').catch(()=>{}); // 老账号也补上平台标记，方便后台区分
         if (user.email)       await window._fb.set('users/' + uid + '/email', user.email).catch(()=>{});
         if (user.displayName) await window._fb.set('users/' + uid + '/displayName', user.displayName).catch(()=>{});
         if (user.photoURL)    await window._fb.set('users/' + uid + '/photoURL', user.photoURL).catch(()=>{});
@@ -6058,18 +6060,34 @@ window.setLang = setLang;
     if(!isThemeUnlocked(key)) {
       const isTh=(localStorage.getItem('luna_lang')||'th')!=='zh';
       if(VIP_THEMES.indexOf(key) !== -1){
-        showToast(isTh ? '👑 ธีมนี้สำหรับสมาชิก VIP เท่านั้น' : '👑 该主题为 VIP 专属');
+        showToast(isTh ? '👑 ธีมนี้สำหรับสมาชิก VIP เท่านั้น ลองพรีวิวดูก่อนได้นะ' : '👑 该主题为 VIP 专属，先带你预览一下效果');
       } else {
         const need = THEME_UNLOCK[key] - getMoonPoints();
         showToast(isTh
-          ? '🌙 สะสมแสงจันทร์อีก '+need+' ดวงเพื่อปลดล็อกธีมนี้'
-          : '🌙 再攒 '+need+' 月光值即可解锁这个主题');
+          ? '🌙 สะสมแสงจันทร์อีก '+need+' ดวงเพื่อปลดล็อกธีมนี้ ลองพรีวิวดูก่อนนะ'
+          : '🌙 再攒 '+need+' 月光值即可解锁，先带你预览一下效果');
       }
+      previewLockedTheme(key); // ✨ 锁着也能试穿一下：只改视觉、不保存，离开页面/几秒后自动还原
       return;
     }
+    if(_themePreviewTimer){ clearTimeout(_themePreviewTimer); _themePreviewTimer=null; } // 真正选中一个已解锁主题时，取消任何还在跑的预览还原计时
     pickTheme(btn, key);
   }
   window.pickThemeOrUpgrade = pickThemeOrUpgrade;
+
+  // 🎨 锁着的主题：点一下临时"试穿"（只调用 applyThemeVars 改视觉，不写 localStorage，不算真的换了主题）
+  let _themePreviewTimer = null;
+  function previewLockedTheme(key) {
+    if(!LUNA_THEMES[key] || typeof applyThemeVars !== 'function') return;
+    applyThemeVars(key);
+    if(_themePreviewTimer) clearTimeout(_themePreviewTimer);
+    // 6秒没有其他操作就自动还原成真正已解锁/已保存的主题，避免一直"卡"在预览色上
+    _themePreviewTimer = setTimeout(()=>{
+      _themePreviewTimer = null;
+      if(typeof initSavedTheme === 'function') initSavedTheme();
+    }, 6000);
+  }
+  window.previewLockedTheme = previewLockedTheme;
 
   // 🎠 主题横滑条：点左右箭头滚一段（约等于一张卡片宽度+间距）
   function scrollThemeStrip(dir) {
@@ -6139,6 +6157,12 @@ window.setLang = setLang;
 
   // Page switching (home ↔ mine)
   function showPage(page, navEl) {
+    // 🎨 如果正在"试穿"锁着的主题预览，离开当前页就立刻还原成真正的主题，不用等6秒计时结束
+    if(typeof _themePreviewTimer !== 'undefined' && _themePreviewTimer){
+      clearTimeout(_themePreviewTimer);
+      _themePreviewTimer = null;
+      if(typeof initSavedTheme === 'function') initSavedTheme();
+    }
     // 记住当前页，刷新后恢复（只记 home/mine，cal/stats 各自在 showCalendar/showStats 里记）
     try { if(page==='home'||page==='mine') localStorage.setItem('luna_lastPage', page); } catch(e){}
     const minePanel = document.getElementById('mine-panel');

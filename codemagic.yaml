@@ -19,6 +19,9 @@ workflows:
         script: npm install
       - name: Sync web assets into iOS project
         script: npx cap sync ios
+      - name: Force iPhone-only device family (avoid iPad screenshot requirement)
+        script: |
+          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2";/TARGETED_DEVICE_FAMILY = 1;/g' "$CM_BUILD_DIR/ios/App/App.xcodeproj/project.pbxproj"
       - name: Increment build number
         script: |
           #!/bin/sh

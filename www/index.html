@@ -3858,9 +3858,12 @@ window.signInWithApple = async function(statusElId) {
   }
 
   function isCancelledByUser(e) {
+    const msg = ((e && e.message) || '');
     return e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request'
-        || e.message === 'User cancelled the interaction' || e.code === '1001'
-        || (e.message && e.message.toLowerCase().indexOf('cancel') !== -1);
+        || e.message === 'User cancelled the interaction' || e.code === '1001' || e.code === 1001
+        || msg.toLowerCase().indexOf('cancel') !== -1
+        || msg.indexOf('1001') !== -1 // 🩹 苹果原生 ASAuthorizationError.canceled 就是 1001，但插件返回的报错文本不一定带 "cancel" 这个词，
+        || msg.indexOf('AuthorizationError') !== -1; // 只在 message 里写"error 1001"，之前漏判了，这次直接认这个错误码/关键字
   }
   function isNetworkish(e) {
     const code = (e && e.code) || '';
@@ -5758,14 +5761,10 @@ window.setLang = setLang;
       ✅ ${isTh?'ป้ายสมาชิกพรีเมียม 👑':'正版会员专属徽章 👑'}`;
 
     m.innerHTML = `
-      <div style="background:#fff;border-radius:28px 28px 0 0;padding:24px 22px 32px;
+      <div id="vipPaywallCard" style="background:#fff;border-radius:28px 28px 0 0;padding:24px 22px 32px;
         width:100%;max-width:390px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
         animation:slideUp .3s cubic-bezier(0.34,1.56,0.64,1);position:relative;">
-        <button onclick="document.getElementById('vipPaywallModal').remove()"
-          style="position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:50%;
-          border:none;background:#f0edf8;color:#8a849e;font-size:15px;cursor:pointer;
-          display:flex;align-items:center;justify-content:center;font-family:inherit;">✕</button>
-        <div style="width:40px;height:4px;background:#e0dcea;border-radius:2px;margin:0 auto 18px;"></div>
+        <div class="modal-handle" id="vipPaywallHandle"></div>
 
         <div style="text-align:center;margin-bottom:16px;">
           <div style="font-size:42px;margin-bottom:6px;">👑</div>
@@ -5806,8 +5805,11 @@ window.setLang = setLang;
             : `订阅将自动续期，除非您在当前周期结束前至少24小时取消。可在 设置 → [您的名字] → 订阅 中管理或取消。详见 <span onclick="showTerms()" style="color:#7c5cbf;text-decoration:underline;">使用条款</span> 与 <span onclick="showPrivacy()" style="color:#7c5cbf;text-decoration:underline;">隐私政策</span>`}
         </div>
       </div>`;
-    m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+    m.addEventListener('click', e => {
+      if(e.target===m) animateModalClose(m, document.getElementById('vipPaywallCard'), () => m.remove());
+    });
     document.body.appendChild(m);
+    attachModalHandleDrag('vipPaywallHandle', 'vipPaywallCard', 'vipPaywallModal', () => m.remove());
   }
   window.showVipPaywall = showVipPaywall;
 
@@ -5920,6 +5922,12 @@ window.setLang = setLang;
   window.LunaIAP = {
     purchase: async function(productId) {
       const isTh = _appLang === 'th';
+      // 🩹 没网的时候，之前会直接走到后面报错分支甩技术性文字出来，体验很粗糙——
+      // 跟登录那边一样，先检查网络，没网就给个正常人能看懂的提示，不往下走
+      if (typeof navigator.onLine === 'boolean' && !navigator.onLine) {
+        showToast(isTh ? '📡 กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต' : '📡 请检查网络连接');
+        return;
+      }
       const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
       if (!Purchases) { showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸'); return; }
       try {
@@ -5935,13 +5943,17 @@ window.setLang = setLang;
         }
         let pkg = null;
         for (const offering of offeringList) {
-          const found = (offering.availablePackages || []).find(p => p.storeProduct && p.storeProduct.identifier === productId);
+          // 🩹 两种字段名都认一下（storeProduct / product），跟安卓那边保持一致的写法，更保险
+          const found = (offering.availablePackages || []).find(p => {
+            const sp = p.storeProduct || p.product;
+            return sp && sp.identifier === productId;
+          });
           if (found) { pkg = found; break; }
         }
         if (!pkg) {
           // 🩹 调试期：把 RevenueCat 实际能看到的商品 ID 都列出来，方便对比到底差在哪
           const seenIds = [];
-          offeringList.forEach(function(o) { (o.availablePackages || []).forEach(function(p) { if (p.storeProduct && p.storeProduct.identifier) seenIds.push(p.storeProduct.identifier); }); });
+          offeringList.forEach(function(o) { (o.availablePackages || []).forEach(function(p) { const sp = p.storeProduct || p.product; if (sp && sp.identifier) seenIds.push(sp.identifier); }); });
           console.log('没在 RevenueCat Offerings 里找到 productId=' + productId + '，实际看到的商品ID列表:', seenIds);
           showToast((isTh ? 'ต้องการ: ' : '要找: ') + productId + ' | ' + (isTh ? 'เจอ: ' : '实际有: ') + (seenIds.join(', ') || (isTh ? 'ไม่มีเลย' : '一个都没有')));
           return;
@@ -5958,6 +5970,10 @@ window.setLang = setLang;
     },
     restore: async function() {
       const isTh = _appLang === 'th';
+      if (typeof navigator.onLine === 'boolean' && !navigator.onLine) {
+        showToast(isTh ? '📡 กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต' : '📡 请检查网络连接');
+        return;
+      }
       const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
       if (!Purchases) { showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸'); return; }
       try {
@@ -5974,8 +5990,15 @@ window.setLang = setLang;
   // 🍎 真正调起苹果内购的入口——之后接好 RevenueCat 原生插件后，往 window.LunaIAP 上挂 purchase(productId)/restore()
   //    两个方法即可，这里的调用逻辑不用再改；插件还没接好之前，点击会友好提示"准备中"，不会像坏掉一样没反应
   function startVipPurchase() {
-    const p = VIP_PLANS[_vipSelectedPlan];
     const isTh = _appLang === 'th';
+    // 🩹 游客/预览模式不能走真实购买——这时候压根没有 Firebase 账号可以绑定，
+    // 万一真的走通苹果支付，系统也不知道该把会员权益发给谁。先拦下来，弹登录窗口。
+    if (typeof isGuest === 'function' && isGuest()) {
+      document.getElementById('vipPaywallModal')?.remove();
+      showGuestLoginModal();
+      return;
+    }
+    const p = VIP_PLANS[_vipSelectedPlan];
     // 选的就是当前正在用的套餐 → 不用真的发起购买，苹果那边同一订阅群组里换到自己已经在用的档也没意义
     const isCurrent = isPro() && (localStorage.getItem('luna_vip_plan') || '') === _vipSelectedPlan;
     if(isCurrent){
@@ -5992,6 +6015,12 @@ window.setLang = setLang;
 
   function restoreVipPurchase() {
     const isTh = _appLang === 'th';
+    // 同样拦一下：游客/预览模式没有账号可以关联，恢复购买也没有意义
+    if (typeof isGuest === 'function' && isGuest()) {
+      document.getElementById('vipPaywallModal')?.remove();
+      showGuestLoginModal();
+      return;
+    }
     if(window.LunaIAP && typeof window.LunaIAP.restore === 'function'){
       window.LunaIAP.restore().catch(function(err){ console.log('IAP restore error:', err); });
     } else {
@@ -10533,9 +10562,13 @@ window.setLang = setLang;
     const pt = document.getElementById('quickPeriodToggle');
     if (pt) pt.checked = periodSet.has(getTodayKey());
   }
-  function closeModal() {
-    document.getElementById('logModal').classList.remove('open');
-    document.body.style.overflow = '';
+  function closeModal(skipAnim) {
+    const overlay = document.getElementById('logModal');
+    const card = document.getElementById('logModalCard');
+    animateModalClose(overlay, card, function(){
+      if (overlay) overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }, skipAnim);
   }
   function closeOnOverlay(e) {
     if (e.target === document.getElementById('logModal')) closeModal();
@@ -10972,9 +11005,13 @@ window.setLang = setLang;
     document.getElementById('dayModal').classList.add('open');
   }
 
-  function closeDayModal() {
-    document.getElementById('dayModal').classList.remove('open');
-    currentDayKey = null;
+  function closeDayModal(skipAnim) {
+    const overlay = document.getElementById('dayModal');
+    const card = document.getElementById('dayModalCard');
+    animateModalClose(overlay, card, function(){
+      if (overlay) overlay.classList.remove('open');
+      currentDayKey = null;
+    }, skipAnim);
   }
 
   function saveDayModal() {
@@ -12565,6 +12602,22 @@ window.setLang = setLang;
 
   // ── 底部弹窗手柄：轻点一下、或者往下拖，都能关闭弹窗 ──
   // 跟边缘滑动返回是同一套手感(实时跟着手指走、松手不够远会像弹簧一样弹回去)，只是方向从"横向滑出"改成"向下滑出"。
+  // 统一的"卡片丝滑滑到底、再真正隐藏"动画，所有底部弹窗共用，不用每个各写一份，
+  // 也不会跟拖拽关闭的动画冲突（拖拽结束后会传 skipAnim=true，只做收尾清理，不重复播放）
+  function animateModalClose(overlay, card, onDone, skipAnim) {
+    if (!overlay || !card || skipAnim) { if (onDone) onDone(); return; }
+    card.style.transition = 'transform .22s ease';
+    overlay.style.transition = 'opacity .22s ease';
+    card.style.transform = 'translateY(' + card.offsetHeight + 'px)';
+    overlay.style.opacity = '0';
+    setTimeout(function(){
+      card.style.transition = ''; card.style.transform = '';
+      overlay.style.transition = ''; overlay.style.opacity = '';
+      if (onDone) onDone();
+    }, 220);
+  }
+  window.animateModalClose = animateModalClose;
+
   function attachModalHandleDrag(handleId, cardId, overlayId, closeFn){
     const handle = document.getElementById(handleId);
     const card = document.getElementById(cardId);
@@ -12623,7 +12676,8 @@ window.setLang = setLang;
     handle.addEventListener('touchcancel', onEnd, {passive:true});
   }
   window.attachModalHandleDrag = attachModalHandleDrag;
-  attachModalHandleDrag('logModalHandle', 'logModalCard', 'logModal', closeModal);
+  attachModalHandleDrag('logModalHandle', 'logModalCard', 'logModal', function(){ closeModal(true); });
+  attachModalHandleDrag('dayModalHandle', 'dayModalCard', 'dayModal', function(){ closeDayModal(true); });
 
   function closeStats() {
     const p = document.getElementById('statsPanel');
@@ -13957,8 +14011,8 @@ window.setLang = setLang;
 
 <!-- ═══ 当天记录弹窗 ═══ -->
 <div class="modal-overlay" id="dayModal" onclick="if(event.target===this)closeDayModal()">
-  <div class="modal" style="max-height:82vh; overflow-y:auto;">
-    <div class="modal-handle"></div>
+  <div class="modal" id="dayModalCard" style="max-height:82vh; overflow-y:auto;">
+    <div class="modal-handle" id="dayModalHandle"></div>
     <h2 id="dayModalTitle" style="margin-bottom:18px;">记录</h2>
 
     <!-- 月经日开关 -->

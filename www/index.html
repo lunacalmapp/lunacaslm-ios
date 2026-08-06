@@ -3452,7 +3452,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getDatabase, ref, get, set, remove, onValue, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential,
-  onAuthStateChanged, signOut }
+  onAuthStateChanged, signOut, signInWithEmailAndPassword }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getMessaging, getToken, onMessage }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
@@ -3899,6 +3899,73 @@ window.signInWithApple = async function(statusElId) {
     window._appleSignInBusy = false;
   }
 };
+
+// ── 邮箱+密码登录（备用登录方式，不走 Google/Apple，主要给 App Store 审核账号用）──
+// ⚠️ 只做登录，不做注册：账号必须提前在 Firebase 控制台 Authentication 里手动建好，
+// 并给对应 uid 在 Realtime Database 的 users/{uid} 节点里配好 VIP/已开通状态和示例数据，
+// 否则这里能登进去，但看到的还是空数据/未开通状态。
+window.signInWithEmailPassword = async function() {
+  const emailEl = document.getElementById('emailLoginEmail');
+  const pwEl = document.getElementById('emailLoginPassword');
+  const errEl = document.getElementById('codeErr');
+  const isTh = (localStorage.getItem('luna_lang') || 'th') === 'th';
+  if(!emailEl || !pwEl) return;
+  const email = (emailEl.value || '').trim();
+  const password = pwEl.value || '';
+  if(!email || !password) {
+    if(errEl) errEl.textContent = isTh ? 'กรุณากรอกอีเมลและรหัสผ่าน' : '请输入邮箱和密码';
+    return;
+  }
+  if(window._emailSignInBusy) return;
+  window._emailSignInBusy = true;
+  if(errEl) errEl.textContent = isTh ? 'กำลังเข้าสู่ระบบ...' : '登录中...';
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    const user = result.user;
+    window._authHandled = true;
+    try { sessionStorage.removeItem('luna_preview_mode'); } catch(e) {}
+    await handleAuthUser({
+      uid: user.uid,
+      displayName: user.displayName || '',
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+      provider: 'email'
+    });
+  } catch(e) {
+    console.error('Email login error:', e);
+    const code = (e && e.code) || '';
+    let msg;
+    if(code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+      msg = isTh ? '❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง' : '❌ 邮箱或密码不正确';
+    } else if(code === 'auth/invalid-email') {
+      msg = isTh ? '❌ อีเมลไม่ถูกต้อง' : '❌ 邮箱格式不正确';
+    } else if(code === 'auth/too-many-requests') {
+      msg = isTh ? '❌ ลองมากเกินไป กรุณารอสักครู่ค่อยลองใหม่' : '❌ 尝试次数过多，请稍后再试';
+    } else if(code === 'auth/user-disabled') {
+      msg = isTh ? '❌ บัญชีนี้ถูกระงับ' : '❌ 该账号已被停用';
+    } else {
+      msg = isTh ? '❌ เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่' : '❌ 登录失败，请重试';
+    }
+    if(errEl) errEl.textContent = msg;
+  } finally {
+    window._emailSignInBusy = false;
+  }
+};
+
+// 展开/收起邮箱登录小表单
+window.toggleEmailLogin = function() {
+  const form = document.getElementById('emailLoginForm');
+  const toggleWrap = document.getElementById('emailLoginToggleWrap');
+  if(!form) return;
+  const willShow = (form.style.display === 'none' || !form.style.display);
+  form.style.display = willShow ? 'block' : 'none';
+  if(toggleWrap) toggleWrap.style.display = willShow ? 'none' : 'block';
+  if(willShow) {
+    const emailEl = document.getElementById('emailLoginEmail');
+    if(emailEl) setTimeout(() => emailEl.focus(), 50);
+  }
+};
+
 onAuthStateChanged(auth, async (user) => {
   if(user && !window._authHandled) {
     const uid = user.uid;
@@ -5221,6 +5288,31 @@ onValue(ref(db,'notifications'), snap => {
         <span id="appleEnterTxt">Sign in with Apple</span>
       </button>
 
+      <!-- 邮箱+密码登录入口（备用登录方式，不走 Google/Apple；主要给 App Store 审核账号用，
+           平时普通用户不需要用，所以做成不起眼的小链接，不抢 Google/Apple 按钮的视觉重心）-->
+      <div id="emailLoginToggleWrap" style="text-align:center;margin-bottom:10px;">
+        <span onclick="toggleEmailLogin()"
+          style="font-size:12.5px;color:#9a8fc0;text-decoration:underline;cursor:pointer;">
+          <span id="emailLoginToggleTxt">เข้าสู่ระบบด้วยอีเมล</span>
+        </span>
+      </div>
+
+      <div id="emailLoginForm" style="display:none;margin-bottom:10px;">
+        <input id="emailLoginEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none"
+          placeholder="Email"
+          style="width:100%;padding:14px 16px;border:1.5px solid #e8e4f0;border-radius:14px;
+          font-size:15px;font-family:inherit;margin-bottom:8px;box-sizing:border-box;color:#2d2640;background:#fff;">
+        <input id="emailLoginPassword" type="password" autocomplete="current-password"
+          placeholder="Password"
+          style="width:100%;padding:14px 16px;border:1.5px solid #e8e4f0;border-radius:14px;
+          font-size:15px;font-family:inherit;margin-bottom:8px;box-sizing:border-box;color:#2d2640;background:#fff;">
+        <button onclick="if(window.signInWithEmailPassword){window.signInWithEmailPassword()}"
+          style="width:100%;padding:15px;background:#7c5cbf;border:none;border-radius:14px;
+          color:#fff;font-size:15.5px;font-weight:600;cursor:pointer;font-family:inherit;">
+          <span id="emailLoginSubmitTxt">เข้าสู่ระบบ</span>
+        </button>
+      </div>
+
       <!-- 客服按钮（邮箱）-->
       <button id="contactLineBtn"
         onclick="window.location.href='mailto:lunacalm00@gmail.com'"
@@ -5384,6 +5476,8 @@ function setLang(lang) {
   const forgotTxt  = document.getElementById('gateForgotTxt');
   const lineTxt    = document.getElementById('gateLineTxt');
   const previewTxt = document.getElementById('previewBtnTxt');
+  const emailToggleTxt = document.getElementById('emailLoginToggleTxt');
+  const emailSubmitTxt = document.getElementById('emailLoginSubmitTxt');
   const zhBtn      = document.getElementById('langZh');
   const thBtn      = document.getElementById('langTh');
 
@@ -5398,6 +5492,8 @@ function setLang(lang) {
     if(forgotTxt)      forgotTxt.textContent = '登录即表示您同意我们的';
     if(lineTxt)        lineTxt.textContent = '联系客服（邮箱）';
     if(previewTxt)     previewTxt.textContent = '先逛逛（无需登录）';
+    if(emailToggleTxt) emailToggleTxt.textContent = '使用邮箱登录';
+    if(emailSubmitTxt) emailSubmitTxt.textContent = '登录';
     const tl = document.getElementById('gateTermsLink');
     const pl = document.getElementById('gatePrivacyLink');
     const and = document.querySelector('#gateTermsLink + span');
@@ -5413,6 +5509,8 @@ function setLang(lang) {
     if(forgotTxt)      forgotTxt.textContent = 'การเข้าสู่ระบบถือว่าคุณยอมรับ';
     if(lineTxt)        lineTxt.textContent = 'ติดต่อฝ่ายสนับสนุน (อีเมล)';
     if(previewTxt)     previewTxt.textContent = 'ทดลองใช้งาน (แบบไม่เข้าสู่ระบบ)';
+    if(emailToggleTxt) emailToggleTxt.textContent = 'เข้าสู่ระบบด้วยอีเมล';
+    if(emailSubmitTxt) emailSubmitTxt.textContent = 'เข้าสู่ระบบ';
     const tl = document.getElementById('gateTermsLink');
     const pl = document.getElementById('gatePrivacyLink');
     const and = document.querySelector('#gateTermsLink + span');
@@ -5930,6 +6028,15 @@ window.setLang = setLang;
       }
       const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
       if (!Purchases) { showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸'); return; }
+      // 🩹 登录时那次初始化是"不等它做完就往下走"的，万一用户登录完很快就点购买，
+      // 可能会撞上"初始化还没跑完"这个时间差，导致 RevenueCat 报 "must be configured"。
+      // 这里做个兜底：确认真的初始化完成了，没完成就当场补一次、这次乖乖等它做完再继续。
+      if (!_rcConfigured) {
+        const uid = localStorage.getItem('luna_uid');
+        if (uid && typeof window._lunaConfigureRevenueCat === 'function') {
+          await window._lunaConfigureRevenueCat(uid);
+        }
+      }
       try {
         const offeringsResult = await Purchases.getOfferings();
         const offeringList = [];
@@ -5958,7 +6065,8 @@ window.setLang = setLang;
           showToast((isTh ? 'ต้องการ: ' : '要找: ') + productId + ' | ' + (isTh ? 'เจอ: ' : '实际有: ') + (seenIds.join(', ') || (isTh ? 'ไม่มีเลย' : '一个都没有')));
           return;
         }
-        const result = await Purchases.purchasePackage({ packageToPurchase: pkg });
+        // 🐛 之前用的参数名 packageToPurchase 是错的，真正插件认的参数名是 aPackage
+        const result = await Purchases.purchasePackage({ aPackage: pkg });
         _rcApplyCustomerInfo(result && result.customerInfo, isTh);
       } catch (err) {
         if (err && (err.userCancelled || err.code === 'PURCHASE_CANCELLED_ERROR' || err.code === '1')) return; // 用户自己点了取消，不弹错误提示
@@ -5976,6 +6084,12 @@ window.setLang = setLang;
       }
       const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
       if (!Purchases) { showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸'); return; }
+      if (!_rcConfigured) {
+        const uid = localStorage.getItem('luna_uid');
+        if (uid && typeof window._lunaConfigureRevenueCat === 'function') {
+          await window._lunaConfigureRevenueCat(uid);
+        }
+      }
       try {
         const result = await Purchases.restorePurchases();
         const ok = _rcApplyCustomerInfo(result && result.customerInfo, isTh);

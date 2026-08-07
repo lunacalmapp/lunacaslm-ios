@@ -2099,6 +2099,15 @@ window.installPWA = function() {
   .langbar .langbtn.light{background:var(--mine-lang-inactive-bg);border:1.5px solid var(--mine-lang-inactive-border);color:var(--mine-fg);}
   .langbar .langbtn.light:active{background:var(--mine-accent-light);}
 
+  /* ══ 购买/恢复购买按钮：连接支付页时的转圈等待动画 ══ */
+  @keyframes vipBtnSpin { to { transform: rotate(360deg); } }
+  .vip-btn-spinner{
+    display:inline-block; width:15px; height:15px; margin-right:7px; vertical-align:-3px;
+    border:2px solid rgba(255,255,255,0.45); border-top-color:#fff; border-radius:50%;
+    animation: vipBtnSpin .7s linear infinite;
+  }
+  .vip-btn-spinner.dark{ border-color:rgba(124,92,191,0.3); border-top-color:#7c5cbf; }
+
 </style>
 </head>
 <body>
@@ -5932,7 +5941,7 @@ window.setLang = setLang;
         </button>
 
         <div style="text-align:center;margin-top:12px;">
-          <button onclick="restoreVipPurchase()" style="background:none;border:none;
+          <button id="vipRestoreBtn" onclick="restoreVipPurchase()" style="background:none;border:none;
             color:#7c5cbf;font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline;">
             ${isTh?'เคยซื้อแล้ว? กู้คืนการซื้อ':'已购买过？恢复购买'}
           </button>
@@ -6144,6 +6153,27 @@ window.setLang = setLang;
 
   // 🍎 真正调起苹果内购的入口——之后接好 RevenueCat 原生插件后，往 window.LunaIAP 上挂 purchase(productId)/restore()
   //    两个方法即可，这里的调用逻辑不用再改；插件还没接好之前，点击会友好提示"准备中"，不会像坏掉一样没反应
+  // 🩹 订阅/恢复购买这两步要走苹果/安卓的原生支付页，中间有一段"看起来像卡住了"的空档——
+  //    这里统一给按钮加个转圈+文案，让用户知道是在连接支付，不是App没反应
+  function _setVipBtnLoading(btnId, loading, isTh, loadingLabel, normalLabelFn){
+    const btn = document.getElementById(btnId);
+    if(!btn) return;
+    if(loading){
+      if(btn.dataset.origHtml === undefined) btn.dataset.origHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.style.opacity = '0.75';
+      btn.style.pointerEvents = 'none';
+      const spinnerCls = btnId === 'vipRestoreBtn' ? 'vip-btn-spinner dark' : 'vip-btn-spinner';
+      btn.innerHTML = `<span class="${spinnerCls}"></span>${loadingLabel}`;
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.pointerEvents = '';
+      btn.innerHTML = (typeof normalLabelFn === 'function') ? normalLabelFn() : (btn.dataset.origHtml || btn.innerHTML);
+      delete btn.dataset.origHtml;
+    }
+  }
+
   function startVipPurchase() {
     const isTh = _appLang === 'th';
     // 🩹 游客/预览模式不能走真实购买——这时候压根没有 Firebase 账号可以绑定，
@@ -6161,7 +6191,10 @@ window.setLang = setLang;
       return;
     }
     if(window.LunaIAP && typeof window.LunaIAP.purchase === 'function'){
-      window.LunaIAP.purchase(p.id).catch(function(err){ console.log('IAP purchase error:', err); });
+      _setVipBtnLoading('vipSubscribeBtn', true, isTh, isTh ? 'กำลังเชื่อมต่อ...' : '正在连接支付…');
+      window.LunaIAP.purchase(p.id)
+        .catch(function(err){ console.log('IAP purchase error:', err); })
+        .finally(function(){ _setVipBtnLoading('vipSubscribeBtn', false, isTh, null, () => _vipSubscribeBtnLabel(isTh)); });
     } else {
       showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸');
     }
@@ -6177,7 +6210,11 @@ window.setLang = setLang;
       return;
     }
     if(window.LunaIAP && typeof window.LunaIAP.restore === 'function'){
-      window.LunaIAP.restore().catch(function(err){ console.log('IAP restore error:', err); });
+      const restoreLabel = isTh?'เคยซื้อแล้ว? กู้คืนการซื้อ':'已购买过？恢复购买';
+      _setVipBtnLoading('vipRestoreBtn', true, isTh, isTh ? 'กำลังกู้คืน...' : '正在恢复…');
+      window.LunaIAP.restore()
+        .catch(function(err){ console.log('IAP restore error:', err); })
+        .finally(function(){ _setVipBtnLoading('vipRestoreBtn', false, isTh, null, () => restoreLabel); });
     } else {
       showToast(isTh ? 'ระบบชำระเงินกำลังเตรียมพร้อม เร็วๆ นี้ 🌸' : '支付系统正在准备中，敬请期待 🌸');
     }
@@ -9597,7 +9634,7 @@ window.setLang = setLang;
       const uriResult = await FS.getUri({ path: fileName, directory: 'CACHE' });
       await ShareP.share({
         title: _appLang==='zh' ? 'Luna 数据备份' : 'ไฟล์สำรองข้อมูล Luna',
-        url: uriResult.uri
+        files: [uriResult.uri]
       });
     }
     // ③ 网页版：老办法，浏览器认这套，能正常触发下载，下载本身就是即时确认的，可以放心提示
@@ -9622,8 +9659,10 @@ window.setLang = setLang;
         // 分享面板打开了，但没法确认用户有没有真的选了目标，所以这里不弹"已导出"
       } catch(shareErr) {
         console.log('exportViaShareSheet err:', shareErr);
-        try { exportWeb(); showToast(_appLang==='zh'?'📤 数据已导出':'📤 ส่งออกข้อมูลแล้ว'); }
-        catch(webErr) { showToast(_appLang==='zh'?'导出失败，请重试':'ส่งออกไม่สำเร็จ กรุณาลองใหม่'); }
+        // 🩹 修复：exportWeb() 是浏览器专用的 <a download> 方案，在原生 WKWebView 里点了没有任何效果——
+        //    之前这里调用完 exportWeb() 会无条件提示"已导出"，等于是在原生App里说谎。
+        //    两条原生路线都失败时，应该如实告知失败，而不是假装成功。
+        showToast(_appLang==='zh'?'导出失败，请重试或联系客服':'ส่งออกไม่สำเร็จ กรุณาลองใหม่หรือติดต่อฝ่ายสนับสนุน');
       }
     } else {
       try { exportWeb(); showToast(_appLang==='zh'?'📤 数据已导出':'📤 ส่งออกข้อมูลแล้ว'); }

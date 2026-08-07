@@ -60,5 +60,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>需要访问相机以拍摄头像照片</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>需要访问相册以选择头像照片</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>需要保存图片到相册</string>
 </dict>
 </plist>

@@ -9717,6 +9717,7 @@ window.setLang = setLang;
         return;
       } catch(directErr) {
         console.log('exportDirectSave err (FileSharer插件可能还没装好，退到分享面板):', directErr);
+        window._lastExportDirectErr = (directErr && (directErr.message || directErr.toString())) || String(directErr);
       }
       try {
         await exportViaShareSheet();
@@ -9726,7 +9727,15 @@ window.setLang = setLang;
         // 🩹 修复：exportWeb() 是浏览器专用的 <a download> 方案，在原生 WKWebView 里点了没有任何效果——
         //    之前这里调用完 exportWeb() 会无条件提示"已导出"，等于是在原生App里说谎。
         //    两条原生路线都失败时，应该如实告知失败，而不是假装成功。
-        showToast(_appLang==='zh'?'导出失败，请重试或联系客服':'ส่งออกไม่สำเร็จ กรุณาลองใหม่หรือติดต่อฝ่ายสนับสนุน');
+        // 🩹 临时诊断用：没有 Mac 没法连 Web Inspector 看 console，直接把具体报错原文用 alert 显示出来
+        //    （alert 不会像 toast 那样自动消失，方便截图发出来定位问题；确认没问题后可以改回普通 showToast）
+        const directMsg = window._lastExportDirectErr || '(无)';
+        const shareMsg = (shareErr && (shareErr.message || shareErr.toString())) || String(shareErr);
+        alert(
+          (_appLang==='zh' ? '导出失败，具体报错如下（请截图发给开发者）：\n\n' : 'ส่งออกไม่สำเร็จ ข้อความ error ด้านล่าง (กรุณาแคปหน้าจอส่งให้ผู้พัฒนา):\n\n')
+          + 'exportDirectSave: ' + directMsg
+          + '\n\nexportViaShareSheet: ' + shareMsg
+        );
       }
     } else {
       try { exportWeb(); showToast(_appLang==='zh'?'📤 数据已导出':'📤 ส่งออกข้อมูลแล้ว'); }

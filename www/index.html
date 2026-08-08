@@ -965,9 +965,9 @@ window.installPWA = function() {
   .bottom-nav {
     position: fixed;
     bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 390px;
+    left: 0;
+    right: 0;
+    width: 100%;
     background: rgba(255,255,255,0.97);
     backdrop-filter: blur(16px);
     border-top: 1px solid rgba(124,92,191,0.08);
@@ -2091,6 +2091,9 @@ window.installPWA = function() {
     text-align:left;padding:11px 14px;border-radius:10px;cursor:pointer;color:#8a849e;transition:.15s;white-space:nowrap;}
   .langbar .langmenu button.on{background:var(--purple);color:#fff}
   .langbar .langmenu button:not(.on):active{background:var(--purple-pale)}
+  /* 横向排列变体：登录页/引导页专用——两个语言选项并排一行，菜单展开高度更矮，不容易压到下面的卡片 */
+  .langbar .langmenu.h{flex-direction:row;min-width:0;right:auto;left:50%;transform:translateX(-50%) translateY(-6px);}
+  .langbar.open .langmenu.h{transform:translateX(-50%) translateY(0);}
   /* 深色玻璃变体：登录页/引导页的紫色渐变背景上用 */
   .langbar .langbtn.glass{background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);color:#fff;
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
@@ -2775,7 +2778,7 @@ window.installPWA = function() {
               onkeydown="if(event.key==='Enter')saveNickname()">
             <button onclick="saveNickname()" style="padding:11px 16px;background:var(--mine-accent);
               border:none;border-radius:12px;color:var(--mine-accent-solid-fg);font-size:13px;font-weight:600;
-              cursor:pointer;font-family:inherit;white-space:nowrap;">บันทึก</button>
+              cursor:pointer;font-family:inherit;white-space:nowrap;"><span data-i18n="save_btn">บันทึก</span></button>
           </div>
         </div>
 
@@ -3042,8 +3045,8 @@ window.installPWA = function() {
 <!-- ── 关于App 弹窗 ── -->
 <!-- ── 帮助 / 常见问题 弹窗（替代跳转 help.html，点了不跳页）── -->
 <div class="modal-overlay" id="aboutModal" style="z-index:10001;" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal">
-    <div class="modal-handle"></div>
+  <div class="modal" id="aboutModalCard">
+    <div class="modal-handle" id="aboutModalHandle"></div>
     <div style="text-align:center;padding:8px 0 20px;">
       <div style="font-size:52px;margin-bottom:12px;">🌸</div>
       <div style="font-family:Georgia,'Songti SC',serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px;">Luna</div>
@@ -3065,8 +3068,8 @@ window.installPWA = function() {
 <!-- ── 隐私与政策 弹窗 ── -->
 <!-- ── 服务条款 弹窗（替代独立页面，避免跳出 App 作用域）── -->
 <div class="modal-overlay" id="contactModal" style="z-index:10001;" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="modal">
-    <div class="modal-handle"></div>
+  <div class="modal" id="contactModalCard">
+    <div class="modal-handle" id="contactModalHandle"></div>
     <h2 style="margin-bottom:18px;"><span data-i18n="contact_title">📩 ติดต่อเรา</span></h2>
     <div style="font-size:14px;color:var(--text-muted);line-height:1.8;margin-bottom:20px;">
       <span data-i18n="contact_desc">หากพบปัญหาการใช้งาน หรือต้องการติดต่อเรา สามารถติดต่อผ่านช่องทางด้านล่าง</span>
@@ -4509,18 +4512,14 @@ onValue(ref(db,'notifications'), snap => {
   </div>
 
   <div style="width:100%;max-width:360px;position:relative;z-index:2;padding-bottom:24px;">
-    <!-- 语言切换：单按钮+下拉菜单，样式对齐官网 luna.html -->
+    <!-- 语言切换：跟登录页一样的胶囊滑块切换器，DOM顺序也保持一致（中文在左/泰语在右），支持点按 -->
     <div style="display:flex;justify-content:center;margin-bottom:16px;">
-      <div class="langbar" id="obLangBar">
-        <button class="langbtn glass" id="obLangToggle" type="button" onclick="toggleLangMenu('obLangBar')" aria-haspopup="true" aria-expanded="false">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>
-          <span id="obLangCurrent">ไทย</span>
-          <svg class="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="langmenu" id="obLangMenu" role="menu">
-          <button id="obLangZh" type="button" onclick="obSetLang('zh')" role="menuitem">🇨🇳 中文</button>
-          <button id="obLangTh" type="button" class="on" onclick="obSetLang('th')" role="menuitem">🇹🇭 ไทย</button>
-        </div>
+      <div id="obLangTrack" style="position:relative;display:inline-flex;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);border-radius:28px;padding:4px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+        <div id="obLangSlider" style="position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:24px;background:rgba(255,255,255,0.95);box-shadow:0 2px 8px rgba(100,50,160,0.18);transition:transform .28s cubic-bezier(0.4,0,0.2,1);z-index:0;transform:translateX(100%);pointer-events:none;"></div>
+        <button id="obLangZh" type="button" onclick="obSetLang('zh')"
+          style="position:relative;z-index:1;min-height:40px;padding:8px 22px;border-radius:24px;border:none;outline:none;font-size:13px;font-family:inherit;cursor:pointer;font-weight:500;background:transparent;color:rgba(255,255,255,0.85);transition:color .25s,font-weight .25s;-webkit-tap-highlight-color:transparent;">🇨🇳 中文</button>
+        <button id="obLangTh" type="button" onclick="obSetLang('th')"
+          style="position:relative;z-index:1;min-height:40px;padding:8px 22px;border-radius:24px;border:none;outline:none;font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;background:transparent;color:#7c5cbf;transition:color .25s,font-weight .25s;-webkit-tap-highlight-color:transparent;">🇹🇭 ไทย</button>
       </div>
     </div>
     <!-- 顶部：进度点 + 跳过 -->
@@ -4752,19 +4751,20 @@ onValue(ref(db,'notifications'), snap => {
     window.obSetLang = obSetLang;
 
     function obRenderLangPill(){
+      const slider = document.getElementById('obLangSlider');
       const thBtn = document.getElementById('obLangTh');
       const zhBtn = document.getElementById('obLangZh');
-      const cur = document.getElementById('obLangCurrent');
+      const _ACT = '#7c5cbf', _INACT = 'rgba(255,255,255,0.85)';
+      // 中文是第1个按钮(左)，对应滑块 translateX(0)；泰语是第2个按钮(右)，对应 translateX(100%)——跟登录页完全一致
       if(obLang()==='zh'){
-        if(zhBtn) zhBtn.classList.add('on');
-        if(thBtn) thBtn.classList.remove('on');
-        if(cur) cur.textContent = '中文';
+        if(slider) slider.style.transform = 'translateX(0)';
+        if(zhBtn){ zhBtn.style.color = _ACT; zhBtn.style.fontWeight = '600'; }
+        if(thBtn){ thBtn.style.color = _INACT; thBtn.style.fontWeight = '500'; }
       } else {
-        if(thBtn) thBtn.classList.add('on');
-        if(zhBtn) zhBtn.classList.remove('on');
-        if(cur) cur.textContent = 'ไทย';
+        if(slider) slider.style.transform = 'translateX(100%)';
+        if(thBtn){ thBtn.style.color = _ACT; thBtn.style.fontWeight = '600'; }
+        if(zhBtn){ zhBtn.style.color = _INACT; zhBtn.style.fontWeight = '500'; }
       }
-      if(typeof toggleLangMenu === 'function') toggleLangMenu('obLangBar', false);
     }
 
     // 语言胶囊支持左右滑动切换（在点按之外多一种操作方式）
@@ -5274,18 +5274,19 @@ onValue(ref(db,'notifications'), snap => {
       อยู่กับคุณ · บันทึกเพื่อคุณ · ดูแลคุณ ♡
     </div>
 
-    <!-- 语言切换（单按钮+下拉菜单，样式对齐官网 luna.html）-->
+    <!-- 语言切换（胶囊分段切换器·滑块平滑滑动）-->
     <div style="display:flex;justify-content:center;margin-bottom:24px;">
-      <div class="langbar" id="gateLangBar">
-        <button class="langbtn glass" id="gateLangToggle" type="button" onclick="toggleLangMenu('gateLangBar')" aria-haspopup="true" aria-expanded="false">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>
-          <span id="gateLangCurrent">ไทย</span>
-          <svg class="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      <div id="langTrack" style="position:relative;display:inline-flex;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);border-radius:28px;padding:4px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+        <!-- 滑块 -->
+        <div id="langSlider" style="position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:24px;background:rgba(255,255,255,0.95);box-shadow:0 2px 8px rgba(100,50,160,0.18);transition:transform .28s cubic-bezier(0.4,0,0.2,1);z-index:0;transform:translateX(100%);"></div>
+        <button id="langZh" onclick="setLang('zh')"
+          style="position:relative;z-index:1;padding:8px 22px;border-radius:24px;border:none;font-size:13px;font-family:inherit;cursor:pointer;font-weight:500;background:transparent;color:rgba(255,255,255,0.85);transition:color .25s,font-weight .25s;">
+          🇨🇳 中文
         </button>
-        <div class="langmenu" id="gateLangMenu" role="menu">
-          <button id="langZh" onclick="setLang('zh')" role="menuitem">🇨🇳 中文</button>
-          <button id="langTh" class="on" onclick="setLang('th')" role="menuitem">🇹🇭 ภาษาไทย</button>
-        </div>
+        <button id="langTh" onclick="setLang('th')"
+          style="position:relative;z-index:1;padding:8px 22px;border-radius:24px;border:none;font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;background:transparent;color:#7c5cbf;transition:color .25s,font-weight .25s;">
+          🇹🇭 ภาษาไทย
+        </button>
       </div>
     </div>
 
@@ -5327,7 +5328,7 @@ onValue(ref(db,'notifications'), snap => {
       <div id="emailLoginToggleWrap" style="text-align:center;margin-bottom:10px;">
         <span onclick="toggleEmailLogin()"
           style="font-size:12.5px;color:#9a8fc0;text-decoration:underline;cursor:pointer;">
-          <span id="emailLoginToggleTxt">เข้าสู่ระบบด้วยอีเมล</span>
+          <span id="emailLoginToggleTxt">Sign in with Email</span>
         </span>
       </div>
 
@@ -5515,7 +5516,7 @@ function toggleLangMenu(barId, force){
 }
 window.toggleLangMenu = toggleLangMenu;
 document.addEventListener('click', function(e){
-  ['gateLangBar','obLangBar','mineLangBar'].forEach(function(id){
+  ['mineLangBar'].forEach(function(id){
     const bar = document.getElementById(id);
     if(bar && bar.classList.contains('open') && !bar.contains(e.target)) toggleLangMenu(id, false);
   });
@@ -5531,7 +5532,9 @@ function setLang(lang) {
   const emailSubmitTxt = document.getElementById('emailLoginSubmitTxt');
   const zhBtn      = document.getElementById('langZh');
   const thBtn      = document.getElementById('langTh');
-  const gateLangCurrent = document.getElementById('gateLangCurrent');
+
+  const langSlider = document.getElementById('langSlider');
+  const _ACT = '#7c5cbf', _INACT = 'rgba(255,255,255,0.85)';
 
   const fbLoginTxt = null; // Facebook 已移除
 
@@ -5541,7 +5544,7 @@ function setLang(lang) {
     if(forgotTxt)      forgotTxt.textContent = '登录即表示您同意我们的';
     if(lineTxt)        lineTxt.textContent = '联系客服（邮箱）';
     if(previewTxt)     previewTxt.textContent = '先逛逛（无需登录）';
-    if(emailToggleTxt) emailToggleTxt.textContent = '使用邮箱登录';
+    if(emailToggleTxt) emailToggleTxt.textContent = 'Sign in with Email';
     if(emailSubmitTxt) emailSubmitTxt.textContent = '登录';
     const tl = document.getElementById('gateTermsLink');
     const pl = document.getElementById('gatePrivacyLink');
@@ -5549,16 +5552,16 @@ function setLang(lang) {
     if(tl) tl.textContent = '服务条款';
     if(pl) pl.textContent = '隐私政策';
     if(and) and.textContent = ' 和 ';
-    if(zhBtn) zhBtn.classList.add('on');
-    if(thBtn) thBtn.classList.remove('on');
-    if(gateLangCurrent) gateLangCurrent.textContent = '中文';
+    if(langSlider) langSlider.style.transform = 'translateX(0)';
+    if(zhBtn){ zhBtn.style.color = _ACT;   zhBtn.style.fontWeight = '600'; }
+    if(thBtn){ thBtn.style.color = _INACT; thBtn.style.fontWeight = '500'; }
   } else {
     if(subtitle)       subtitle.textContent = 'อยู่กับคุณ · บันทึกเพื่อคุณ · ดูแลคุณ ♡';
     if(enterTxt)       enterTxt.textContent = 'เข้าสู่ระบบด้วย Google';
     if(forgotTxt)      forgotTxt.textContent = 'การเข้าสู่ระบบถือว่าคุณยอมรับ';
     if(lineTxt)        lineTxt.textContent = 'ติดต่อฝ่ายสนับสนุน (อีเมล)';
     if(previewTxt)     previewTxt.textContent = 'ทดลองใช้งาน (แบบไม่เข้าสู่ระบบ)';
-    if(emailToggleTxt) emailToggleTxt.textContent = 'เข้าสู่ระบบด้วยอีเมล';
+    if(emailToggleTxt) emailToggleTxt.textContent = 'Sign in with Email';
     if(emailSubmitTxt) emailSubmitTxt.textContent = 'เข้าสู่ระบบ';
     const tl = document.getElementById('gateTermsLink');
     const pl = document.getElementById('gatePrivacyLink');
@@ -5566,11 +5569,10 @@ function setLang(lang) {
     if(tl) tl.textContent = 'ข้อกำหนดการใช้งาน';
     if(pl) pl.textContent = 'นโยบายความเป็นส่วนตัว';
     if(and) and.textContent = ' และ ';
-    if(thBtn) thBtn.classList.add('on');
-    if(zhBtn) zhBtn.classList.remove('on');
-    if(gateLangCurrent) gateLangCurrent.textContent = 'ไทย';
+    if(langSlider) langSlider.style.transform = 'translateX(100%)';
+    if(thBtn){ thBtn.style.color = _ACT;   thBtn.style.fontWeight = '600'; }
+    if(zhBtn){ zhBtn.style.color = _INACT; zhBtn.style.fontWeight = '500'; }
   }
-  toggleLangMenu('gateLangBar', false);
 
   localStorage.setItem('luna_lang', lang);
   window._gateLang = lang;
@@ -5666,7 +5668,14 @@ window.setLang = setLang;
             onActivated();
           }
           // 激活 → 失活（后台失活，或已过期）
-          if(!reallyActive && currentlyActivated) {
+          // 🩹 宽限期保护：App Store 购买/恢复成功后，客户端(RevenueCat SDK)是立刻知道的，
+          // 但 Firebase 里的 activated 字段要等后台 revenuecatWebhook 收到通知才会写入，
+          // 中间有几秒到几十秒的延迟。如果这时候刚好轮到这个10秒检查，会看到 Firebase 还没更新，
+          // 误以为"其实没激活"，把刚买完的用户当场打回试用模式、弹"已切换至试用模式"——
+          // 这里给刚购买成功的用户留 3 分钟宽限期，宽限期内即使 Firebase 还没同步，也先不触发失活提示。
+          const lastPurchaseAt = parseInt(localStorage.getItem('luna_last_purchase_at') || '0');
+          const inPurchaseGrace = (Date.now() - lastPurchaseAt) < (3 * 60 * 1000);
+          if(!reallyActive && currentlyActivated && !inPurchaseGrace) {
             localStorage.setItem('luna_activated','0');
             sessionStorage.setItem('luna_activated','0');
             clearInterval(watchTimer);
@@ -5818,12 +5827,57 @@ window.setLang = setLang;
   window._lunaAdminId = _lunaAdminId;
 
   // 🍎 iOS 走全新的付费订阅页（3 档定价 + 苹果内购占位接口），其他平台维持原本的"会员码 + LINE"流程不变
-  function showTrialLockModal() {
+  // 🩹 之前这里点哪个VIP专属功能都直接把整页订阅页顶出来，太重了——现在改成先弹一个小巧的
+  // 提示卡片（showVipMiniPrompt），用户自己点"查看"才会打开完整订阅页；订阅页本身不动。（跟 APK 版对齐）
+  function showTrialLockModal(featureZh, featureTh) {
     if(IS_PLAY_BUILD) return; // Play 版不弹试用锁定窗（含 LINE 入口）
     const platform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || '';
-    if(platform === 'ios') { showVipPaywall(); return; }
+    if(platform === 'ios') { showVipMiniPrompt(featureZh, featureTh); return; }
     _showMemberCodeModal();
   }
+
+  // 🔒 小巧的 VIP 锁定提示卡片：从各处点到 VIP 专属功能时弹这个，而不是直接弹整页订阅页。
+  // 悬浮在屏幕底部中间，轻量、可点外部/等几秒自动消失；卡片上的"查看"按钮才会打开完整订阅页。
+  function showVipMiniPrompt(featureZh, featureTh) {
+    document.querySelectorAll('#vipMiniPrompt, #vipMiniPromptBg').forEach(el => el.remove());
+    if(!document.getElementById('vipMiniPromptStyle')){
+      const s = document.createElement('style');
+      s.id = 'vipMiniPromptStyle';
+      s.textContent = '@keyframes vipMiniPop{from{opacity:0;transform:translate(-50%,10px) scale(0.95)}to{opacity:1;transform:translate(-50%,0) scale(1)}}';
+      document.head.appendChild(s);
+    }
+    const isTh = _appLang === 'th';
+    const titleText = isTh ? (featureTh || 'ฟีเจอร์นี้สำหรับสมาชิก VIP') : (featureZh || '该功能为VIP专属');
+    const subText = isTh ? 'แตะเพื่อดูแพ็กเกจสมาชิก' : '点击查看会员套餐';
+
+    const bg = document.createElement('div');
+    bg.id = 'vipMiniPromptBg';
+    bg.style.cssText = 'position:fixed;inset:0;z-index:9997;background:transparent;';
+
+    const card = document.createElement('div');
+    card.id = 'vipMiniPrompt';
+    card.style.cssText = `position:fixed;left:50%;bottom:100px;transform:translate(-50%,0);
+      z-index:9998;background:#fff;border-radius:20px;padding:14px 16px;
+      box-shadow:0 10px 30px rgba(80,40,120,0.25);display:flex;align-items:center;gap:12px;
+      max-width:320px;width:calc(100% - 56px);animation:vipMiniPop .22s cubic-bezier(0.34,1.56,0.64,1);`;
+    card.innerHTML = `
+      <div style="font-size:22px;flex-shrink:0;">🔒</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:#2d2640;">${titleText}</div>
+        <div style="font-size:11px;color:#a89ec8;margin-top:2px;">${subText}</div>
+      </div>
+      <button onclick="document.getElementById('vipMiniPrompt')?.remove();document.getElementById('vipMiniPromptBg')?.remove();showVipPaywall();"
+        style="flex-shrink:0;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;border:none;
+        border-radius:14px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+        white-space:nowrap;">${isTh?'ดู':'查看'}</button>`;
+
+    bg.addEventListener('click', () => { card.remove(); bg.remove(); });
+    document.body.appendChild(bg);
+    document.body.appendChild(card);
+    clearTimeout(window._vipMiniPromptTimer);
+    window._vipMiniPromptTimer = setTimeout(() => { card.remove(); bg.remove(); }, 4000);
+  }
+  window.showVipMiniPrompt = showVipMiniPrompt;
 
   function _showMemberCodeModal() {
     const existing = document.getElementById('trialLockModal');
@@ -6050,6 +6104,7 @@ window.setLang = setLang;
       const productId = ent.productIdentifier;
       const planKey = Object.keys(VIP_PLANS).find(k => VIP_PLANS[k].id === productId) || '';
       localStorage.setItem('luna_activated', '1');
+      localStorage.setItem('luna_last_purchase_at', String(Date.now())); // 🩹 标记刚购买成功，给 watchActivation/startValidityCheck 一段宽限期
       if (planKey) localStorage.setItem('luna_vip_plan', planKey);
       if (ent.expirationDate) localStorage.setItem('luna_expiry', String(new Date(ent.expirationDate).getTime()));
       document.getElementById('vipPaywallModal')?.remove();
@@ -8194,7 +8249,7 @@ window.setLang = setLang;
           ? '👑 开通会员，解锁经期/情绪/感情/生活调理话题，让 Luna 做你的健康顾问'
           : '👑 เปิดใช้งานสมาชิก ปลดล็อกหัวข้อประจำเดือน/อารมณ์/ความรัก/การดูแลตัวเอง ให้ Luna เป็นที่ปรึกษาสุขภาพของคุณ';
         hint.style.cssText='width:100%;text-align:center;font-size:11px;color:#a89ec8;margin-top:8px;cursor:pointer;text-decoration:underline;';
-        hint.onclick=function(){ if(window.showTrialLockModal) showTrialLockModal(); };
+        hint.onclick=function(){ if(window.showTrialLockModal) showTrialLockModal('Luna 小助手为VIP专属','Luna ผู้ช่วยน้อยสำหรับสมาชิก VIP'); };
         wrap.appendChild(hint);
       }
       body.appendChild(wrap);
@@ -8253,7 +8308,7 @@ window.setLang = setLang;
       const btn=document.createElement('button');
       btn.textContent = zh()?'เริ่มแชท':'เริ่มแชท';
       btn.style.cssText='border:none;background:linear-gradient(135deg,#9d7bd6,#e98ab0);color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:14px;cursor:pointer;font-family:inherit;';
-      btn.onclick=()=>{ closeAi(); if(typeof showTrialLockModal==='function'){showTrialLockModal();} };
+      btn.onclick=()=>{ closeAi(); if(typeof showTrialLockModal==='function'){showTrialLockModal('Luna 小助手为VIP专属','Luna ผู้ช่วยน้อยสำหรับสมาชิก VIP');} };
       w.appendChild(btn);
       body.appendChild(w);
       chips.style.display='none';
@@ -9582,7 +9637,16 @@ window.setLang = setLang;
     const reader = new FileReader();
     reader.onload = e => {
       const data = e.target.result;
-      localStorage.setItem('luna_avatar', data);
+      // 🩹 万一本地存储空间已经写满(localStorage 配额有限)，setItem 会直接抛异常——
+      // 之前这里没有try/catch兜底，写失败时用户会"什么提示都看不到"，还以为自己操作错了。
+      // 现在明确捕获、给出提示，并且不去更新页面上显示的头像，避免"看起来换成功了、其实没存住"的假象。
+      try {
+        localStorage.setItem('luna_avatar', data);
+      } catch(err) {
+        console.log('saveAvatar localStorage err:', err);
+        showToast(_appLang==='zh' ? '存储空间不足，头像保存失败，请清理后重试' : 'พื้นที่จัดเก็บไม่พอ บันทึกรูปไม่สำเร็จ กรุณาล้างพื้นที่แล้วลองใหม่');
+        return;
+      }
       const img = document.getElementById('avatarImg');
       const emoji = document.getElementById('avatarEmoji');
       if(img && emoji) { img.src = data; img.style.display='block'; emoji.style.display='none'; }
@@ -9704,9 +9768,11 @@ window.setLang = setLang;
           data.logs.forEach(l => { if(l && l.date) logMap[l.date] = l; });
           const mergedLogs = Object.values(logMap).sort((a,b) => (b.date>a.date?1:-1));
 
-          localStorage.setItem('luna_period_days', JSON.stringify(mergedPeriod));
-          localStorage.setItem('luna_logs', JSON.stringify(mergedLogs));
-          if(data.nickname && !localStorage.getItem('luna_nickname')) localStorage.setItem('luna_nickname', data.nickname);
+          try {
+            localStorage.setItem('luna_period_days', JSON.stringify(mergedPeriod));
+            localStorage.setItem('luna_logs', JSON.stringify(mergedLogs));
+            if(data.nickname && !localStorage.getItem('luna_nickname')) localStorage.setItem('luna_nickname', data.nickname);
+          } catch(e) { console.log('import data local cache write failed:', e); }
           periodSet = new Set(mergedPeriod);
           logs = mergedLogs;
           const code = localStorage.getItem('luna_uid');
@@ -10005,7 +10071,8 @@ window.setLang = setLang;
           const local = [...periodSet];
           const merged = Array.from(new Set([...local, ...data])).sort();
           periodSet = new Set(merged);
-          localStorage.setItem('luna_period_days', JSON.stringify(merged));
+          try { localStorage.setItem('luna_period_days', JSON.stringify(merged)); }
+          catch(e) { console.log('luna_period_days local cache write failed:', e); }
           // 合并结果回写云端，保持两端一致
           if(merged.length !== data.length) window._fb.set('userdata/'+code+'/periodDays', merged).catch(()=>{});
           calUpdateStats && calUpdateStats();
@@ -10030,7 +10097,8 @@ window.setLang = setLang;
           });
           const merged = Object.values(map).sort((a,b)=> a.date>b.date?-1:1);
           logs = merged;
-          localStorage.setItem('luna_logs', JSON.stringify(merged));
+          try { localStorage.setItem('luna_logs', JSON.stringify(merged)); }
+          catch(e) { console.log('luna_logs local cache write failed:', e); }
           if(merged.length !== data.length) window._fb.set('userdata/'+code+'/logs', merged).catch(()=>{});
           if(typeof renderLogList==='function') renderLogList();  // 合并后重渲染，消除闪烁
         }
@@ -10307,7 +10375,10 @@ window.setLang = setLang;
       if (periodToggle.checked) { pdSet.add(key); _didSave = true; }
       else pdSet.delete(key);
       const newArr = [...pdSet];
-      localStorage.setItem('luna_period_days', JSON.stringify(newArr));
+      // 🩹 本地缓存写入单独try/catch：万一本地存储写满了，也不能因此连累下面的云端同步一起失败——
+      // 本地写失败只是快取失效（下次可能需要重新从云端拉取），数据本身还是能正常保存到 Firebase，不会真的丢
+      try { localStorage.setItem('luna_period_days', JSON.stringify(newArr)); }
+      catch(e) { console.log('luna_period_days local cache write failed:', e); }
       // 同步内存变量（若当前作用域可见）与 Firebase
       try { if(typeof periodSet !== 'undefined') periodSet = new Set(newArr); } catch(e) {}
       try {
@@ -10325,7 +10396,9 @@ window.setLang = setLang;
       const existing = logArr.findIndex(l => l && l.date === key);
       const entry = { date: key, symptoms: symptoms.map(s=>s.name), emojis: symptoms.map(s=>s.emoji) };
       if (existing >= 0) logArr[existing] = entry; else logArr.unshift(entry);
-      localStorage.setItem('luna_logs', JSON.stringify(logArr));
+      // 🩹 同样单独try/catch，本地写失败不影响云端同步照常尝试
+      try { localStorage.setItem('luna_logs', JSON.stringify(logArr)); }
+      catch(e) { console.log('luna_logs local cache write failed:', e); }
       try { if(typeof logs !== 'undefined') logs = logArr; } catch(e) {}
       try {
         const code = localStorage.getItem('luna_uid');
@@ -10383,7 +10456,9 @@ window.setLang = setLang;
       } else {
         logArr.unshift({ date: key, symptoms: symptoms.map(s=>s.name), emojis: symptoms.map(s=>s.emoji), note: note });
       }
-      localStorage.setItem('luna_logs', JSON.stringify(logArr));
+      // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试（跟 saveLog 同一套修法）
+      try { localStorage.setItem('luna_logs', JSON.stringify(logArr)); }
+      catch(e) { console.log('luna_logs local cache write failed:', e); }
       try { if(typeof logs !== 'undefined') logs = logArr; } catch(e) {}
       try { if(typeof checkAchievements==='function') checkAchievements(); } catch(e) {}
       try {
@@ -10972,7 +11047,9 @@ window.setLang = setLang;
   let periodSet  = new Set(periodDays);
 
   function savePeriodDays() {
-    localStorage.setItem('luna_period_days', JSON.stringify([...periodSet]));
+    // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试
+    try { localStorage.setItem('luna_period_days', JSON.stringify([...periodSet])); }
+    catch(e) { console.log('luna_period_days local cache write failed:', e); }
     // 同步到 Firebase
     const code = localStorage.getItem('luna_uid');
     if(code && window._fb) {
@@ -10984,7 +11061,9 @@ window.setLang = setLang;
   }
 
   function saveLogs() {
-    localStorage.setItem('luna_logs', JSON.stringify(logs));
+    // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试（跟 saveLog/saveMoreLog 同一套修法）
+    try { localStorage.setItem('luna_logs', JSON.stringify(logs)); }
+    catch(e) { console.log('luna_logs local cache write failed:', e); }
     if(typeof checkAchievements==='function') checkAchievements();
     // 同步到 Firebase
     const code = localStorage.getItem('luna_uid');
@@ -12872,6 +12951,12 @@ window.setLang = setLang;
   window.attachModalHandleDrag = attachModalHandleDrag;
   attachModalHandleDrag('logModalHandle', 'logModalCard', 'logModal', function(){ closeModal(true); });
   attachModalHandleDrag('dayModalHandle', 'dayModalCard', 'dayModal', function(){ closeDayModal(true); });
+  // 🩹 补齐：这几个弹窗只是把手视觉上变大了，但实际点按/拖拽没反应——统一接上同一套手势，全App体验一致
+  attachModalHandleDrag('aboutModalHandle', 'aboutModalCard', 'aboutModal', function(){ document.getElementById('aboutModal').classList.remove('open'); });
+  attachModalHandleDrag('contactModalHandle', 'contactModalCard', 'contactModal', function(){ document.getElementById('contactModal').classList.remove('open'); });
+  attachModalHandleDrag('cycleSettingModalHandle', 'cycleSettingModalCard', 'cycleSettingModal', function(){ if(typeof closeCycleSetting==='function') closeCycleSetting(); });
+  attachModalHandleDrag('periodSettingModalHandle', 'periodSettingModalCard', 'periodSettingModal', function(){ if(typeof closePeriodSetting==='function') closePeriodSetting(); });
+  attachModalHandleDrag('notifModalHandle', 'notifModalCard', 'notifModal', function(){ if(typeof closeNotif==='function') closeNotif(); });
 
   function closeStats() {
     const p = document.getElementById('statsPanel');
@@ -13304,7 +13389,7 @@ window.setLang = setLang;
           </div>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
             <div style="font-size:13px;font-weight:600;color:var(--purple);">🔒 ${zh ? 'VIP 专属深度分析' : 'วิเคราะห์เชิงลึกสำหรับ VIP'}</div>
-            <button onclick="(typeof showTrialLock==='function')?showTrialLock():(document.getElementById('trialBanner')&&document.getElementById('trialBanner').scrollIntoView())"
+            <button onclick="(typeof showTrialLockModal==='function')?showTrialLockModal('身体规律洞察为VIP专属','การวิเคราะห์รูปแบบร่างกายสำหรับสมาชิก VIP'):(document.getElementById('trialBanner')&&document.getElementById('trialBanner').scrollIntoView())"
               style="background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;border:none;border-radius:20px;padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(var(--purple-rgb),0.3);">
               ${zh ? '解锁 VIP 查看' : 'ปลดล็อก VIP'}
             </button>
@@ -13706,8 +13791,18 @@ window.setLang = setLang;
 
         // 检查有效期 — 以 Firebase expiry 为准
         if(userData.activated && userData.expiry) {
+          // 🩹 修复：App Store 购买/恢复成功后，客户端（RevenueCat SDK）是立刻知道的，
+          // 但 Firebase 的 expiry 字段要等后台 revenuecatWebhook 收到通知才会写入新值，
+          // 中间有几秒到几十秒的延迟。而这个 check() 又是"App 从后台切回前台"（visibilitychange）
+          // 就会立即触发的——用户刚点完"恢复购买"/订阅，App Store 支付页一关闭、App 一回到前台，
+          // 这里马上就跑了一遍，但 Firebase 这时候读到的 expiry 还是旧的（没过期就是压根没有，或者是上一次已经过期的旧值），
+          // 于是就出现"刚提示已恢复购买，下一秒又弹已到期"这种自相矛盾的体验。
+          // 跟 watchActivation() 用的是同一套宽限期保护：刚购买成功的 3 分钟内，先不判定为过期，
+          // 给 webhook 留出时间把 Firebase 更新过来。
+          const lastPurchaseAt = parseInt(localStorage.getItem('luna_last_purchase_at') || '0');
+          const inPurchaseGrace = (Date.now() - lastPurchaseAt) < (3 * 60 * 1000);
           const expired = Date.now() > userData.expiry;
-          if(expired) {
+          if(expired && !inPurchaseGrace) {
             goTrialMode();
             return;
           }
@@ -13950,7 +14045,7 @@ window.setLang = setLang;
         </div>
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
           <div style="font-size:13px;font-weight:600;color:var(--purple);" data-i18n="ai_analysis_locked_label">🔒 VIP 专属 AI 分析</div>
-          <button onclick="if(window.showTrialLockModal)showTrialLockModal();else{const b=document.getElementById('trialBanner');if(b)b.scrollIntoView();}"
+          <button onclick="if(window.showTrialLockModal)showTrialLockModal('AI深度分析为VIP专属','การวิเคราะห์เชิงลึกด้วย AI สำหรับสมาชิก VIP');else{const b=document.getElementById('trialBanner');if(b)b.scrollIntoView();}"
             style="background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;border:none;border-radius:20px;padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(var(--purple-rgb),0.3);"
             data-i18n="ai_analysis_unlock_btn">解锁 VIP 查看</button>
         </div>
@@ -14370,8 +14465,8 @@ window.setLang = setLang;
 
 <!-- ═══ ระยะรอบเดือน Modal ═══ -->
 <div class="modal-overlay" id="cycleSettingModal" onclick="if(event.target===this)closeCycleSetting()">
-  <div class="modal">
-    <div class="modal-handle"></div>
+  <div class="modal" id="cycleSettingModalCard">
+    <div class="modal-handle" id="cycleSettingModalHandle"></div>
     <h2 style="margin-bottom:6px;" data-i18n="cycle_days">📅 ระยะรอบเดือน</h2>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px;" data-i18n="cycle_range">ปกติ 21–45 วัน</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:28px;">
@@ -14401,8 +14496,8 @@ window.setLang = setLang;
 
 <!-- ═══ จำนวนประจำเดือน Modal ═══ -->
 <div class="modal-overlay" id="periodSettingModal" onclick="if(event.target===this)closePeriodSetting()">
-  <div class="modal">
-    <div class="modal-handle"></div>
+  <div class="modal" id="periodSettingModalCard">
+    <div class="modal-handle" id="periodSettingModalHandle"></div>
     <h2 style="margin-bottom:6px;" data-i18n="period_days">🩸 จำนวนประจำเดือน</h2>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px;" data-i18n="period_range">ปกติ 2–10 วัน</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:28px;">
@@ -14426,14 +14521,14 @@ window.setLang = setLang;
     <button onclick="savePeriodSetting()"
       style="width:100%;padding:15px;background:linear-gradient(135deg,var(--pink),#f9a8c0);
       border:none;border-radius:16px;color:#fff;font-size:15px;font-weight:600;
-      cursor:pointer;font-family:inherit;">บันทึก ✓</button>
+      cursor:pointer;font-family:inherit;"><span data-i18n="save_btn">บันทึก</span> ✓</button>
   </div>
 </div>
 
 <!-- ═══ 通知面板 ═══ -->
 <div class="modal-overlay" id="notifModal" onclick="if(event.target===this)closeNotif()">
-  <div class="modal" style="max-height:75vh; overflow-y:auto;">
-    <div class="modal-handle"></div>
+  <div class="modal" id="notifModalCard" style="max-height:75vh; overflow-y:auto;">
+    <div class="modal-handle" id="notifModalHandle"></div>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
       <h2 style="margin:0;" data-i18n="notif_panel_title">🔔 การแจ้งเตือน</h2>
       <button onclick="clearAllNotif()" data-i18n="notif_clear_all" style="background:none;border:none;font-size:12px;color:var(--text-muted);cursor:pointer;padding:6px 10px;border-radius:10px;transition:background 0.15s;" onmouseenter="this.style.background='var(--purple-pale)'" onmouseleave="this.style.background='none'">ล้างทั้งหมด</button>

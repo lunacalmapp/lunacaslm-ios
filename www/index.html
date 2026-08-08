@@ -2797,7 +2797,7 @@ window.installPWA = function() {
 
         <!-- 🎯 会员卡片：未开通时常驻显示（试用倒计时 / 已到期），点一下进入订阅页；
              已是VIP时这张自动隐藏，改由上面的 proBadge 显示会员身份 -->
-        <div id="vipUpgradeCard" onclick="if(window.showTrialLockModal)showTrialLockModal()" style="display:none;margin-top:8px;
+        <div id="vipUpgradeCard" onclick="if(window.showVipPaywall)showVipPaywall();else if(window.showTrialLockModal)showTrialLockModal();" style="display:none;margin-top:8px;
           padding:14px 16px;border-radius:14px;cursor:pointer;
           background:linear-gradient(135deg,var(--mine-accent),var(--mine-accent-light));
           align-items:center;justify-content:space-between;gap:10px;">
@@ -9717,7 +9717,6 @@ window.setLang = setLang;
         return;
       } catch(directErr) {
         console.log('exportDirectSave err (FileSharer插件可能还没装好，退到分享面板):', directErr);
-        window._lastExportDirectErr = (directErr && (directErr.message || directErr.toString())) || String(directErr);
       }
       try {
         await exportViaShareSheet();
@@ -9727,15 +9726,7 @@ window.setLang = setLang;
         // 🩹 修复：exportWeb() 是浏览器专用的 <a download> 方案，在原生 WKWebView 里点了没有任何效果——
         //    之前这里调用完 exportWeb() 会无条件提示"已导出"，等于是在原生App里说谎。
         //    两条原生路线都失败时，应该如实告知失败，而不是假装成功。
-        // 🩹 临时诊断用：没有 Mac 没法连 Web Inspector 看 console，直接把具体报错原文用 alert 显示出来
-        //    （alert 不会像 toast 那样自动消失，方便截图发出来定位问题；确认没问题后可以改回普通 showToast）
-        const directMsg = window._lastExportDirectErr || '(无)';
-        const shareMsg = (shareErr && (shareErr.message || shareErr.toString())) || String(shareErr);
-        alert(
-          (_appLang==='zh' ? '导出失败，具体报错如下（请截图发给开发者）：\n\n' : 'ส่งออกไม่สำเร็จ ข้อความ error ด้านล่าง (กรุณาแคปหน้าจอส่งให้ผู้พัฒนา):\n\n')
-          + 'exportDirectSave: ' + directMsg
-          + '\n\nexportViaShareSheet: ' + shareMsg
-        );
+        showToast(_appLang==='zh'?'导出失败，请重试或联系客服':'ส่งออกไม่สำเร็จ กรุณาลองใหม่หรือติดต่อฝ่ายสนับสนุน');
       }
     } else {
       try { exportWeb(); showToast(_appLang==='zh'?'📤 数据已导出':'📤 ส่งออกข้อมูลแล้ว'); }
@@ -12035,13 +12026,11 @@ window.setLang = setLang;
         if(reason === 'denied'){
           _rollback(_appLang==='zh' ? '需在浏览器/系统设置允许通知，才能开启提醒' : 'ต้องอนุญาตการแจ้งเตือนในตั้งค่าก่อน จึงจะเปิดได้');
         } else {
-          // 🩹 临时诊断用：把真实失败原因带出来，方便截图定位问题，确认没问题后改回原来的通用提示。
-          _rollback('暂时无法开启提醒 [' + reason + ']');
+          _rollback(_appLang==='zh' ? '暂时无法开启提醒，请稍后重试' : 'เปิดการแจ้งเตือนไม่ได้ตอนนี้ ลองใหม่ภายหลัง');
         }
       }
     } catch(e){
-      // 🩹 临时诊断用：同上
-      _rollback('暂时无法开启提醒 [catch: ' + (e && e.message ? e.message : e) + ']');
+      _rollback(_appLang==='zh' ? '暂时无法开启提醒，请稍后重试' : 'เปิดการแจ้งเตือนไม่ได้ตอนนี้ ลองใหม่ภายหลัง');
     }
   }
 

@@ -9743,19 +9743,30 @@ window.setLang = setLang;
       a.click();
     }
 
+    // 🩹 用户在分享面板上直接划掉/点空白处取消，插件会抛一个带 "CANCEL" 字样的错误——
+    //    这跟插件真的用不了是两码事，不该被同样处理。取消属于用户主动选择的合法结果，
+    //    不应该被当成"失败"接着尝试下一个方案（不然就是这次遇到的"面板消失又跳出另一个"），
+    //    也不该弹"导出失败"的提示——用户压根没打算保存，谈不上失败。
+    function isUserCancelled(err) {
+      const msg = ((err && (err.message || err.code)) || String(err) || '').toUpperCase();
+      return msg.indexOf('CANCEL') !== -1;
+    }
+
     if (isNativeApp) {
       try {
         await exportDirectSave();
         showToast(_appLang==='zh'?'📤 已保存到"下载"文件夹':'📤 บันทึกลงโฟลเดอร์ดาวน์โหลดแล้ว');
         return;
       } catch(directErr) {
-        console.log('exportDirectSave err (FileSharer插件可能还没装好，退到分享面板):', directErr);
+        console.log('exportDirectSave err:', directErr);
+        if (isUserCancelled(directErr)) return; // 用户自己取消的，安静结束，不再往下弹第二个面板
       }
       try {
         await exportViaShareSheet();
         // 分享面板打开了，但没法确认用户有没有真的选了目标，所以这里不弹"已导出"
       } catch(shareErr) {
         console.log('exportViaShareSheet err:', shareErr);
+        if (isUserCancelled(shareErr)) return; // 同样：用户自己取消的，不算失败，不用提示
         // 🩹 修复：exportWeb() 是浏览器专用的 <a download> 方案，在原生 WKWebView 里点了没有任何效果——
         //    之前这里调用完 exportWeb() 会无条件提示"已导出"，等于是在原生App里说谎。
         //    两条原生路线都失败时，应该如实告知失败，而不是假装成功。

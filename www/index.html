@@ -785,7 +785,7 @@ window.installPWA = function() {
      视觉上跟下一张卡片之间的间距会比另外两张卡片间的间距看起来更"挤"（尤其大屏手机更明显）。
      这里单独给它加大一点底部间距，让三张卡片之间的视觉节奏更均匀——只加，不减，
      不影响其余两处间距，也不影响 .phone 上原本按屏高自适应留白的机制。 */
-  #cycleCard { margin-bottom: 26px; }
+  #cycleCard { margin-bottom: 6px; }
 
   @keyframes fadeUp {
     from { opacity:0; transform:translateY(18px); }
@@ -899,7 +899,7 @@ window.installPWA = function() {
   .cycle-row strong { color: var(--text); font-weight: 500; }
 
   /* ─── Quick Actions ─── */
-  .actions-card { padding-bottom: 26px; }
+  .actions-card { padding-bottom: 26px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; }
   .actions-motto {
     text-align: center;
     font-size: 14px;
@@ -2372,7 +2372,7 @@ window.installPWA = function() {
   </div>
 
   <!-- Card 2: 距离下次月经 -->
-  <div class="card" id="nextPeriodCard" style="display:flex;align-items:center;gap:18px;padding:26px 24px;position:relative;overflow:hidden;">
+  <div class="card" id="nextPeriodCard" style="display:flex;align-items:center;gap:18px;padding:26px 24px;position:relative;overflow:hidden;min-height:200px;margin-bottom:6px;">
     <!-- 日历图标 -->
     <div style="width:54px;height:54px;border-radius:16px;background:var(--home-glass-bg);
       display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--home-glass-border);">

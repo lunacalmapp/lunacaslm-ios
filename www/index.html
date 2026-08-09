@@ -4033,6 +4033,23 @@ onAuthStateChanged(auth, async (user) => {
             localStorage.setItem('luna_vip_plan', userData.vipPlan || '');
             await window._fb.set('users/' + uid + '/lastLogin', Date.now());
           }
+          // 🩹 修复"每次进App都要重新恢复购买"：上面这行只信 Firebase 的 activated 字段，
+          // 而这个字段要靠后台 revenuecatWebhook 云函数才能写进去——webhook 一旦没配置好、或者有延迟，
+          // 每次重开 App 就会被这里读到"未激活"，把刚买好/恢复好的会员状态覆盖回原形。
+          // 这里额外直接问 RevenueCat SDK 本身要不要打这个补丁——它是直接查 App Store 的，
+          // 不经过 Firebase/webhook 这条链路，更权威也没有延迟，只要它说生效，就不会被上面的旧数据打回去。
+          if(!window.IS_PLAY_BUILD){
+            try {
+              const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+              if(Purchases && typeof Purchases.getCustomerInfo === 'function'){
+                const rcResult = await Purchases.getCustomerInfo();
+                const rcActive = rcResult && rcResult.customerInfo && rcResult.customerInfo.entitlements && rcResult.customerInfo.entitlements.active;
+                if(rcActive && rcActive['pro']){
+                  localStorage.setItem('luna_activated', '1');
+                }
+              }
+            } catch(e) { console.log('startup RevenueCat getCustomerInfo check err:', e); }
+          }
         }
       } catch(e) {}
       // 内容已就绪 → 淡出移除登录屏（柔和过渡，不硬切不闪）
@@ -4269,7 +4286,23 @@ async function handleAuthUser(user) {
         if(userData.expiry) localStorage.setItem('luna_expiry', String(userData.expiry));
         else localStorage.removeItem('luna_expiry');
         if(userData.firstLogin) localStorage.setItem('luna_first_login', userData.firstLogin);
-        if(isActivated) {
+        // 🩹 同样的问题：Firebase 的 activated 字段要靠后台 webhook 才能同步，webhook 没配置好/有延迟
+        // 就会把这里判定成"未激活"，把已经买好/恢复好的会员打回原形。这里也加上直接问 RevenueCat SDK 的兜底。
+        let _rcConfirmedActive = false;
+        if(!window.IS_PLAY_BUILD){
+          try {
+            const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+            if(Purchases && typeof Purchases.getCustomerInfo === 'function'){
+              const rcResult = await Purchases.getCustomerInfo();
+              const rcActive = rcResult && rcResult.customerInfo && rcResult.customerInfo.entitlements && rcResult.customerInfo.entitlements.active;
+              if(rcActive && rcActive['pro']){
+                _rcConfirmedActive = true;
+                localStorage.setItem('luna_activated', '1');
+              }
+            }
+          } catch(e) { console.log('login RevenueCat getCustomerInfo check err:', e); }
+        }
+        if(isActivated || _rcConfirmedActive) {
           document.getElementById('trialBanner')?.remove();
           document.getElementById('trialLockModal')?.remove();
           if(typeof initProFeatures === 'function') initProFeatures();
@@ -9839,6 +9872,10 @@ window.setLang = setLang;
   function showAboutApp() { document.getElementById('aboutModal').classList.add('open'); }
   // ── 隐私/条款/帮助：用 iframe 全屏覆盖层加载（不整页跳转，从机制上根绝 cycle 串台到主站）──
   // 三个独立 html 仍部署在 /cycle/ 下（Play 商店隐私政策网址照用），这里只是 App 内嵌着看
+  // 🩹 隐私/条款/帮助这几个法律页面，改成优先加载线上版本——这样以后改网站内容会立刻生效，
+  // 不用像之前那样每次改了都要重新打包发版、用户还得重新下载安装才能看到最新内容。
+  // 但线上版本要联网才能打开，为了不出现"没网就打不开"的情况，加了个超时兜底：
+  // 3.5秒内线上版本没加载完成（大概率没网/网速太差），自动切换成App内打包好的本地版本，保证肯定能打开。
   function _openLegal(url, titleZh, titleTh){
     const ov = document.getElementById('legalOverlay');
     const fr = document.getElementById('legalFrame');
@@ -13729,9 +13766,22 @@ window.setLang = setLang;
           if(localStorage.getItem('luna_activated') !== '1') showTrialBanner();
           return;
         }
-        window._fb.get('users/'+uid).then(ud=>{
+        window._fb.get('users/'+uid).then(async ud=>{
           const notExpired = !ud?.expiry || Date.now() <= ud.expiry;
-          if((ud?.activated === true || ud?.activated === 1 || ud?.activated === '1' || ud?.activated === 'true') && notExpired){
+          let isActive = (ud?.activated === true || ud?.activated === 1 || ud?.activated === '1' || ud?.activated === 'true') && notExpired;
+          // 🩹 同样的问题：Firebase 的 activated 字段依赖后台 webhook 才能同步，这里也加上直接问
+          // RevenueCat SDK 本身的兜底——它直接查 App Store，不受 webhook 延迟/失效影响
+          if(!isActive && !window.IS_PLAY_BUILD){
+            try {
+              const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+              if(Purchases && typeof Purchases.getCustomerInfo === 'function'){
+                const rcResult = await Purchases.getCustomerInfo();
+                const rcActive = rcResult && rcResult.customerInfo && rcResult.customerInfo.entitlements && rcResult.customerInfo.entitlements.active;
+                if(rcActive && rcActive['pro']) isActive = true;
+              }
+            } catch(e) { console.log('initBanner RevenueCat getCustomerInfo check err:', e); }
+          }
+          if(isActive){
             localStorage.setItem('luna_activated','1');
             document.getElementById('trialBanner')?.remove();
             if(typeof initProFeatures === 'function') initProFeatures();

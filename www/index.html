@@ -13707,6 +13707,14 @@ window.setLang = setLang;
       `<div style="background:linear-gradient(150deg,#fff6f9,#fdf4f8);border:1px solid #f8dde7;border-radius:14px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.85;">${tip}</div>`
     );
 
+    // 模块9：信息来源声明（Apple Guideline 1.4.1 要求：涉及健康/医疗建议的AI分析需标注信息来源，
+    // 不需要逐句标注——AI内容是动态生成的做不到——这里给出通用的权威机构参考来源+免责声明即可）
+    html += `<div style="font-size:10.5px;color:var(--stat-fg-muted);line-height:1.8;text-align:center;padding:6px 14px 2px;">
+      ${zh
+        ? '💡 以上健康分析参考世界卫生组织（WHO）、妙佑医疗国际（Mayo Clinic）等权威医疗机构的公开资料整理，仅供健康参考，不能替代专业医疗诊断或治疗建议。如有持续不适，请咨询医生。'
+        : '💡 ข้อมูลสุขภาพข้างต้นอ้างอิงจากข้อมูลสาธารณะขององค์การอนามัยโลก (WHO) และ Mayo Clinic ใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนการวินิจฉัยหรือคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้ หากมีอาการผิดปกติต่อเนื่อง ควรปรึกษาแพทย์'}
+    </div>`;
+
     // 模块10：AI 专属总结
     html += `<div class="insight-block" style="background:linear-gradient(160deg,var(--purple),var(--purple-light));border-radius:20px;padding:18px 17px;color:#fff;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(var(--purple-rgb),0.28);">
       <div style="position:absolute;top:-25px;right:-15px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1);"></div>

@@ -3038,6 +3038,11 @@ window.installPWA = function() {
         <div class="s-info"><div class="s-label"><span data-i18n="terms_of_service">ข้อกำหนดการใช้งาน</span></div></div>
         <span class="s-arrow">›</span>
       </div>
+      <div class="s-item" onclick="openFaqModal()">
+        <span class="s-svg-icon" data-c="orange"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <div class="s-info"><div class="s-label"><span id="faqEntryLabel">คำถามที่พบบ่อย</span></div></div>
+        <span class="s-arrow">›</span>
+      </div>
       <div class="s-item" onclick="showContact()">
         <span class="s-svg-icon" data-c="blue"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
         <div class="s-info"><div class="s-label"><span data-i18n="contact_us">ติดต่อเรา</span></div></div>
@@ -3096,7 +3101,7 @@ window.installPWA = function() {
     </div>
 
     <!-- 客服联系（邮箱）-->
-    <div style="background:var(--purple-pale);border-radius:16px;padding:18px 20px;cursor:pointer;"
+    <div style="background:var(--purple-pale);border-radius:16px;padding:18px 20px;cursor:pointer;margin-bottom:12px;"
       onclick="window.location.href='mailto:lunacalm00@gmail.com'">
       <div style="display:flex;align-items:center;gap:14px;">
         <div style="width:48px;height:48px;background:var(--purple);border-radius:14px;
@@ -3112,12 +3117,65 @@ window.installPWA = function() {
         </button>
       </div>
     </div>
+
+    <!-- 📝 提交反馈/报告问题：直接写进 Firebase，比邮件更快，还会自动附带版本/平台信息 -->
+    <div style="background:var(--purple-pale);border-radius:16px;padding:18px 20px;cursor:pointer;"
+      onclick="document.getElementById('contactModal').classList.remove('open');setTimeout(()=>openFeedbackModal(),200);">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:48px;height:48px;background:#e8a33d;border-radius:14px;
+          display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">📝</div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:3px;" id="fbEntryTag">Feedback</div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:.3px;" id="fbEntryLabel">แจ้งปัญหา / ข้อเสนอแนะ</div>
+        </div>
+      </div>
+    </div>
     <button onclick="document.getElementById('contactModal').classList.remove('open')"
       style="width:100%;margin-top:16px;padding:13px;background:var(--purple-pale);border:none;
       border-radius:14px;color:var(--purple);font-size:15px;font-weight:600;
       cursor:pointer;font-family:inherit;">
       ปิด
     </button>
+  </div>
+</div>
+
+<!-- 📝 反馈/报告问题 弹窗 -->
+<div class="modal-overlay" id="feedbackModal" style="z-index:10001;" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" id="feedbackModalCard">
+    <div class="modal-handle"></div>
+    <h2 style="margin-bottom:14px;" id="fbModalTitle">📝 แจ้งปัญหา / ข้อเสนอแนะ</h2>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:16px;" id="fbModalDesc">
+      บอกเราได้เลยว่าเจอปัญหาอะไร หรืออยากให้ Luna เพิ่มอะไร เราจะรีบดูให้เร็วที่สุด
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px;" id="fbCategoryRow">
+      <button class="fb-cat-btn on" data-cat="bug" onclick="selFbCategory(this)"
+        style="flex:1;padding:11px 6px;border-radius:12px;border:1.5px solid var(--purple);background:var(--purple-pale);color:var(--purple);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">🐛 <span id="fbCatBugLbl">Bug</span></button>
+      <button class="fb-cat-btn" data-cat="suggestion" onclick="selFbCategory(this)"
+        style="flex:1;padding:11px 6px;border-radius:12px;border:1.5px solid var(--border-color,#e8e4f0);background:#fff;color:var(--text-muted);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">💡 <span id="fbCatSuggLbl">Suggestion</span></button>
+      <button class="fb-cat-btn" data-cat="other" onclick="selFbCategory(this)"
+        style="flex:1;padding:11px 6px;border-radius:12px;border:1.5px solid var(--border-color,#e8e4f0);background:#fff;color:var(--text-muted);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">💬 <span id="fbCatOtherLbl">Other</span></button>
+    </div>
+
+    <textarea id="fbTextArea" maxlength="1000" rows="5" oninput="document.getElementById('fbCharCount').textContent=this.value.length+' / 1000'"
+      style="width:100%;padding:14px 16px;border:1.5px solid #e8e4f0;border-radius:14px;
+      font-size:14.5px;font-family:inherit;color:#2d2640;background:#fff;resize:vertical;box-sizing:border-box;"
+      placeholder="พิมพ์รายละเอียดตรงนี้..."></textarea>
+    <div style="font-size:11px;color:var(--text-muted);text-align:right;margin-top:4px;" id="fbCharCount">0 / 1000</div>
+
+    <button class="lbtn" style="margin-top:14px;" onclick="submitFeedback()" id="fbSubmitBtn">ส่ง</button>
+    <div id="fbSubmitSt" style="font-size:12.5px;text-align:center;margin-top:8px;min-height:16px;color:var(--purple);"></div>
+  </div>
+</div>
+
+<!-- ❓ 常见问题 (FAQ) 弹窗：内容从 Firebase 拉，后台改了这里立刻更新，不用重新发版 -->
+<div class="modal-overlay" id="faqModal" style="z-index:10001;" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" id="faqModalCard">
+    <div class="modal-handle"></div>
+    <h2 style="margin-bottom:16px;" id="faqModalTitle">❓ คำถามที่พบบ่อย</h2>
+    <div id="faqListArea">
+      <div style="text-align:center;padding:30px 0;color:var(--text-muted);font-size:13px;">กำลังโหลด...</div>
+    </div>
   </div>
 </div>
 
@@ -3679,6 +3737,253 @@ function _markFbReady() {
   window.dispatchEvent(new Event('fbReady'));
 }
 _markFbReady();
+
+// ══ 📊 Analytics 事件埋点：纯记录用，不影响任何现有逻辑——写入失败也只是静默跳过，
+// 绝不会抛错、绝不会挡住或改变其他任何代码的执行结果。只新增，不改动已有代码。══
+function trackEvent(name, extra){
+  try{
+    if(!window._fb || typeof window._fb.set !== 'function') return;
+    const uid = localStorage.getItem('luna_uid') || 'anonymous';
+    const rawPlatform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || 'web';
+    const platform = rawPlatform === 'android' ? 'apk' : rawPlatform;
+    const key = name + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    window._fb.set('analyticsEvents/' + key, {
+      event: name, uid, platform,
+      at: Date.now(),
+      extra: extra || null
+    }).catch(()=>{});
+  }catch(e){ /* 埋点本身出问题绝不能影响App正常使用 */ }
+}
+window.trackEvent = trackEvent;
+trackEvent('app_open');
+
+// ══ 🛡️ App Control：维护模式 / 强制更新检查 ══
+// 例外说明：上面注释说"登录前 app 不读写 Firebase"，指的是不碰用户私有数据（users/userdata）；
+// appControl 是公开的、跟具体用户无关的开关配置（安全规则里是 .read:true，任何人能读），
+// 不违反那条原则——而且这个检查必须在登录页出现之前就跑完，不然版本控制/维护模式就失去意义了。
+(async function _checkAppControl(){
+  try{
+    const rawPlatform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || 'web';
+    const platform = rawPlatform === 'android' ? 'apk' : (rawPlatform === 'ios' ? 'ios' : null);
+    if(!platform) return; // 只在真机 App 里生效，网页预览环境不做这个检查
+    const cfg = await window._fb.get('appControl/'+platform);
+    if(!cfg || typeof cfg !== 'object') return;
+
+    const isZh = (window._appLang || window._gateLang) === 'zh';
+
+    // ① 维护模式：直接拦，不管版本号
+    if(cfg.maintenanceMode === true){
+      _showAppBlockOverlay({
+        icon: '🛠',
+        title: isZh ? '系统维护中' : 'กำลังปรับปรุงระบบ',
+        body: (cfg.maintenanceMsg && (isZh ? cfg.maintenanceMsg.zh : cfg.maintenanceMsg.th))
+              || (isZh ? '我们正在升级系统，请稍后再试。' : 'ระบบกำลังปรับปรุง กรุณาลองใหม่ภายหลัง')
+      });
+      return;
+    }
+
+    // ② 强制更新：当前版本低于最低要求版本才拦
+    if(cfg.minVersion && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.getInfo){
+      try{
+        const info = await window.Capacitor.Plugins.App.getInfo();
+        if(_versionLessThan(info.version, cfg.minVersion)){
+          _showAppBlockOverlay({
+            icon: '🔄',
+            title: isZh ? '需要更新' : 'กรุณาอัปเดต',
+            body: (cfg.updateMsg && (isZh ? cfg.updateMsg.zh : cfg.updateMsg.th))
+                  || (isZh ? '有新版本可用，请更新后继续使用。' : 'มีเวอร์ชันใหม่ กรุณาอัปเดตเพื่อใช้งานต่อ'),
+            updateUrl: cfg.updateUrl || ''
+          });
+        }
+      }catch(e){ /* 拿不到版本号就不强制拦，避免误伤正常用户 */ }
+    }
+  }catch(e){ /* 查询失败就直接放行——绝不能因为这个检查本身出错就把所有人挡在外面 */ }
+})();
+
+function _versionLessThan(a, b){
+  const pa=String(a||'0').split('.').map(n=>parseInt(n,10)||0);
+  const pb=String(b||'0').split('.').map(n=>parseInt(n,10)||0);
+  const len=Math.max(pa.length,pb.length);
+  for(let i=0;i<len;i++){
+    const x=pa[i]||0, y=pb[i]||0;
+    if(x<y) return true;
+    if(x>y) return false;
+  }
+  return false;
+}
+
+function _showAppBlockOverlay(opts){
+  if(document.getElementById('appBlockOverlay')) return; // 已经在显示了就不重复弹
+  const isZh = (window._appLang || window._gateLang) === 'zh';
+  const ov=document.createElement('div');
+  ov.id='appBlockOverlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:999999;background:linear-gradient(165deg,#8b5fb8 0%,#a87fcf 26%,#c9a3e0 50%,#e6c8ee 72%,#f6e4f3 100%);display:flex;align-items:center;justify-content:center;padding:24px;';
+  const btnHtml = opts.updateUrl
+    ? `<button id="appBlockUpdateBtn" style="width:100%;padding:16px;background:#7c5cbf;border:none;border-radius:16px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:20px;">${isZh?'前往更新':'ไปอัปเดต'}</button>`
+    : '';
+  ov.innerHTML = `<div style="max-width:340px;width:100%;text-align:center;background:rgba(255,255,255,0.96);border-radius:24px;padding:32px 24px;box-shadow:0 12px 40px rgba(80,40,120,0.3);">
+    <div style="font-size:44px;margin-bottom:14px;">${opts.icon}</div>
+    <div style="font-size:17px;font-weight:700;color:#2d2640;margin-bottom:10px;">${opts.title}</div>
+    <div style="font-size:14px;color:#6a6480;line-height:1.7;">${opts.body}</div>
+    ${btnHtml}
+  </div>`;
+  document.body.appendChild(ov);
+  if(opts.updateUrl){
+    const btn=document.getElementById('appBlockUpdateBtn');
+    if(btn) btn.addEventListener('click', ()=>{ window.open(opts.updateUrl, '_blank'); });
+  }
+}
+
+// ══ 📝 反馈 / 报告问题：直接写进 Firebase，后台「更多」页有对应的查看/处理界面 ══
+window._fbCategory='bug';
+
+function _fbLangText(){
+  const isZh=(window._appLang||window._gateLang)==='zh';
+  return isZh ? {
+    title:'📝 反馈 / 报告问题',
+    desc:'遇到什么问题，或者想让 Luna 增加什么功能，都可以告诉我们，我们会尽快查看。',
+    bug:'问题', suggestion:'建议', other:'其他',
+    placeholder:'请输入详细内容...',
+    submit:'提交', tag:'反馈', entryLabel:'反馈问题 / 建议'
+  } : {
+    title:'📝 แจ้งปัญหา / ข้อเสนอแนะ',
+    desc:'บอกเราได้เลยว่าเจอปัญหาอะไร หรืออยากให้ Luna เพิ่มอะไร เราจะรีบดูให้เร็วที่สุด',
+    bug:'Bug', suggestion:'Suggestion', other:'Other',
+    placeholder:'พิมพ์รายละเอียดตรงนี้...',
+    submit:'ส่ง', tag:'Feedback', entryLabel:'แจ้งปัญหา / ข้อเสนอแนะ'
+  };
+}
+
+function openFeedbackModal(){
+  const t=_fbLangText();
+  document.getElementById('fbModalTitle').textContent=t.title;
+  document.getElementById('fbModalDesc').textContent=t.desc;
+  document.getElementById('fbCatBugLbl').textContent=t.bug;
+  document.getElementById('fbCatSuggLbl').textContent=t.suggestion;
+  document.getElementById('fbCatOtherLbl').textContent=t.other;
+  document.getElementById('fbTextArea').placeholder=t.placeholder;
+  document.getElementById('fbTextArea').value='';
+  document.getElementById('fbSubmitBtn').textContent=t.submit;
+  document.getElementById('fbEntryTag').textContent=t.tag;
+  document.getElementById('fbEntryLabel').textContent=t.entryLabel;
+  document.getElementById('fbCharCount').textContent='0 / 1000';
+  document.getElementById('fbSubmitSt').textContent='';
+  window._fbCategory='bug';
+  document.querySelectorAll('.fb-cat-btn').forEach(b=>{
+    const on=b.dataset.cat==='bug';
+    b.classList.toggle('on',on);
+    b.style.borderColor = on ? 'var(--purple)' : '#e8e4f0';
+    b.style.background = on ? 'var(--purple-pale)' : '#fff';
+    b.style.color = on ? 'var(--purple)' : 'var(--text-muted)';
+  });
+  document.getElementById('feedbackModal').classList.add('open');
+  setTimeout(()=>{const ta=document.getElementById('fbTextArea'); if(ta) ta.focus();},250);
+}
+window.openFeedbackModal=openFeedbackModal;
+
+function selFbCategory(btn){
+  window._fbCategory=btn.dataset.cat;
+  document.querySelectorAll('.fb-cat-btn').forEach(b=>{
+    const on=b===btn;
+    b.classList.toggle('on',on);
+    b.style.borderColor = on ? 'var(--purple)' : '#e8e4f0';
+    b.style.background = on ? 'var(--purple-pale)' : '#fff';
+    b.style.color = on ? 'var(--purple)' : 'var(--text-muted)';
+  });
+}
+window.selFbCategory=selFbCategory;
+
+async function submitFeedback(){
+  const st=document.getElementById('fbSubmitSt');
+  const text=(document.getElementById('fbTextArea').value||'').trim();
+  const isZh=(window._appLang||window._gateLang)==='zh';
+  if(!text){ if(st) st.textContent = isZh?'请输入内容':'กรุณากรอกรายละเอียด'; return; }
+  if(st) st.textContent = isZh?'提交中...':'กำลังส่ง...';
+  try{
+    const uid = localStorage.getItem('luna_uid') || 'unknown';
+    const email = localStorage.getItem('luna_email') || '';
+    const platform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || 'web';
+    let appVersion='unknown';
+    try{
+      if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.getInfo){
+        const info=await window.Capacitor.Plugins.App.getInfo();
+        appVersion=info.version||'unknown';
+      }
+    }catch(e){}
+    const rec={
+      uid, email,
+      category: window._fbCategory||'bug',
+      text: text.slice(0,1000),
+      platform, appVersion,
+      userAgent: (navigator.userAgent||'').slice(0,300),
+      status:'pending',
+      createdAt: Date.now()
+    };
+    await window._fb.set('feedback/'+uid+'_'+Date.now(), rec);
+    if(st) st.textContent = isZh?'✅ 已收到，感谢反馈！':'✅ ได้รับแล้ว ขอบคุณมากค่ะ！';
+    setTimeout(()=>{ const m=document.getElementById('feedbackModal'); if(m) m.classList.remove('open'); },1200);
+  }catch(e){
+    if(st) st.textContent=(isZh?'❌ 提交失败：':'❌ ส่งไม่สำเร็จ: ')+(e.message||'');
+  }
+}
+window.submitFeedback=submitFeedback;
+
+// ══ ❓ FAQ：内容管理进后台，App只负责读+展示，后台改了内容立刻生效，不用重新发版 ══
+let _faqData=[];
+let _faqLangIsZh=false;
+
+async function openFaqModal(){
+  _faqLangIsZh = (window._appLang||window._gateLang)==='zh';
+  document.getElementById('faqModalTitle').textContent = _faqLangIsZh ? '❓ 常见问题' : '❓ คำถามที่พบบ่อย';
+  document.getElementById('faqModal').classList.add('open');
+  const area=document.getElementById('faqListArea');
+  area.innerHTML = `<div style="text-align:center;padding:30px 0;color:var(--text-muted);font-size:13px;">${_faqLangIsZh?'加载中...':'กำลังโหลด...'}</div>`;
+  try{
+    const data = await window._fb.get('cms/faq');
+    const items = Object.entries(data||{})
+      .map(([id,v])=>({...v,id}))
+      .filter(v=>v && v.status==='published')
+      .sort((a,b)=>(a.order||0)-(b.order||0));
+    _faqData = items;
+    renderFaqList();
+  }catch(e){
+    area.innerHTML = `<div style="text-align:center;padding:30px 0;color:var(--text-muted);font-size:13px;">${_faqLangIsZh?'加载失败':'โหลดไม่สำเร็จ'}</div>`;
+  }
+}
+window.openFaqModal=openFaqModal;
+
+function renderFaqList(){
+  const area=document.getElementById('faqListArea');
+  if(!area) return;
+  if(!_faqData.length){
+    area.innerHTML = `<div style="text-align:center;padding:30px 0;color:var(--text-muted);font-size:13px;">${_faqLangIsZh?'暂无内容':'ยังไม่มีเนื้อหา'}</div>`;
+    return;
+  }
+  const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  area.innerHTML = _faqData.map((f,i)=>{
+    const q = _faqLangIsZh ? (f.question_zh||f.question_th||'') : (f.question_th||f.question_zh||'');
+    const a = _faqLangIsZh ? (f.answer_zh||f.answer_th||'') : (f.answer_th||f.answer_zh||'');
+    return `<div style="border-bottom:1px solid #eee;padding:14px 0;">
+      <div onclick="toggleFaqItem(${i})" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px;">
+        <div style="font-size:14.5px;font-weight:700;color:#2d2640;flex:1;">${esc(q)}</div>
+        <div id="faqArrow${i}" style="font-size:13px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;">▼</div>
+      </div>
+      <div id="faqAnswer${i}" style="display:none;margin-top:10px;font-size:13.5px;color:var(--text-muted);line-height:1.7;white-space:pre-wrap;">${esc(a)}</div>
+    </div>`;
+  }).join('');
+}
+window.renderFaqList=renderFaqList;
+
+function toggleFaqItem(i){
+  const ans=document.getElementById('faqAnswer'+i);
+  const arrow=document.getElementById('faqArrow'+i);
+  if(!ans) return;
+  const open = ans.style.display==='block';
+  ans.style.display = open ? 'none' : 'block';
+  if(arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+window.toggleFaqItem=toggleFaqItem;
+
 
 // ── Google 登录（原生 App 内用 Capacitor 原生插件，网页/PWA 用 popup）──
 window.signInWithGoogle = async function(statusElId) {
@@ -4277,6 +4582,7 @@ async function handleAuthUser(user) {
         localStorage.setItem('luna_activated', '0');
         localStorage.removeItem('luna_expiry');
         if(typeof showTrialBanner === 'function') showTrialBanner();
+        if(typeof window.trackEvent === 'function') window.trackEvent('signup');
       } else {
         // 老用户 — 除了 lastLogin，顺便把这次登录拿到的资料补写/刷新一遍。
         // 之前这里只更新 lastLogin：如果账号是在某次登录资料缺失（比如登录流程还没修好那会儿）时
@@ -4494,6 +4800,22 @@ window.getDeletedIds = getDeletedIds;
 window.addDeletedId = addDeletedId;
 window.translateNotif = translateNotif;
 
+// 🎯 通知分群过滤：admin 后台推送时如果设置了"发送对象"，这里就按会员状态/平台判断这条通知是不是发给"我"的。
+// 没设置过（老通知，或者选的"全部"）都当作发给所有人，行为跟以前完全一样，不会漏掉任何人。
+function _matchesNotifTarget(n){
+  const tp = n.targetPremium || 'all';
+  if(tp === 'premium' && localStorage.getItem('luna_activated') !== '1') return false;
+  if(tp === 'trial' && localStorage.getItem('luna_activated') === '1') return false;
+  const tf = n.targetPlatform || 'all';
+  if(tf !== 'all'){
+    const rawPlatform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || 'web';
+    const myPlatform = rawPlatform === 'android' ? 'apk' : rawPlatform;
+    if(tf !== myPlatform) return false;
+  }
+  return true;
+}
+window._matchesNotifTarget = _matchesNotifTarget; // 🩹跨脚本作用域：下面还有一处普通<script>里也要用它，模块脚本里的函数不会自动挂到window上
+
 onValue(ref(db,'notifications'), snap => {
   if(!snap.exists()) return;
   const data = snap.val();
@@ -4501,6 +4823,7 @@ onValue(ref(db,'notifications'), snap => {
   const items = Object.entries(data)
     .map(([id,v]) => ({...v, id}))
     .filter(n => !deletedIds.includes(String(n.id))) // 跳过已删除的
+    .filter(_matchesNotifTarget) // 🎯 跳过不是发给"我"这个分群的
     .sort((a,b) => b.sentAt - a.sentAt)
     .slice(0, 20);
 
@@ -5201,6 +5524,7 @@ onValue(ref(db,'notifications'), snap => {
         localStorage.setItem('luna_onboard_period_len', document.getElementById('obPeriodVal').textContent);
         localStorage.setItem('luna_onboard_seen', '1');
       } catch(e){}
+      if(typeof window.trackEvent === 'function') window.trackEvent('onboarding_complete');
       obHide();
       if(goToLogin){
         // 走"已有账号→登录"这条路：答案先留着，登录成功后 handleAuthUser 会调用 obApplyAnswersWhenReady 补应用
@@ -5984,6 +6308,7 @@ window.setLang = setLang;
   let _vipSelectedPlan = 'monthly';
 
   function showVipPaywall() {
+    if(typeof window.trackEvent === 'function') window.trackEvent('paywall_view');
     document.querySelectorAll('#vipPaywallModal').forEach(el => el.remove());
     // 已是VIP的话，打开付费页默认选中"当前套餐"；不是VIP（或没记录到套餐）就照旧默认月卡
     const curPlan = localStorage.getItem('luna_vip_plan') || '';
@@ -10972,9 +11297,9 @@ window.setLang = setLang;
           .sort((a,b) => b.sentAt - a.sentAt)
           .slice(0, 20);
 
-        // 合并到 notifList（过滤黑名单 + 翻译）
+        // 合并到 notifList（过滤黑名单 + 分群过滤 + 翻译）
         const deletedIds2 = getDeletedIds();
-        fbItems.filter(n => !deletedIds2.includes(String(n.id))).forEach(n => {
+        fbItems.filter(n => !deletedIds2.includes(String(n.id))).filter(window._matchesNotifTarget).forEach(n => {
           const existing = notifList.findIndex(l => String(l.id) === String(n.id));
           const entry = { id:n.id, icon:n.icon, type:n.type,
                           title:translateNotif(n.title),
@@ -11114,6 +11439,7 @@ window.setLang = setLang;
     if(typeof _markUserRecordActivity==='function') _markUserRecordActivity();
     if(typeof updateOnboard==='function') updateOnboard();
     if(typeof calUpdateStats==='function') calUpdateStats();  // 立即刷新首页经期天数/下次预测
+    if(typeof window.trackEvent === 'function') window.trackEvent('period_added');
   }
 
   function saveLogs() {

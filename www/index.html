@@ -806,6 +806,13 @@ window.installPWA = function() {
     box-shadow: var(--home-hero-shadow) !important;
     border: var(--home-hero-border) !important;
     transition: background .4s ease, box-shadow .4s ease;
+    /* 🩹 这张卡片已经有实打实的渐变背景，不是靠"透出后面模糊内容"实现效果的，
+       继承自 .card 的 backdrop-filter 在这里纯属多余——反而在 iOS Safari 上，
+       backdrop-filter 配合圆角容易渲染出一块块不均匀的接缝感（Chrome/安卓不受影响，
+       这也是为什么同一段代码只有 iOS 上看着"背景颜色不均匀"）。去掉后视觉效果不变，
+       还能避开这个 Safari 渲染老毛病。 */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .badge {
@@ -6023,7 +6030,8 @@ window.setLang = setLang;
         <button id="vipSubscribeBtn" onclick="startVipPurchase()"
           style="width:100%;padding:15px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);
           border:none;border-radius:16px;color:#fff;font-size:16px;font-weight:700;
-          cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(124,92,191,0.4);">
+          cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(124,92,191,0.4);
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
           ${_vipSubscribeBtnLabel(isTh)}
         </button>
 
@@ -6079,13 +6087,13 @@ window.setLang = setLang;
   function _vipSubscribeBtnLabel(isTh) {
     const p = VIP_PLANS[_vipSelectedPlan];
     const isCurrent = isPro() && (localStorage.getItem('luna_vip_plan') || '') === _vipSelectedPlan;
-    if(isCurrent) return isTh ? 'แพ็กเกจที่ใช้อยู่ในตอนนี้' : '这是你当前的套餐';
+    if(isCurrent) return isTh ? 'แพ็กเกจปัจจุบัน' : '当前套餐';
     if(isPro()) return isTh
-      ? `เปลี่ยนเป็น ${p.period_th} · ${p.price} บาท`
+      ? `เปลี่ยนเป็น${p.period_th} · ${p.price} บาท`
       : `切换到${p.period_zh} · ${p.price} 泰铢`;
     return isTh
-      ? `สมัครสมาชิก · ${p.price} บาท / ${p.period_th}`
-      : `订阅 · ${p.price} 泰铢 / ${p.period_zh}`;
+      ? `สมัคร${p.period_th} · ${p.price} บาท`
+      : `订阅${p.period_zh} · ${p.price} 泰铢`;
   }
 
   function selectVipPlan(key) {

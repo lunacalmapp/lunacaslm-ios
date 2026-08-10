@@ -21,7 +21,25 @@ workflows:
         script: npx cap sync ios
       - name: Force iPhone-only device family (avoid iPad screenshot requirement)
         script: |
-          sed -i '' 's/TARGETED_DEVICE_FAMILY = "1,2";/TARGETED_DEVICE_FAMILY = 1;/g' "$CM_BUILD_DIR/ios/App/App.xcodeproj/project.pbxproj"
+          set -e
+          PBXPROJ="$CM_BUILD_DIR/ios/App/App.xcodeproj/project.pbxproj"
+
+          echo "== 替换前，当前的 TARGETED_DEVICE_FAMILY 设置 =="
+          grep -n "TARGETED_DEVICE_FAMILY" "$PBXPROJ" || echo "⚠️ 没找到这个设置，路径可能不对，请检查 PBXPROJ 路径"
+
+          # 用更宽松的正则匹配：不管有没有引号、数字顺序是"1,2"还是"2,1"，都能匹配到
+          perl -pi -e 's/TARGETED_DEVICE_FAMILY = "?[0-9,]+"?;/TARGETED_DEVICE_FAMILY = 1;/g' "$PBXPROJ"
+
+          echo "== 替换后，当前的 TARGETED_DEVICE_FAMILY 设置 =="
+          grep -n "TARGETED_DEVICE_FAMILY" "$PBXPROJ"
+
+          # 校验：如果还有任何一行包含逗号（说明还支持多个设备），直接让这次构建失败，
+          # 这样就不会再出现"构建显示成功、但设置其实没真的改成功"的情况
+          if grep "TARGETED_DEVICE_FAMILY" "$PBXPROJ" | grep -q ","; then
+            echo "❌ TARGETED_DEVICE_FAMILY 替换失败，构建中止，请检查 project.pbxproj 里的实际写法"
+            exit 1
+          fi
+          echo "✅ 已确认 TARGETED_DEVICE_FAMILY 全部设为 1（仅 iPhone），可以放心继续打包"
       - name: Increment build number
         script: |
           #!/bin/sh

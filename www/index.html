@@ -8490,8 +8490,11 @@ window.setLang = setLang;
     }
 
     function norm(s){
-      // 标准化：转小写、去空格、去常见语气尾词，提高匹配率
+      // 标准化：转小写、去空格、去常见语气尾词、去表情符号，提高匹配率
+      // 🩹去表情符号：手机输入法有时会在打字时自动带出表情（比如打"月"联想出🌙），
+      // 表情夹在关键词中间会打断本来能匹配上的内容，先去掉再匹配
       return s.toLowerCase()
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}]/gu,'')
         .replace(/[\s\u0E46]/g,'')              // 去空格、ๆ
         .replace(/(ค่ะ|คะ|ครับ|นะคะ|นะ|ค่า|จ้า|ฮะ|อ่ะ|หรอ|เหรอ|ไหม|มั้ย|อยากรู้ว่า|อยากถามว่า|ช่วยบอก)/g,'')
         .replace(/[?？!！。.,，、~]/g,'');
@@ -8804,9 +8807,15 @@ window.setLang = setLang;
     let isFull=false;
     function applyFull(){
       if(isFull){
-        panel.style.left='0'; panel.style.top='0'; panel.style.right='0'; panel.style.bottom='0';
-        panel.style.width='100vw'; panel.style.height='100vh'; panel.style.maxWidth='100vw'; panel.style.maxHeight='100vh';
-        panel.style.borderRadius='0';
+        // 🩹 全屏时不能直接用 100vh/100vw——手机上这个不会避开刘海/灵动岛（顶部）和home指示条（底部），
+        // 内容会被这些区域"戳穿"。用 env(safe-area-inset-*) 把面板从安全区域内开始摆放，
+        // 这个写法整个文件里其他地方（法律条款页、底部导航栏）已经在用，保持一致。
+        panel.style.left='0'; panel.style.right='0'; panel.style.borderRadius='0';
+        panel.style.top='env(safe-area-inset-top, 0px)';
+        panel.style.bottom='env(safe-area-inset-bottom, 0px)';
+        panel.style.width='100vw'; panel.style.maxWidth='100vw';
+        panel.style.height='calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))';
+        panel.style.maxHeight='calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))';
         document.getElementById('aiFull').textContent='⊟';
       } else {
         panel.style.width='340px'; panel.style.height='540px'; panel.style.maxWidth='calc(100vw - 24px)'; panel.style.maxHeight='80vh';
@@ -8837,6 +8846,32 @@ window.setLang = setLang;
     window._openAiPanel = openAi;
     document.getElementById('aiClose').onclick=(e)=>{ e.stopPropagation(); closeAi(); isFull=false; applyFull2reset(); };
     function applyFull2reset(){ isFull=false; panel.style.width='330px'; panel.style.height='460px'; panel.style.borderRadius='26px'; }
+
+    // 🩹 打字时输入框被键盘盖住/挤没了：手机键盘弹出时用 visualViewport 感知实际可见区域，
+    // 把面板收窄/挪到键盘上方，让输入栏始终露出来；键盘收起时自动恢复原位。
+    // visualViewport 不支持的环境（极少数老设备）直接跳过，不影响其他任何功能。
+    function _adjustAiPanelForKeyboard(){
+      if(!window.visualViewport || !panel || panel.style.display==='none') return;
+      const vv = window.visualViewport;
+      const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      if(isFull){
+        // 全屏模式：底部再往上收出键盘的高度，输入栏就不会被键盘挡住
+        panel.style.bottom = `calc(env(safe-area-inset-bottom, 0px) + ${keyboardHeight}px)`;
+        panel.style.height = `calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - ${keyboardHeight}px)`;
+        panel.style.maxHeight = panel.style.height;
+      } else if(keyboardHeight > 40){
+        // 悬浮小面板 + 键盘弹出了：面板收矮一点、贴着可视区域顶部，确保输入栏留在键盘上方
+        const ph = Math.min(540, Math.round(vv.height*0.9));
+        panel.style.height = ph + 'px';
+        panel.style.top = Math.max(8, Math.round(vv.offsetTop + 8)) + 'px';
+      } else {
+        // 键盘收起了：恢复原来居中的位置
+        positionPanel();
+      }
+    }
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', _adjustAiPanelForKeyboard);
+    }
 
     document.getElementById('aiSend').onclick=(e)=>{ e.stopPropagation(); send(input.value); };
     input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); send(input.value); } });

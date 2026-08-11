@@ -2574,18 +2574,20 @@ window.installPWA = function() {
     <div id="aiBody" style="flex:1;overflow-y:auto;padding:16px 14px;background:linear-gradient(180deg,#f7f1fb 0%,#fdfbff 100%);display:flex;flex-direction:column;gap:10px;"></div>
     <!-- 快捷问题 -->
     <div id="aiChips" style="padding:0 12px 8px;display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0;"></div>
-    <!-- 话题入口栏（点选式，不打字）-->
-    <div style="padding:10px 12px 12px;border-top:1px solid rgba(124,92,191,0.1);display:flex;gap:8px;flex-shrink:0;background:#fff;box-shadow:0 -3px 10px rgba(120,70,160,0.05);">
-      <div id="aiTopicBtn" style="flex:1;border:1.5px solid rgba(124,92,191,0.18);border-radius:22px;padding:12px 18px;font-size:14px;color:#9d7bd6;background:#faf8fd;box-shadow:inset 0 2px 5px rgba(120,70,160,0.06);cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:600;">
-        <span style="font-size:16px;">💬</span><span id="aiTopicLabel" data-i18n="ai_topic_label">เลือกหัวข้อที่อยากถาม</span>
+    <!-- 输入栏：可以打字自由提问了，话题浏览缩成一个小图标按钮，点了照样弹分类菜单 -->
+    <div style="padding:10px 12px 12px;border-top:1px solid rgba(124,92,191,0.1);display:flex;gap:8px;flex-shrink:0;background:#fff;box-shadow:0 -3px 10px rgba(120,70,160,0.05);align-items:center;">
+      <div id="aiTopicBtn" title="话题分类" style="flex-shrink:0;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(124,92,191,0.18);color:#9d7bd6;background:#faf8fd;box-shadow:inset 0 2px 5px rgba(120,70,160,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;">
+        📋
       </div>
+      <input id="aiInput" type="text" autocomplete="off" placeholder="พิมพ์คำถามได้เลยนะ..."
+        style="flex:1;min-width:0;border:1.5px solid rgba(124,92,191,0.18);border-radius:22px;padding:12px 16px;font-size:14px;color:#2d2640;background:#faf8fd;box-shadow:inset 0 2px 5px rgba(120,70,160,0.06);font-family:inherit;">
       <button id="aiSend" style="border:none;
         background:radial-gradient(circle at 35% 30%, #c79ae8, #9d7bd6 55%, #e98ab0 100%);
         color:#fff;width:44px;height:44px;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-        box-shadow:0 5px 12px rgba(150,90,180,0.45), inset 0 -2px 5px rgba(120,60,150,0.3), inset 0 2px 4px rgba(255,255,255,0.5);">💬</button>
-      <!-- 隐藏的输入框（保留以兼容代码，不显示）-->
-      <input id="aiInput" type="hidden">
+        box-shadow:0 5px 12px rgba(150,90,180,0.45), inset 0 -2px 5px rgba(120,60,150,0.3), inset 0 2px 4px rgba(255,255,255,0.5);">➤</button>
     </div>
+    <!-- 剩余月光点数（有需要才显示，比如刚聊完一条真AI回复）-->
+    <div id="aiPointsHint" style="display:none;text-align:center;font-size:10.5px;color:#b0a8c4;padding:0 12px 8px;flex-shrink:0;"></div>
   </div>
 
   <!-- 悬浮球展开面板 -->
@@ -4577,7 +4579,10 @@ async function handleAuthUser(user) {
           firstLogin: now,
           lastLogin: now,
           provider: user.provider || 'google',
-          platform: 'ios'   // 供后台「平台记录」区分 iOS / APK 用，这个包固定写死 'ios'
+          platform: 'ios',   // 供后台「平台记录」区分 iOS / APK 用，这个包固定写死 'ios'
+          // 🌙 月光点数：试用期一次性5点（不是每月重置），够尝几次真AI，但不够无限用，
+          // 想一直用就要开会员——开会员之后 revenuecatWebhook 会把这个覆盖成每月50点
+          aiPoints: { remaining: 5, resetAt: null, cycleType: 'trial' }
         });
         localStorage.setItem('luna_activated', '0');
         localStorage.removeItem('luna_expiry');
@@ -6319,13 +6324,17 @@ window.setLang = setLang;
     m.style.cssText = `position:fixed;inset:0;z-index:9998;background:rgba(44,36,64,0.45);
       backdrop-filter:blur(5px);display:flex;align-items:flex-end;justify-content:center;`;
 
-    const featuresHTML = `
-      ✅ ${isTh?'บันทึกได้ไม่จำกัด':'无限制保存记录'}<br>
-      ✅ ${isTh?'ปลดล็อกธีม VIP สุดพิเศษทั้งหมด':'解锁全部VIP专属主题'}<br>
+    const vipFeaturesHTML = `
+      ✅ ${isTh?'Luna ผู้ช่วยน้อย + วิเคราะห์เชิงลึก (50 แต้มจันทร์/เดือน)':'Luna 小助手 + AI深度分析（每月50点）'}<br>
       ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน':'查看120天历史记录'}<br>
-      ✅ ${isTh?'สถิติครบถ้วน':'完整统计分析'}<br>
-      ✅ ${isTh?'Luna วิเคราะห์สุขภาพเชิงลึก (VIP)':'Luna 智能健康洞察 (VIP)'}<br>
+      ✅ ${isTh?'สถิติครบถ้วนแบบเต็ม':'完整统计图表'}<br>
+      ✅ ${isTh?'ธีมสีสุดพิเศษเฉพาะ VIP':'VIP专属主题色'}<br>
       ✅ ${isTh?'ป้ายสมาชิกพรีเมียม 👑':'正版会员专属徽章 👑'}`;
+    const freeFeaturesHTML = `
+      🌱 ${isTh?'บันทึกประจำเดือน/อารมณ์ไม่จำกัด':'无限记录经期/心情'}<br>
+      🌱 ${isTh?'ส่งออกข้อมูลได้':'导出数据'}<br>
+      🌱 ${isTh?'ทดลองฟีเจอร์ทั้งหมดฟรี 7 วัน':'7天免费试用全部功能'}<br>
+      🌱 ${isTh?'ช่วงทดลองได้แต้มจันทร์ 5 แต้มลองคุยกับ AI':'试用期送5点月光点数，体验一下AI对话'}`;
 
     m.innerHTML = `
       <div id="vipPaywallCard" style="background:#fff;border-radius:28px 28px 0 0;padding:24px 22px 32px;
@@ -6343,9 +6352,24 @@ window.setLang = setLang;
           </div>
         </div>
 
-        <div style="background:linear-gradient(135deg,#f9f0ff,#fff0fa);border-radius:16px;
-          padding:14px 16px;margin-bottom:20px;">
-          <div style="font-size:13px;color:#4a4060;line-height:2;">${featuresHTML}</div>
+        <div id="vipCompareWrap" style="margin-bottom:20px;">
+          <div id="vipCompareScroller" onscroll="_onVipCompareScroll()" style="display:flex;overflow-x:auto;
+            scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:16px;">
+            <div style="flex:0 0 100%;scroll-snap-align:start;background:linear-gradient(135deg,#f9f0ff,#fff0fa);
+              border-radius:16px;padding:14px 16px;box-sizing:border-box;">
+              <div style="font-size:12px;font-weight:700;color:#7c5cbf;margin-bottom:8px;">👑 ${isTh?'เปิดสมาชิกปลดล็อก':'开通会员解锁'}</div>
+              <div style="font-size:13px;color:#4a4060;line-height:2;">${vipFeaturesHTML}</div>
+            </div>
+            <div style="flex:0 0 100%;scroll-snap-align:start;background:linear-gradient(135deg,#f0f6ff,#f5fff8);
+              border-radius:16px;padding:14px 16px;box-sizing:border-box;">
+              <div style="font-size:12px;font-weight:700;color:#5a9a72;margin-bottom:8px;">🌱 ${isTh?'ใช้ฟรีได้เลย ไม่ต้องสมัคร':'免费版本就能用'}</div>
+              <div style="font-size:13px;color:#4a4060;line-height:2;">${freeFeaturesHTML}</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:6px;margin-top:8px;">
+            <span id="vipCompareDot0" style="width:16px;height:6px;border-radius:3px;background:#7c5cbf;transition:all .2s;display:inline-block;"></span>
+            <span id="vipCompareDot1" style="width:6px;height:6px;border-radius:50%;background:#e0d8ec;transition:all .2s;display:inline-block;"></span>
+          </div>
         </div>
 
         <div id="vipPlanList" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
@@ -6378,8 +6402,25 @@ window.setLang = setLang;
     });
     document.body.appendChild(m);
     attachModalHandleDrag('vipPaywallHandle', 'vipPaywallCard', 'vipPaywallModal', () => m.remove());
+    _onVipCompareScroll(); // 初始化圆点状态（默认停在第1页）
   }
   window.showVipPaywall = showVipPaywall;
+
+  // 👑🌱 对比区左右滑动时，同步底下两个小圆点的高亮状态（当前页变成小胶囊，另一页缩成小圆点）
+  function _onVipCompareScroll(){
+    const scroller = document.getElementById('vipCompareScroller');
+    if(!scroller || !scroller.clientWidth) return;
+    const idx = Math.round(scroller.scrollLeft / scroller.clientWidth);
+    for(let i=0;i<2;i++){
+      const dot = document.getElementById('vipCompareDot'+i);
+      if(!dot) continue;
+      const active = i===idx;
+      dot.style.width = active ? '16px' : '6px';
+      dot.style.borderRadius = active ? '3px' : '50%';
+      dot.style.background = active ? '#7c5cbf' : '#e0d8ec';
+    }
+  }
+  window._onVipCompareScroll = _onVipCompareScroll;
 
   function _vipPlanCardHTML(key, isTh) {
     const p = VIP_PLANS[key];
@@ -8551,24 +8592,103 @@ window.setLang = setLang;
       body.appendChild(wrap);
       body.scrollTop=body.scrollHeight;
     }
+    let chatHistory = []; // 跟真AI聊天时带的上下文，面板重开会清空，不用服务端存储
     function send(q){
       if(!q.trim()) return;
       bubble(q,'me'); input.value='';
+      chatHistory.push({role:'user', content:q});
       chips.style.display='none';
       typing();
       const r = reply(q);
-      setTimeout(()=>{
+      if(!r.noMatch){
+        // 命中预设库：跟原来完全一样，同步走，不花钱、不调用AI
+        setTimeout(()=>{
+          const t=document.getElementById('aiTyping'); if(t) t.remove();
+          bubble(r.text,'luna');
+          chatHistory.push({role:'assistant', content:r.text});
+          // 冒泡5个推荐：2个与刚问话题相近 + 3个其他，全部能答
+          showFollowUp(pickSuggest(q), q);
+        }, 500+Math.random()*400);
+      } else {
+        // 库里没有：交给真AI（这一步才会真正消耗月光点数）
+        askRealAI(q);
+      }
+    }
+
+    // ── 真AI兜底：只有预设库匹配不上才会走到这里，会真的消耗月光点数 ──
+    async function askRealAI(q){
+      const isTh = _appLang !== 'zh';
+      if(!auth || !auth.currentUser){
         const t=document.getElementById('aiTyping'); if(t) t.remove();
-        bubble(r.text,'luna');
-        // 冒泡5个推荐：2个与刚问话题相近 + 3个其他，全部能答
-        showFollowUp(pickSuggest(q), q);
-      }, 500+Math.random()*400);
+        bubble(isTh?'กรุณาเข้าสู่ระบบก่อนนะคะ':'请先登录哦', 'luna');
+        return;
+      }
+      try{
+        // 跟 generateAiAnalysis 一样的摘要拼法，让AI回答时能带入真实数据，不是泛泛而谈
+        const avgCycle = (document.getElementById('statAvgCycle')?.textContent || '').trim();
+        const avgPeriod = (document.getElementById('statAvgPeriod')?.textContent || '').trim();
+        const symCount = {};
+        (typeof logs !== 'undefined' ? logs : []).forEach(l => { if(l && Array.isArray(l.symptoms)) l.symptoms.forEach(s=>{
+          if(typeof s !== 'string' || s.includes('（อารมณ์）')) return;
+          const name = s.replace('（ปริมาณ）','').replace('（สี）','');
+          symCount[name] = (symCount[name]||0)+1;
+        }); });
+        const topSymptoms = Object.entries(symCount).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n])=>n).join('、');
+
+        const idToken = await auth.currentUser.getIdToken();
+        const resp = await fetch(AI_CHAT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+          body: JSON.stringify({
+            message: q,
+            lang: _appLang,
+            history: chatHistory.slice(-6),
+            summary: { avgCycle, avgPeriod, topSymptoms }
+          })
+        });
+        const data = await resp.json().catch(()=>({}));
+        const t=document.getElementById('aiTyping'); if(t) t.remove();
+
+        if(resp.status === 402){
+          // 点数用完了：试用用户还没成为会员，引导升级合适；已经是VIP的用户只是本月额度用完，
+          // 不该被引导去"买会员"（因为她已经是了），改成在聊天里直接说清楚，别用错文案造成困惑
+          if(typeof isPro === 'function' && isPro()){
+            bubble(isTh
+              ? 'แต้มจันทร์เดือนนี้หมดแล้วนะคะ รอบบิลถัดไปจะได้ใหม่อัตโนมัติเลย 🌙'
+              : '本月的AI点数用完啦，下个计费周期会自动恢复哦 🌙', 'luna');
+          } else if(window.showTrialLockModal){
+            showTrialLockModal(
+              '试用期间的AI额度用完啦，开通会员可以继续畅聊',
+              'แต้มทดลองใช้ AI หมดแล้ว เปิดสมาชิกเพื่อคุยต่อได้เลยนะคะ'
+            );
+          }
+          return;
+        }
+        if(!resp.ok || !data.reply){
+          bubble(isTh?'ตอนนี้ Luna ตอบไม่ได้ ลองใหม่อีกครั้งนะคะ':'Luna 现在暂时无法回应，稍后再试试吧', 'luna');
+          return;
+        }
+        bubble(data.reply, 'luna');
+        chatHistory.push({role:'assistant', content:data.reply});
+        if(typeof data.remainingPoints === 'number'){
+          const hint = document.getElementById('aiPointsHint');
+          if(hint){
+            hint.style.display='block';
+            hint.textContent = isTh ? `เหลือแต้มจันทร์ ${data.remainingPoints} แต้ม` : `本月还剩 ${data.remainingPoints} 点`;
+          }
+        }
+      }catch(e){
+        const t=document.getElementById('aiTyping'); if(t) t.remove();
+        bubble(isTh?'ตอนนี้ Luna ตอบไม่ได้ ลองใหม่อีกครั้งนะคะ':'Luna 现在暂时无法回应，稍后再试试吧', 'luna');
+      }
     }
 
     let started=false;
     function startChat(){
       if(started) return; started=true;
       body.innerHTML='';
+      chatHistory = [];
+      const hint=document.getElementById('aiPointsHint'); if(hint) hint.style.display='none';
       bubble(WELCOME[zh()?'zh':'th'],'luna');
       renderChips();
     }
@@ -8718,7 +8838,8 @@ window.setLang = setLang;
     document.getElementById('aiClose').onclick=(e)=>{ e.stopPropagation(); closeAi(); isFull=false; applyFull2reset(); };
     function applyFull2reset(){ isFull=false; panel.style.width='330px'; panel.style.height='460px'; panel.style.borderRadius='26px'; }
 
-    document.getElementById('aiSend').onclick=(e)=>{ e.stopPropagation(); showTopicMenu(); };
+    document.getElementById('aiSend').onclick=(e)=>{ e.stopPropagation(); send(input.value); };
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); send(input.value); } });
     panel.addEventListener('click',(e)=>e.stopPropagation());
 
     // ── 拖动（复用语录球思路）──
@@ -12603,6 +12724,7 @@ window.setLang = setLang;
   window.renderAiAnalysisGate = renderAiAnalysisGate;
 
   const AI_ANALYSIS_URL = 'https://asia-southeast1-sasomboon.cloudfunctions.net/analyzeCycle';
+  const AI_CHAT_URL = 'https://asia-southeast1-sasomboon.cloudfunctions.net/lunaChatReply';
 
   // 🩹 隐藏的调试手势：连续点"AI 深度分析"标题 7 下（4秒内），把冷却时间戳清零，方便自己测试新效果不用等24小时。
   // 不动后端限流逻辑本身，正式环境该怎样还是怎样；这只是绕开自己账号当天的冷却，别人不知道点这里没用。
@@ -12779,7 +12901,14 @@ window.setLang = setLang;
         + '<div style="font-size:13.5px;color:var(--stat-fg-muted);">' + (isTh ? 'Luna กำลังวิเคราะห์ข้อมูลของคุณ...' : 'Luna 正在分析你的数据...') + '</div>'
         + '</div>';
     } else {
-      wrap.innerHTML = header + '<div style="font-size:16px;line-height:2;white-space:pre-line;color:var(--stat-fg);">' + text + '</div>';
+      // 💡 引用来源声明：放在文案正上方、紧跟标题，不用往下滑就能看到
+      // （之前只在"深度健康洞察"卡片底部加过这段，这个独立的"历史记录"页是完全不同的渲染入口，之前漏掉了）
+      const sourceNote = '<div style="font-size:10.5px;color:var(--stat-fg-muted);line-height:1.6;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(0,0,0,0.06);">'
+        + (isTh
+          ? '💡 ข้อมูลนี้อ้างอิงจากข้อมูลสาธารณะขององค์การอนามัยโลก (WHO) และ Mayo Clinic ใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้'
+          : '💡 以上内容参考世界卫生组织（WHO）、妙佑医疗国际（Mayo Clinic）等权威机构公开资料，仅供参考，不能替代专业医疗诊断或治疗建议。')
+        + '</div>';
+      wrap.innerHTML = header + sourceNote + '<div style="font-size:16px;line-height:2;white-space:pre-line;color:var(--stat-fg);">' + text + '</div>';
     }
   }
   window.renderAiHistoryDetailView = renderAiHistoryDetailView;

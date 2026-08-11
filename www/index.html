@@ -2129,7 +2129,7 @@ window.installPWA = function() {
 <script>
   (function(){
     try {
-      var lp = localStorage.getItem('luna_lastPage');
+      var lp = sessionStorage.getItem('luna_lastPage');
       var fromLumi = sessionStorage.getItem('luna_from_lumi') === '1';
       if(fromLumi){ try{ sessionStorage.removeItem('luna_from_lumi'); }catch(e){} }
       if((lp && lp !== 'home') || fromLumi){ document.documentElement.classList.add('restoring-page'); }
@@ -6355,15 +6355,15 @@ window.setLang = setLang;
         <div id="vipCompareWrap" style="margin-bottom:20px;">
           <div id="vipCompareScroller" onscroll="_onVipCompareScroll()" style="display:flex;overflow-x:auto;
             scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;border-radius:16px;">
-            <div style="flex:0 0 100%;scroll-snap-align:start;background:linear-gradient(135deg,#f9f0ff,#fff0fa);
-              border-radius:16px;padding:14px 16px;box-sizing:border-box;">
-              <div style="font-size:12px;font-weight:700;color:#7c5cbf;margin-bottom:8px;">👑 ${isTh?'เปิดสมาชิกปลดล็อก':'开通会员解锁'}</div>
-              <div style="font-size:13px;color:#4a4060;line-height:2;">${vipFeaturesHTML}</div>
-            </div>
             <div style="flex:0 0 100%;scroll-snap-align:start;background:linear-gradient(135deg,#f0f6ff,#f5fff8);
               border-radius:16px;padding:14px 16px;box-sizing:border-box;">
               <div style="font-size:12px;font-weight:700;color:#5a9a72;margin-bottom:8px;">🌱 ${isTh?'ใช้ฟรีได้เลย ไม่ต้องสมัคร':'免费版本就能用'}</div>
               <div style="font-size:13px;color:#4a4060;line-height:2;">${freeFeaturesHTML}</div>
+            </div>
+            <div style="flex:0 0 100%;scroll-snap-align:start;background:linear-gradient(135deg,#f9f0ff,#fff0fa);
+              border-radius:16px;padding:14px 16px;box-sizing:border-box;">
+              <div style="font-size:12px;font-weight:700;color:#7c5cbf;margin-bottom:8px;">👑 ${isTh?'เปิดสมาชิกปลดล็อก':'开通会员解锁'}</div>
+              <div style="font-size:13px;color:#4a4060;line-height:2;">${vipFeaturesHTML}</div>
             </div>
           </div>
           <div style="display:flex;justify-content:center;gap:6px;margin-top:8px;">
@@ -7105,7 +7105,7 @@ window.setLang = setLang;
       if(typeof initSavedTheme === 'function') initSavedTheme();
     }
     // 记住当前页，刷新后恢复（只记 home/mine，cal/stats 各自在 showCalendar/showStats 里记）
-    try { if(page==='home'||page==='mine') localStorage.setItem('luna_lastPage', page); } catch(e){}
+    try { if(page==='home'||page==='mine') sessionStorage.setItem('luna_lastPage', page); } catch(e){}
     const minePanel = document.getElementById('mine-panel');
     const phoneEl   = document.querySelector('.phone');
     if (page === 'mine') {
@@ -7158,7 +7158,7 @@ window.setLang = setLang;
   // 🔄 刷新后恢复到上次所在页面（home/mine/cal/stats）。读不到或异常则回首页。
   function _restoreLastPage(){
     let last = 'home';
-    try { last = localStorage.getItem('luna_lastPage') || 'home'; } catch(e){}
+    try { last = sessionStorage.getItem('luna_lastPage') || 'home'; } catch(e){}
     const _clearFlash = ()=>{ try{ document.documentElement.classList.remove('restoring-page'); }catch(e){} };
     try {
       if(last === 'cal' && typeof showCalendar === 'function'){ showCalendar(); _clearFlash(); return; }
@@ -8838,7 +8838,10 @@ window.setLang = setLang;
     function openAi(){
       panel.style.display='flex';
       _aiJustOpened = Date.now();
-      if(!isFull) positionPanel();
+      // 直接满屏打开：小窗模式在部分机型上定位/键盘避让容易出问题，满屏这边确认没问题，
+      // 干脆把满屏设成默认打开状态。右上角的⊟按钮还留着，想切回小窗随时能点。
+      isFull = true;
+      applyFull();
       startChat(); // 免费用户也能打开，话题菜单里会自动按 canUseAI() 决定显示几类
     }
     function closeAi(){ panel.style.display='none'; }
@@ -8847,34 +8850,16 @@ window.setLang = setLang;
     document.getElementById('aiClose').onclick=(e)=>{ e.stopPropagation(); closeAi(); isFull=false; applyFull2reset(); };
     function applyFull2reset(){ isFull=false; panel.style.width='330px'; panel.style.height='460px'; panel.style.borderRadius='26px'; }
 
-    // 🩹 打字时输入框被键盘盖住/挤没了：手机键盘弹出时用 visualViewport 感知实际可见区域，
-    // 把面板收窄/挪到键盘上方，让输入栏始终露出来；键盘收起时自动恢复原位。
-    // visualViewport 不支持的环境（极少数老设备）直接跳过，不影响其他任何功能。
-    function _adjustAiPanelForKeyboard(){
-      if(!window.visualViewport || !panel || panel.style.display==='none') return;
-      const vv = window.visualViewport;
-      const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      if(isFull){
-        // 全屏模式：底部再往上收出键盘的高度，输入栏就不会被键盘挡住
-        panel.style.bottom = `calc(env(safe-area-inset-bottom, 0px) + ${keyboardHeight}px)`;
-        panel.style.height = `calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - ${keyboardHeight}px)`;
-        panel.style.maxHeight = panel.style.height;
-      } else if(keyboardHeight > 40){
-        // 悬浮小面板 + 键盘弹出了：面板收矮一点、贴着可视区域顶部，确保输入栏留在键盘上方
-        const ph = Math.min(540, Math.round(vv.height*0.9));
-        panel.style.height = ph + 'px';
-        panel.style.top = Math.max(8, Math.round(vv.offsetTop + 8)) + 'px';
-      } else {
-        // 键盘收起了：恢复原来居中的位置
-        positionPanel();
-      }
-    }
-    if(window.visualViewport){
-      window.visualViewport.addEventListener('resize', _adjustAiPanelForKeyboard);
-    }
-
     document.getElementById('aiSend').onclick=(e)=>{ e.stopPropagation(); send(input.value); };
     input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); send(input.value); } });
+    // 🩹 iOS WebKit 经典问题：position:fixed 容器里的输入框获得焦点、键盘弹出时，
+    // 系统会自动尝试把输入框"卷入"可视区域，但这个自动滚动跟fixed定位对不上，
+    // 面板看起来像"跳"了一下。这里不碰面板本身的尺寸/位置计算（上次就是栽在这上面），
+    // 只是把 iOS 自己触发的那个页面滚动纠正回0，抵消掉这个跳动——risk比上次低很多。
+    input.addEventListener('focus', () => {
+      setTimeout(() => { window.scrollTo(0, 0); }, 50);
+      setTimeout(() => { window.scrollTo(0, 0); }, 300); // 键盘展开动画期间可能还会再滚一次，双保险
+    });
     panel.addEventListener('click',(e)=>e.stopPropagation());
 
     // ── 拖动（复用语录球思路）──
@@ -12643,7 +12628,7 @@ window.setLang = setLang;
   }
 
   function showCalendar() {
-    try { localStorage.setItem('luna_lastPage', 'cal'); } catch(e){}
+    try { sessionStorage.setItem('luna_lastPage', 'cal'); } catch(e){}
     const _cp = document.getElementById('calPanel');
     _cp.style.display = 'block';
     _cp.classList.remove('page-in'); void _cp.offsetWidth; _cp.classList.add('page-in');
@@ -13300,7 +13285,7 @@ window.setLang = setLang;
   function closeRatePanel(){ const p=document.getElementById('ratePanel'); if(p) p.style.display='none'; document.body.style.overflow=''; }
   window.openRatePanel=openRatePanel; window.closeRatePanel=closeRatePanel;
   function showStats() {
-    try { localStorage.setItem('luna_lastPage', 'stats'); } catch(e){}
+    try { sessionStorage.setItem('luna_lastPage', 'stats'); } catch(e){}
     const _sp = document.getElementById('statsPanel');
     _sp.style.display = 'block';
     _sp.classList.remove('page-in'); void _sp.offsetWidth; _sp.classList.add('page-in');
@@ -16502,7 +16487,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
     if(refreshing) return;
     // ✨ 只在首页允许下拉刷新，其他页面（我的/日历/统计）容易被误触，直接禁用
     var _curPage = 'home';
-    try { _curPage = localStorage.getItem('luna_lastPage') || 'home'; } catch(err){}
+    try { _curPage = sessionStorage.getItem('luna_lastPage') || 'home'; } catch(err){}
     if(_curPage !== 'home'){ pulling = false; return; }
     curEl = curScroller();
     if(scrollTopOf(curEl) <= 0){ startY = e.touches[0].clientY; pulling = true; }
@@ -16530,7 +16515,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
   function rerenderCurrentPage(){
     try {
       var last = 'home';
-      try { last = localStorage.getItem('luna_lastPage') || 'home'; } catch(e){}
+      try { last = sessionStorage.getItem('luna_lastPage') || 'home'; } catch(e){}
       if(typeof updatePrediction==='function') updatePrediction();
       if(typeof calUpdateStats==='function') calUpdateStats();
       if(last==='stats' && typeof renderStats==='function'){ try{ renderStats(); }catch(e){} }

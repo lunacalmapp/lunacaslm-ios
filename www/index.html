@@ -2574,6 +2574,11 @@ window.installPWA = function() {
     <div id="aiBody" style="flex:1;overflow-y:auto;padding:16px 14px;background:linear-gradient(180deg,#f7f1fb 0%,#fdfbff 100%);display:flex;flex-direction:column;gap:10px;"></div>
     <!-- 快捷问题 -->
     <div id="aiChips" style="padding:0 12px 8px;display:flex;gap:7px;flex-wrap:wrap;flex-shrink:0;"></div>
+    <!-- 💡 健康信息来源声明（Apple 1.4.1 要求）：固定显示在输入栏正上方，不用滚动就能看到，且可点击跳转到完整参考文献页 -->
+    <div style="padding:0 14px 6px;font-size:10px;color:#a89bc4;text-align:center;line-height:1.5;flex-shrink:0;">
+      <span data-i18n="ai_disclaimer">💡 内容参考 WHO、Mayo Clinic、CDC 等权威机构公开资料，仅供参考，不能替代专业医疗建议</span>
+      <span onclick="showReferences()" style="text-decoration:underline;cursor:pointer;color:#8b7ab8;font-weight:600;" data-i18n="ai_disclaimer_link">查看来源 ›</span>
+    </div>
     <!-- 输入栏：可以打字自由提问了，话题浏览缩成一个小图标按钮，点了照样弹分类菜单 -->
     <div style="padding:10px 12px 12px;border-top:1px solid rgba(124,92,191,0.1);display:flex;gap:8px;flex-shrink:0;background:#fff;box-shadow:0 -3px 10px rgba(120,70,160,0.05);align-items:center;">
       <div id="aiTopicBtn" title="话题分类" style="flex-shrink:0;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(124,92,191,0.18);color:#9d7bd6;background:#faf8fd;box-shadow:inset 0 2px 5px rgba(120,70,160,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;">
@@ -3035,6 +3040,11 @@ window.installPWA = function() {
         <div class="s-info"><div class="s-label"><span data-i18n="privacy_policy">นโยบายความเป็นส่วนตัว</span></div></div>
         <span class="s-arrow">›</span>
       </div>
+      <div class="s-item" onclick="showReferences()">
+        <span class="s-svg-icon" data-c="orange"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+        <div class="s-info"><div class="s-label"><span data-i18n="references_entry">参考文献 / 信息来源</span></div></div>
+        <span class="s-arrow">›</span>
+      </div>
       <div class="s-item" onclick="showTerms()">
         <span class="s-svg-icon" data-c="pink"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
         <div class="s-info"><div class="s-label"><span data-i18n="terms_of_service">ข้อกำหนดการใช้งาน</span></div></div>
@@ -3068,11 +3078,62 @@ window.installPWA = function() {
       <div style="background:var(--purple-pale);border-radius:16px;padding:18px 20px;text-align:left;line-height:2;font-size:14px;color:var(--text);">
         <span data-i18n="about_desc1">แอปนี้ช่วยบันทึกรอบเดือนและสุขภาพร่างกาย</span><br>
         <span data-i18n="about_desc2">เพื่อให้คุณเข้าใจร่างกายตัวเองมากขึ้น 🌸</span><br>
-        <span style="font-size:12px;color:var(--text-muted);" data-i18n="about_desc3">ข้อมูลในแอปใช้สำหรับการบันทึกและติดตามเท่านั้น</span>
+        <span style="font-size:12px;color:var(--text-muted);" data-i18n="privacy2">ข้อมูลภายในแอปไม่สามารถใช้แทนคำแนะนำทางการแพทย์ได้</span><br>
+        <span onclick="document.getElementById('aboutModal').classList.remove('open');setTimeout(()=>showReferences(),200);"
+          style="font-size:12px;color:var(--purple);text-decoration:underline;cursor:pointer;" data-i18n="about_ref_link">💡 查看健康内容参考来源 ›</span>
       </div>
     </div>
     <button onclick="document.getElementById('aboutModal').classList.remove('open')"
       style="width:100%;padding:13px;background:var(--purple-pale);border:none;border-radius:14px;
+      color:var(--purple);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
+      <span data-i18n="ok_btn">ตกลง ✓</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── 参考文献 / 信息来源 弹窗（Apple 1.4.1：健康内容需标注可查证来源，且要方便找到）── -->
+<div class="modal-overlay" id="referencesModal" style="z-index:10002;" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" id="referencesModalCard">
+    <div class="modal-handle"></div>
+    <h2 style="margin-bottom:12px;"><span data-i18n="references_title">📚 参考文献 / 信息来源</span></h2>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.8;margin-bottom:18px;">
+      <span data-i18n="references_desc">Luna 中的健康内容参考以下权威医疗机构的公开资料整理：</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <a href="https://www.who.int/news-room/fact-sheets/detail/menstrual-health" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">World Health Organization (WHO)</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_who_desc">月经健康信息（Menstrual Health）</div>
+      </a>
+      <a href="https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Mayo Clinic</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_mayo_cycle_desc">月经周期：什么是正常，什么不是</div>
+      </a>
+      <a href="https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Mayo Clinic</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_mayo_anemia_desc">缺铁性贫血：症状与病因</div>
+      </a>
+      <a href="https://www.cdc.gov/uti/about/index.html" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">CDC</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_cdc_uti_desc">尿路感染（UTI）基础知识</div>
+      </a>
+      <a href="https://www.cdc.gov/hpv/index.html" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">CDC</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_cdc_hpv_desc">HPV 与 HPV 疫苗</div>
+      </a>
+    </div>
+
+    <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-top:18px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.06);" data-i18n="references_footer">
+      以上内容仅供参考，不能替代专业医生的诊断或治疗建议。如有持续或异常不适，请及时就医。
+    </div>
+
+    <button onclick="document.getElementById('referencesModal').classList.remove('open')"
+      style="width:100%;margin-top:16px;padding:13px;background:var(--purple-pale);border:none;border-radius:14px;
       color:var(--purple);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">
       <span data-i18n="ok_btn">ตกลง ✓</span>
     </button>
@@ -6924,13 +6985,18 @@ window.setLang = setLang;
   function canUseThemes() { return true; } // 兼容旧调用
   window.canUseThemes = canUseThemes;
 
-  // 获取有效期（与后台一致：优先 expiry，没有则用 firstLogin + 31 天）
+  // 获取有效期（与后台一致：优先 expiry，没有则用 firstLogin + TRIAL_DAYS 天）
+  // 🩹 这里之前写死"31天"兜底，是复制后台那个旧 bug 时一起抄过来的——
+  // 目前这个函数没有任何地方调用（到期日期展示元素本来就按需求隐藏了），先修正数值，
+  // 避免以后谁把展示重新打开时，又踩回同一个"试用变一个月"的坑
   function getExpiryDisplay() {
     let exp = parseInt(localStorage.getItem('luna_expiry') || '0');
     if(!exp){
-      // 没有 expiry，用 firstLogin + 31 天兜底（和后台算法一致）
+      // 没有 expiry，说明是试用用户，用 firstLogin + TRIAL_DAYS 兜底（跟后台 getExpiryInfo() 算法一致）
+      // 用 typeof 兜底是防止这里跟 TRIAL_DAYS 声明处不在同一个 <script> 作用域时报错，而不是真的没这个值
       const fl = parseInt(localStorage.getItem('luna_first_login') || '0');
-      if(fl) exp = fl + 31*86400000;
+      const td = (typeof TRIAL_DAYS !== 'undefined') ? TRIAL_DAYS : 7;
+      if(fl) exp = fl + td*86400000;
     }
     if(!exp) return '--';
     const d = new Date(exp);
@@ -10355,6 +10421,10 @@ window.setLang = setLang;
   }
 
   function showAboutApp() { document.getElementById('aboutModal').classList.add('open'); }
+  // 📚 参考文献 / 信息来源：Apple 1.4.1 要求健康内容标注可查证来源，且入口要好找——
+  // 设置页有独立入口，聊天面板、深度健康洞察等健康内容旁也有跳转链接，统一指向这里
+  function showReferences() { document.getElementById('referencesModal').classList.add('open'); }
+  window.showReferences = showReferences;
   // ── 隐私/条款/帮助：用 iframe 全屏覆盖层加载（不整页跳转，从机制上根绝 cycle 串台到主站）──
   // 三个独立 html 仍部署在 /cycle/ 下（Play 商店隐私政策网址照用），这里只是 App 内嵌着看
   // 🩹 隐私/条款/帮助这几个法律页面，改成优先加载线上版本——这样以后改网站内容会立刻生效，
@@ -12923,10 +12993,13 @@ window.setLang = setLang;
     } else {
       // 💡 引用来源声明：放在文案正上方、紧跟标题，不用往下滑就能看到
       // （之前只在"深度健康洞察"卡片底部加过这段，这个独立的"历史记录"页是完全不同的渲染入口，之前漏掉了）
+      // 🩹 加一个可点击跳转的"查看来源"链接，指向设置里的"参考文献"完整列表页（带真实来源链接）
       const sourceNote = '<div style="font-size:10.5px;color:var(--stat-fg-muted);line-height:1.6;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(0,0,0,0.06);">'
         + (isTh
           ? '💡 ข้อมูลนี้อ้างอิงจากข้อมูลสาธารณะขององค์การอนามัยโลก (WHO) และ Mayo Clinic ใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้'
           : '💡 以上内容参考世界卫生组织（WHO）、妙佑医疗国际（Mayo Clinic）等权威机构公开资料，仅供参考，不能替代专业医疗诊断或治疗建议。')
+        + ' <span onclick="showReferences()" style="text-decoration:underline;cursor:pointer;color:var(--purple);font-weight:600;">'
+        + (isTh ? 'ดูแหล่งอ้างอิง ›' : '查看来源 ›') + '</span>'
         + '</div>';
       wrap.innerHTML = header + sourceNote + '<div style="font-size:16px;line-height:2;white-space:pre-line;color:var(--stat-fg);">' + text + '</div>';
     }
@@ -14184,10 +14257,12 @@ window.setLang = setLang;
 
     // 模块9：信息来源声明（Apple Guideline 1.4.1 要求：涉及健康/医疗建议的AI分析需标注信息来源，
     // 不需要逐句标注——AI内容是动态生成的做不到——这里给出通用的权威机构参考来源+免责声明即可）
+    // 🩹 加一个可点击跳转的"查看来源"链接，指向设置里的"参考文献"完整列表页（带真实来源链接）
     html += `<div style="font-size:10.5px;color:var(--stat-fg-muted);line-height:1.8;text-align:center;padding:6px 14px 2px;">
       ${zh
         ? '💡 以上健康分析参考世界卫生组织（WHO）、妙佑医疗国际（Mayo Clinic）等权威医疗机构的公开资料整理，仅供健康参考，不能替代专业医疗诊断或治疗建议。如有持续不适，请咨询医生。'
         : '💡 ข้อมูลสุขภาพข้างต้นอ้างอิงจากข้อมูลสาธารณะขององค์การอนามัยโลก (WHO) และ Mayo Clinic ใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนการวินิจฉัยหรือคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้ หากมีอาการผิดปกติต่อเนื่อง ควรปรึกษาแพทย์'}
+      <span onclick="showReferences()" style="text-decoration:underline;cursor:pointer;color:var(--purple);font-weight:600;">${zh ? '查看来源 ›' : 'ดูแหล่งอ้างอิง ›'}</span>
     </div>`;
 
     // 模块10：AI 专属总结
@@ -15287,6 +15362,18 @@ const LANG = {
     about_desc1: 'แอปนี้ช่วยบันทึกรอบเดือนและสุขภาพร่างกาย',
     about_desc2: 'เพื่อให้คุณเข้าใจร่างกายตัวเองมากขึ้น 🌸',
     about_desc3: 'ข้อมูลในแอปใช้สำหรับการบันทึกและติดตามเท่านั้น',
+    about_ref_link: '💡 ดูแหล่งข้อมูลอ้างอิงด้านสุขภาพ ›',
+    references_entry: 'แหล่งข้อมูลอ้างอิง',
+    references_title: '📚 แหล่งข้อมูลอ้างอิง',
+    references_desc: 'เนื้อหาสุขภาพใน Luna อ้างอิงจากข้อมูลสาธารณะของหน่วยงานทางการแพทย์ที่น่าเชื่อถือดังต่อไปนี้:',
+    references_footer: 'เนื้อหาข้างต้นใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนการวินิจฉัยหรือคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้ หากมีอาการผิดปกติหรือต่อเนื่อง ควรปรึกษาแพทย์',
+    ref_who_desc: 'ข้อมูลสุขภาพประจำเดือน (Menstrual Health)',
+    ref_mayo_cycle_desc: 'รอบเดือน: ปกติเป็นอย่างไร ผิดปกติเป็นอย่างไร',
+    ref_mayo_anemia_desc: 'ภาวะโลหิตจางจากการขาดธาตุเหล็ก: อาการและสาเหตุ',
+    ref_cdc_uti_desc: 'ความรู้พื้นฐานเรื่องการติดเชื้อทางเดินปัสสาวะ (UTI)',
+    ref_cdc_hpv_desc: 'HPV และวัคซีน HPV',
+    ai_disclaimer: '💡 เนื้อหาอ้างอิงจาก WHO, Mayo Clinic, CDC ใช้เพื่ออ้างอิงเท่านั้น ไม่ใช้แทนคำแนะนำทางการแพทย์',
+    ai_disclaimer_link: 'ดูแหล่งอ้างอิง ›',
     privacy_policy_title: '🔒 นโยบายความเป็นส่วนตัว',
     privacy1: 'แอปนี้ใช้สำหรับบันทึกและติดตามรอบเดือนเท่านั้น',
     privacy2: 'ข้อมูลภายในแอปไม่สามารถใช้แทนคำแนะนำทางการแพทย์ได้',
@@ -15513,6 +15600,18 @@ const LANG = {
     about_desc1: '这个App用于记录月经周期与身体状态',
     about_desc2: '帮助你更了解自己的身体 🌸',
     about_desc3: 'App中的内容仅用于记录与追踪参考',
+    about_ref_link: '💡 查看健康内容参考来源 ›',
+    references_entry: '参考文献 / 信息来源',
+    references_title: '📚 参考文献 / 信息来源',
+    references_desc: 'Luna 中的健康内容参考以下权威医疗机构的公开资料整理：',
+    references_footer: '以上内容仅供参考，不能替代专业医生的诊断或治疗建议。如有持续或异常不适，请及时就医。',
+    ref_who_desc: '月经健康信息（Menstrual Health）',
+    ref_mayo_cycle_desc: '月经周期：什么是正常，什么不是',
+    ref_mayo_anemia_desc: '缺铁性贫血：症状与病因',
+    ref_cdc_uti_desc: '尿路感染（UTI）基础知识',
+    ref_cdc_hpv_desc: 'HPV 与 HPV 疫苗',
+    ai_disclaimer: '💡 内容参考 WHO、Mayo Clinic、CDC 等权威机构公开资料，仅供参考，不能替代专业医疗建议',
+    ai_disclaimer_link: '查看来源 ›',
     privacy_policy_title: '🔒 隐私与政策',
     privacy1: '本App仅用于记录与追踪月经周期',
     privacy2: 'App中的信息不能替代专业医疗建议',

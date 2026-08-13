@@ -4392,6 +4392,11 @@ onAuthStateChanged(auth, async (user) => {
         if(typeof _restoreLastPage === 'function') _restoreLastPage(); else if(typeof showPage === 'function') showPage('home');
         if(typeof calUpdateStats === 'function') calUpdateStats(); // 🩹 同上：本地缓存数据立刻显示，不等网络
       } catch(e){}
+      // 🩹 性能优化：经期数据(logs/periodDays)跟"是否已激活/RevenueCat订阅状态"是两件互不相关的事。
+      // 之前这里排在最后面，要等下面"查激活状态→写lastLogin→问RevenueCat"三个网络请求全部串行
+      // 跑完、再加一个硬编码300ms延迟才开始拉，首页数字白白多等了好几个网络往返（实测约3.5秒）。
+      // 现在提前到这里，跟下面的激活状态检查同时并行发出去，不用排队等。
+      if(typeof window.loadUserDataFromFirebase === 'function') window.loadUserDataFromFirebase();
       // 同步激活状态
       try {
         if(window._fb) {
@@ -4406,7 +4411,8 @@ onAuthStateChanged(auth, async (user) => {
             if(userData.firstLogin) localStorage.setItem('luna_first_login', userData.firstLogin);
             // 🎫 当前订阅套餐（weekly/monthly/yearly），用于"我的"页显示当前套餐 + 付费页里标出"当前"、允许换到别的档
             localStorage.setItem('luna_vip_plan', userData.vipPlan || '');
-            await window._fb.set('users/' + uid + '/lastLogin', Date.now());
+            // 🩹 这一步是写操作，没有任何后续逻辑依赖它先完成，不需要 await 卡住整条启动链路
+            window._fb.set('users/' + uid + '/lastLogin', Date.now()).catch(()=>{});
           }
           // 🩹 修复"每次进App都要重新恢复购买"：上面这行只信 Firebase 的 activated 字段，
           // 而这个字段要靠后台 revenuecatWebhook 云函数才能写进去——webhook 一旦没配置好、或者有延迟，
@@ -4441,7 +4447,6 @@ onAuthStateChanged(auth, async (user) => {
       }
       setTimeout(() => {
         if(typeof initProFeatures === 'function') initProFeatures();
-        if(typeof window.loadUserDataFromFirebase === 'function') window.loadUserDataFromFirebase();
         if(typeof checkConsent === 'function') checkConsent();
         if(typeof showTrialBanner === 'function' && localStorage.getItem('luna_activated') !== '1') showTrialBanner();
       }, 300);
@@ -6039,6 +6044,41 @@ window.setLang = setLang;
   }
   window.isActivatedValue = isActivatedValue;
 
+  // 🩹 读取"统计"页那几个数字元素（平均周期/平均经期等），专门给传给AI的摘要数据用。
+  // 这几个元素在用户还没去过统计页时，textContent 就是字面意思的占位符 "--"，
+  // 不是空字符串——如果只判断"是不是空"，"--" 会被当成真实数据一路传给AI，
+  // AI 就会照着念出"平均周期 -- 天"这种破损文案。这里统一把 "--" 也当成"没有数据"处理。
+  function readStatText(elId) {
+    const raw = (document.getElementById(elId)?.textContent || '').trim();
+    if (!raw || raw === '--' || raw === '－－') return '';
+    return raw;
+  }
+  window.readStatText = readStatText;
+
+  // 🩹 情绪趋势汇总：专门给"AI深度分析"用的插槽，后端 buildPrompt() 里早就设计好了这个位置，
+  // 但前端一直没真的算过、传过数据，AI 收到的永远是"暂无记录"占位符——现在补上。
+  // 思路跟 topSymptoms 一样：只给一个汇总结论（比如"开心、平静为主"），不传每一条具体的心情记录，
+  // 风险和成本跟现有的 topSymptoms 一个量级，不是新开一个"传原始数据"的口子。
+  function computeMoodTrend(logs, isZh) {
+    const moodMap = isZh
+      ? {'😊':'开心','😌':'平静','😢':'难过','😤':'烦躁','😰':'焦虑'}
+      : {'😊':'ดีใจ','😌':'สงบ','😢':'เศร้า','😤':'หงุดหงิด','😰':'กังวล'};
+    const moodCount = {};
+    (Array.isArray(logs) ? logs : []).forEach(l => {
+      if (!l || !Array.isArray(l.symptoms)) return;
+      l.symptoms.forEach((s, i) => {
+        if (typeof s === 'string' && s.includes('（อารมณ์）')) {
+          const e = l.emojis && l.emojis[i];
+          if (e && moodMap[e]) moodCount[e] = (moodCount[e] || 0) + 1;
+        }
+      });
+    });
+    const sorted = Object.entries(moodCount).sort((a, b) => b[1] - a[1]);
+    if (!sorted.length) return '';
+    return sorted.slice(0, 2).map(([e]) => moodMap[e]).join(isZh ? '、' : ', ') + (isZh ? '为主' : ' เป็นหลัก');
+  }
+  window.computeMoodTrend = computeMoodTrend;
+
   // ── 7 天免费试用判断（基于 firstLogin，纯前端，不动后台）──
   const TRIAL_DAYS = 7;
   // 返回剩余试用天数（>0 表示还在试用期；<=0 表示已结束）
@@ -6631,11 +6671,13 @@ window.setLang = setLang;
           if (found) { pkg = found; break; }
         }
         if (!pkg) {
-          // 🩹 调试期：把 RevenueCat 实际能看到的商品 ID 都列出来，方便对比到底差在哪
+          // 🩹 之前这里是调试期专用的写法，直接把"要找哪个ID、实际有哪些ID"甩给用户看，
+          // 被 App Store 审核员抓到过（Guideline 2.1b）。技术细节留在 console.log 里方便自己排查，
+          // 用户只看到一句正常的提示。
           const seenIds = [];
           offeringList.forEach(function(o) { (o.availablePackages || []).forEach(function(p) { const sp = p.storeProduct || p.product; if (sp && sp.identifier) seenIds.push(sp.identifier); }); });
           console.log('没在 RevenueCat Offerings 里找到 productId=' + productId + '，实际看到的商品ID列表:', seenIds);
-          showToast((isTh ? 'ต้องการ: ' : '要找: ') + productId + ' | ' + (isTh ? 'เจอ: ' : '实际有: ') + (seenIds.join(', ') || (isTh ? 'ไม่มีเลย' : '一个都没有')));
+          showToast(isTh ? '😥 ขณะนี้ยังไม่สามารถดำเนินการแพ็กเกจนี้ได้ ลองใหม่อีกครั้งภายหลังนะคะ' : '😥 暂时无法处理这个订阅方案，请稍后再试试');
           return;
         }
         // 🐛 之前用的参数名 packageToPurchase 是错的，真正插件认的参数名是 aPackage
@@ -6644,9 +6686,10 @@ window.setLang = setLang;
       } catch (err) {
         if (err && (err.userCancelled || err.code === 'PURCHASE_CANCELLED_ERROR' || err.code === '1')) return; // 用户自己点了取消，不弹错误提示
         console.log('IAP purchase error:', err);
-        // 🩹 调试期先把真实错误亮出来（正式跑通后可以改回原来那句友好的通用提示）
-        const debugMsg = (err && (err.message || err.code)) ? String(err.message || err.code).slice(0, 90) : '未知错误';
-        showToast((isTh ? 'ผิดพลาด: ' : '失败原因: ') + debugMsg);
+        // 🩹 之前这里是调试期专用的写法，把原始英文报错（比如 "There was a problem with the App Store."）
+        // 原样甩给用户看，被 App Store 审核员抓到过（Guideline 2.1b：购买时弹出报错，体验差）。
+        // 原始错误信息还是打进 console.log，不影响自己排查，只是不再直接展示给用户。
+        showToast(isTh ? '😥 การสมัครสมาชิกยังไม่สำเร็จ ลองใหม่อีกครั้งนะคะ' : '😥 购买暂时没能成功，请稍后再试试');
       }
     },
     restore: async function() {
@@ -8694,8 +8737,16 @@ window.setLang = setLang;
       }
       try{
         // 跟 generateAiAnalysis 一样的摘要拼法，让AI回答时能带入真实数据，不是泛泛而谈
-        const avgCycle = (document.getElementById('statAvgCycle')?.textContent || '').trim();
-        const avgPeriod = (document.getElementById('statAvgPeriod')?.textContent || '').trim();
+        // 🩹 用 readStatText()，别再直接读 textContent —— 统计元素初始值就是字面字符串 "--"，
+        // 如果用户这次开App还没去过"统计"页，这两个数字元素还停在这个默认占位符上；
+        // 之前的写法只判断"是不是空字符串"，"--" 不是空字符串所以判断不出来，
+        // 会把这个 "--" 当成真实数据传给AI，AI 就会照着念出"平均周期 -- 天"这种破损文案
+        const avgCycle = readStatText('statAvgCycle');
+        const avgPeriod = readStatText('statAvgPeriod');
+        // 🩹 新增：这两个App首页本来就已经算好显示出来的数字，直接复用，
+        // 不用额外开发计算逻辑——让 Luna 也能回答"这次周期第几天了""下次经期大概什么时候"这类问题
+        const cycleDay = readStatText('cycleDay');
+        const nextPeriod = readStatText('nextDate');
         const symCount = {};
         (typeof logs !== 'undefined' ? logs : []).forEach(l => { if(l && Array.isArray(l.symptoms)) l.symptoms.forEach(s=>{
           if(typeof s !== 'string' || s.includes('（อารมณ์）')) return;
@@ -8712,7 +8763,7 @@ window.setLang = setLang;
             message: q,
             lang: _appLang,
             history: chatHistory.slice(-6),
-            summary: { avgCycle, avgPeriod, topSymptoms }
+            summary: { avgCycle, avgPeriod, topSymptoms, cycleDay, nextPeriod }
           })
         });
         const data = await resp.json().catch(()=>({}));
@@ -13089,8 +13140,9 @@ window.setLang = setLang;
 
     try {
       // ── 拼精简摘要：只传结论性的短文字，不传原始日志（控制传给 AI 的数据量，省钱）──
-      const avgCycle = (document.getElementById('statAvgCycle')?.textContent || '').trim();
-      const avgPeriod = (document.getElementById('statAvgPeriod')?.textContent || '').trim();
+      // 🩹 同上，用 readStatText() 而不是直接读 textContent，避免把 "--" 占位符当成真实数据传给AI
+      const avgCycle = readStatText('statAvgCycle');
+      const avgPeriod = readStatText('statAvgPeriod');
       const symCount = {};
       logs.forEach(l => { if (l && Array.isArray(l.symptoms)) l.symptoms.forEach(s => {
         if (typeof s !== 'string' || s.includes('（อารมณ์）')) return;
@@ -13098,12 +13150,14 @@ window.setLang = setLang;
         symCount[name] = (symCount[name] || 0) + 1;
       }); });
       const topSymptoms = Object.entries(symCount).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n]) => n).join('、');
+      // 🩹 新增：情绪趋势汇总——后端提示词模板里本来就等着这个字段，之前一直没填过，现在补上
+      const moodTrend = computeMoodTrend(logs, _appLang === 'zh');
 
       const idToken = await auth.currentUser.getIdToken();
       const resp = await fetch(AI_ANALYSIS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
-        body: JSON.stringify({ summary: { avgCycle, avgPeriod, topSymptoms, lang: _appLang } })
+        body: JSON.stringify({ summary: { avgCycle, avgPeriod, topSymptoms, moodTrend, lang: _appLang } })
       });
 
       // 云函数在真正开始流式返回之前失败了（未登录/限流/参数错误/AI调用失败），走的是普通 JSON 错误响应

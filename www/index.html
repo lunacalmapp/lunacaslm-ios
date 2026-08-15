@@ -2638,7 +2638,7 @@ window.installPWA = function() {
           <path d="M9 21V12h6v9"/>
         </svg>
       </div>
-      <span class="nav-label" data-i18n="nav_home">หน้าหลัก</span>
+      <span class="nav-label" data-i18n="nav_home_bottom">รอบเดือน</span>
     </div>
 
     <!-- 日历 -->
@@ -2674,7 +2674,7 @@ window.installPWA = function() {
           <rect x="16" y="5" width="4" height="16" rx="1"/>
         </svg>
       </div>
-      <span class="nav-label" data-i18n="nav_stats">สถิติ</span>
+      <span class="nav-label" data-i18n="nav_stats_bottom">รายงาน</span>
     </div>
 
     <!-- 我的 -->
@@ -3007,6 +3007,16 @@ window.installPWA = function() {
         <div class="s-info">
           <div class="s-label"><span data-i18n="logout">ออกจากระบบ</span></div>
           <div class="s-val"><span data-i18n="logout_sub">ล้างสถานะการเข้าสู่ระบบ</span></div>
+        </div>
+        <span class="s-arrow">›</span>
+      </div>
+      <!-- 🩹 Apple Guideline 5.1.1(v)：支持注册账号的App，必须支持用户自己发起删除账号，
+           不能只有"清除数据"（那个只清本地记录，不注销账号本身），也不能只能靠联系客服才能删 -->
+      <div class="s-item" onclick="initiateSelfAccountDeletion()">
+        <span class="s-svg-icon" data-c="red"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>
+        <div class="s-info">
+          <div class="s-label"><span data-i18n="delete_account" style="color:#E05A5A;">ลบบัญชีถาวร</span></div>
+          <div class="s-val" style="color:#E88098;"><span data-i18n="delete_account_sub">ลบบัญชีและข้อมูลทั้งหมด ไม่สามารถกู้คืนได้</span></div>
         </div>
         <span class="s-arrow">›</span>
       </div>
@@ -4810,6 +4820,51 @@ function _lunaAccountDeletedLogout(){
     else { try{ localStorage.removeItem('luna_uid'); sessionStorage.removeItem('luna_uid'); }catch(e){} location.reload(); }
   });
 }
+
+// ── 用户自助删除账号（Apple Guideline 5.1.1(v) 要求）──
+// 跟后台管理员删除用户是同一套底层逻辑（删 userdata/{uid} + 给 users/{uid} 打"已注销"墓碑 + 回读校验），
+// 区别只是这里由用户自己在客户端直接触发，不需要走后台管理员操作
+async function initiateSelfAccountDeletion(){
+  const isTh = _appLang === 'th';
+  _lunaConfirm(
+    isTh
+      ? 'ยืนยันลบบัญชีถาวรใช่ไหม？\n\nข้อมูลทั้งหมด (บันทึกประจำเดือน อารมณ์ อาการ ประวัติการวิเคราะห์ สถานะสมาชิก) จะถูกลบและไม่สามารถกู้คืนได้'
+      : '确定要永久删除账号吗？\n\n所有数据（经期记录、心情、症状、AI分析历史、会员状态）都会被删除，且无法恢复',
+    { okText: isTh ? 'ลบถาวร' : '永久删除', cancelText: isTh ? 'ยกเลิก' : '取消', danger: true },
+    async function(){
+      const uid = localStorage.getItem('luna_uid');
+      if(!uid || !window._fb){
+        showToast(isTh ? '⚠️ เกิดข้อผิดพลาด กรุณาลองใหม่' : '⚠️ 出错了，请重试');
+        return;
+      }
+      try{
+        showToast(isTh ? '🗑 กำลังลบบัญชี...' : '🗑 正在删除账号...');
+        const old = await window._fb.get('users/'+uid).catch(()=>null);
+        await window._fb.remove('userdata/'+uid);
+        await window._fb.set('users/'+uid, {
+          uid: uid, evicted: true, evictedAt: Date.now(),
+          displayName: (old && old.displayName) || '', email: (old && old.email) || ''
+        });
+        // 回读校验：确保真的删干净了才提示成功，跟后台管理员那边同一套标准，不写完就假装成功
+        const c1 = await window._fb.get('users/' + uid);
+        const c2 = await window._fb.get('userdata/' + uid);
+        if(!(c1 && c1.evicted === true) || c2 !== null) throw new Error('回读校验未通过，可能没删干净');
+        // 自己删的，不用等 _lunaCheckAccountAlive 轮询发现，直接本地清理+登出
+        try { if(typeof window._lunaClearAccountData === 'function') window._lunaClearAccountData(); } catch(e){}
+        try { if(uid) window._fb.remove('users/' + uid).catch(()=>{}); } catch(e){} // 消费掉自己刚打的墓碑，方便以后想重新注册
+        const msg = isTh ? 'ลบบัญชีเรียบร้อยแล้ว ขอบคุณที่เคยใช้ Luna Calm นะคะ 🌙' : '账号已删除，谢谢你曾经使用过 Luna Calm 🌙';
+        _lunaSimpleAlert(msg, isTh ? 'ตกลง' : '好的', function(){
+          if(typeof window.signOutGoogle === 'function') window.signOutGoogle();
+          else { try{ localStorage.removeItem('luna_uid'); sessionStorage.removeItem('luna_uid'); }catch(e){} location.reload(); }
+        });
+      } catch(e){
+        console.log('self account deletion error:', e);
+        showToast(isTh ? '⚠️ ลบไม่สำเร็จ กรุณาลองใหม่หรือติดต่อฝ่ายสนับสนุน' : '⚠️ 删除失败，请重试或联系客服');
+      }
+    }
+  );
+}
+window.initiateSelfAccountDeletion = initiateSelfAccountDeletion;
 
 // ── 实时监听后台推送通知 ──
 // 通知翻译对照表
@@ -15271,6 +15326,8 @@ const LANG = {
     nav_log: 'บันทึก',
     nav_stats: 'สถิติ',
     nav_mine: 'โปรไฟล์',
+    nav_home_bottom: 'รอบเดือน',
+    nav_stats_bottom: 'รายงาน',
     // ── 日历页 ──
     cal_title: 'ปฏิทินรอบเดือน',
     cal_settings_title: 'ตั้งค่าปฏิทิน',
@@ -15381,6 +15438,8 @@ const LANG = {
     clear_data_sub: 'ลบบันทึกทั้งหมด ไม่สามารถกู้คืนได้',
     logout: 'ออกจากระบบ',
     logout_sub: 'ล้างสถานะการเข้าสู่ระบบ',
+    delete_account: 'ลบบัญชีถาวร',
+    delete_account_sub: 'ลบบัญชีและข้อมูลทั้งหมด ไม่สามารถกู้คืนได้',
     version_section: 'เวอร์ชัน',
     check_update: 'ตรวจสอบอัปเดต',
     current_version: 'เวอร์ชันปัจจุบัน v1.0.1',
@@ -15506,6 +15565,8 @@ const LANG = {
     nav_log: '记录',
     nav_stats: '统计',
     nav_mine: '我的',
+    nav_home_bottom: '周期',
+    nav_stats_bottom: '报告',
     // ── 日历页 ──
     cal_title: '周期日历',
     cal_settings_title: '日历设置',
@@ -15619,6 +15680,8 @@ const LANG = {
     clear_data_sub: '删除所有记录，无法恢复',
     logout: '退出登录',
     logout_sub: '清除本机登录状态',
+    delete_account: '永久删除账号',
+    delete_account_sub: '删除账号及全部数据，无法恢复',
     version_section: '版本',
     check_update: '检查更新',
     current_version: '当前版本 v1.0.1',

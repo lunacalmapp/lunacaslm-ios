@@ -48,6 +48,26 @@ workflows:
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID")
           echo "Latest build number on App Store Connect: $LATEST_BUILD_NUMBER"
           agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+      # 🩹 上一次只用 agvtool new-marketing-version 改版本号，构建出来的 IPA 里版本号还是 1.0，
+      # 说明 Info.plist 里 CFBundleShortVersionString 大概率是写死的字符串，没有引用
+      # "$(MARKETING_VERSION)" 这个 build setting，所以 agvtool 只改了工程设置、没真正生效。
+      # 这次直接用 PlistBuddy 把源 Info.plist 文件本身也强制改掉，双重保险；
+      # 并且打印修改前后的值，方便下次直接从日志确认到底有没有真的改成功。
+      - name: Bump marketing version
+        script: |
+          #!/bin/sh
+          set -e
+          cd "$CM_BUILD_DIR/ios/App"
+          agvtool new-marketing-version 1.0.1
+
+          PLIST="App/Info.plist"
+          echo "== 修改前 Info.plist 里的版本号 =="
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST" || echo "⚠️ 没找到 CFBundleShortVersionString 这个 key"
+
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.1" "$PLIST"
+
+          echo "== 修改后 Info.plist 里的版本号 =="
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
       - name: Build ipa for distribution

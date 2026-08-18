@@ -223,6 +223,20 @@ window.installPWA = function() {
     --home-default-deco-display: block;
     --home-aurora-deco-display: none;
     --home-amber-deco-display: none;
+    /* Card 2（距离下次月经）专属变量：默认跟随首页通用配色，仅"暖金沙"主题会单独覆盖，
+       其余主题不受影响 */
+    --home-next-card-bg: var(--home-card-bg);
+    --home-next-icon-color: var(--home-fg);
+    --home-next-icon-border: var(--home-glass-border);
+    --home-next-date-fg: var(--pink);
+    --home-icon-red-fg: #d070d0;
+    --home-orb-bg: linear-gradient(135deg,#7c5cbf,#c47ab0);
+    --home-orb-shadow: 0 6px 20px rgba(124,92,191,0.4);
+    /* 首页两个"关键数字"（第一张卡的天数、第二张卡倒计时天数）专属变量，默认跟随 --home-fg，
+       只有"蜜桃粉"主题会单独覆盖成统一的珊瑚粉，其余主题不受影响 */
+    --home-key-num-fg: var(--home-fg);
+    --home-icon-purple-fg: #8060c0;
+    --home-icon-green-fg: #7060b0;
 
     /* ══ 日历页专属变量：默认＝沿用现有浅色写法，选中"莲夜水"时才切换为深蓝玻璃质感 ══ */
     --cal-bg: var(--bg);
@@ -621,6 +635,195 @@ window.installPWA = function() {
   body.theme-mistteal .home-premium-glow,
   body.theme-goldsand .home-premium-glow,
   body.theme-duskmauve .home-premium-glow { display:block; }
+
+  /* 🌾 暖金沙主题配色微调：奶油白背景 + 更明快的暖金渐变 + 纯白卡面
+     首页/日历/记录/统计/我的 五个页面 + 首页「周期详情」全屏面板已全部完成，统一同一套暖棕字+淡金强调色。
+     全部通过 body.theme-goldsand 这一层覆盖，不改 --purple/--bg 等全局变量，其余 11 个主题不受影响 */
+  body.theme-goldsand {
+    --home-bg: #FFF9F4;
+    --home-hero-bg: linear-gradient(150deg, #F4C96B 0%, #E8B653 100%);
+    --home-fg: #5A4320;
+    --home-btn-gradient: linear-gradient(135deg, #E8B653, #F4C96B);
+    --home-orb-bg: linear-gradient(135deg, #E8B653, #F4C96B);
+    --home-orb-shadow: 0 6px 20px rgba(232,182,83,0.45);
+    --home-next-card-bg: #FFFFFF;
+    --home-next-icon-color: #E8C982;
+    --home-next-icon-border: #E8C982;
+    --home-next-date-fg: #E85B91;
+    --home-icon-red-bg: #FBE3ED;
+    --home-icon-red-fg: #D95A91;
+    --home-icon-purple-bg: #F8EBCB;
+    --home-icon-purple-fg: #D9A83F;
+    --home-icon-green-bg: #E6F3EF;
+    --home-icon-green-fg: #62B5A6;
+
+    /* 📅 日历页同款暖金沙配色：奶油白背景 + 白色卡面 + 淡金描边/贴士，跟首页保持统一语气 */
+    --cal-bg: #FFF9F4;
+    --cal-fg: #5A4320;
+    --cal-fg-muted: #8A6E4C;
+    --cal-surface-bg: #FFFFFF;
+    --cal-surface-shadow: 0 8px 22px rgba(232,182,83,0.16), 0 2px 6px rgba(232,182,83,0.10), inset 0 1px 0 rgba(255,255,255,0.85);
+    --cal-surface-border: rgba(232,182,83,0.16);
+    --cal-tip-bg: #F8EBCB;
+    --cal-tip-fg: #5A4320;
+    --cal-tip-border: rgba(232,182,83,0.35);
+    --cal-analysis-bg: linear-gradient(150deg, #FFFFFF 55%, #F8EBCB 130%);
+    --cal-disabled-fg: #E3D6C0;
+    --cal-gear-bg: linear-gradient(150deg, #F8EBCB, rgba(232,182,83,0.22));
+
+    /* 📝 记录页同款暖金沙配色：跟日历页用同一套暖棕字 + 淡金描边 + 白色卡面 */
+    --rec-bg: #FFF9F4;
+    --rec-fg: #5A4320;
+    --rec-fg-muted: #8A6E4C;
+    --rec-surface-bg: #FFFFFF;
+    --rec-surface-shadow: 0 8px 22px rgba(232,182,83,0.16), 0 2px 6px rgba(232,182,83,0.10), inset 0 1px 0 rgba(255,255,255,0.85);
+    --rec-surface-border: rgba(232,182,83,0.16);
+    --rec-btn-bg: #FBF3E4;
+    --rec-tip-bg: #F8EBCB;
+    --rec-tip-border: #E8C982;
+    --rec-textarea-bg: #FBF3E4;
+    --rec-textarea-border: rgba(232,182,83,0.20);
+    --rec-placeholder: #C9AE8A;
+
+    /* 📊 统计页同款暖金沙配色：顶部大卡跟首页「19天」用同一套金渐变+棕字，下面小卡片统一纯白 */
+    --stat-bg: #FFF9F4;
+    --stat-fg: #5A4320;
+    --stat-fg-muted: #8A6E4C;
+    --stat-surface-bg: #FFFFFF;
+    --stat-surface-shadow: 0 8px 22px rgba(232,182,83,0.16), 0 2px 6px rgba(232,182,83,0.10), inset 0 1px 0 rgba(255,255,255,0.85);
+    --stat-hero-bg: linear-gradient(135deg, #F4C96B 0%, #E8B653 100%);
+    --stat-hero-shadow: 0 8px 20px rgba(232,182,83,0.24);
+    --stat-hero-fg: #5A4320;
+    --stat-hero-fg-muted: rgba(90,67,32,0.68);
+    --stat-insight-bg: linear-gradient(135deg,#fff,#F8EBCB);
+
+    /* 👤 我的页面同款暖金沙配色：跟其余四个页面统一同一套暖棕字+纯白卡面+淡金强调色 */
+    --mine-bg: #FFF9F4;
+    --mine-fg: #5A4320;
+    --mine-fg-muted: #8A6E4C;
+    --mine-surface-bg: #FFFFFF;
+    --mine-surface-shadow: 0 8px 22px rgba(232,182,83,0.16), 0 2px 6px rgba(232,182,83,0.10), inset 0 1px 0 rgba(255,255,255,0.85);
+    --mine-surface-border: rgba(232,182,83,0.16);
+    --mine-item-border: rgba(232,182,83,0.14);
+    --mine-item-active-bg: #F8EBCB;
+    --mine-input-bg: #FBF3E4;
+    --mine-input-border: #E8C982;
+    --mine-chip-bg: #F8EBCB;
+    --mine-chip-border: #E8C982;
+    --mine-accent: #E8B653;
+    --mine-accent-light: #F4C96B;
+    --mine-accent-solid-fg: #5A4320;
+    --mine-lang-inactive-bg: #FBF3E4;
+    --mine-lang-inactive-border: rgba(232,182,83,0.24);
+    --mine-lang-inactive-fg: #8A6E4C;
+    --mine-track-bg: rgba(232,182,83,0.18);
+  }
+
+  /* 🍑 蜜桃粉主题：跟暖金沙一样一个页面一个页面来，目前已完成首页（含底部导航）、日历页。
+     按用户给的配色清单：Primary Peach #F58F84 / Light Peach #FDE1DC / Background #FFF9F6 /
+     Text #332D43 / Secondary Text #928BA5 / Purple Accent #9C94B5 / Gold Accent #EFCB82 /
+     Mint Accent #DFF1EA / Card #FFFFFF。
+     按钮、导航选中态、"关键数字"统一用 Primary Peach，其余次要文字/图标用剩下几个辅助色分工，
+     不是每处都涂成同一个粉。 */
+  body.theme-peach {
+    --home-bg: #FFF9F6;
+    --home-fg: #332D43;
+    --home-fg-muted: #928BA5;
+    --home-key-num-fg: #F58F84;
+    --home-hero-bg: linear-gradient(150deg, #FFFFFF 0%, #FDE1DC 100%);
+    --home-hero-shadow: 0 8px 20px rgba(245,143,132,0.16);
+    --home-card-bg: #FFFFFF;
+    --home-btn-gradient: #F58F84;
+    --home-orb-bg: #F58F84;
+    --home-orb-shadow: 0 6px 20px rgba(245,143,132,0.4);
+    --home-next-card-bg: #FFFFFF;
+    --home-next-icon-color: #EFCB82;
+    --home-next-icon-border: #EFCB82;
+    --home-next-date-fg: #F58F84;
+    --home-icon-red-bg: #FDE1DC;
+    --home-icon-red-fg: #F58F84;
+    --home-icon-purple-bg: #F0EEF6;
+    --home-icon-purple-fg: #9C94B5;
+    --home-icon-green-bg: #DFF1EA;
+    --home-icon-green-fg: #4FA98C;
+
+    /* 📅 日历页：跟首页同一套 Text/Secondary Text，卡面纯白，小贴士用 Gold Accent 区分开，
+       不整页都涂成珊瑚粉 */
+    --cal-bg: #FFF9F6;
+    --cal-fg: #332D43;
+    --cal-fg-muted: #928BA5;
+    --cal-surface-bg: #FFFFFF;
+    --cal-surface-shadow: 0 8px 22px rgba(245,143,132,0.14), 0 2px 6px rgba(245,143,132,0.08), inset 0 1px 0 rgba(255,255,255,0.85);
+    --cal-surface-border: rgba(245,143,132,0.14);
+    --cal-tip-bg: rgba(239,203,130,0.22);
+    --cal-tip-fg: #332D43;
+    --cal-tip-border: #EFCB82;
+    --cal-analysis-bg: linear-gradient(150deg, #FFFFFF 55%, #FDE1DC 130%);
+    --cal-disabled-fg: #E7E2ED;
+    --cal-gear-bg: linear-gradient(150deg, #FBF0DC, rgba(239,203,130,0.22));
+
+    /* 📝 记录页：跟日历页统一的暖白卡面 + 金色小贴士，输入框用极浅的珊瑚白区分层次 */
+    --rec-bg: #FFF9F6;
+    --rec-fg: #332D43;
+    --rec-fg-muted: #928BA5;
+    --rec-surface-bg: #FFFFFF;
+    --rec-surface-shadow: 0 8px 22px rgba(245,143,132,0.14), 0 2px 6px rgba(245,143,132,0.08), inset 0 1px 0 rgba(255,255,255,0.85);
+    --rec-surface-border: rgba(245,143,132,0.14);
+    --rec-btn-bg: #FDF1EE;
+    --rec-tip-bg: rgba(239,203,130,0.22);
+    --rec-tip-border: #EFCB82;
+    --rec-textarea-bg: #FDF1EE;
+    --rec-textarea-border: rgba(245,143,132,0.20);
+    --rec-placeholder: #B7AEBB;
+  }
+  /* 保存按钮没有走 --rec-* 变量，单独统一成珊瑚粉（跟首页按钮同一个逻辑） */
+  body.theme-peach .save-btn { background: #F58F84; }
+  /* 📊 统计页：顶部大卡跟首页一样白底+浅粉渐变，"平均经期/平均周期/连续记录"这三个关键数字统一珊瑚粉，
+     下面小卡片纯白 */
+  body.theme-peach {
+    --stat-bg: #FFF9F6;
+    --stat-fg: #332D43;
+    --stat-fg-muted: #928BA5;
+    --stat-surface-bg: #FFFFFF;
+    --stat-surface-shadow: 0 8px 22px rgba(245,143,132,0.14), 0 2px 6px rgba(245,143,132,0.08), inset 0 1px 0 rgba(255,255,255,0.85);
+    --stat-hero-bg: linear-gradient(135deg, #FFFFFF 0%, #FDE1DC 100%);
+    --stat-hero-shadow: 0 8px 20px rgba(245,143,132,0.18);
+    --stat-hero-fg: #F58F84;
+    --stat-hero-fg-muted: #928BA5;
+    --stat-insight-bg: linear-gradient(135deg,#fff,#FDE1DC);
+
+    /* 👤 我的页面：跟前四页统一同一套白卡+暖白背景，头像框/昵称按钮/VIP卡这些强调色统一珊瑚粉。
+       注意 --mine-accent-solid-fg 特意用深色文字而不是白色——珊瑚粉配白字对比度偏低（约2.3:1），
+       配深色文字对比度约5.7:1，这几个按钮字都不大，用深色更看得清 */
+    --mine-bg: #FFF9F6;
+    --mine-fg: #332D43;
+    --mine-fg-muted: #928BA5;
+    --mine-surface-bg: #FFFFFF;
+    --mine-surface-shadow: 0 8px 22px rgba(245,143,132,0.14), 0 2px 6px rgba(245,143,132,0.08), inset 0 1px 0 rgba(255,255,255,0.85);
+    --mine-surface-border: rgba(245,143,132,0.14);
+    --mine-item-border: rgba(245,143,132,0.12);
+    --mine-item-active-bg: #FDE1DC;
+    --mine-input-bg: #FDF1EE;
+    --mine-input-border: rgba(245,143,132,0.24);
+    --mine-chip-bg: rgba(239,203,130,0.22);
+    --mine-chip-border: #EFCB82;
+    --mine-accent: #F58F84;
+    --mine-accent-light: #FDE1DC;
+    --mine-accent-solid-fg: #332D43;
+    --mine-lang-inactive-bg: #FDF1EE;
+    --mine-lang-inactive-border: rgba(245,143,132,0.20);
+    --mine-lang-inactive-fg: #928BA5;
+    --mine-track-bg: rgba(245,143,132,0.18);
+  }
+  /* 底部导航：只统一"选中态"的颜色，导航栏背景、未选中图标都保持原样不额外加质感 */
+  body.theme-peach .nav-item.active::before { background: #F58F84; }
+  body.theme-peach .nav-item.active .nav-label { color: #F58F84; }
+  body.theme-peach .nav-item.active .nav-svg svg { stroke: #F58F84; }
+  body.theme-peach .nav-item.active .nav-svg svg circle[fill] { fill: #F58F84; }
+  body.theme-peach .nav-center-circle { background: #F58F84; box-shadow: 0 4px 16px rgba(245,143,132,0.4); }
+  body.theme-peach .nav-item-center:active .nav-center-circle { box-shadow: 0 2px 8px rgba(245,143,132,0.3); }
+  body.theme-peach .nav-item-center.active .nav-center-circle { background: linear-gradient(135deg, #F58F84, #FDE1DC); }
+  body.theme-peach .nav-item-center .nav-label { color: #F58F84; }
 
   /* ─── 全局：去掉网页感（禁止选中文字 + 去掉点击蓝色高亮）─── */
   @keyframes orbFade {
@@ -1945,6 +2148,65 @@ window.installPWA = function() {
   }
   .stat-tile:active { transform:scale(0.98); filter:brightness(0.98); }
 
+  /* ─── 🌙 周期详情 面板专用：阶段标签（经期/卵泡期/排卵期/黄体期），从 Android 版搬过来的同一套 ─── */
+  .phase-tab-scroller {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin-bottom: 16px;
+    padding-bottom: 2px;
+  }
+  .phase-tab-scroller::-webkit-scrollbar { display: none; }
+  .phase-tab {
+    flex: 0 0 47%;
+    scroll-snap-align: start;
+    text-align: center;
+    padding: 16px 8px;
+    border-radius: 16px;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: rgba(var(--purple-rgb), 0.06);
+    cursor: pointer;
+    position: relative;
+    transition: background .25s ease, color .25s ease;
+  }
+  .phase-tab.active {
+    background: var(--home-btn-gradient);
+    color: #fff;
+    font-weight: 700;
+  }
+  .phase-tab .phase-tab-today-dot {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff5a7a;
+  }
+  .phase-tab-pager {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin: -8px 0 16px;
+  }
+  .phase-tab-pager-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(var(--purple-rgb), 0.18);
+    transition: background .25s ease, transform .25s ease;
+  }
+  .phase-tab-pager-dot.active {
+    background: var(--purple);
+    transform: scale(1.3);
+  }
+
   /* ══ 🖼️ 头像框双圈旋转系统 ══ */
   @keyframes avfSpin { from{transform:translate(-50%,-50%) rotate(0);} to{transform:translate(-50%,-50%) rotate(360deg);} }
   @keyframes avfSpinR { from{transform:translate(-50%,-50%) rotate(0);} to{transform:translate(-50%,-50%) rotate(-360deg);} }
@@ -2304,8 +2566,8 @@ window.installPWA = function() {
 
     <!-- 左边内容 -->
     <div style="display:flex;align-items:flex-end;gap:0;position:relative;z-index:1;">
-      <span class="days-big" id="cycleDay" style="font-size:100px;line-height:1;color:var(--home-fg);letter-spacing:-4px;font-weight:700;text-shadow:var(--home-fg-shadow);">--</span>
-      <span class="days-unit" style="font-size:26px;color:var(--home-fg);margin-bottom:12px;margin-left:6px;" data-i18n="days_unit">วัน</span>
+      <span class="days-big" id="cycleDay" style="font-size:100px;line-height:1;color:var(--home-key-num-fg);letter-spacing:-4px;font-weight:700;text-shadow:var(--home-fg-shadow);">--</span>
+      <span class="days-unit" style="font-size:26px;color:var(--home-key-num-fg);margin-bottom:12px;margin-left:6px;" data-i18n="days_unit">วัน</span>
     </div>
     <div id="cycleHint" style="display:none;font-size:13px;color:var(--home-fg-muted);margin-bottom:10px;position:relative;z-index:1;">รอข้อมูล</div>
     <!-- 上次经期（首页大卡内低调显示，上下两行避开花朵，数据由 calUpdateStats 填充）-->
@@ -2379,26 +2641,26 @@ window.installPWA = function() {
   </div>
 
   <!-- Card 2: 距离下次月经 -->
-  <div class="card" id="nextPeriodCard" style="display:flex;align-items:center;gap:18px;padding:26px 24px;position:relative;overflow:hidden;min-height:200px;margin-bottom:6px;">
+  <div class="card" id="nextPeriodCard" style="display:flex;align-items:center;gap:18px;padding:26px 24px;position:relative;overflow:hidden;min-height:200px;margin-bottom:6px;background:var(--home-next-card-bg);">
     <!-- 日历图标 -->
     <div style="width:54px;height:54px;border-radius:16px;background:var(--home-glass-bg);
-      display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--home-glass-border);">
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--home-next-icon-border);">
       <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
-        <rect x="5" y="8" width="26" height="22" rx="4" stroke="var(--home-fg)" stroke-width="2.2" fill="none"/>
-        <path d="M5 14h26" stroke="var(--home-fg)" stroke-width="2"/>
-        <path d="M12 5v6M24 5v6" stroke="var(--home-fg)" stroke-width="2.2" stroke-linecap="round"/>
+        <rect x="5" y="8" width="26" height="22" rx="4" stroke="var(--home-next-icon-color)" stroke-width="2.2" fill="none"/>
+        <path d="M5 14h26" stroke="var(--home-next-icon-color)" stroke-width="2"/>
+        <path d="M12 5v6M24 5v6" stroke="var(--home-next-icon-color)" stroke-width="2.2" stroke-linecap="round"/>
       </svg>
     </div>
     <div style="flex:1;">
       <div id="nextLabel" style="font-size:14px;color:var(--home-fg-muted);margin-bottom:5px;" data-i18n="badge_next">รอบเดือนถัดไป</div>
       <div style="display:flex;align-items:baseline;gap:5px;">
         <span style="font-family:Georgia,serif;font-size:60px;font-weight:700;
-          color:var(--home-fg);line-height:1;letter-spacing:2px;" id="daysLeft">--</span>
-        <span style="font-size:22px;color:var(--home-fg);font-weight:400;" data-i18n="days_unit">วัน</span>
+          color:var(--home-key-num-fg);line-height:1;letter-spacing:2px;" id="daysLeft">--</span>
+        <span style="font-size:22px;color:var(--home-key-num-fg);font-weight:400;" data-i18n="days_unit">วัน</span>
       </div>
       <div style="font-size:14px;color:var(--home-fg-muted);margin-top:5px;">
         <span data-i18n="next_date_label">คาดว่าเริ่ม: </span>
-        <span style="color:var(--pink);font-weight:700;" id="nextDate">--</span>
+        <span style="color:var(--home-next-date-fg);font-weight:700;" id="nextDate">--</span>
       </div>
     </div>
     <!-- 装饰花瓣 -->
@@ -2442,9 +2704,9 @@ window.installPWA = function() {
       <div class="action-btn" onclick="openModal()">
         <div class="action-icon icon-red">
           <svg width="40" height="40" viewBox="0 0 36 36" fill="none">
-            <path d="M23 6l7 7-15 15-7 1 1-7L23 6z" stroke="#d070d0" stroke-width="2.6" stroke-linejoin="round" fill="rgba(220,160,240,0.15)"/>
-            <path d="M20.5 8.5l7 7" stroke="#d070d0" stroke-width="2.6" stroke-linecap="round"/>
-            <path d="M8 31h20" stroke="#d070d0" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M23 6l7 7-15 15-7 1 1-7L23 6z" stroke="var(--home-icon-red-fg)" stroke-width="2.6" stroke-linejoin="round" fill="none"/>
+            <path d="M20.5 8.5l7 7" stroke="var(--home-icon-red-fg)" stroke-width="2.6" stroke-linecap="round"/>
+            <path d="M8 31h20" stroke="var(--home-icon-red-fg)" stroke-width="2.6" stroke-linecap="round"/>
           </svg>
         </div>
         <div class="action-name" data-i18n="nav_log">บันทึก</div>
@@ -2454,14 +2716,14 @@ window.installPWA = function() {
       <div class="action-btn" onclick="showCalendar()">
         <div class="action-icon icon-purple">
           <svg width="40" height="40" viewBox="0 0 36 36" fill="none">
-            <rect x="5" y="8" width="26" height="22" rx="4" stroke="#8060c0" stroke-width="2.6" fill="rgba(180,150,230,0.12)"/>
-            <path d="M5 14h26" stroke="#8060c0" stroke-width="2.3"/>
-            <path d="M12 5v6M24 5v6" stroke="#8060c0" stroke-width="2.6" stroke-linecap="round"/>
-            <circle cx="12" cy="21" r="1.8" fill="#8060c0"/>
-            <circle cx="18" cy="21" r="1.8" fill="#8060c0"/>
-            <circle cx="24" cy="21" r="1.8" fill="#8060c0"/>
-            <circle cx="12" cy="27" r="1.8" fill="#8060c0" opacity="0.5"/>
-            <circle cx="18" cy="27" r="1.8" fill="#8060c0" opacity="0.5"/>
+            <rect x="5" y="8" width="26" height="22" rx="4" stroke="var(--home-icon-purple-fg)" stroke-width="2.6" fill="none"/>
+            <path d="M5 14h26" stroke="var(--home-icon-purple-fg)" stroke-width="2.3"/>
+            <path d="M12 5v6M24 5v6" stroke="var(--home-icon-purple-fg)" stroke-width="2.6" stroke-linecap="round"/>
+            <circle cx="12" cy="21" r="1.8" fill="var(--home-icon-purple-fg)"/>
+            <circle cx="18" cy="21" r="1.8" fill="var(--home-icon-purple-fg)"/>
+            <circle cx="24" cy="21" r="1.8" fill="var(--home-icon-purple-fg)"/>
+            <circle cx="12" cy="27" r="1.8" fill="var(--home-icon-purple-fg)" opacity="0.5"/>
+            <circle cx="18" cy="27" r="1.8" fill="var(--home-icon-purple-fg)" opacity="0.5"/>
           </svg>
         </div>
         <div class="action-name" data-i18n="nav_calendar">ปฏิทิน</div>
@@ -2471,12 +2733,12 @@ window.installPWA = function() {
       <div class="action-btn" onclick="showStats()">
         <div class="action-icon icon-green">
           <svg width="40" height="40" viewBox="0 0 36 36" fill="none">
-            <polyline points="6,26 13,18 19,22 27,10 32,13" stroke="#7060b0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <circle cx="6"  cy="26" r="2.5" fill="#7060b0"/>
-            <circle cx="13" cy="18" r="2.5" fill="#7060b0"/>
-            <circle cx="19" cy="22" r="2.5" fill="#7060b0"/>
-            <circle cx="27" cy="10" r="2.5" fill="#7060b0"/>
-            <circle cx="32" cy="13" r="2.5" fill="#7060b0"/>
+            <polyline points="6,26 13,18 19,22 27,10 32,13" stroke="var(--home-icon-green-fg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="6"  cy="26" r="2.5" fill="var(--home-icon-green-fg)"/>
+            <circle cx="13" cy="18" r="2.5" fill="var(--home-icon-green-fg)"/>
+            <circle cx="19" cy="22" r="2.5" fill="var(--home-icon-green-fg)"/>
+            <circle cx="27" cy="10" r="2.5" fill="var(--home-icon-green-fg)"/>
+            <circle cx="32" cy="13" r="2.5" fill="var(--home-icon-green-fg)"/>
           </svg>
         </div>
         <div class="action-name" data-i18n="nav_stats">สถิติ</div>
@@ -2526,8 +2788,8 @@ window.installPWA = function() {
   <!-- 🤖 Luna 小助手 AI 悬浮球（仅首页·3D立体·小尺寸）-->
   <div id="aiOrb" style="display:none;position:fixed;right:18px;bottom:170px;z-index:140;
     width:48px;height:48px;border-radius:50%;
-    background:linear-gradient(135deg,#7c5cbf,#c47ab0);
-    box-shadow:0 6px 20px rgba(124,92,191,0.4);
+    background:var(--home-orb-bg);
+    box-shadow:var(--home-orb-shadow);
     align-items:center;justify-content:center;cursor:grab;
     touch-action:none;user-select:none;transition:transform .15s,box-shadow .15s;">
     <span style="font-size:20px;pointer-events:none;line-height:1;">🌙</span>
@@ -2905,33 +3167,6 @@ window.installPWA = function() {
             <div style="font-size:22px;">🍑</div><div class="tp-label" style="color:#B85C3C;" data-i18n="theme_peach">พีช</div>
           </button>
 
-          <!-- ══ 🌙 ใช้แสงจันทร์แลก 200 / 月光值 200 换 ══ -->
-          <div class="theme-tier-tag tag-moon"><span class="tt-icon">🌙</span><span data-i18n="theme_tier_moon">200</span></div>
-          <button class="theme-pick theme-pro" data-theme="lotus" onclick="pickThemeOrUpgrade(this,'lotus')" style="background:linear-gradient(145deg,#F3E3F0,#C98ABF);position:relative;">
-            <div id="lock-lotus" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🪷</div><div class="tp-label" style="color:#8A3A78;" data-i18n="theme_lotus">บัวหลวง</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="rose" onclick="pickThemeOrUpgrade(this,'rose')" style="background:linear-gradient(145deg,#FBE7DF,#E89980);position:relative;">
-            <div id="lock-rose" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🌹</div><div class="tp-label" style="color:#C0492E;" data-i18n="theme_rose">กุหลาบ</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="orange" onclick="pickThemeOrUpgrade(this,'orange')" style="background:linear-gradient(145deg,#FCEFD8,#F0B860);position:relative;">
-            <div id="lock-orange" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🍊</div><div class="tp-label" style="color:#C77A1A;" data-i18n="theme_orange">ส้ม</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="sky" onclick="pickThemeOrUpgrade(this,'sky')" style="background:linear-gradient(145deg,#E8F0FC,#7FA8DD);position:relative;">
-            <div id="lock-sky" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🩵</div><div class="tp-label" style="color:#3A6FB0;" data-i18n="theme_sky">ฟ้า</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="mint" onclick="pickThemeOrUpgrade(this,'mint')" style="background:linear-gradient(145deg,#DCF2EF,#7FC9C4);position:relative;">
-            <div id="lock-mint" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🍃</div><div class="tp-label" style="color:#1F7572;" data-i18n="theme_mint">มินต์</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="lavender" onclick="pickThemeOrUpgrade(this,'lavender')" style="background:linear-gradient(145deg,#EDE6F5,#B9A4DC);position:relative;">
-            <div id="lock-lavender" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🪻</div><div class="tp-label" style="color:#3D2459;" data-i18n="theme_lavender">ลาเวนเดอร์</div>
-          </button>
-
           <!-- ══ 👑 VIP เท่านั้น / VIP 专属 ══ -->
           <div class="theme-tier-tag tag-vip"><span class="tt-icon">👑</span><span data-i18n="theme_tier_vip">VIP</span></div>
           <button class="theme-pick theme-pro" data-theme="moonlotus" onclick="pickThemeOrUpgrade(this,'moonlotus')" style="background:linear-gradient(160deg,#12507a 0%,#1c6f94 55%,#2f93ab 100%);position:relative;">
@@ -2966,6 +3201,33 @@ window.installPWA = function() {
           <button class="theme-pick theme-pro" data-theme="cream" onclick="pickThemeOrUpgrade(this,'cream')" style="background:linear-gradient(145deg,#F9F3EE,#C9B29A);position:relative;">
             <div id="lock-cream" class="theme-lock-overlay" style="display:none;">🔒</div>
             <div style="font-size:22px;">🤍</div><div class="tp-label" style="color:#8A6F5A;" data-i18n="theme_cream">ครีม</div>
+          </button>
+
+          <!-- ══ 🌙 ใช้แสงจันทร์แลก 200 / 月光值 200 换 ══ -->
+          <div class="theme-tier-tag tag-moon"><span class="tt-icon">🌙</span><span data-i18n="theme_tier_moon">200</span></div>
+          <button class="theme-pick theme-pro" data-theme="lotus" onclick="pickThemeOrUpgrade(this,'lotus')" style="background:linear-gradient(145deg,#F3E3F0,#C98ABF);position:relative;">
+            <div id="lock-lotus" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🪷</div><div class="tp-label" style="color:#8A3A78;" data-i18n="theme_lotus">บัวหลวง</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="rose" onclick="pickThemeOrUpgrade(this,'rose')" style="background:linear-gradient(145deg,#FBE7DF,#E89980);position:relative;">
+            <div id="lock-rose" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🌹</div><div class="tp-label" style="color:#C0492E;" data-i18n="theme_rose">กุหลาบ</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="orange" onclick="pickThemeOrUpgrade(this,'orange')" style="background:linear-gradient(145deg,#FCEFD8,#F0B860);position:relative;">
+            <div id="lock-orange" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🍊</div><div class="tp-label" style="color:#C77A1A;" data-i18n="theme_orange">ส้ม</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="sky" onclick="pickThemeOrUpgrade(this,'sky')" style="background:linear-gradient(145deg,#E8F0FC,#7FA8DD);position:relative;">
+            <div id="lock-sky" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🩵</div><div class="tp-label" style="color:#3A6FB0;" data-i18n="theme_sky">ฟ้า</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="mint" onclick="pickThemeOrUpgrade(this,'mint')" style="background:linear-gradient(145deg,#DCF2EF,#7FC9C4);position:relative;">
+            <div id="lock-mint" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🍃</div><div class="tp-label" style="color:#1F7572;" data-i18n="theme_mint">มินต์</div>
+          </button>
+          <button class="theme-pick theme-pro" data-theme="lavender" onclick="pickThemeOrUpgrade(this,'lavender')" style="background:linear-gradient(145deg,#EDE6F5,#B9A4DC);position:relative;">
+            <div id="lock-lavender" class="theme-lock-overlay" style="display:none;">🔒</div>
+            <div style="font-size:22px;">🪻</div><div class="tp-label" style="color:#3D2459;" data-i18n="theme_lavender">ลาเวนเดอร์</div>
           </button>
           </div>
         </div>
@@ -4981,7 +5243,11 @@ onValue(ref(db,'notifications'), snap => {
 <!-- ═══ 新手引导（仅首次启动显示，答完后无缝接到登录页/预览模式）═══ -->
 <div id="onboardGate" style="position:fixed;inset:0;z-index:10000;
   background:linear-gradient(165deg,#8b5fb8 0%,#a87fcf 26%,#c9a3e0 50%,#e6c8ee 72%,#f6e4f3 100%);
-  display:none;flex-direction:column;align-items:center;padding:20px;overflow-y:auto;">
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px));overflow-y:auto;">
+  <!-- 🩹 两处修复：①顶部原来只有固定20px，刘海机型会把月亮遮住一截，现在加上 env(safe-area-inset-top) 让开刘海；
+       ②外层原来没设 justify-content，内容默认贴顶，屏幕高的机型下方会空一大截——改成 justify-content:center
+       让整块（月亮+卡片）垂直居中，上下空隙均匀，内容较长时（比如展开日历那步）还是能正常滚动，不会被卡住。 -->
 
   <!-- 底部柔光渐变：贴死在屏幕底部，不会跟任何内容抢位置，可以放心用fixed -->
   <div style="position:fixed;bottom:0;left:0;right:0;height:140px;background:linear-gradient(to top,rgba(245,225,250,0.45),transparent);pointer-events:none;z-index:0;"></div>
@@ -5208,15 +5474,10 @@ onValue(ref(db,'notifications'), snap => {
 <script>
   // ── 新手引导：仅首次启动的设备显示，答完/跳过后不再出现 ──
   (function(){
-    // 只支持中文/泰语两种：跟随手机系统语言自动挑一个，系统是其他语言（英语/越南语等）一律按泰语处理
-    // 只在用户从没手动/自动选过语言时才会用到这个检测（luna_lang 一旦有值，永远优先用那个值，不会被系统语言覆盖）
+    // 只支持中文/泰语两种：新用户（没存过语言偏好）一律优先用泰语，不再跟随手机系统语言自动判断——
+    // 跟 Android 版保持一致。luna_lang 一旦有值（不管是手动选的还是以前存过的），永远优先用那个值，
+    // 这次改动只影响"从没选过语言的全新用户"这一种情况，不影响老用户已经保存的语言偏好。
     function detectSystemLang(){
-      try {
-        const langs = (navigator.languages && navigator.languages.length) ? navigator.languages : [navigator.language || navigator.userLanguage || ''];
-        for (let i=0; i<langs.length; i++){
-          if (langs[i] && langs[i].toLowerCase().indexOf('zh') === 0) return 'zh';
-        }
-      } catch(e){}
       return 'th';
     }
     window.detectSystemLang = detectSystemLang;
@@ -10675,6 +10936,9 @@ window.setLang = setLang;
     if(document.body) document.body.classList.toggle('theme-mistteal', key === 'mistteal');
     if(document.body) document.body.classList.toggle('theme-goldsand', key === 'goldsand');
     if(document.body) document.body.classList.toggle('theme-duskmauve', key === 'duskmauve');
+    // 🍑 蜜桃粉：轻量 class，只用来给首页几个"统一强调色"的地方（按钮/底部导航选中态/关键数字）加主题色，
+    // 不像雾松青/暖金沙那六个"高级款"一样整套换质感
+    if(document.body) document.body.classList.toggle('theme-peach', key === 'peach');
   }
 
 
@@ -12381,6 +12645,198 @@ window.setLang = setLang;
     }catch(e){}
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // 🌙 周期详情（统计页二级面板）：经期/卵泡期/排卵期/黄体期，内容跟 Android 版共用同一份，
+  // 只是入口从"首页卡片"换成了"统计页磁贴"，所以变量都用 --stat-fg / --stat-fg-muted，不用 --home-*
+  // ══════════════════════════════════════════════════════════════
+  var PHASE_SNAPSHOT_CONTENT = {
+    period: {
+      title: {zh:'月经期', th:'ช่วงมีประจำเดือน'},
+      desc: {zh:'子宫内膜脱落形成月经，雌激素和孕酮都处于这个周期里的最低点。',
+             th:'เยื่อบุโพรงมดลูกหลุดลอกออกมาเป็นประจำเดือน ระดับเอสโตรเจนและโปรเจสเตอโรนต่ำที่สุดในรอบนี้'},
+      hormones: [
+        {label:{zh:'雌激素 E2', th:'เอสโตรเจน (E2)'}, level:{zh:'低', th:'ต่ำ'}, tone:'low'},
+        {label:{zh:'孕酮 PG', th:'โปรเจสเตอโรน (PG)'}, level:{zh:'低', th:'ต่ำ'}, tone:'low'},
+        {label:{zh:'促卵泡素 FSH', th:'FSH'}, level:{zh:'回升中', th:'เริ่มสูงขึ้น'}, tone:'rising'}
+      ],
+      feelings: {
+        zh:['可能会觉得疲惫、腰腹坠胀', '情绪相对平静，适合多休息'],
+        th:['อาจรู้สึกเหนื่อยหรือปวดหน่วงท้องน้อย', 'อารมณ์ค่อนข้างสงบ เหมาะกับการพักผ่อน']
+      }
+    },
+    normal: {
+      title: {zh:'卵泡期', th:'ระยะฟอลลิเคิล'},
+      desc: {zh:'卵巢里的卵泡在 FSH 刺激下逐渐发育，雌激素开始慢慢回升，身体和情绪通常会越来越有活力。',
+             th:'ฟอลลิเคิลในรังไข่ค่อยๆ เติบโตจากการกระตุ้นของ FSH ระดับเอสโตรเจนเริ่มเพิ่มขึ้นทีละน้อย ร่างกายและอารมณ์มักจะกระปรี้กระเปร่าขึ้นเรื่อยๆ'},
+      hormones: [
+        {label:{zh:'雌激素 E2', th:'เอสโตรเจน (E2)'}, level:{zh:'上升中', th:'กำลังเพิ่มขึ้น'}, tone:'rising'},
+        {label:{zh:'孕酮 PG', th:'โปรเจสเตอโรน (PG)'}, level:{zh:'低', th:'ต่ำ'}, tone:'low'},
+        {label:{zh:'促卵泡素 FSH', th:'FSH'}, level:{zh:'偏高', th:'สูง'}, tone:'high'}
+      ],
+      feelings: {
+        zh:['精力和皮肤状态通常在慢慢变好', '是安排运动、社交的好时机'],
+        th:['พลังงานและสภาพผิวมักจะค่อยๆ ดีขึ้น', 'เป็นช่วงเวลาที่ดีสำหรับออกกำลังกายหรือนัดเจอเพื่อน']
+      }
+    },
+    fertile: {
+      title: {zh:'排卵期', th:'ช่วงตกไข่'},
+      desc: {zh:'黄体生成素（LH）快速升高触发排卵，雌激素在排卵前达到高峰后回落，这是本周期最容易受孕的窗口。',
+             th:'ฮอร์โมน LH พุ่งสูงขึ้นอย่างรวดเร็วเพื่อกระตุ้นการตกไข่ เอสโตรเจนขึ้นสูงสุดก่อนตกไข่แล้วค่อยลดลง ช่วงนี้เป็นช่วงที่มีโอกาสตั้งครรภ์สูงที่สุดของรอบเดือน'},
+      hormones: [
+        {label:{zh:'雌激素 E2', th:'เอสโตรเจน (E2)'}, level:{zh:'接近峰值', th:'ใกล้จุดสูงสุด'}, tone:'high'},
+        {label:{zh:'黄体生成素 LH', th:'LH'}, level:{zh:'骤升', th:'พุ่งสูง'}, tone:'high'},
+        {label:{zh:'孕酮 PG', th:'โปรเจสเตอโรน (PG)'}, level:{zh:'开始上升', th:'เริ่มเพิ่มขึ้น'}, tone:'rising'}
+      ],
+      feelings: {
+        zh:['部分人会感觉精力充沛、性欲提升', '少数人可能有轻微排卵痛或分泌物增多'],
+        th:['บางคนจะรู้สึกมีพลังและความต้องการทางเพศเพิ่มขึ้น', 'บางคนอาจมีอาการปวดตกไข่เล็กน้อยหรือมีตกขาวมากขึ้น']
+      }
+    },
+    luteal: {
+      title: {zh:'黄体期', th:'ระยะลูเทียล'},
+      desc: {zh:'排卵后黄体分泌孕酮，孕酮和雌激素双双升高后在经期前回落，也就是常说的"经前期"。',
+             th:'หลังตกไข่ คอร์ปัสลูเทียมจะหลั่งโปรเจสเตอโรน ทั้งโปรเจสเตอโรนและเอสโตรเจนจะสูงขึ้นแล้วค่อยๆ ลดลงก่อนมีประจำเดือน ช่วงนี้คือช่วง "ก่อนมีประจำเดือน" ที่หลายคนคุ้นเคย'},
+      hormones: [
+        {label:{zh:'孕酮 PG', th:'โปรเจสเตอโรน (PG)'}, level:{zh:'高', th:'สูง'}, tone:'high'},
+        {label:{zh:'雌激素 E2', th:'เอสโตรเจน (E2)'}, level:{zh:'先升后降', th:'ขึ้นแล้วค่อยลง'}, tone:'mid'},
+        {label:{zh:'促卵泡素 FSH', th:'FSH'}, level:{zh:'低', th:'ต่ำ'}, tone:'low'}
+      ],
+      feelings: {
+        zh:['经前可能情绪敏感、乳房胀痛、想吃甜食', '这些都和孕酮变化有关，是很常见的生理反应'],
+        th:['ก่อนมีประจำเดือนอาจมีอารมณ์อ่อนไหว เจ็บคัดเต้านม อยากกินของหวาน', 'อาการเหล่านี้เกี่ยวข้องกับการเปลี่ยนแปลงของโปรเจสเตอโรน เป็นเรื่องปกติที่พบได้บ่อย']
+      }
+    }
+  };
+
+  // realPhase：真实当前阶段（跟着数据走）；selected：面板里标签切到了哪个阶段（默认等于 realPhase）
+  var _cyclePhaseState = { hasData:false, realPhase:null, selected:null, cycleDay:null };
+
+  function openCyclePhasePanel(){
+    if(!window.LunaPhase){ return; }
+    var p = window.LunaPhase.getPhase();
+    if(!p.hasData){
+      showToast(_appLang==='zh' ? '先记录一次经期，才能看到周期详情哦 🌙' : 'บันทึกประจำเดือนสักครั้งก่อน ถึงจะดูรายละเอียดรอบเดือนได้นะ 🌙');
+      return;
+    }
+    _cyclePhaseState.hasData = true;
+    _cyclePhaseState.cycleDay = p.cycleDay;
+    _cyclePhaseState.realPhase = p.phase;
+    _cyclePhaseState.selected = p.phase; // 每次打开都停在真实阶段，不记上次点到哪
+    var panel = document.getElementById('cyclePhasePanel');
+    if(!panel) return;
+    panel.style.display = 'block';
+    panel.scrollTop = 0;
+    panel.classList.remove('subpage-anim'); void panel.offsetWidth; panel.classList.add('subpage-anim');
+    document.body.style.overflow = 'hidden';
+    paintCyclePhasePanel();
+  }
+  window.openCyclePhasePanel = openCyclePhasePanel;
+
+  function closeCyclePhasePanel(){
+    var panel = document.getElementById('cyclePhasePanel');
+    if(panel) panel.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  window.closeCyclePhasePanel = closeCyclePhasePanel;
+
+  function selectCyclePhaseTab(phaseKey){
+    if(!_cyclePhaseState.hasData) return;
+    _cyclePhaseState.selected = phaseKey;
+    paintCyclePhasePanel();
+  }
+  window.selectCyclePhaseTab = selectCyclePhaseTab;
+
+  function paintCyclePhasePanel(){
+    var wrap = document.getElementById('cyclePhaseContent');
+    if(!wrap || !_cyclePhaseState.hasData) return;
+
+    var lang = (typeof _appLang !== 'undefined' && _appLang === 'zh') ? 'zh' : 'th';
+    var selectedKey = _cyclePhaseState.selected;
+    var isViewingToday = selectedKey === _cyclePhaseState.realPhase;
+    var data = PHASE_SNAPSHOT_CONTENT[selectedKey] || PHASE_SNAPSHOT_CONTENT.normal;
+
+    var titleEl = document.getElementById('cyclePhasePanelTitle');
+    if(titleEl) titleEl.textContent = (lang==='zh' ? '周期详情' : 'รายละเอียดรอบเดือนของคุณ');
+
+    var toneColor = {
+      low:    {bg:'rgba(138,132,158,0.12)', fg:'#8a849e'},
+      mid:    {bg:'rgba(240,127,160,0.14)', fg:'#d4638c'},
+      rising: {bg:'rgba(124,92,191,0.10)',  fg:'#7c5cbf'},
+      high:   {bg:'rgba(124,92,191,0.18)',  fg:'#6a4aad'}
+    };
+
+    var hormonesHtml = data.hormones.map(function(h){
+      var c = toneColor[h.tone] || toneColor.mid;
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border-radius:12px;background:'+c.bg+';margin-bottom:8px;">'
+        + '<span style="font-size:13.5px;color:var(--stat-fg);font-weight:600;">'+h.label[lang]+'</span>'
+        + '<span style="font-size:13.5px;color:'+c.fg+';font-weight:700;">'+h.level[lang]+'</span>'
+        + '</div>';
+    }).join('');
+
+    var feelingsHtml = data.feelings[lang].map(function(f){
+      return '<li style="margin-bottom:7px;">'+f+'</li>';
+    }).join('');
+
+    var phaseOrder = ['period','normal','fertile','luteal'];
+    var phaseLabels = {
+      period:  {zh:'经期',   th:'ประจำเดือน'},
+      normal:  {zh:'卵泡期', th:'ฟอลลิเคิล'},
+      fertile: {zh:'排卵期', th:'ตกไข่'},
+      luteal:  {zh:'黄体期', th:'ลูเทียล'}
+    };
+    var tabsHtml = phaseOrder.map(function(ph){
+      var active = ph === selectedKey;
+      var isToday = ph === _cyclePhaseState.realPhase;
+      return '<div class="phase-tab'+(active?' active':'')+'" onclick="selectCyclePhaseTab(\''+ph+'\')">'
+        + phaseLabels[ph][lang]
+        + (isToday ? '<span class="phase-tab-today-dot"></span>' : '')
+        + '</div>';
+    }).join('');
+
+    var eyebrowHtml;
+    if(isViewingToday){
+      eyebrowHtml = (lang==='zh' ? '第 '+_cyclePhaseState.cycleDay+' 天 · 现在是' : 'วันที่ '+_cyclePhaseState.cycleDay+' ของรอบ · ตอนนี้คือ');
+    } else {
+      eyebrowHtml = (lang==='zh' ? '了解一下' : 'มาทำความรู้จัก')
+        + ' · <span style="text-decoration:underline;cursor:pointer;color:var(--purple);" onclick="selectCyclePhaseTab(\''+_cyclePhaseState.realPhase+'\')">'
+        + (lang==='zh' ? '回到今天' : 'กลับไปวันนี้') + '</span>';
+    }
+
+    wrap.innerHTML =
+      '<div style="font-size:11.5px;color:var(--stat-fg-muted);font-weight:600;letter-spacing:.3px;margin-bottom:4px;">'+eyebrowHtml+'</div>'
+      + '<div style="font-size:22px;font-weight:700;color:var(--stat-fg);font-family:Georgia,\'Songti SC\',serif;margin-bottom:14px;">'+data.title[lang]+'</div>'
+      + '<div class="phase-tab-scroller">'+tabsHtml+'</div>'
+      + '<div class="phase-tab-pager"><span class="phase-tab-pager-dot"></span><span class="phase-tab-pager-dot"></span></div>'
+      + '<div style="font-size:14px;line-height:1.8;color:var(--stat-fg-muted);margin-bottom:16px;">'+data.desc[lang]+'</div>'
+      + '<div style="margin-bottom:14px;">'+hormonesHtml+'</div>'
+      + '<div style="font-size:13px;color:var(--stat-fg-muted);font-weight:700;margin-bottom:7px;">'+(lang==='zh'?'常见感受':'ความรู้สึกที่พบได้บ่อย')+'</div>'
+      + '<ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.75;color:var(--stat-fg-muted);">'+feelingsHtml+'</ul>'
+      // 💡 信息来源声明：跟统计页深度分析、AI 聊天页、Android 版周期详情用的同一条
+      + '<div style="font-size:10.5px;color:var(--stat-fg-muted);line-height:1.8;text-align:center;padding:14px 4px 2px;border-top:1px solid rgba(0,0,0,0.05);margin-top:16px;">'
+        + (lang==='zh'
+          ? '💡 以上内容参考世界卫生组织（WHO）、妙佑医疗国际（Mayo Clinic）等权威医疗机构的公开资料整理，仅供健康参考，不能替代专业医疗诊断或治疗建议。如有持续不适，请咨询医生。'
+          : 'เนื้อหาข้างต้นอ้างอิงจากข้อมูลสาธารณะขององค์การอนามัยโลก (WHO) และ Mayo Clinic ใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้ หากมีอาการผิดปกติต่อเนื่อง ควรปรึกษาแพทย์')
+        + ' <span onclick="showReferences()" style="text-decoration:underline;cursor:pointer;color:var(--purple);font-weight:600;">'+(lang==='zh'?'查看来源 ›':'ดูแหล่งอ้างอิง ›')+'</span>'
+      + '</div>';
+
+    var scrollerEl = wrap.querySelector('.phase-tab-scroller');
+    var activeTabEl = wrap.querySelector('.phase-tab.active');
+    if(scrollerEl && activeTabEl){
+      activeTabEl.scrollIntoView({inline:'nearest', block:'nearest'});
+      var syncPager = function(){
+        var pagerDots = wrap.querySelectorAll('.phase-tab-pager-dot');
+        if(!pagerDots.length) return;
+        var maxScroll = scrollerEl.scrollWidth - scrollerEl.clientWidth;
+        var progress = maxScroll > 0 ? (scrollerEl.scrollLeft / maxScroll) : 0;
+        pagerDots[0].classList.toggle('active', progress < 0.5);
+        pagerDots[1].classList.toggle('active', progress >= 0.5);
+      };
+      scrollerEl.addEventListener('scroll', syncPager, {passive:true});
+      syncPager();
+    }
+  }
+  window.paintCyclePhasePanel = paintCyclePhasePanel;
+
   function calUpdateStats() {
     syncPhaseCache();
     // 每次重新取当天（泰国时间），确保跨午夜后预测正确
@@ -13687,6 +14143,7 @@ window.setLang = setLang;
     // 🩹 补上剩下10个"二级页面"（从统计页/日历页点进去的子页面），跟三个一级页面用同一套手势逻辑，
     // 体验保持一致——不会出现"外层页面能滑退出，点深一层就不能"的情况。
     attachEdgeSwipeBack('insightPanel', closeInsightPanel);
+    attachEdgeSwipeBack('cyclePhasePanel', closeCyclePhasePanel);
     attachEdgeSwipeBack('moodlogPanel', closeMoodlogPanel);
     attachEdgeSwipeBack('weekSummaryPanel', closeWeekSummaryPanel);
     attachEdgeSwipeBack('top5Panel', closeTop5Panel);
@@ -14666,6 +15123,16 @@ window.setLang = setLang;
         <span style="font-size:32px; font-weight:700; color:var(--purple); flex-shrink:0;">›</span>
       </div>
 
+      <!-- 🌙 周期详情 磁贴（紫，跟 Luna 洞察卡呼应，放在它正下方）-->
+      <div onclick="openCyclePhasePanel()" class="stat-tile">
+        <span class="s-svg-icon" data-c="purple" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--stat-fg);"><span data-i18n="cycle_phase_entry_title">รายละเอียดรอบเดือน</span></div>
+          <div style="font-size:12px; color:var(--stat-fg-muted); margin-top:3px;"><span data-i18n="cycle_phase_entry_sub">ประจำเดือน / ฟอลลิเคิล / ตกไข่ / ลูเทียล</span></div>
+        </div>
+        <span style="font-size:32px; font-weight:700; color:var(--stat-fg); flex-shrink:0;">›</span>
+      </div>
+
       <!-- 📝 情绪与备注 磁贴（粉）-->
       <div onclick="openMoodlogPanel()" class="stat-tile">
         <span class="s-svg-icon" data-c="pink" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
@@ -14808,6 +15275,15 @@ window.setLang = setLang;
   </div>
   <div id="aiHistoryListView" style="padding:4px 20px 0;"></div>
   <div id="aiHistoryDetailView" style="display:none; padding:4px 20px 0;"></div>
+</div>
+
+<!-- ═══ 二级页：周期详情（经期/卵泡期/排卵期/黄体期，从 Android 版搬过来） ═══ -->
+<div id="cyclePhasePanel" style="display:none; position:fixed; inset:0; background:var(--stat-bg); z-index:160; overflow-y:auto; padding-bottom:30px; transition:background .4s ease;">
+  <div style="position:sticky; top:0; z-index:5; background:var(--stat-bg); display:flex; align-items:center; gap:12px; padding:52px 20px 12px; transition:background .4s ease;">
+    <button onclick="closeCyclePhasePanel()" class="back-btn">‹</button>
+    <span id="cyclePhasePanelTitle" style="font-size:20px; font-weight:600; color:var(--stat-fg); font-family:Georgia,'Songti SC',serif;">รายละเอียดรอบเดือนของคุณ</span>
+  </div>
+  <div id="cyclePhaseContent" style="padding:4px 20px 0;"></div>
 </div>
 
 <!-- ═══ 二级页：情绪与备注 ═══ -->
@@ -15287,6 +15763,8 @@ const LANG = {
     moodlog_title: 'บันทึกอารมณ์',
     moodlog_enter_sub: 'แตะเพื่อดูบันทึกทั้งหมด',
     insight_enter_sub: 'แตะเพื่อดูการวิเคราะห์เชิงลึก',
+    cycle_phase_entry_title: 'รายละเอียดรอบเดือน',
+    cycle_phase_entry_sub: 'ประจำเดือน / ฟอลลิเคิล / ตกไข่ / ลูเทียล',
     ai_analysis_title: 'การวิเคราะห์ด้วย AI',
     ai_analysis_btn: 'สร้างการวิเคราะห์ครั้งนี้',
     ai_analysis_locked_label: '🔒 วิเคราะห์ด้วย AI สำหรับ VIP',
@@ -15526,6 +16004,8 @@ const LANG = {
     moodlog_title: '情绪与备注',
     moodlog_enter_sub: '点击查看全部记录',
     insight_enter_sub: '点击查看深度健康分析',
+    cycle_phase_entry_title: '周期详情',
+    cycle_phase_entry_sub: '经期 / 卵泡期 / 排卵期 / 黄体期',
     ai_analysis_title: 'AI 深度分析',
     ai_analysis_btn: '生成本次分析',
     ai_analysis_locked_label: '🔒 VIP 专属 AI 分析',
@@ -15821,6 +16301,12 @@ function applyAppLang(lang) {
   const statsPanel = document.getElementById('statsPanel');
   if(statsPanel && statsPanel.style.display !== 'none' && typeof renderStats === 'function') {
     renderStats();
+  }
+
+  // 如果"周期详情"二级面板正开着，也跟着切语言重绘一次
+  const cyclePhasePanel = document.getElementById('cyclePhasePanel');
+  if(cyclePhasePanel && cyclePhasePanel.style.display !== 'none' && typeof paintCyclePhasePanel === 'function') {
+    paintCyclePhasePanel();
   }
 
   // 如果日历页已打开，重新渲染

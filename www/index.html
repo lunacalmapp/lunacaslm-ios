@@ -11216,8 +11216,11 @@ window.setLang = setLang;
       else { emojiEl.textContent = s.emoji; }
     }
     if(key === 'classic'){
-      orb.style.background = '';
-      orb.style.boxShadow = '';
+      // 🩹 之前这里清成空字符串，指望它"退回外部 CSS 规则"——但 #lunaOrb 的背景从头到尾
+      // 只写在这份 inline style 里，压根没有对应的外部 CSS 规则兜底，清空后紫色球直接消失，
+      // 只剩月牙 SVG 浮在空中。改成显式写回同一个 CSS 变量引用，不管切了几次样式都能正确复原。
+      orb.style.background = 'var(--home-orb-radial)';
+      orb.style.boxShadow = 'var(--home-orb-glossy-shadow)';
     } else {
       orb.style.background = s.radial;
       orb.style.boxShadow = s.shadow;

@@ -875,6 +875,18 @@ window.installPWA = function() {
     100% { transform:scale(1);    box-shadow:0 6px 20px rgba(124,92,191,0.4); }
   }
   .orb-breathing { animation: orbBreathe 1s ease-in-out 3; }
+  /* ✨ 悬浮球拖动时的尾巴特效：一颗颗小光点，出生在球刚离开的位置，边飘边缩小变淡，
+     模拟"划过的光尾巴"，不挑具体是哪个悬浮球样式，配色统一用暖金色，跟"月光"这个调性搭 */
+  @keyframes orbTrailFade {
+    0%   { opacity:0.9; transform:translate(-50%,-50%) scale(1); }
+    100% { opacity:0;   transform:translate(-50%,-50%) scale(0.25) translateY(-6px); }
+  }
+  .orb-trail-particle {
+    position:fixed; pointer-events:none; z-index:139;
+    font-size:14px; line-height:1;
+    filter:drop-shadow(0 0 4px rgba(255,225,140,0.9));
+    animation:orbTrailFade .55s ease-out forwards;
+  }
   * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -2778,7 +2790,18 @@ window.installPWA = function() {
     align-items:center;justify-content:center;cursor:grab;
     touch-action:none;user-select:none;transition:transform .15s,box-shadow .15s;
     animation:aiFloat 3.2s ease-in-out infinite;">
-    <span id="lunaOrbEmoji" style="font-size:22px;pointer-events:none;line-height:1;filter:drop-shadow(0 2px 3px rgba(90,40,120,0.4));position:relative;z-index:2;">🌙</span>
+    <span id="lunaOrbEmoji" style="pointer-events:none;line-height:1;position:relative;z-index:2;display:flex;align-items:center;justify-content:center;">
+      <svg width="24" height="24" viewBox="0 0 24 24" style="filter:drop-shadow(0 0 4px rgba(255,225,140,0.85)) drop-shadow(0 1px 2px rgba(90,40,120,0.35));">
+        <defs>
+          <linearGradient id="lunaOrbMoonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fff8e0"/>
+            <stop offset="55%" stop-color="#f7d98a"/>
+            <stop offset="100%" stop-color="#e8b653"/>
+          </linearGradient>
+        </defs>
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="url(#lunaOrbMoonGrad)"/>
+      </svg>
+    </span>
     <span style="position:absolute;top:8px;left:13px;width:12px;height:7px;border-radius:50%;
       background:radial-gradient(circle, rgba(255,255,255,0.85), rgba(255,255,255,0));pointer-events:none;z-index:1;"></span>
     <span id="lumiNudgeDot" style="display:none;position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:#ff5a7a;border:2px solid #fff;box-shadow:0 1px 4px rgba(220,40,80,0.5);pointer-events:none;z-index:3;"></span>
@@ -3279,7 +3302,9 @@ window.installPWA = function() {
           <button class="theme-strip-arrow right" aria-label="next" onclick="scrollOrbStyleStrip(1)">›</button>
           <div class="theme-strip" id="orbStyleStripEl" style="margin-top:12px;">
             <button class="theme-pick orb-pick sel" data-orb="classic" onclick="pickOrbStyle(this,'classic')">
-              <div class="orb-preview" style="background:radial-gradient(circle at 32% 28%, #f3c8e6 0%, #d79ad6 38%, #b07fd0 62%, #9d6ec4 100%);box-shadow:0 3px 8px rgba(150,90,180,0.4);">🌙</div>
+              <div class="orb-preview" style="background:radial-gradient(circle at 32% 28%, #f3c8e6 0%, #d79ad6 38%, #b07fd0 62%, #9d6ec4 100%);box-shadow:0 3px 8px rgba(150,90,180,0.4);">
+                <svg width="18" height="18" viewBox="0 0 24 24" style="filter:drop-shadow(0 0 3px rgba(255,225,140,0.85));"><defs><linearGradient id="lunaOrbMoonGradPreview" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fff8e0"/><stop offset="55%" stop-color="#f7d98a"/><stop offset="100%" stop-color="#e8b653"/></linearGradient></defs><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="url(#lunaOrbMoonGradPreview)"/></svg>
+              </div>
               <div class="tp-label" style="color:var(--mine-fg);" data-i18n="orb_style_classic">คลาสสิก</div>
             </button>
             <!-- 🧪 测试款：用户上传的真实图片素材，先放进来试试整体效果 -->
@@ -4808,7 +4833,7 @@ onAuthStateChanged(auth, async (user) => {
         }, 260);
       }
       setTimeout(() => {
-        if(typeof initProFeatures === 'function') initProFeatures();
+        try { if(typeof initProFeatures === 'function') initProFeatures(); } catch(e){ console.log('initProFeatures 出错:', e); }
         if(typeof checkConsent === 'function') checkConsent();
         if(typeof showTrialBanner === 'function' && localStorage.getItem('luna_activated') !== '1') showTrialBanner();
       }, 300);
@@ -4956,7 +4981,10 @@ async function handleAuthUser(user) {
       return;
     }
     if(typeof applyAppLang === 'function') applyAppLang(_lang);
-    if(typeof initProFeatures === 'function') initProFeatures();
+    // 🛡️ 独立防护：initProFeatures 万一在某些机型上意外报错，不能连累下面
+    // calUpdateStats() 这个真正渲染首页天数的调用也跟着跑不起来——首页数字空着比
+    // 主题/悬浮球没初始化好更致命，这里单独兜底，报错也要放行到下一行。
+    try { if(typeof initProFeatures === 'function') initProFeatures(); } catch(e){ console.log('_initApp: initProFeatures 出错:', e); }
     if(typeof calUpdateStats === 'function') calUpdateStats();
     // 登录成功后主动拉取该 uid 的云端数据（修复启动时 uid 为空导致数据不加载）
     if(typeof window.loadUserDataFromFirebase === 'function') window.loadUserDataFromFirebase();
@@ -5055,7 +5083,7 @@ async function handleAuthUser(user) {
         if(isActivated || _rcConfirmedActive) {
           document.getElementById('trialBanner')?.remove();
           document.getElementById('trialLockModal')?.remove();
-          if(typeof initProFeatures === 'function') initProFeatures();
+          try { if(typeof initProFeatures === 'function') initProFeatures(); } catch(e){ console.log('initProFeatures 出错:', e); }
           if(typeof initThemeLocks === 'function') initThemeLocks();
         } else {
           if(typeof showTrialBanner === 'function') showTrialBanner();
@@ -6670,7 +6698,7 @@ window.setLang = setLang;
         </div>
         <button onclick="
             this.closest('[style*=fixed]').remove();
-            if(typeof initProFeatures==='function') initProFeatures();
+            try { if(typeof initProFeatures==='function') initProFeatures(); } catch(e){ console.log('initProFeatures 出错:', e); }
             if(typeof initThemeLocks==='function') initThemeLocks();
             if(typeof showTrialBanner==='function') document.getElementById('trialBanner') && document.getElementById('trialBanner').remove();
             if(typeof calUpdateStats==='function') calUpdateStats();
@@ -7729,6 +7757,25 @@ window.setLang = setLang;
 
     let dragging=false, moved=false, sx=0, sy=0, ox=0, oy=0;
 
+    // ✨ 拖动尾巴特效：每隔一点时间在球的当前位置生个小光点，让它自己飘走消失——
+    // 不能每次 move 事件都生一个（触屏 move 事件触发很密集，会糊成一片、也伤性能），
+    // 所以用时间戳做个节流，大概每 45ms 生一颗，肉眼看起来是连续的一条尾巴
+    let _lastTrailTs = 0;
+    const _trailChars = ['✨','⋆','·'];
+    function _spawnOrbTrailParticle(cx, cy){
+      const now = Date.now();
+      if(now - _lastTrailTs < 45) return;
+      _lastTrailTs = now;
+      const el = document.createElement('span');
+      el.className = 'orb-trail-particle';
+      el.textContent = _trailChars[Math.floor(Math.random()*_trailChars.length)];
+      el.style.left = (cx + (Math.random()*10-5)) + 'px';
+      el.style.top  = (cy + (Math.random()*10-5)) + 'px';
+      el.style.fontSize = (10 + Math.random()*6) + 'px';
+      document.body.appendChild(el);
+      setTimeout(()=>{ el.remove(); }, 600); // 跟 CSS 动画时长对上，动画放完就清掉，不留 DOM 垃圾
+    }
+
     // 球静止 4 秒后半透明，碰到/拖动时恢复全亮
     let _dimTimer = null;
     orb.style.transition = (orb.style.transition?orb.style.transition+',':'') + 'opacity .4s ease';
@@ -7773,6 +7820,7 @@ window.setLang = setLang;
       const maxL=window.innerWidth-orb.offsetWidth-4, maxT=window.innerHeight-orb.offsetHeight-4;
       nl=Math.max(4,Math.min(maxL,nl)); nt=Math.max(4,Math.min(maxT,nt));
       orb.style.left=nl+'px'; orb.style.top=nt+'px'; orb.style.right='auto'; orb.style.bottom='auto';
+      if(moved) _spawnOrbTrailParticle(nl + orb.offsetWidth/2, nt + orb.offsetHeight/2); // 尾巴生在球中心
       e.preventDefault();
     }
     function onUp(){
@@ -10969,7 +11017,7 @@ window.setLang = setLang;
   const _origShowPage = window.showPage;
   window.showPage = function(page, navEl) {
     _origShowPage && _origShowPage(page, navEl);
-    if(page === 'mine') setTimeout(() => { loadProfile(); initSettingDisplays(); applyAppLang(_appLang); initProFeatures(); }, 50);
+    if(page === 'mine') setTimeout(() => { loadProfile(); initSettingDisplays(); applyAppLang(_appLang); try{ initProFeatures(); }catch(e){ console.log('initProFeatures(mine) 出错:', e); } }, 50);
   };
 
   function toggleThemePanel() {
@@ -11095,6 +11143,8 @@ window.setLang = setLang;
   // ══════════════════════════════════════════════════════════════
   const LUNA_ORB_STYLES = {
     classic:   { emoji:'🌙', radial:null, shadow:null,
+                 // 🌙→月牙 SVG：紫色玻璃球"包裹"一枚暖金渐变的月牙，比纯 emoji 更有质感，带柔光
+                 emojiHTML:'<svg width="24" height="24" viewBox="0 0 24 24" style="filter:drop-shadow(0 0 4px rgba(255,225,140,0.85)) drop-shadow(0 1px 2px rgba(90,40,120,0.35));"><defs><linearGradient id="lunaOrbMoonGrad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fff8e0"/><stop offset="55%" stop-color="#f7d98a"/><stop offset="100%" stop-color="#e8b653"/></linearGradient></defs><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="url(#lunaOrbMoonGrad2)"/></svg>',
                  name:{zh:'经典', th:'คลาสสิก'} }, // null = 跟随主题变量，不写死颜色
     sakura:    { emoji:'🌸',
                  radial:'radial-gradient(circle at 32% 28%, #fff0f5 0%, #ffc4dd 38%, #ff8fb8 62%, #e8608f 100%)',
@@ -11160,7 +11210,11 @@ window.setLang = setLang;
     orb.style.borderRadius = '50%';
     orb.style.width = '48px';
     orb.style.height = '48px';
-    if(emojiEl){ emojiEl.style.display = ''; emojiEl.textContent = s.emoji; }
+    if(emojiEl){
+      emojiEl.style.display = '';
+      if(s.emojiHTML){ emojiEl.innerHTML = s.emojiHTML; } // 比如经典款的月牙 SVG，比纯 emoji 更有质感
+      else { emojiEl.textContent = s.emoji; }
+    }
     if(key === 'classic'){
       orb.style.background = '';
       orb.style.boxShadow = '';
@@ -11191,17 +11245,24 @@ window.setLang = setLang;
   window._updateOrbStyleCurrentIcon = _updateOrbStyleCurrentIcon;
 
   // 启动时应用已保存的悬浮球样式（没存过就是 classic，等于什么都不变，老用户完全无感）
+  // 🛡️ 独立防护：这个函数在 _initApp() 里跑在 calUpdateStats() 前面，
+  // 万一某些机型上这里意外报错（哪怕只是没预料到的边界情况），不能让它把后面
+  // "计算首页天数"这个更重要的调用给卡断——宁可这颗球没应用上，也不能让首页数字空着。
   function initSavedOrbStyle(){
-    const key = localStorage.getItem('luna_orb_style') || 'classic';
-    applyOrbStyle(LUNA_ORB_STYLES[key] ? key : 'classic');
-    setTimeout(()=>{
-      document.querySelectorAll('.orb-pick').forEach(b=>{
-        b.classList.toggle('sel', b.getAttribute('data-orb') === key);
-      });
-      const txtEl = document.getElementById('orb-style-current-txt');
-      if(txtEl && LUNA_ORB_STYLES[key]) txtEl.textContent = LUNA_ORB_STYLES[key].name[_appLang==='zh'?'zh':'th'];
-      _updateOrbStyleCurrentIcon(LUNA_ORB_STYLES[key] ? key : 'classic');
-    }, 0);
+    try {
+      const key = localStorage.getItem('luna_orb_style') || 'classic';
+      applyOrbStyle(LUNA_ORB_STYLES[key] ? key : 'classic');
+      setTimeout(()=>{
+        try {
+          document.querySelectorAll('.orb-pick').forEach(b=>{
+            b.classList.toggle('sel', b.getAttribute('data-orb') === key);
+          });
+          const txtEl = document.getElementById('orb-style-current-txt');
+          if(txtEl && LUNA_ORB_STYLES[key]) txtEl.textContent = LUNA_ORB_STYLES[key].name[_appLang==='zh'?'zh':'th'];
+          _updateOrbStyleCurrentIcon(LUNA_ORB_STYLES[key] ? key : 'classic');
+        } catch(e){ console.log('initSavedOrbStyle (延迟部分) 出错:', e); }
+      }, 0);
+    } catch(e){ console.log('initSavedOrbStyle 出错:', e); }
   }
   window.initSavedOrbStyle = initSavedOrbStyle;
 
@@ -11239,10 +11300,12 @@ window.setLang = setLang;
 
   // 启动时把开关状态、灰掉状态都跟本地存的偏好对齐（没存过就是开，老用户完全无感）
   function initSavedOrbEnabled(){
-    const isOn = localStorage.getItem('luna_orb_enabled') !== '0';
-    const toggle = document.getElementById('orbEnabledToggle');
-    if(toggle) toggle.classList.toggle('on', isOn);
-    _dimOrbStrip(!isOn);
+    try {
+      const isOn = localStorage.getItem('luna_orb_enabled') !== '0';
+      const toggle = document.getElementById('orbEnabledToggle');
+      if(toggle) toggle.classList.toggle('on', isOn);
+      _dimOrbStrip(!isOn);
+    } catch(e){ console.log('initSavedOrbEnabled 出错:', e); }
   }
   window.initSavedOrbEnabled = initSavedOrbEnabled;
 
@@ -11337,10 +11400,19 @@ window.setLang = setLang;
           catch(e) { console.log('luna_period_days local cache write failed:', e); }
           // 合并结果回写云端，保持两端一致
           if(merged.length !== data.length) window._fb.set('userdata/'+code+'/periodDays', merged).catch(()=>{});
-          calUpdateStats && calUpdateStats();
           if(typeof updateOnboard==='function') updateOnboard();  // ✨ 补上：经期数据从云端同步回来后，首页要立刻从"欢迎新用户卡"切到真实数据卡，不然要等手动刷新才会正确显示
         }
-      }).catch(()=>{});
+      }).catch(e=>{
+        // 🩹 之前这里是空的 .catch(()=>{})，网络/权限失败会被完全吞掉，控制台连个错误都看不到。
+        // 这也是首页数字卡在占位符"--"最可疑的一个点——一旦这次请求失败，下面 calUpdateStats()
+        // 原来只写在 .then() 成功分支里，永远没有第二次机会跑，首页就再也刷不出数字了。
+        console.log('periodDays fetch failed:', e);
+      }).finally(()=>{
+        // 不管这次云端读取成功、失败、还是压根没有数据，都让首页数字重新计算一次——
+        // 那怕这次真的没读到任何新数据，至少能保证用本地已有的缓存正确渲染，
+        // 不会因为这一次网络请求失败，首页数字就永久停在占位符上。
+        calUpdateStats && calUpdateStats();
+      });
       window._fb.get('userdata/'+code+'/logs').then(data=>{
         if(data && Array.isArray(data)){
           // 按日期合并本地与云端记录（同一天以记录更全的为准），避免覆盖丢失
@@ -11606,7 +11678,8 @@ window.setLang = setLang;
   }
 
   function saveLog() {
-    if(!checkActivationBeforeSave()) return;
+    // 🩹 记录是永久免费功能，不能卡付费墙——之前这里调用 checkActivationBeforeSave() 会导致
+    // 每次点"记录"都弹订阅页，已去掉这个拦截（跟 Android 版对齐）
     const key = getTodayKey();
 
     // 月经日标记（今天）—— 直接读写 localStorage，不依赖可能跨作用域不可见的 periodSet 变量
@@ -11692,7 +11765,7 @@ window.setLang = setLang;
   window.saveLog = saveLog;
 
   function saveMoreLog() {
-    if(!checkActivationBeforeSave()) return;
+    // 🩹 记录永久免费，去掉付费墙拦截（跟 Android 版对齐）
     const symptoms = collectDetailSymptoms();
     const key = getTodayKey();
     // 取备注 + 其他症状文字，合并成备注内容
@@ -12468,7 +12541,7 @@ window.setLang = setLang;
   }
 
   function saveDayDetail() {
-    if(!checkActivationBeforeSave()) return;
+    // 🩹 记录永久免费，去掉付费墙拦截（跟 Android 版对齐）
     const symptoms = [], emojis = [];
 
     // single-select items (flow, color, mood)
@@ -12551,7 +12624,7 @@ window.setLang = setLang;
   }
 
   function saveDayModal() {
-    if(!checkActivationBeforeSave()) return;
+    // 🩹 记录永久免费，去掉付费墙拦截（跟 Android 版对齐）
     if (!currentDayKey) return;
     const key = currentDayKey;
 
@@ -12709,7 +12782,7 @@ window.setLang = setLang;
   // 真正写入数据——只有点了"确认保存"才会执行，选择阶段的点击都只是预览
   function calCommitRange(){
     if (calRangeSet.size === 0) return;
-    if (!checkActivationBeforeSave()) return;
+    // 🩹 记录永久免费，去掉付费墙拦截（跟 Android 版对齐）
     calRangeSet.forEach(k => periodSet.add(k));
     savePeriodDays();
     calRender();
@@ -15227,7 +15300,7 @@ window.setLang = setLang;
           if(isActive){
             localStorage.setItem('luna_activated','1');
             document.getElementById('trialBanner')?.remove();
-            if(typeof initProFeatures === 'function') initProFeatures();
+            try { if(typeof initProFeatures === 'function') initProFeatures(); } catch(e){ console.log('initProFeatures 出错:', e); }
           } else {
             localStorage.setItem('luna_activated','0');
             showTrialBanner();

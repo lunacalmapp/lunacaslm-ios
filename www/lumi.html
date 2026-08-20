@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#7c5cbf">
 <title id="pageTitle">Lumi · 月之谷</title>
@@ -18,7 +18,13 @@
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none;
     font-family:"Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-    background:#11102a; color:var(--text); user-select:none; }
+    background:#11102a; color:var(--text);
+    /* ✨✨ 修复：所有文字长按/点按都能弹出"复制"——原来只写了标准属性 user-select:none，
+       iOS Safari 对长按呼出的复制菜单是单独用 -webkit-touch-callout 控制的，不加这条的话
+       user-select:none 挡不住它；同时把 -webkit-user-select 也补上，兼容一些老 WebView。
+       整站统一禁掉，唯独下面单独把输入框(input/textarea)的选中/长按菜单加回来，不影响正常打字、粘贴。 */
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }
+  input, textarea{ -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
   #stage{ position:fixed; inset:0; touch-action:none; }
   canvas#c{ display:block; width:100%; height:100%; touch-action:none; }
 
@@ -76,7 +82,7 @@
   body.secret-open .controls, body.secret-open .topbar-right, body.secret-open .lv-card, body.secret-open #btnRoom, body.secret-open #btnLuna, body.secret-open #btnOutdoor{ display:none !important; }
   /* ✨ 秘密空间打开时：0/3 今日任务胶囊先隐藏（出了树洞照常显示）；舒适期胶囊挪到左上角返回按钮旁边，不再卡在问候语位置 */
   body.secret-open #taskChip{ display:none !important; }
-  body.secret-open #phaseChip{ position:fixed !important; top:16px !important; left:64px !important; right:auto !important; z-index:61; }
+  body.secret-open #phaseChip{ position:fixed !important; top:calc(env(safe-area-inset-top,0px) + 16px) !important; left:64px !important; right:auto !important; z-index:61; }
   body.secret-open .topbar{ pointer-events:none; }
   .ctrl-stack{ position:absolute; right:0; bottom:56px; display:flex; flex-direction:column-reverse;
     gap:10px; align-items:center; }
@@ -338,17 +344,17 @@
 
   <!-- ✨ 房间切换：真正的 HTML 按钮（原来是画在 canvas 上的假按钮，会跟画布点击打架，改成真按钮后彻底解决点不动的问题） -->
   <button id="btnRoom" data-zh-aria="选择房间" aria-label="选择房间"
-    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:12;width:56px;height:40px;border-radius:16px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:18px;line-height:1;cursor:pointer;">🏠</button>
+    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:12;width:66px;height:48px;border-radius:18px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:21px;line-height:1;cursor:pointer;">🏠</button>
 
-  <!-- 🌙 返回 Luna 首页：点左下角小房子上方这个按钮，直接回到 index 首页 -->
+  <!-- 🌙 返回 Luna 首页：点左下角小房子上方这个按钮，先弹确认框，点确定才真的回 index 首页 -->
   <button id="btnLuna" aria-label="返回 Luna"
-    onclick="try{localStorage.setItem('luna_lastPage','home'); sessionStorage.setItem('luna_from_lumi','1');}catch(e){}; var _r='/index.html'; try{_r=localStorage.getItem('luna_returnTo')||'/index.html';}catch(e){}; location.href=_r;"
-    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 102px);z-index:12;width:56px;height:36px;border-radius:16px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:12px;font-weight:700;color:#7c5cbf;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:3px;">
-    <span style="font-size:13px;">🌙</span>luna</button>
+    onclick="var s=document.getElementById('lunaExitSheet'); if(s) s.classList.add('show');"
+    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 112px);z-index:12;width:66px;height:44px;border-radius:18px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:13px;font-weight:700;color:#7c5cbf;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+    <span style="font-size:15px;">🌙</span>luna</button>
 
   <!-- ✨✨ 新增：户外场景选择器入口——真 DOM 按钮，放在 luna 上方，点开选择面板可以挑不同的户外场景(以后会陆续加更多) -->
   <button id="btnOutdoor" data-zh-aria="户外场景" aria-label="户外场景"
-    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 146px);z-index:12;width:56px;height:36px;border-radius:16px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:18px;line-height:1;cursor:pointer;">🌌</button>
+    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 164px);z-index:12;width:66px;height:44px;border-radius:18px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:21px;line-height:1;cursor:pointer;">🌌</button>
 
   <!-- ✨✨ 新增：星空山景场景专属的"回家"按钮，只在这个场景下才显示(平时display:none) -->
   <button id="btnNightViewExit" data-zh-aria="回到室内" aria-label="回到室内"
@@ -480,15 +486,15 @@
 
   <!-- ✨ 秘密空间（水晶洞穴）覆盖层：不遮暗背景，浮在 canvas 场景上方，只有内部按钮/输入框可点 -->
   <div id="secretSpaceOverlay" style="display:none;position:fixed;inset:0;z-index:60;pointer-events:none;">
-    <button id="secretBackBtn" aria-label="返回" style="pointer-events:auto;position:absolute;top:16px;left:16px;width:40px;height:40px;border-radius:14px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:18px;box-shadow:0 4px 14px rgba(0,0,0,.2);">←</button>
-    <button id="secretHistoryBtn" aria-label="记录统计" style="pointer-events:auto;position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:14px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.2);">📊</button>
+    <button id="secretBackBtn" aria-label="返回" style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);left:16px;width:40px;height:40px;border-radius:14px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:18px;box-shadow:0 4px 14px rgba(0,0,0,.2);">←</button>
+    <button id="secretHistoryBtn" aria-label="记录统计" style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:40px;height:40px;border-radius:14px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.2);">📊</button>
     <!-- ✨ 秘密空间专属：复制房间里的"专注"按钮进来，只要按钮+计时器，不复制专注开始/结束的音效(秘密空间已经有自己的背景音乐了) -->
-    <button id="secretFocusBtn" aria-label="专注" data-zh-aria="专注" style="pointer-events:auto;position:absolute;top:18px;right:66px;height:36px;min-width:40px;padding:0 12px;border-radius:18px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:12.5px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2);display:flex;align-items:center;gap:5px;white-space:nowrap;">
+    <button id="secretFocusBtn" aria-label="专注" data-zh-aria="专注" style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 18px);right:66px;height:36px;min-width:40px;padding:0 12px;border-radius:18px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:12.5px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2);display:flex;align-items:center;gap:5px;white-space:nowrap;">
       <span style="font-size:14px;">🎯</span><span id="secretFocusLabel">专注</span>
     </button>
     <div id="secretGreeting" style="pointer-events:none;position:absolute;left:50%;top:24%;transform:translateX(-50%);max-width:78vw;text-align:center;color:#ffe9f5;font-size:14px;font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.35);opacity:.92;"></div>
     <!-- ✨ 写记录时，点这块上方空白区域可以重新弹出「记录秘密/心事/节日心得」三个按钮，换一个类型再写 -->
-    <div id="secretBlankTap" aria-hidden="true" style="pointer-events:auto;position:absolute;left:0;right:0;top:68px;bottom:78px;"></div>
+    <div id="secretBlankTap" aria-hidden="true" style="pointer-events:auto;position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 68px);bottom:78px;"></div>
     <!-- ✨ 先选择要记录的类型，选了才会出现输入框，进树洞不再直接开始写 -->
     <div id="secretChoice" style="pointer-events:auto;position:absolute;left:16px;right:16px;bottom:max(20px,env(safe-area-inset-bottom));display:none;flex-direction:column;align-items:center;gap:12px;">
       <div data-zh="要记录点什么呢？" style="color:#ffe9f5;font-size:13.5px;font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.35);opacity:.92;">要记录点什么呢？</div>
@@ -567,6 +573,15 @@
       <p class="hint" data-zh="现在结束就拿不到这次的星星啦。要不要再坚持一下？">现在结束就拿不到这次的星星啦。要不要再坚持一下？</p>
       <button class="close" id="focusStopBtn" style="background:#f07fa0" data-zh="结束专注">结束专注</button>
       <button class="close" data-close style="background:var(--purple-pale);color:var(--purple);margin-top:8px" data-zh="继续专注">继续专注</button>
+    </div>
+  </div>
+
+  <!-- ✨✨ 新增：点左下角"🌙luna"按钮先确认一下，点确定才真的离开回 Luna Calm，点取消/遮罩就留在 Lumi 这边 -->
+  <div class="sheet-mask" id="lunaExitSheet">
+    <div class="sheet" role="dialog" data-zh-aria="要回 Luna Calm 吗？" aria-label="要回 Luna Calm 吗？">
+      <h3 data-zh="要回 Luna Calm 吗？">要回 Luna Calm 吗？</h3>
+      <button class="close" id="lunaExitConfirmBtn" style="background:#7c5cbf" data-zh="确定">确定</button>
+      <button class="close" data-close style="background:var(--purple-pale);color:var(--purple);margin-top:8px" data-zh="取消">取消</button>
     </div>
   </div>
 
@@ -1050,6 +1065,8 @@ const TEXT_MAP = {
 "和 Lumi 一起专注":"นั่งสมาธิไปด้วยกันกับ Lumi",
 "选一个时长，Lumi 会安静地陪你打坐。完成后她会为你庆祝，并送上星星 ⭐":"เลือกระยะเวลา แล้ว Lumi จะนั่งสมาธิเป็นเพื่อนคุณเงียบๆ เมื่อเสร็จแล้วเธอจะฉลองให้และมอบดาวให้คุณ ⭐",
 "取消":"ยกเลิก",
+"要回 Luna Calm 吗？":"จะกลับไปที่ Luna Calm ไหม?",
+"确定":"ตกลง",
 "结束这次专注？":"จบการนั่งสมาธิครั้งนี้ไหม?",
 "现在结束就拿不到这次的星星啦。要不要再坚持一下？":"ถ้าจบตอนนี้จะไม่ได้ดาวรอบนี้นะ ลองอดทนอีกนิดไหม?",
 "继续专注":"นั่งสมาธิต่อ",
@@ -1134,8 +1151,6 @@ const TEXT_MAP = {
 "夜晚":"ช่วงกลางคืน",
 "当前房间":"ห้องปัจจุบัน",
 "还没有钥匙，去宝物阁抽卡试试～":"ยังไม่มีกุญแจเลย ลองไปสุ่มที่ห้องสมบัติดูสิ～",
-"这个房间是 VIP 专属，开通会员才能使用":"ห้องนี้สำหรับสมาชิก VIP เท่านั้น สมัครสมาชิกก่อนนะ",
-"开通会员即可使用":"สมัครสมาชิกเพื่อใช้งาน",
 "记录秘密":"บันทึกความลับ",
 "记录心事":"บันทึกความในใจ",
 "记录节日心得":"บันทึกความรู้สึกวันพิเศษ",
@@ -1300,7 +1315,23 @@ const TEXT_MAP = {
 "🎂 生日设置好啦":"🎂 ตั้งค่าวันเกิดเรียบร้อยแล้ว",
 "编辑":"แก้ไข",
 "哎呀，鱼跑掉了～ 🐟💨":"อุ๊ย ปลาหลุดไปแล้ว～ 🐟💨",
-"钓到啦！🐟✨":"ตกได้แล้ว! 🐟✨"
+"钓到啦！🐟✨":"ตกได้แล้ว! 🐟✨",
+"回到室内":"กลับเข้าห้อง",
+"以后会陆续更新更多户外场景，先来看看这一个吧":"ต่อไปจะทยอยอัปเดตฉากกลางแจ้งใหม่ๆ เพิ่มเรื่อยๆ ลองดูฉากนี้ก่อนนะ",
+"Lumi 走过去把它捡起来…":"Lumi เดินไปหยิบมันขึ้นมา…",
+"追上啦～ 点一下再踢一脚 👣":"ไล่ทันแล้ว～ แตะอีกทีเพื่อเตะต่อ 👣",
+"挪了个位置，继续坐下看星星～ ✨":"ย้ายที่นั่งแล้ว นั่งดูดาวต่อ～ ✨",
+"时间恢复正常啦～":"เวลากลับมาเป็นปกติแล้ว～",
+"把玩偶收进箱子啦～ 📦":"เก็บตุ๊กตาเข้ากล่องแล้ว～ 📦",
+"走过去看看望远镜～":"เดินไปดูกล้องโทรทรรศน์～",
+"凑到目镜前看呆了～ 🔭":"จ้องผ่านเลนส์จนเพลิน～ 🔭",
+"时间好像…停住了？🕰️":"เวลาเหมือน…หยุดนิ่งไปแล้ว? 🕰️",
+"落地啦～ 找个地方坐下看星星 ✨":"ลงพื้นแล้ว～ หาที่นั่งดูดาวกันเถอะ ✨",
+"坐下来啦～ 漫天星星和流星 ✨":"นั่งลงแล้ว～ ดาวเต็มฟ้าและดาวตกมากมาย ✨",
+"落地啦～ 走去那块大石头坐下":"ลงพื้นแล้ว～ เดินไปนั่งที่ก้อนหินใหญ่นั่นกัน",
+"跳上石头坐好啦～ 看着湖面出神 ✨":"กระโดดขึ้นก้อนหินนั่งเรียบร้อย～ เพ่งมองผิวน้ำเพลินๆ ✨",
+"落地啦～ 走去那座观星台":"ลงพื้นแล้ว～ เดินไปที่จุดชมดาวกัน",
+"趴在栏杆边看星海啦～ 银河好美 ✨":"เอนตัวที่ราวดูทะเลดาว～ ทางช้างเผือกสวยมาก ✨"
 };
 function T(str){
   if(LANG==='zh' || str==null) return str;
@@ -7854,7 +7885,7 @@ function drawStatusTag(){
   const txt=tSleepStatus(mins, secs);
   ctx.save();
   ctx.font='600 12px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-  const tw=ctx.measureText(txt).width;
+  const tw=measureBubbleWidth(txt);
   const px=sc.x, py=sc.y-152*sc.s;
   ctx.globalAlpha=clamp((lumi.stateT-1.6)*1.5,0,1)*0.92;
   ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
@@ -8324,6 +8355,19 @@ function drawHeldUmbrella(){
 function toolboxRect(){const w=112,h=66;return{x:W*0.5-w/2,y:H-h-26,w,h};}
 function rRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+// ✨✨ 修复：iOS/Safari 画 canvas 文字时，泰文那些叠在字母上下的声调符号/元音符号会让
+//    ctx.measureText().width 量出来的宽度比实际画出来的字要窄（安卓 Chrome 不会），
+//    气泡就按这个偏窄的宽度做，泰文就会溢出气泡边框。这里用 actualBoundingBoxLeft/Right
+//    （文字实际墨迹的左右边界，包含了那些额外的符号）跟 .width 取较大值，两边都能覆盖到。
+function measureBubbleWidth(txt){
+  const m=ctx.measureText(txt);
+  let w=m.width;
+  if(typeof m.actualBoundingBoxLeft==='number' && typeof m.actualBoundingBoxRight==='number'){
+    const inkW=m.actualBoundingBoxLeft+m.actualBoundingBoxRight;
+    if(inkW>w) w=inkW;
+  }
+  return w;
+}
 function drawToolbox(){
   if(weather!=='rain'||umbrella.held)return;
   const r=toolboxRect(),float=Math.sin(time*2)*2;
@@ -9207,7 +9251,7 @@ function drawLumi(){
       ctx.save();ctx.globalAlpha=alpha;
       ctx.font='600 12.5px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
       const txt=`${want.icon} ${T(want.text)}`;
-      const tw=ctx.measureText(txt).width;
+      const tw=measureBubbleWidth(txt);
       ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
       rRect(sc.x-tw/2-13,by-15,tw+26,30,15);ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();
       ctx.shadowColor='transparent';
@@ -9226,7 +9270,7 @@ function drawLumi(){
     ctx.save();ctx.globalAlpha=alpha;
     ctx.font='600 12.5px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
     const txt=`${lumi.chatTxt.icon} ${T(lumi.chatTxt.text)}`;
-    const tw=ctx.measureText(txt).width;
+    const tw=measureBubbleWidth(txt);
     ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
     rRect(sc.x-tw/2-13,by-15,tw+26,30,15);ctx.fillStyle='rgba(255,250,245,.92)';ctx.fill();
     ctx.shadowColor='transparent';
@@ -9243,7 +9287,7 @@ function drawLumi(){
     ctx.save();ctx.globalAlpha=alpha;
     ctx.font='600 12.5px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
     const txt=`${lumi.treehintTxt.icon} ${T(lumi.treehintTxt.text)}`;
-    const tw=ctx.measureText(txt).width;
+    const tw=measureBubbleWidth(txt);
     ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
     rRect(sc.x-tw/2-13,by-15,tw+26,30,15);ctx.fillStyle='rgba(236,250,236,.94)';ctx.fill();
     ctx.shadowColor='transparent';
@@ -10234,12 +10278,9 @@ const KEY_PITY=[10,20,25,30,40,50,50];
 let pullsSinceKey=0;   // 距上一把钥匙已经抽了几次
 let keysWonCount=0;    // 已经抽到过几把钥匙（决定下一次的门槛）
 let keysOwned=0;       // 手上现在有几把钥匙，可以直接换开一个场景
-// ✨ 房间解锁：三档——0/1 永久免费；2/3 花月光值200解锁；4/5 仅 VIP 会员可用（月光值/钥匙都换不了）
-const ROOM_UNLOCK_COST=[0,0,200,200,null,null];
-const VIP_ROOMS=new Set([4,5]);
-function isRoomPro(){ try{ return localStorage.getItem('luna_activated')==='1'; }catch(e){ return false; } }
-function isRoomUnlocked(i){ return unlockedThemes.has(i) || (VIP_ROOMS.has(i) && isRoomPro()); }
-let unlockedThemes=new Set([0,1]);
+// ✨ 房间解锁：默认只有第一个（梦幻月亮风）解锁，其它要花月光值或用钥匙才能开
+const ROOM_UNLOCK_COST=[0,120,150,150,180,200];
+let unlockedThemes=new Set([0]);
 function drawCharmByRarity(){
   const roll=Math.random();
   const pool = roll<0.08 ? CHARMS.filter(c=>c.rarity==='special')
@@ -10437,7 +10478,7 @@ function enterOutdoorScene(id){
 function buildRoomPickerGrid(){
   const grid=$('roomPickerGrid'); if(!grid) return; grid.innerHTML='';
   ROOM_THEMES.forEach((th,i)=>{
-    const unlocked=isRoomUnlocked(i);
+    const unlocked=unlockedThemes.has(i);
     const isCurrent=unlocked&&room.theme===i;
     const cost=ROOM_UNLOCK_COST[i];
     const cell=document.createElement('div');
@@ -10451,10 +10492,6 @@ function buildRoomPickerGrid(){
       bodyHtml += isCurrent
         ? `<div style="font-size:11px;color:var(--muted);margin-top:6px;">${T('当前房间')}</div>`
         : `<button class="rp-enter-btn" data-idx="${i}" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;">${T('进入')}</button>`;
-    } else if(VIP_ROOMS.has(i)){
-      bodyHtml += `<div style="font-size:10.5px;color:#c9902e;font-weight:700;margin-top:4px;">👑 VIP</div>
-        <div style="font-size:9.5px;color:var(--muted);margin-top:4px;">${T('开通会员即可使用')}</div>
-        <button class="rp-preview-btn" data-idx="${i}" style="margin-top:5px;font-size:9.5px;padding:4px 9px;border-radius:8px;border:1px dashed var(--purple-light);background:transparent;color:var(--purple);">${T('👀 预览(临时)')}</button>`;
     } else {
       bodyHtml += `<div style="font-size:10.5px;color:var(--muted);margin-top:4px;">🌙 ${cost}</div>
         <div style="display:flex;gap:4px;margin-top:6px;justify-content:center;">
@@ -10473,7 +10510,7 @@ function buildRoomPickerGrid(){
   grid.querySelectorAll('.rp-preview-btn').forEach(b=>b.onclick=()=>previewEnterRoom(+b.dataset.idx));   // TEMP_PREVIEW_ENTRANCE：连这一行也一起删
 }
 function enterRoom(i){
-  if(!isRoomUnlocked(i)) return;
+  if(!unlockedThemes.has(i)) return;
   room.theme=i; buildRoom(); buildCreatures();
   toast(tRoomChanged(ROOM_THEMES[i].name)); markTaskDone('room');
   $('roomPickerSheet').classList.remove('show');
@@ -10492,8 +10529,7 @@ function previewEnterRoom(i){
 }
 /* ▲▲▲ TEMP_PREVIEW_ENTRANCE 结束 ▲▲▲ */
 function unlockRoomWithStars(i){
-  if(isRoomUnlocked(i)) return;
-  if(VIP_ROOMS.has(i)){ toast('👑 '+T('这个房间是 VIP 专属，开通会员才能使用')); return; }
+  if(unlockedThemes.has(i)) return;
   const cost=ROOM_UNLOCK_COST[i];
   if(starCount<cost){ toast('🌙 '+T('月光值还不够，再攒 ')+(cost-starCount)+T(' 点就够啦')); return; }
   starCount-=cost; $('starCount').textContent=starCount; syncLv(); pushStarsToMoonPoints();
@@ -10502,8 +10538,7 @@ function unlockRoomWithStars(i){
   buildRoomPickerGrid();
 }
 function unlockRoomWithKey(i){
-  if(isRoomUnlocked(i)) return;
-  if(VIP_ROOMS.has(i)){ toast('👑 '+T('这个房间是 VIP 专属，开通会员才能使用')); return; }
+  if(unlockedThemes.has(i)) return;
   if(keysOwned<=0){ toast('🗝️ '+T('还没有钥匙，去宝物阁抽卡试试～')); return; }
   keysOwned--; unlockedThemes.add(i); saveGame();
   toast('🗝️ '+T('用钥匙解锁了：')+T(ROOM_THEMES[i].name));
@@ -11268,6 +11303,14 @@ $('btnChar').onclick=()=>{buildWard();$('charSheet').classList.add('show');};
 $('btnRoom').onclick=()=>{ buildRoomPickerGrid(); $('roomPickerSheet').classList.add('show'); };
 $('btnOutdoor').onclick=()=>{ buildOutdoorPickerGrid(); $('outdoorPickerSheet').classList.add('show'); };
 $('btnNightViewExit').onclick=()=>{ leaveNightView(); };
+// ✨✨ 点"🌙luna"按钮弹出的确认框：真正点了"确定"才停音乐+跳转回 Luna 首页，点"取消"/data-close 只是把弹窗关掉，原地不动
+$('lunaExitConfirmBtn').onclick=()=>{
+  $('lunaExitSheet').classList.remove('show');
+  try{ window.stopAllLumiAudio && window.stopAllLumiAudio(); }catch(e){}
+  try{ localStorage.setItem('luna_lastPage','home'); sessionStorage.setItem('luna_from_lumi','1'); }catch(e){}
+  let _r='/index.html'; try{ _r=localStorage.getItem('luna_returnTo')||'/index.html'; }catch(e){}
+  location.href=_r;
+};
 $('btnLang').onclick=()=>{ setLang(LANG==='zh'?'th':'zh'); playContentSound(); };
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.sheet-mask').classList.remove('show'));
 // ✨ 关键修复："点背景关闭弹窗"这个逻辑，之前会在弹窗刚打开的同一瞬间被合成的 click 事件误触发，
@@ -11294,7 +11337,7 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.s
 //    菜单展开后里面那一排功能按钮(角色栏/日记/昼夜/天气/大窗/声音/语言)要保持清晰，不参与淡化
 let menuOpen=false;   // ✨ 提前声明(原本在下面右下角菜单那段)，因为下面 refreshHud() 首次调用就要读它
 const HUD_DIM_IDS=['lvCard','focusChip','starChip','phaseChip','taskChip','btnRoom','btnLuna','btnOutdoor','btnMenu'];
-const HUD_WAKE_SHEET_IDS=['focusSheet','focusStopSheet','treasureSheet','phaseSheet','taskSheet','roomPickerSheet','outdoorPickerSheet'];
+const HUD_WAKE_SHEET_IDS=['focusSheet','focusStopSheet','lunaExitSheet','treasureSheet','phaseSheet','taskSheet','roomPickerSheet','outdoorPickerSheet'];
 function setHudDim(dim){ HUD_DIM_IDS.forEach(id=>{ const el=$(id); if(el) el.classList.toggle('hud-dim', dim); }); }
 let hudLvWakeUntil=0;
 const hudWakeSheets=HUD_WAKE_SHEET_IDS.map(id=>$(id)).filter(Boolean);
@@ -11515,6 +11558,21 @@ function refreshMusic(){
     g.gain.linearRampToValueAtTime(1, actx.currentTime+MUSIC_FADE);
   }catch(e){ /* 同上：静默失败，不影响其它功能 */ }
 }
+// ✨✨ 修复：退出 Lumi 回到 Luna 首页时背景音乐还在继续播——location.href 跳转在普通网页里
+//    会直接销毁页面，音乐自然停；但打包成 App 的 WebView（尤其是安卓/苹果壳子里的 APK/IPA 版本）
+//    有时候不会在跳转瞬间就真正销毁旧页面的 JS 和音频，导致背景乐残留在后台继续放。
+//    这里不依赖浏览器/WebView 自己清理，跳转前主动把音乐暂停 + AudioContext 挂起，双重保险。
+function stopAllLumiAudio(){
+  try{ if(musicLayer.el){ musicLayer.el.pause(); musicLayer.el.currentTime = 0; } }catch(e){}
+  musicLayer.src = null;
+  try{ if(actx && actx.state==='running') actx.suspend(); }catch(e){}
+}
+// ⚠️ 整个主脚本包在 (function(){...})() 里，"返回 Luna"按钮的 onclick 是内联在 HTML 里的、
+//    跑在全局作用域，访问不到这个闭包内部的函数——所以显式挂到 window 上，按钮才能调用到它
+window.stopAllLumiAudio = stopAllLumiAudio;
+// ✨ 兜底：不管是点按钮离开，还是被系统直接把页面收掉(比如 App 里手势返回)，pagehide 都会先触发一次，
+//    在这里再停一次音乐，防止漏网
+addEventListener('pagehide', stopAllLumiAudio);
 // ✨ 声音按钮打开统一的"声音设置"面板：音乐和音效分开的开关+音量，外加本房间背景乐配对选择
 function syncSoundUI(){
   $('musicToggle').checked=soundSettings.musicOn;
@@ -11937,9 +11995,9 @@ function init(){applyLangToDOM();resize();lumi.x=0;buildWorld();buildCreatures()
     if(save.lumiBirthday && typeof save.lumiBirthday.m==='number' && typeof save.lumiBirthday.d==='number') lumiBirthday=save.lumiBirthday;
     if(save.userBirthday && (typeof save.userBirthday.m==='number'||save.userBirthday.m===null)) userBirthday=save.userBirthday;
     if(typeof window.__refreshBirthdayRows==='function') window.__refreshBirthdayRows();
-    unlockedThemes.add(0); unlockedThemes.add(1);   // 前两个房间永远免费解锁，保底防止存档异常导致进不去任何房间
+    unlockedThemes.add(0);   // 第一个房间永远解锁，保底防止存档异常导致进不去任何房间
     // ✨ 修复：以前图鉴点一下能免费切到没解锁的房间，导致"去过的房间"里出现了本不该有的✓——这里把没真正解锁的记录清掉，两边对齐
-    visitedThemesSet=new Set([...visitedThemesSet].filter(i=>isRoomUnlocked(i)));
+    visitedThemesSet=new Set([...visitedThemesSet].filter(i=>unlockedThemes.has(i)));
     if(save.moodLow) applyMoodDecor(true);
     // ✨ 陪伴月光值：跨次打开也接着累计；但如果存的是之前某一天的，先清零重新算今天的
     if(typeof save.companionDayIndex==='number' && save.companionDayIndex===dayIndex()){

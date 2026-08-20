@@ -2024,6 +2024,43 @@ window.installPWA = function() {
   .mr-row5  { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; }
   .mr-grid8 { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
 
+  /* 表情包横滑分页轮播：心情/症状/经前期/经期中共用，一页最多放 10 个，超过就左右滑翻页 */
+  .mr-carousel-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .mr-carousel-track::-webkit-scrollbar { display: none; }
+  .mr-carousel-page {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 8px;
+    align-content: start;
+  }
+  .mr-pager {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .mr-pager-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(var(--purple-rgb), 0.2);
+    cursor: pointer;
+    transition: background .25s ease, transform .25s ease;
+  }
+  .mr-pager-dot.active {
+    background: var(--purple);
+    transform: scale(1.3);
+  }
+
   .mr-btn {
     display: flex;
     flex-direction: column;
@@ -2230,6 +2267,23 @@ window.installPWA = function() {
   .phase-tab-pager-dot.active {
     background: var(--purple);
     transform: scale(1.3);
+  }
+  /* ✨ 周期详情内容轮播：四个阶段的完整内容都提前渲染好放在这里，
+     左右滑动靠浏览器原生 scroll-snap 实现，丝滑不用自己写手势判断 */
+  .phase-carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .phase-carousel::-webkit-scrollbar { display: none; }
+  .phase-slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   /* ══ 🖼️ 头像框双圈旋转系统 ══ */
@@ -3396,7 +3450,7 @@ window.installPWA = function() {
     <!-- 版本 -->
     <div class="s-title">🔄 <span data-i18n="version_section">เวอร์ชัน</span></div>
     <div class="s-group">
-      <div class="s-item" onclick="showToast(_appLang==='zh' ? '已是最新版本 ✓' : 'เวอร์ชันล่าสุดแล้ว ✓')">
+      <div class="s-item" onclick="window.open(getStoreUrl(),'_blank')">
         <span class="s-svg-icon" data-c="purple"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
         <div class="s-info"><div class="s-label"><span data-i18n="check_update">ตรวจสอบอัปเดต</span></div><div class="s-val"><span data-i18n="current_version" id="currentVersionText">เวอร์ชันปัจจุบัน v1.0.1</span></div></div>
         <span class="s-arrow">›</span>
@@ -3743,117 +3797,133 @@ window.installPWA = function() {
       </div>
     </div>
 
-    <!-- 心情 -->
+    <!-- 心情：改成多选（toggleMr），可以同时选多个心情；20个表情包分2页，横滑翻页 -->
     <div class="mr-card">
       <div class="mr-section-title"><span>😊</span> <span data-i18n="mood_title_sec">อารมณ์</span></div>
-      <div class="mr-row5">
-        <div class="mr-btn" onclick="selGroup(this,'mood')">
-          <div class="mr-icon">😊</div>
-          <div class="mr-lbl" data-i18n="mood_happy">ดีใจ</div>
+      <div class="mr-carousel" id="mrCarouselMood">
+        <div class="mr-carousel-track">
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😊</div><div class="mr-lbl" data-i18n="mood_happy">ดีใจ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😌</div><div class="mr-lbl" data-i18n="mood_calm">สงบ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😢</div><div class="mr-lbl" data-i18n="mood_sad">เศร้า</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😤</div><div class="mr-lbl" data-i18n="mood_irritated">หงุดหงิด</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😰</div><div class="mr-lbl" data-i18n="mood_anxious">กังวล</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥰</div><div class="mr-lbl" data-i18n="mood_loved">ถูกรัก</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤗</div><div class="mr-lbl" data-i18n="mood_grateful">ซาบซึ้ง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😍</div><div class="mr-lbl" data-i18n="mood_excited">ตื่นเต้น</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😔</div><div class="mr-lbl" data-i18n="mood_lonely">เหงา</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😩</div><div class="mr-lbl" data-i18n="mood_stressed">เครียด</div></div>
+          </div>
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥺</div><div class="mr-lbl" data-i18n="mood_vulnerable">อ่อนไหว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😡</div><div class="mr-lbl" data-i18n="mood_angry">โกรธ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🙃</div><div class="mr-lbl" data-i18n="mood_confused">สับสน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😎</div><div class="mr-lbl" data-i18n="mood_confident">มั่นใจ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥱</div><div class="mr-lbl" data-i18n="mood_bored">เบื่อ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤩</div><div class="mr-lbl" data-i18n="mood_inspired">มีไฟ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😶</div><div class="mr-lbl" data-i18n="mood_numb">ชา</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥳</div><div class="mr-lbl" data-i18n="mood_celebratory">อยากฉลอง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😞</div><div class="mr-lbl" data-i18n="mood_disappointed">ผิดหวัง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😪</div><div class="mr-lbl" data-i18n="mood_tired">เหนื่อยใจ</div></div>
+          </div>
         </div>
-        <div class="mr-btn" onclick="selGroup(this,'mood')">
-          <div class="mr-icon">😌</div>
-          <div class="mr-lbl" data-i18n="mood_calm">สงบ</div>
-        </div>
-        <div class="mr-btn" onclick="selGroup(this,'mood')">
-          <div class="mr-icon">😢</div>
-          <div class="mr-lbl" data-i18n="mood_sad">เศร้า</div>
-        </div>
-        <div class="mr-btn" onclick="selGroup(this,'mood')">
-          <div class="mr-icon">😤</div>
-          <div class="mr-lbl" data-i18n="mood_irritated">หงุดหงิด</div>
-        </div>
-        <div class="mr-btn" onclick="selGroup(this,'mood')">
-          <div class="mr-icon">😰</div>
-          <div class="mr-lbl" data-i18n="mood_anxious">กังวล</div>
-        </div>
+        <div class="mr-pager"></div>
       </div>
     </div>
 
-    <!-- 症状 -->
+    <!-- 症状：18个表情包分2页 -->
     <div class="mr-card">
       <div class="mr-section-title"><span>💊</span> <span data-i18n="symptoms_title">อาการ</span></div>
-      <div class="mr-grid8">
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">😣</div><div class="mr-lbl" data-i18n="sym_cramp">ปวดท้อง</div>
+      <div class="mr-carousel" id="mrCarouselSym">
+        <div class="mr-carousel-track">
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😣</div><div class="mr-lbl" data-i18n="sym_cramp">ปวดท้อง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤕</div><div class="mr-lbl" data-i18n="sym_headache">ปวดหัว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🧍‍♀️</div><div class="mr-lbl" data-i18n="sym_bloat">ท้องอืด</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😴</div><div class="mr-lbl" data-i18n="sym_fatigue">เพลีย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🦴</div><div class="mr-lbl" data-i18n="sym_backpain">ปวดหลัง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤢</div><div class="mr-lbl" data-i18n="sym_nausea">คลื่นไส้</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😳</div><div class="mr-lbl" data-i18n="sym_acne">สิว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">💔</div><div class="mr-lbl" data-i18n="sym_chest">เจ็บอก</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥵</div><div class="mr-lbl" data-i18n="sym_hotflash">ร้อนวูบวาบ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥶</div><div class="mr-lbl" data-i18n="sym_chills">หนาวสั่น</div></div>
+          </div>
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😵</div><div class="mr-lbl" data-i18n="sym_dizzy">เวียนหัว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🚽</div><div class="mr-lbl" data-i18n="sym_diarrhea">ท้องเสีย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🧻</div><div class="mr-lbl" data-i18n="sym_constipation">ท้องผูก</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">💤</div><div class="mr-lbl" data-i18n="sym_insomnia">นอนไม่หลับ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🦶</div><div class="mr-lbl" data-i18n="sym_swelling">บวมน้ำ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🧠</div><div class="mr-lbl" data-i18n="sym_brainfog">คิดไม่ค่อยออก</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">👃</div><div class="mr-lbl" data-i18n="sym_smell">ไวต่อกลิ่น</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🫃</div><div class="mr-lbl" data-i18n="sym_severecramp">ปวดบีบรุนแรง</div></div>
+          </div>
         </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🤕</div><div class="mr-lbl" data-i18n="sym_headache">ปวดหัว</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🧍‍♀️</div><div class="mr-lbl" data-i18n="sym_bloat">ท้องอืด</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">😴</div><div class="mr-lbl" data-i18n="sym_fatigue">เพลีย</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🦴</div><div class="mr-lbl" data-i18n="sym_backpain">ปวดหลัง</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🤢</div><div class="mr-lbl" data-i18n="sym_nausea">คลื่นไส้</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">😳</div><div class="mr-lbl" data-i18n="sym_acne">สิว</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">💔</div><div class="mr-lbl" data-i18n="sym_chest">เจ็บอก</div>
-        </div>
+        <div class="mr-pager"></div>
       </div>
     </div>
 
-    <!-- 经前期 PMS -->
+    <!-- 经前期 PMS：18个表情包分2页 -->
     <div class="mr-card">
       <div class="mr-section-title"><span>🌸</span> <span data-i18n="pms_title">ก่อนมีประจำเดือน (PMS)</span></div>
-      <div class="mr-grid8">
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">💧</div><div class="mr-lbl" data-i18n="pms_discharge">ตกขาว</div>
+      <div class="mr-carousel" id="mrCarouselPms">
+        <div class="mr-carousel-track">
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">💧</div><div class="mr-lbl" data-i18n="pms_discharge">ตกขาว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤯</div><div class="mr-lbl" data-i18n="pms_migraine">ไมเกรน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🦵</div><div class="mr-lbl" data-i18n="pms_waist">ปวดเอว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤸</div><div class="mr-lbl" data-i18n="pms_bodyache">ปวดทั่วตัว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🫁</div><div class="mr-lbl" data-i18n="pms_lower">ปวดท้องน้อย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🍋</div><div class="mr-lbl" data-i18n="pms_sour">อยากเปรี้ยว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🍭</div><div class="mr-lbl" data-i18n="pms_sweet">อยากหวาน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🍟</div><div class="mr-lbl" data-i18n="pms_fried">อยากทอด</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😭</div><div class="mr-lbl" data-i18n="pms_moody">อารมณ์แปรปรวน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🍫</div><div class="mr-lbl" data-i18n="pms_choc">อยากช็อกโกแลต</div></div>
+          </div>
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🧂</div><div class="mr-lbl" data-i18n="pms_salty">อยากเค็ม</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😤</div><div class="mr-lbl" data-i18n="pms_irritable">หงุดหงิดง่าย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">💢</div><div class="mr-lbl" data-i18n="pms_tension">ตึงเครียด</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🌙</div><div class="mr-lbl" data-i18n="pms_sleepy">ง่วงตลอดเวลา</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🎈</div><div class="mr-lbl" data-i18n="pms_bloat2">ท้องอืดก่อนมีประจำเดือน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🫂</div><div class="mr-lbl" data-i18n="pms_needhug">อยากให้กอด</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😢</div><div class="mr-lbl" data-i18n="pms_crying">ร้องไห้ง่าย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥱</div><div class="mr-lbl" data-i18n="pms_lowenergy">พลังงานต่ำ</div></div>
+          </div>
         </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🤯</div><div class="mr-lbl" data-i18n="pms_migraine">ไมเกรน</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🦵</div><div class="mr-lbl" data-i18n="pms_waist">ปวดเอว</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🤸</div><div class="mr-lbl" data-i18n="pms_bodyache">ปวดทั่วตัว</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🫁</div><div class="mr-lbl" data-i18n="pms_lower">ปวดท้องน้อย</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🍋</div><div class="mr-lbl" data-i18n="pms_sour">อยากเปรี้ยว</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🍭</div><div class="mr-lbl" data-i18n="pms_sweet">อยากหวาน</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🍟</div><div class="mr-lbl" data-i18n="pms_fried">อยากทอด</div>
-        </div>
+        <div class="mr-pager"></div>
       </div>
     </div>
 
-    <!-- 经期中 -->
+    <!-- 经期中：18个表情包分2页 -->
     <div class="mr-card">
       <div class="mr-section-title"><span>🩸</span> <span data-i18n="during_title">ช่วงมีประจำเดือน</span></div>
-      <div class="mr-grid8">
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🍰</div><div class="mr-lbl" data-i18n="dur_sweet">ชอบหวาน</div>
+      <div class="mr-carousel" id="mrCarouselDur">
+        <div class="mr-carousel-track">
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🍰</div><div class="mr-lbl" data-i18n="dur_sweet">ชอบหวาน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🍗</div><div class="mr-lbl" data-i18n="dur_fried">ชอบทอด</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😖</div><div class="mr-lbl" data-i18n="pms_lower">ปวดท้องน้อย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🦴</div><div class="mr-lbl" data-i18n="pms_waist">ปวดเอว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤒</div><div class="mr-lbl" data-i18n="dur_fever">ไข้</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🤕</div><div class="mr-lbl" data-i18n="sym_headache">ปวดหัว</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🩸</div><div class="mr-lbl" data-i18n="dur_heavyflow">มามาก</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🩹</div><div class="mr-lbl" data-i18n="dur_lightflow">มาน้อย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🛌</div><div class="mr-lbl" data-i18n="dur_rest">อยากพักผ่อน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">☕</div><div class="mr-lbl" data-i18n="dur_caffeine">อยากกาแฟ</div></div>
+          </div>
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🥤</div><div class="mr-lbl" data-i18n="dur_thirsty">กระหายน้ำ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🧘</div><div class="mr-lbl" data-i18n="dur_stretch">อยากยืดเส้น</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🔥</div><div class="mr-lbl" data-i18n="dur_cramps">ปวดบีบท้อง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😪</div><div class="mr-lbl" data-i18n="dur_sleepy">ง่วงนอน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🚿</div><div class="mr-lbl" data-i18n="dur_shower">อยากอาบน้ำอุ่น</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😟</div><div class="mr-lbl" data-i18n="dur_leak">กังวลเปื้อน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🧴</div><div class="mr-lbl" data-i18n="dur_skincare">ผิวแพ้ง่าย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">💊</div><div class="mr-lbl" data-i18n="dur_painkiller">กินยาแก้ปวด</div></div>
+          </div>
         </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🍗</div><div class="mr-lbl" data-i18n="dur_fried">ชอบทอด</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">😖</div><div class="mr-lbl" data-i18n="pms_lower">ปวดท้องน้อย</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🦴</div><div class="mr-lbl" data-i18n="pms_waist">ปวดเอว</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🤒</div><div class="mr-lbl" data-i18n="dur_fever">ไข้</div>
-        </div>
-        <div class="mr-btn mr-multi" onclick="toggleMr(this)">
-          <div class="mr-icon">🤕</div><div class="mr-lbl" data-i18n="sym_headache">ปวดหัว</div>
-        </div>
+        <div class="mr-pager"></div>
       </div>
     </div>
 
@@ -4790,7 +4860,14 @@ onAuthStateChanged(auth, async (user) => {
             return;
           }
           if(userData) {
-            localStorage.setItem('luna_activated', window.IS_PLAY_BUILD ? '1' : ((userData.activated === true || userData.activated === 1 || userData.activated === '1' || userData.activated === 'true') ? '1' : '0'));
+            // 🩹 找到真正的病根：这里之前只看 activated 字段是不是 true，完全没管 expiry 有没有过期——
+            // 订阅到期后，Firebase 里的 activated 字段不会自动变 false，只有 expiry 时间戳会成为过去时间。
+            // 结果是：每次重新打开 App，这里都会先误判成"已激活"，几十秒后 watchActivation() 那边
+            // 用更完整的逻辑（activated && 未过期）一查，发现其实过期了，把状态纠正回来、弹这个提示——
+            // 退出重进一次，同样的过程再来一遍，就是这个提示反复弹的真正原因。这里补上过期判断，
+            // 从登录这一步就直接算对，后面就不会再需要被纠正、也就不会再弹了。
+            const _notExpired = !userData.expiry || Date.now() <= userData.expiry;
+            localStorage.setItem('luna_activated', window.IS_PLAY_BUILD ? '1' : (((userData.activated === true || userData.activated === 1 || userData.activated === '1' || userData.activated === 'true') && _notExpired) ? '1' : '0'));
             if(userData.expiry) localStorage.setItem('luna_expiry', userData.expiry);
             if(userData.firstLogin) localStorage.setItem('luna_first_login', userData.firstLogin);
             // 🎫 当前订阅套餐（weekly/monthly/yearly），用于"我的"页显示当前套餐 + 付费页里标出"当前"、允许换到别的档
@@ -5057,7 +5134,11 @@ async function handleAuthUser(user) {
         if (user.displayName) await window._fb.set('users/' + uid + '/displayName', user.displayName).catch(()=>{});
         if (user.photoURL)    await window._fb.set('users/' + uid + '/photoURL', user.photoURL).catch(()=>{});
         if (user.provider)    await window._fb.set('users/' + uid + '/provider', user.provider).catch(()=>{});
-        const isActivated = window.IS_PLAY_BUILD ? true : (userData.activated === true || userData.activated === 1 || userData.activated === '1' || userData.activated === 'true');
+        // 🩹 同样漏了过期判断：activated 字段过期后不会自动变 false，只有 expiry 时间戳会过去——
+        // 这里补上 notExpired，跟上面 onAuthStateChanged 那处、以及 watchActivation() 保持一致，
+        // 从登录这一步就直接算对，不然又会出现"登录时误判已激活，几十秒后被纠正、弹提示"的反复循环。
+        const _notExpired2 = !userData.expiry || Date.now() <= userData.expiry;
+        const isActivated = window.IS_PLAY_BUILD ? true : ((userData.activated === true || userData.activated === 1 || userData.activated === '1' || userData.activated === 'true') && _notExpired2);
         localStorage.setItem('luna_activated', isActivated ? '1' : '0');
         if(userData.expiry) localStorage.setItem('luna_expiry', String(userData.expiry));
         else localStorage.removeItem('luna_expiry');
@@ -6584,10 +6665,28 @@ window.setLang = setLang;
           const lastPurchaseAt = parseInt(localStorage.getItem('luna_last_purchase_at') || '0');
           const inPurchaseGrace = (Date.now() - lastPurchaseAt) < (3 * 60 * 1000);
           if(!reallyActive && currentlyActivated && !inPurchaseGrace) {
-            localStorage.setItem('luna_activated','0');
-            sessionStorage.setItem('luna_activated','0');
-            clearInterval(watchTimer);
-            onDeactivated();
+            // 🩹 真正判定"失活"之前，再直接问一次 RevenueCat/App Store 本身——这个函数上面
+            // 一直只信 Firebase 的 activated 字段，而这个字段要靠后台 revenuecatWebhook 才能写进去。
+            // webhook 一旦有延迟或没触发，这个每10秒跑一次的检查就会反复把人误判成"已失活"，
+            // 每次重开 App、过几秒轮询一跑就又弹一次"已切换至试用模式"——跟登录时那次同样的问题，
+            // 这里也补上直接查 RevenueCat 这层兜底，两边都说没有生效订阅了，才真正触发失活。
+            let rcSaysActive = false;
+            if(!window.IS_PLAY_BUILD){
+              try {
+                const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+                if(Purchases && typeof Purchases.getCustomerInfo === 'function'){
+                  const rcResult = await Purchases.getCustomerInfo();
+                  const rcActive = rcResult && rcResult.customerInfo && rcResult.customerInfo.entitlements && rcResult.customerInfo.entitlements.active;
+                  rcSaysActive = !!(rcActive && rcActive['pro']);
+                }
+              } catch(e) { console.log('watchActivation RevenueCat 兜底检查出错:', e); }
+            }
+            if(!rcSaysActive){
+              localStorage.setItem('luna_activated','0');
+              sessionStorage.setItem('luna_activated','0');
+              clearInterval(watchTimer);
+              onDeactivated();
+            }
           }
         } catch(e) {}
       }, 10000);
@@ -9433,8 +9532,26 @@ window.setLang = setLang;
       left=Math.max(8,left); top=Math.max(8,top);
       panel.style.left=left+'px'; panel.style.top=top+'px'; panel.style.right='auto'; panel.style.bottom='auto';
     }
+    // 🩹 iOS 键盘遮挡修复：全屏模式用 100vh 算高度，但键盘弹出时 100vh 不会跟着缩小——
+    // 面板底部（输入框所在的地方）就被键盘死死盖住；用户上滑想找输入框时，body 会跟着
+    // 一起漂移，面板顶部（关闭按钮那一排）也跟着飞出屏幕。用 visualViewport（iOS 能实时感知
+    // "键盘弹出后到底还剩多少可见区域"）动态纠正面板的高度和位置，键盘弹出/收起都能跟上。
+    function _syncAiPanelToViewport(){
+      if(!isFull || panel.style.display === 'none') return;
+      if(!window.visualViewport) return;
+      const vv = window.visualViewport;
+      panel.style.top = vv.offsetTop + 'px';
+      panel.style.height = vv.height + 'px';
+      panel.style.maxHeight = vv.height + 'px';
+    }
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', _syncAiPanelToViewport);
+      window.visualViewport.addEventListener('scroll', _syncAiPanelToViewport);
+    }
+
     function openAi(){
       panel.style.display='flex';
+      document.body.style.overflow = 'hidden'; // 防止键盘弹出时 body 跟着滚动，面板顶部跑出屏幕
       _aiJustOpened = Date.now();
       // 直接满屏打开：小窗模式在部分机型上定位/键盘避让容易出问题，满屏这边确认没问题，
       // 干脆把满屏设成默认打开状态。右上角的⊟按钮还留着，想切回小窗随时能点。
@@ -9442,7 +9559,7 @@ window.setLang = setLang;
       applyFull();
       startChat(); // 免费用户也能打开，话题菜单里会自动按 canUseAI() 决定显示几类
     }
-    function closeAi(){ panel.style.display='none'; }
+    function closeAi(){ panel.style.display='none'; document.body.style.overflow=''; }
     window._closeAiPanel = closeAi;
     window._openAiPanel = openAi;
     document.getElementById('aiClose').onclick=(e)=>{ e.stopPropagation(); closeAi(); isFull=false; applyFull2reset(); };
@@ -11171,16 +11288,16 @@ window.setLang = setLang;
                  name:{zh:'爱心天使', th:'หัวใจนางฟ้า'} },
     lotuspond: { emoji:null,
                  // 🧪 测试用素材2：莲花+月亮+蝴蝶+水面倒影，图片本身就是规整的圆形玻璃球，
-                 // 不用像爱心天使那样放大免裁，round:true 直接走标准 48px 圆形裁切
+                 // round:true 直接走圆形裁切；尺寸比标准 48px 稍微放大一档，让细节更看得清
                  image:'data:image/webp;base64,UklGRkQ/AABXRUJQVlA4WAoAAAAQAAAA2wAA2wAAQUxQSGUVAAABb8egbSNJ5xx/1vveEYiIfGwz5DbLEGQIr2zKLkO2WSSH+YnhuG0jSbKUf9bT7arZ4x8RE5A/yBqeN7BkhDV0OO2cN8xgDbHAxXfkFS++wgo3FrgFDjFJThnVTYALD0iNCp4hQ0sk4xuSVRXyzy3ctnVIsrXPd77GtW3b5rNt27Zt27ZtX9tmO+I7iMzzKyIqq0dEZD6/F9H/CfBb27Zt25FkUWAhyaUADvZRyDQwgYz8imAymJH/s0dvrZudJcX87FNgCkT0fwJ8S5JkSZJkW///o0FEntBfoaIX9+oPiOj/BOD//v/3VKKUErdTSono7wTinDlh+cQ5c6IFLnFmLLlqxz0O+vbjL3/9659++HboPjusQHfKnBawxBmdu53y6Nd9/Bu/vvjmNRV9nucx1bqbL/7lF9/61HsfuArtnNMCRSmjvff9Xv6F397aROdk4mRmJphPo3Pjpd9588MORDsnWoQoMQAc8Kj3/G5dRESjpa6LqpoJKoipqJSiTUTExj9+4AkHAACnRSdlACtOed1v10XERIuo+fJRX9JUijQRsf43rzlpBUCZFhhOAJ/ylvM8wkTU3M3bZjOJLdVpWqSJaC56/eEAOC0mxACOe/N5GqF1ETV3N3UzU1U1UxNRVO0w62ibFouofvmc3YHEiwcxQPf+lkZoUXdTVTVTNVUV0W4LtG4dqrZUW6WJuPNDRwLEiwUxsNOz/vzfhxcgl7KaVcMqoEdlUqax6av3AcCLAzGw+5tujofwplq1GGgFE2DXjVuZRPzqEQRKCwIDO77o5pjWaV3c2KzSUiWqJXQ/abyZmEX84n4A0wKQErZ48XUxqcTbcmM6leWgAjLftZuJi0R8/1SA5x1l4OEXxLSIqgmgmEDBBttyeSGq5t2i4R/fE5TmGgNHfjuiNnfT7q6CCQ7arJOKgM/MXTRufgbA84sytnn9hqiL++ZoQRu1BFColLs2ZqrqbtUkfnwiKM2pBJx7cVht3tbu1p3FapoYY2mydaOVqmrmripi7m4l9NWEPJcyvvutz8vuNzYObhpaHAAsXWwr2JJB27po/OBgJJo7xDjiT0+m5w1ewVUN9FCsJAFXtzruehqQ5kwiPGbt82FXK288U0wBO+HBCH+wgLq7TOJz2yHPFUZ+e/ireyzASjsUTBld7Eg3eqBOLWDu7lbFHw4Fz5GMvX8aot1Li+0l3ZSLVja72NYj9ldWxZ2PBdO8yDjxhijeacXOBYWDgM4FrJywvTtbQU1V1V2aeBVSmg8ZD10f4m4Kot21ugsEXVTWBYZDObStqqqpmrtKvC8hzQHKePakETfTVfuuAAPaZjZmnTyTQ7s17TRzK/HdbZFGjxgvfaQcH3DSXhLAXeuBLgH6Qm07zx+/B48cMV4TY3c+ScAK3K1ybCU2ymIyq5YFJIfO8/vtkUaNMt4edbRSMLuESsC4KgvQ0oITWjcmmKCsdjvPn3ZCGrOMN0QtguByC1Y52XcFln+fXSZQYEsrAdx04jdbI41XxouiElX23YqNmvRFwcXl809waGmhAg+4aYnvrkw0VhnPiqKzenUsL9wBlLa3AycE27I9eImvgmmcMh4+EfOlPH1O3GX34ORis3au6ALUurHnEm9DHiXGWZtE3Zb3+fdvB+4eeqTgBi9YTUBdbIs7l3gy8ggl7Pu3/6U37T87gMWNOngDJTgER7JWydaSA9PmgeDRobT6d8+07U4PDtFWcAAsm0/cSenOE7WOTAbXyV37II1Nxsfj1dXFnmKj4JIqXImYDmjHgiKAi2plibZc4hcrmcYl44VR4cL2hVzYCnbQzrbARVYy2jqUANbyEu9FHhXGcSJyZb6wLUCjtvegvQ/Gi060w+t4JHhEKG31t2nRqzzDUqtcOngKVlqlb1KAYYuFmrXU1x5EaTwY74/KDGxdOlLZ2vYZYIAFS/WmUDyRSlVtucQPwTQWjAdGZe7CzmQnp4aW7K8E3Lh5Lx1ZoarW8hIvA48Epa0vnxR3TyvVgEnOBTiCi9gqfO3yACU30+PA48B4R9S+3J28LL/isv6aiYyaS/wyjQPjZBPvVgbc8M7JEg/6b4hnouoSjwePAKUt/jwVV3dX0UWa9UyneSEBDyoF2+vu8+/zSEBlP2hz/Q4pDS/jBVFc1cwAbHRTR5bYlzSzEzz493nDUqrTn6p5ifeCB5dop1sanXk69Z1vBAgPgE19/v37RjWt5iZyNNLQGG+NMpuLJ0EbVEsHNtopgIE78eBWN7pJdFDzEt8cXKI97zJdnhfmBuvGTt2UJ70D1EqTqTpwm5wBHhbjXVGdFMC8oTY26iOcxsXFb8CBL/L8lNKgEh1RqeyCyWhnVnk0stGYTSfBhOX9wapuikAAJh4AHhLjU1HruVp8ZBtRDdeExSQBg/oJFzbFToCZLL+iNKBE+21oTEmyEzC7tcKwabRVphLAShe+x+iVgJJFm9yDeDiMN4WoJsPqYuUNdgnlwGV7AbJfAAYdBGxlbYmvYThE21zbqMrMDuyp4CJO2fbARTcA9u0LQau84V4djjQUxlOins1HOeXu0N3WPrvCN3rlhLUCWMkkeh0fBA+EaOUFU1Etr8nSH/YdjYAJHilgyUWyobYmoJmZiUpz1y6gYTCdOVXrgOKX6YNT3bi0ZXvBjiujKsj9wUo8FXkg+FgUN5UEW32GJT5aQU31yGXViVHBO1G5UyHzmqhK/JpoEIRd75qYm+na8mWBAroRb7oXc8Ogi6xTVZCHVWE+ZkTd/TjwEDKeHLW76dJfJ6Ntga+NbqoYq6Pbd1AhH6+oeok3Iw8h4dtRm+ms+ihv1AtRX9TkxlZ1UC8EJjesCaqm0wtXYYAJe65tRLuTBXyUSw+dAvCJA5Vg56w3QRfrgqi56fRccP8yHhe1qqophm0vVSvwDEvwwN464FLJThJ6tiZaGzZVvBu5fwlfi1pF1NS66fBzAJBejWI42FcssfONylBw7VDIYi5xySpQ3wjb3fYZkoC1eHLoAgh6lWVDW5/YpaiyddetJKi5u/lxSH1jnDkNFwE8aVIA82Kvbva6s2s5tlXAQRgEJh0lno3ct4zXxTATFKvERRMnzGH77KFMaQ/P1gmURW3ZtyS+htS3hJ902doZCc9+VcDhsWAnbkYD9MLM4sZtQP0ibHP9NHcCNoNTsVXpOZZX+IWwHOFv8SA5N1Wz6angfjFObQQIVNiwkbU47auW4EGC+gVty2qVg9yKqJZ4PnK/Mp4VFVsZAkxP8MTKd6tnWX1jawU6VCp3RbSOr4H7xfjYUoAHsHCtCeI3nvo9DEqn0J07FdESl64C9Qr0qygbe/TAXRhQJXb0+egj2InfSsMEH5SLQlx/AFKfCNtf4wK5CpRKVpM0dVfuCvXA8g7wjQeprJuabByEVzwQ3KeEIzYVydwJYLHt3Duxk7dfcmI+6AoKH/Ey5D4xHhalzII6ANgrgC6Xbwt44SKWDIAL7hLAIcDqxCfBfcp4WVQyM8O6+BWAru2ndBkX2dmAu2S1Etz9GNSvD0WtX+XGb42y6JvAKj1SbXFRRAFUF+0IgYnLVoF6lPC9KJqZALqk2KoDJ5qPmuCNVgl2qHVSQMl8Yots09y9B1KPgPNCDQLQ1La2Ls3/+q4lOcnFKIOTNh5o1dQWqLIqUFWO7BNhi6tDl7QFgwCLJ+91KaEc8gXT9cF8oCWYUgpgGvcA92nHO5bl5JT4MyzvVfCB2AMLWIzDP0zi8cj9Sdhr3bQVABNYKpzsZwXfCWqjF10KWKxWuThhief36zBtRGEW5GTLiTzCKb8Ra1LylYTKC5XRKl7dr2OnNoOp3tipj7zxjVOWfaesciNATVrFO/t1lLeS3a3224O6qEdysnV4zyAgJAfv7tdxk9Zq3xf9LSvYdAygnX2RE7AyRquOD/Xr+Knrkl8Cv1UlLMfq0K8OpW3KXYnPgvt0TOO2+fq1rZVuODzR7wjYCGqVglgdn+nXUY2rgr2Rtl7xjXXnYAkH3+akBE2rgCo+0a9DpTGFHp3ija902sqBHuG3OKsW0d7ttXZiit/z6vkVo11Lp58rBVxkVRm0Eu9H7g9h17vDfBW/8kXPXMSdGHarevTUCuXYZHlLv7a+oUsBf89uWey9Vmk+0JOVrQ4UWOK1fQJwXqgbs5NHgt8QL+ibCkv6ogvZtxMo8YxeJfw0RAEHJpRd32lip98Qdpzo5nIQqI7qeDi4R4xPR9WVxUH1QPCVJv2sgA55wjudnLBS4t69ynh919nlUsAv+ENqL+0tqKaLLlhUjkTq1ZOWwyO8+fdZKtVviYv2g+6ElqwwIFCam3YA9YhxzygdycYHfQe408ndaD8tqOVQkglM/CGhzwn7rrWOrRZeqVbpwayAD3DISla1l34h1+YpwCu+gdQnworzopysq0+ncgVgDw+I1V7rjQoOlTiAtQJ8xDuQ+4SEr0R9wko8+bKv9jIf4EVXjDnVIICtmyf1LOOVUW0m7FXBF16UdqoXaq7tvbp2upTj+EngXjEeEDUEZi4ABR988/Oie9t/Pk8S9Z3yedP2oF4l7L3Os2RyF/TrduONHX8+Tx7qkglW8/wchH4T/SEGIKx2B/T/9ubfMxmt5JiBtvO8DrlnGe+Olxd48if0l351p/KXHQEtn+eCe8Z4UKQKkAD4cwL/U95o1WBy7+dfdwD1jLDrmk9bITM52Y8+01+Q3pRoTZOTeX6HhL4nfOfJG2J5ou984AD4A16xmRVlBt3w8fwGuXcZT39eS+bAH4oP1Dt7YaU/8NCLDgAE8g2pdwkHrHObCWaAvg/izeNl2ELFOGE11zp+BkL/iX4TsqzgF4j9/9QrfZSNuWsVL0UeQMZLo8wgkJ+H/62XE7io097dzapDkAaQcEDVmKvKANY7Ocj/bzNgJee6u8T3kDDEhG+GuGlbAQLdc9R3zEYDqwSXenoU8iAyHhK6FHuP4Mnl1RhaAG5klY1Or9kKNAjCVtdMzVSGs3L5W1r+jN4wWgm4yKp7HW9FxjAzXhO1q4Rk1xufPZZ+2K4vVpdad6sOQhpIwh53u5mECQRb/l9yoz/w0AUzHbZtvcTnwBgq4wNRm5JNTn8LN/ql/df8TnDi4tXRNJxEB24wUUhY62Z2J7b1GbvfdlOJLact1PF5MIbL+GhU+ubk5KICCpjgkbrxhb5xw+hGqzxTED2BhpToiKJtdUkmJ7AEJVnTM4FNeiW8UM5si6lc1ld8GwlDZnwsKrBWyEy4dBHAweoshUXjSrC0HKwEcHJpK6NeFD2ReFCJ9lljtMoSjgWmJX9/zD0EnMojmUhQY2uVmCBeNDq0neeDYAyb8dp4tQIk3OhiLQZ/ToI7Aa20Em9SVnNRSwUrgEUBxSkItvbve1EaGKWtr2hkM4hVsRWoYANiqRXAmQcqyE7WpJKN4MLB1sri7iVeCsbQGY+P2txabAsCstp2+eTOKsXSzm1vcSuUODQCFnPCMaruEn9dxTQ4JP5ZFHftDsh1N/Rpb0PaF0VOFSgXBDxzSCbJhNXctTkdjBHAkZXaEgmrQrLYCtCxi3xpm03DCqbNDrkAgcxi7hJvBWMMGS+N4tYxIQmtvF4DIPudQZXwjUwrMxNW29qh2LpDCKC7TC/fKtEoEK/4a4iaAQGC1hyO7g510o1HMzNhb7rcy8O6aZwDxjgyTiwi7pyrkskhoMeWsDk20Mqbbzj3UOKNYIwl47lR3JJsbBVyoW290ASsFE8CsL0QcNAzzlsBK/F9YhoNZHwziqkUaaGtMJmYF1pbQRIEEtwwkRsFbTaembuqujbrDkLCeCba8cpJbaabdRAsxQNlTVjlxI3Mlr1WyGRmaZubTB8GxpgyThMxt6UmGz2hZIeVS2XtxGVrX5XMzOuqxEuQMa4Zz4gy0+TKAis3AG37hrt1cvILAmTmQqv4FDLGNuPtUZuZuy+vCdtKAAvA5G1BaS97ZdQX6iaBsDWzKn6/OtHoENN3o3Z3M+D18ZrgoIOWAlO2i+riC0S/U8iEozcSl+2BhPFNtP2forh2fvxnQUAtsMrCKsBM2HYBDzoBEnhSizCzBNTK5PbDwBjjhF3Oi6prJqilQCW2F6oJIGAlgLuOrOxUBxVtS2YmJOjFN56GjHFm7H9L1KZqpqrqszNcFIptUu3dOSyyqkCkiKqqq5f7ImOsGUffHGLm7mbWkirGM3QSq8RO3SirZ0KVA/sOE7MHI2O8GYdeG5UvjaBsLTBlLrBRgMWbBjwBcIe7tovbQ5Ax5hmHXh9lBhY3e6XExFZtsVOdEnSwlq1a3rhMNz4QGePO2PdPUdkM2k5wSMsOwaVbAAWb8YZK8abEXWcgY+wZ2/4sNmnX31/JNmzV8AYQdwCWzJs4KzZeVHHtccgYf8ZWX46iLf+odhyI4oFAN3Ynh2kXUsUv90TGPEzA66MR99ILKkEWPFOPrGTrIqe2A2ylxJe2BGM+UsIj1kTxbmtpigXDuriwWjlpgyrjoQlFN+buMo1XAAlzM+PIv4Rqh7tgW9nbVmx27vgk7NvCxsy0xJqHIxHmaMbWH4lpWcon6JRjyXjEXq7bCotbrfHzw5AxXxPwoBtCtMO2Cu5gE+PG3DkoZ2tiZ3XISwDGvCXGHl+PKD67XHhk1dIqKHP1Km3d1R5/Og2UMIcZeMzVoTJTaYArgJVcWHLuDam1aEuJ9S9bhYz5TAk7fVBCOKrEqoETS0CuzatY2ponfnQkwJjbDJzw4/jfH2fZgVUukAA94WzZ6jzPXx4HZMIcJwYe87eIojMtaWBWOaiYR66tz9a2Mo3rn7UalDDnE2HFU86PEFleJ0ubNM66V2uZqrZUIq572U4AYwFkYNWTL4swsc3i4tLogR7M3VXd3dxdJOKaV+8MMGEhJAa2fNzPI6zW5c2DQykQQGir7u7Wci0Wcf4TtwEyYWEkBnCPT62L0GKbBcAOhQTApV2mYhH+3UesApiwUBITcPAb/zqJKLXYcrwqW+2lVCUiLnr7SQCYsHgyA3zG+66JCCli7mkp5ZlUwK4KKkUi4uqP3GMlkJiwmKYMYNuHfvyiSURo+WOw0rYIVuzKvD5mGhFXvv9+2wHICQssMQNYedorfnRnRISXuhY1n9m05aoqpYhFRNz6g1eeuTUAZsKiS8wAsNu9XvWjqzdGuzEpnSJSSl2VIupNtNdc/LVX3ntnAGAmLMbEmQBg60Pv/7xP/eaqtR6bUddc9t2Pvui++60EgJSZsFAT54TOLfc6/v6Pe97r3vP+D3/8U5/9zEc/8M5XPPMx9zpyj9XoTJkJCzklzkzY7IkzJ8KCTylx7mRmzp2cEuH//v83UQBWUDgguCkAALCBAJ0BKtwA3AA+MRaJQyIhIRV63aQgAwSyN3C4QIQGvTMO7/zP9n/YTrf+D/s/7Q/v3uw5lumfI25+/833ZfL7/L+pX8//+b3A/1r/6H929wv/d9W37reo3+o/6L/z/4L3gf+v+znud/uP+4/ab4AP6h/mf/X65Xsafup7Bv7E+sB/2v3K+Dv+x/779ufgO/ov90/9f5////6AP+36gHoAdh9/Kfwg9w/hj94+rT1X/Ifn389/e/3R9ffGf1+6lnzD8S/v/Nzv1/Lf4r0CPxr+e/6nxGd09vH+h9A72t+x/7z/F+q59t58fab2Af12/4Pld+KD5n7BH9D/r3+v/yv5D/TV/f/+n/S+hv9F/z3/q/13wFfyj+tf7z/B/vp/kvnb9pv7Q+yf+ov3ytlgZGIT/6GgKPhxVI2p3Y9kQgFR3HLdDhBcqBKYmYno1Tfwx+9fcsCxIH4yysq6F5f/DvW0E6B/U//jvAIkK4HeqL5EpStPh3xlHh2+0CPQldjINVEdp9HZOz8zW2JqRwhjzqck8lbEe9TzTloW7GGyR5RISznq7Wjm/2rSLGPi1z+gHPGYHpQwAfY/oueqd3XhyJYp/A8fzFilD1cezwQa8rhwo2TfBVujVuNMuoAu6syWkWMV6cPLrJVJskct3t5sZ3ngu2r4ToiZlCiMIQZX6v2S8oq8XSxrC6u7E5UkpK+F6DfEQ5rZESLr5VeJVyfB3aDc/8Z299L55BwdiwTTe/XVdfa/JBw4zLBCcBrbp2qhvkNrEmj3zFSS2SQcX8rxVH4Y70vf8gtFkCIKMe3Hi8PeoAX+lQ+YTb6C2Gp4bflK/Zprq5l2teFmeROQp6L+Ni4/pQlg53ujBIgSKqUwV6FVXIi9SUoOl8IBiRTpn1Gboo98aUaxYecziPeBUn0C7gJlPsFfFEcZPxf87Q0gTafBFjkMWtwPPCxTrS5oAAkBNN240KW3EhQMyrn9BxzNupEAavv2+CmOKnLqZJ5bUk6b8hVM8/BBXiC6Mf/e/ZFCCO+w5biKEJPxazFVUtN/+Wgbpw8/VidHYRv0x9swq4zkIC1Ker2ClZTSDh35py/b22nfFxP35wRJjA9TwFDIoKuXnNl52d6zWMAlV44xIH8fO6pobaWYQnLmI5X9y8YlSSYTBOUBkuE1DPz1YvMMA8fKAcpJ7QAE6vlVNakJTJPF+xMWJat7fBgtj5GVlWORolmJtcpqNCS5ZcxmpUSQqgziJ4/SlJ/6mamWd6GEV8G9A6q9+HfxM1C9WrSmsjqIgllFMzQ9SrJ05500sHkddioL74jEAivIJzovIoYkGZ1yAqngj8z/aI3yn7yqU9aZXhhhpp87aU91XytH9Q0s4Tno9I4t7AULyPb4DFNZKPhx9ywMjDkAAP7/3BwANH/hUqrc0fPXbvcqQvc9CKW5CfFVAugypgcfnYqsh9Qast1DvaOsH/HHHYpOtQAncbSkdSFaPmqOh/1q3AHS0jT9YPggETL/2oz6vk9VJXObW7jYnEDdmqzZ3g3qYf8U79D9+DXWeRVvrRtstI4/t6fWXTLYJp7+f+HFDBlYxTW7RdU6ePCUC2LrIiXE8vNxlL+VWyCRksuO4B4kKX7G8QzUwuUt1Rr1yXD/28/1bRp/gpH7yR8cJZSZxDCOOgFa7mzdsW2N5nNMwbuSP/97GMDDe5+VYNzqCejpYfr+CXHOoGU67jlmt3RLwzUgobYVhUCoWm3/pQK+rB7/8hFlqNXo6/D8Hb4dEbldUEjp0PlRK6jUYp7PgbTLhI9EDh2lKDcFyQUchlo8Rg+fR1Yk+ncX86TeKtbA30iWMy4JiOPjBOBvwOlVYS1z91nt12fDf2yVXCLYcYrKOlsa9tfb9I23n/Cq+nL5Xb9MZ8zFZf4smUQ2vRnuzNiMdI2Ou/eRb8G5C/rTYzWd07aqYlQSdCwzIAEkPSMd8yyUfcverPjVAyl283K5LaSx50gpShV34h8Lv7qgobCnHltJssl4JrJxDUdtfXSfBai2fGADQzyu/O+zU/Q3gw7QxJlEWIIhHyczFvAiuyvtLEjOaV388UXn8AFK5i6QT3iasDf/j+mx+owW9Zea6/89qVScVYp8E5Pn8sdEuB0pfha9RhIgH0UErrb0L6SsS21NGudm+/u5+3ESegeM5QU1S1sHtocz7LzIYANWu92pmNJTcixby/HgNFNQ2978gtDiEgR3Ofz4zGjdI/i3xWKtrnu+vTkA8dZ3REDUphj9C96AXbZ1kZqcWinYn0KBtHkQDfI0Kny4Wd6s7c9cOR1B+2xKVeZ58wzfDkEbmchie5q1e61UbBOC0bwm5Tkd96KRJclHVC5Z57S/QABLsja83GpM5kTwp7M92EWTL1wjcP6gM6+XQ/otjDBm4JDoIb9OA+MNsCzmIyRT0T6s95mBVk2fdltehX3y67CcdCIlHLzCTT+DExsMNra//fsBrTEfT6aSZ2+acu44/y2GGTR8ZnS33M/fX8Cikccnv2w368lL3+7bVA3oNEFYDge6HQ3escv++qWnhO3DC7KGLo+yHW30xRyncIloGQxQ7HEHJ1oyDLUKTRnt+8jBFTZFKl/MfvCluQGr9S+RMP0t68ofiMAXUkPhEyI/hp0ZeLWTPDKtXQsLccqEKJu7MGVWFWFG9ZYQiFiYYGDhwx91TR46VSkYO5v9ioBFoLZCYt6W8m4G3vDjSufy2wShbmuod5XpSv/ybU+g+2SzKrnjCbEKxEUj2wADXpV+WJbKQDbQNVam5/RbTXdSN6ZrzqEl9KdKQr3CLgx6y6JgvAwW/Bn01T1hO6U4Azf2CEaXq0O5jqA7rImXf12tIEWpF94zct/2mJIts2qxOYdiHJyR+Yz4OQcTkEROZTjLmxp4NwMLOqv7h3/HaZJhGNQg+qiXGTGihIQez30XDXWwwhtpqxXi+YuCJzHGpXTc4ELXsdd56FBNjvjNCbDqKCvFkuOWhEr/7YIRqfKTTN70pzK9j9VYOCPL/MI43Zn8pDRrJh0dpQPpeNcvcHHPG+84fuxksz3EdCfkrMPwFEN5GJnx1D0DP4gRvP3g919S3ReaS6YpMDnXNFCGwf5TEruMsroG+vktuioQ4huZU9fQpmqEhmF9Dv2jG7w/d6ebexE1+38E0klhdRZQg+IrzXmWTTxZWZibymIF+Yj3e+Ax7h+TGcwXtTQczZT5HU3YJXDhrQrz0Lu4jGHRvxRSLf0cbiWKq0qjGQU/I8hIKH1qYgBqQVOzxoomNoRtPl9PlMgN+GBsPfgCSPeBJF8On8EXuhKLOgkoxNcO2Q2drCsWlskqi0F9DX6yz66k+ngxYrfWntO07KXpF9rNWh01Bhq2uPXleI3AVdLjSI/MgTJlIBqc5/ccrAeCVuzDESViCm2r9HoI4g9Ah7ASvDr1UItTMxIEm39iYDBoLT/bM9ZsVbjEEuTgeDwHFjVAMSZ8r7kGzTZBO5eNiHiTdkH3uxQZs5dSX9ZjlqMrxYWeBQKLSZ6mYpDm7zTHrzeJNE8VErok7kOjMmHB6As+ZaY7vK5qgDpUNyjoiFoPMMhpZFqzFWmZjO2fVTFMVtI8MrZdZWrV0aMjpmvm3/c+7ab+0Iti/Eghz4YznsXlIWArhh16+nF4JpAAnhX1h2ZBpsBT2+sHZtfttc//hby5DzYPxRIooLRqIlJZO7V9bTJJ/YB50e2Sjyn2c0piTXijCB6FN5MR8dqFVrwF98gZdRvdYsoBiUT1/mNLfGa55DBnud3vPn71xmMQQoati1RRtwFpR57FnfmA16DFYJxu06XfkvF8AjQPrQicvUrgt2Q8N8njrVqjQQQoFyAIBd3ialU7kLYCjKbQxOoOH2crrwecUdYzW0zWw3h3bbr2GglwZdY0x18rUAmXl763KgS2rD/Y6wpiIBkKTX5Pcf/eTDlAIA5vPdZBlY7io/koqQlP3r0uUPlZehZ/WBCI83oGmGj/cdcm6/i3QOBqb+m4T7Xoa4/DR8J5JHA6mtl0Inhu5+0PZz6DFugp++7CsFcHTjpgPje7LevRzBQbU1BoGWRZ3//+cr/hmp0O2i1H/y95jvGzyql7iPP7/TeXHJF3fWUANcfa+wtkF/alURcldKXJprXOfdFzDaj58fUFpyPrC06sIdql5srwZhr1P7Bdf+ZbfhgPLf5HSI/JSzaBeyInhahgFGiiNAeBF08nTNl1NNdFmOAkxmZsMycboswJAbLmhqC8XldfTiH/BrykSRhj6KEQxgR0Wb6ONnJLtaEQBtzToCCWUO4Ka6cCKqwZQwhilohgldE1EALknyuCvHn6nIK5aXLYWovxp/fi8Fvf7Fpa7TYI6MuESiP5vhpl6zZJNV2CWPBWNA/k3kAoGM07WhaUhVZkzJ7zpLeV1JKO6NVBFDRE5/fEtrQtepj14TJd0a5BJS5oSkgsXzZi0pccSuXzaE6WcWgrOLlvsZdnMYLDQJ7m+pX0yNrV54y00E9hmjuyEWYY6O3QOzoXKsa+WbPNbW9/0VIEsMzg2AO44MJuX69OVXTHyAh28a8KdAmy0LY+iAHwJg8jExhVMzfA/ijWNt2/gFRfZlEan9j5pODLMLI6TaTNT8R828ch5u1LGuZBst++iVoflcDIXtJbLaF8rnv9mfyKI3Fmfw+oep8k4TZBvyGGz7pyQ+3blerTqkRUqTTf/OPk2Wu665ormnV9/TFtbUAp2M2EVElpQ6KAhYCJnj5deWk4pQ5mGT+QOnI+G+JnXEyEZRxIN7J265s8C43/4Lf9VTqH7n+oIQYPz3jH8ZmvJNfvpK2o5vUdmeSs3p8quXyHdz5qWQyuDlA3arW2LBx0k1Hizl5urfXhpYDWIH9IjcNasDzO4S+7MaixmYEt45Avvh+klWFRwOycNWEh/O9dzIaKg1pz4/DdpbIx0SSodlQEmRNL5Z4l784T2kaLrmAPlohRFRJpeM1hT0JfCEmrgjE8QZY8cABV0Y62ZM2Paii9dMmRhLVgeGSaFTIDUIKTyvDRrGooIdXVqtS/z565oaHOBNue8/9RnlFVNBWSrTP8aj7xdtadt4A/3mmIUg1ZiisBSWAPn/5y4VWEF/HummLPGe1/TuHTHAVDWgbN31WhufNGRsQvRv7XJ00wlL763B49IWcERp8ItXv472mwDICcHOmxGel/vS6adIRW5eRTsd6BtSzCk0MYti87yHbXCqtQcz9CjM5C0T76Fw6Us8XiuWviSA4gw0j/uJJP8z6HMfqZ6/7N4GctLSeR7nlRj9GlD3ykHHOh24SIKvJLefQAh+9nDMcin8CM1J7ZokS2u+kOOWZib02k1u8G1R2T0eCRzXGQ/5yA/hxWWnH1O/bOfpHiNw46AZmqyQWJSJMGB0sxRe/f/QeOHpMRlYYciiDy1rvhr4y8FeJusCRuCnYQ7nIATk1LVzk1NNTiDv3ZYZlzkDE4fMRROUN5IPo9wmPTgc+Myrn0fhRQMHKc32X+7MQc94pWymez6rBjhhVRu/UYLTpb4f0MTmqktmSnIbMlAMLjwY1iS+YCobRY6fJncCBBZYebnoIHfW5lqJGrduIKawiwy6sJN/PFDzdlBr0n21l8T16whtJ8LNt7/tsNQeeYwu+fqp5NsHfLqn8AQ3Lj5fqKxx7z75viPLmDfivQyRhEgN+bvzxmAIo1x81WIHnZgbkIB9wR8AxxbxMd15AWH/bgUY1xlhIsaU/EGsAOpaihxFISNJmjSRW0H6AeOsCCORUAoecfDjbrwNvws1aCNl+CsOO8UYU0peqH+Dad3ztUX3Kz3YX/JdLtY/ZZlMNeAlZ9AaIKtD67cKrxXo4B67kG0CBVKl7t59/Wuwi+6FjJFoMykTSlvhnsvN608ZfprjeV3iGgYlqfAIZgsPw/KKozpZu406OJSb1uAZyvHq0NkRwzy4Nf0BvcsgotkHJdMdSBBpQAU6JKWyX7BQHnFY/D8fuFp4DyGfyfBjKi3WE6ThVsZLKYgB+GllRFsXxtTHQSUbKnAbLkhcELOfLxxv4jt/AaNfWqGemimMVaaf8nQMYwIqqTBEb+40b36u8fqWKzzMMThlhx8WR51tsIvECeKbTG6snfP2e0w0/XVFJLZ7l94iHxYCcZMKeVu9tAkhxM6BSFPOl9wkpIj4SUxY+4rtegfITMknPMcpKPD5ES0/O8Qv5+m9bjkH6hoPDzpM+hWhQl3LU0cXH6Nku30OF4M5Gs96/YJqBU1zctTxCyf8BTuDvehNQ8e2aoiQavo3vClrRRZv1lvy1fi8Mh3JvpBDDDisuyjPsJW/YUus1WfgLy0DgmTeT71HR8yNRrhgHScMJ37Cq1RmaOu5rKycX6YkG+In3hYQhQvyMInWyGyP6LMdgBTMy7L8gebPfKSMrqLYkQnEQ49nkf+1+nFXfhGcTPjasrKPKEXdloi6n2luzHC/1Fz8krxQBXBNCCu3wu3ZRs49kljkYXkPZb7W5SGrwV08xz37sDZQ7TDDR5ijnK5O6HycfcPtI3POy1hvPFY9d9bmiuel/pFTPDg9AlEPIkTtDDYeCQJvNcZGYiI1iZSWYGeC0I78DCLJmnMmpb7Du/pAOy5kgVMA+uXqoo3G1weo/MpAxzd72cun7N0jdygbXa4weCf7TqgiONHjRyxNHyNQwCBtV0QJGD263j0mD8w5Ez8J0xnwRu8nfpdj153OEbJM5VxGF3yx7OVvzKrMeB+PrNFqolg8GBR0VxxsNWu01TNG4GlEt4RWp8o6OoqbE8nMEEkfP/xJnfz5d1L47X1lSUCFu7iSv3HK0h2sST1V+YrddcR52R+WS9+FRtEEXlQRTfSyekiFBTsQQSQ6CqE0GvZrk9YcDEEdh8FenQMPxK5q0l80TDTYfJZ6d4wfrmw//Hbj7QsKnoYB8rFyZv/M6QChS/hxe0ijMGm/0D+5Y98TedX023E5ZA2fF9HKvDUgN44OZGZZammQUVFke6bliHaqllaPjKtJQ/LzYBCH7Nm/ixrL1Vc29V2IY+tF7MYVlh5+bCxS5H364Ho52bppLraSbKknrYC6SRnMeTAWLCDKoAxCT+V8NpUsV5tpec0P8ub9XEUdfQ3MbsF5czakVy6Lr/WWep6P2LH2mnmVE7hr1gP+pXoYO8Kri4ycWvZrUKeRXoHDR0jKVbQ+TsOaYICuaCN8QLch9gziPm+c7ngYC2j44CDLH7GpobBDPkDWJIUfjfYMQIqyKPa0lutVHwmeM8S+LdTkUap1sm9s/lM8rR+ChPafXgXmpFohFAti7CGjlQqo67BZ7B2p3I+bKLMxDag8b8hb44LhoUJSyr5uBBGq38+oM5X1xlxzEV3SZ8fwVtVPL9L7CAx2XS3VMItM272BM8Jx5R+BxC6n+2128ivJ18gjoKn6pAEO96INTlUqN5RNtK1dfh1OHnJnqdHsA6aSLRnZG2Z1QBTYEQkS0K++3CvXjHCWKxiC0BSfHFk7/2iPTcKjCwgpkbibbu8ow3VZXyas2/T9eF2aKYmx04s6bavqlsIWGDg4CEZJywfXXHHWE/sGL8BrtYV+Xh3TRXaQY3LD+IJVoJrThhbwJ4cSOZ/WIHgHPaLH1xXMlZyMcThz1rWFvaq+Ctwv7+VSyqbTYd+3cNZVHtEjaGeefvX6D+wg5+/yTRziqUsM6/qQsk+4Vr1ZEDqlPTkjuYg/bw/vA0j7OOo2yRRAeendRXpLwg0vl16/v2LhNDQpgpjQV5lheG3/qs7jkiVYWGMfFU0tI/PMxTlYgIWpISaPYR1nulPoTEVE2wz3r47Eh4M9dlg8y5DnJ1Y3g++6Le4GPbGTvqTKlHQDzUM65SXOeqfZcohZKIZVgq1wFk3DQY5m+TEKf/WcHPFJbOnH7Ox9LvtSs1mCIWkvSJOsbtFwmxyeY+53XImtHVTcS8LtEp9q2/RyyKX9i1tUmXHIqc7RViqROJU5GZrJ8GdF4+IBml1WqL8IU5J5UfyqBQe5KmMzVHHrWgbXdL9DQUHSDmVjY8kILx5WLIAUGft1I6okn69JSNnc2WXc4eOKEtK3baUZkZeRIkZBfh3K/7Ir0uJuPU4W+nodbK84sTtMq5Rp5HlNn/ozC7LDp3RnlWBDKJNaYhJbEAiFx/voGj7+IymAXVf++An1cc5IarIGJE4djnecebwG25ZA/gOM4BlF8emoWR9qA1jG9FcjrPmFOsGd837FM62tknxjNN+H+leOnZPW2Si5Bz2Q6t1nXnubDc2kau/1+Bg6ETX/bqd+R95P8TFrHl/zfkPau1qRocGXMKMGnCVs4ylHq7WHTubCHL26dlpPXwuLc4rNb5QVbdZZQoSHqRocxr3dj8RdrADakrgWX6fSd/STlqpFAdJEDyjZDYoDB704/mjf8B7NvhMhHNBNZRRfBsu+T7EH7Ojwhd5JJ390wLLG0F6EL9tqK2w4gOuwpqipVrLmCcmISU2e96lCtpzdxy+Cgcwgen5FrOWkSoDFTKRiLU+0pbWFt29yyuDJ9IIHQwKDZVy68UyzgyjC15FkeGtuNkwzJ+eKkwMib5q1RCxIg3jja+WAzzyReqJ4s/eRXfxfPtfpI8/RpA3IUIIo+nXNfHXLmBAYB1Fml8YPp00F5vAig9LIVIHid04h0f5rRkj62O2Byq+Ul1lZQRy09wc78jDciBP9rXm/FeUtQ8hlv0DpdUN6YkCTnVGaQDgsuexTUrZijBF4B09IeyTK0xwc07mZG79icxoJW1ZUjiH5Nq3mdKOkYOmxI+/ffnMH5jo/2e9uCGiiJ4HLYd0+sHzra1s+M2o1z6iPo3bH5XgqYQWmpvvTEwSswR5QdY5B+Q93363QFLrTSyVKjliUClCxeN+pX7uNNHh8vOSZB8lrWPNPZQjzOI01XztZM0tqnch6uRloTvvDQ+HX2374W7n0cx7Jg7zpcenUYEo7Se4KMh57h3sNmXaLDiqJ6jnRX+PJgj0XBZ7CUffjs/XgypcDf0vuOEoUnB0F0lc5hsfqZjq0FwGadiQlNhY5a0O+1HTtGOnRQMbZhJDFuhV2bRGjuBELh66egteeHJvcF+wOJstIvb5XB6XwwWyBNiccHqNGD7WSnzXH1u2Sii2y4p8IWgr3Jysrm0PFosVzsaqFwF4UXM1XIiLes77czxftxiPgjge+JHyxbMeGFk9g8wX+mEPaBQi9vKvQWGmcKONnhaxkdX9EPprWDWTuP1UBdGAzJCWrkfxLI597Emk6EgMzqkKfpiClviU0c1gWhQBE2KQTVBTcHU6PRQTph5ZrhBC3mVij5arIFz/5vYbQ9LTJtl5QbJQGsyD8qG+JEID1w6jxxpb5Wl6jBrRyzDRAOB6pVH2Ltv7Vkw4lQrFxHQiJcAmsnrofMr28873ahdZb07namj2zBvTbiDex/49Kqkjx14yb2IphQYeEXLWVfmuxCVdb1fPxcjX3lyr8mH2nPW97zjZwmackQn6dKpuFMPQhL1AnxhYCByj5vwI/vXXWXLKFMg36KLLf63GcqxuxfTakir3IFT3L8e0h5U/An3OLSitWaWBvNWVrrIE6Eg9sUgfkVzDcXrIh3CXjcAo872QRXhwZE+xd9DcSfgtwJEzLCyldrTZ/PYyo/9LTewn0WRUVYmFKsW+ALGr3CK/Ec5J/EYOfEMKrfvzzwno+N+zLXngYcd6vgOszZrHpVPj9ON28mFrx06uGhlaAzrgbLl8qP57+ZLUJKg1WPu8rfW4Ssej1fQpDSjQhHwcrJZKI5xxcw30Z6Si+KHxlkoSORHJq1w7NhfitQArDMcCJGsQo8cy9xUSku/pki3ecdWeAXyLl+rkUVRYHdRs+hc8Fje/9UEHn6KEW4gbMnNMjhF/ZgGoiuEMoAg3QNP7Tk9ZxVw/Soxqu8cHc3tkoOzPlSJ+FAtjxgTywIbq5OdVemrQXv4ENP3+b77RtQsB2LUCuIWWZNYTkXCeABPVTqHQG+cMKVlww1gV89R7mlnx2aRP9nnvDd7C6SgYrWbWqyYtMmNglF7rNP2BofeSUVWOtMzG+p//WOTU9lID89ow1ZJ3GSHm2eI4/c+fmKrVuPXL5VReaYzkOYimqK5b5QvLWlY8mpOdTIYSc8/1SIQMCgSenilBb+LrlabFAsmZuqBP+QNr812otFT1oNm2yH1on+/aYqj9Rbp5LWpA+ybx2UBjBVDqaPIArewnkqN0+OnKWx8B/Oi1rhDf71zOeo+06nnAPgeUEnlynCTlO8llRDQNei+SbXh1nJYCG8pBOFP359AMPP1PZwL8Al8YqX50t1phKS0k7CxuqId/sEd88YHiac0LpXTXyDPnFb8TfVGjLaZni9TK8HvEn9QAd0IJWPmuCXB9dIWnOPxXvVJUG9eZlIKfOh50gZNHOlzNiXbZ5Eq7tr3knvsCJh0ChrnFiDhlMoQryNdypaDgvjA0wyZOXdSoD9rLJj1QKCSei0Y7CIPEDOMmUbkdcp6WP4t9ogEZZC9HdpOcorQL+dWfsq7PrC0Pv45WH107LbYH27u6X4keTxznsj+sVZPo49fGnaU53FwAQU5IuRKaycfEnyZ8t6IOVH4UgD99dj8dedha7mykq7IS0okxBI0Sav3BLvTtoxApSJrNAphS01CfF6VQx45ZYEhN/KUCf0CFlB8C6eHJdwYvO5/wzZKh80OadydeBgSu5/pCynpLZYHSz3R+uEU/3ukezpHDgrzDhv38W2mkgpL5ZnFP48ezeGtcVatew7jiyZHFUNyabS9+YVdqkIQ3y7kaJnyagx+EANGRdqKGgQQejmHreVZ3sr2h+8M10y3buBNcd22aDMaoekI+q9fnlkgwlGBqpJM1WQ+8hezTCPooHFDgDOdIYEktiZaT9KRnjAtDkuiCEWWhFSiqy35bHS7J5FvvV2ReVAOfdXgH0W6xrd00jYVd0AMl4EM/TZdDU2RyMlkZ7MybVj6wCnvDABrj/5nrMsev6kItgWciXWSVC7IG/QPtGwWZ9oe5udYGbXVfECWj9vnMRKXTHmtIMeITy/k8Gy4LcLu4Moe+ubY4uf/q6w2DOvIq+JV0GQm9tFOZI2VXazhuFC7uTT1j5kcB4ApDSM9lw2GdSNShppA1JuwtjaH4sHk7w9V97bvSuqjO4AxDfWpFqVXQ6mtDlB+3O1qrQlF03W8k5L5A9vsg6TW+m8nu7f9F9NHqz+0sDbzhcqp/gsLAJKGA2SX1U4jlEn2cO3ielkahLmMAe+o/LhaXakSivC0lZS25A+l7d1EBvJL3Rnli8benzQQfgY6LvUQaP9Ou/APOQd6qa6sPyI0JZkvAn39Cz15jUtlnR3Zmbeu+YTqyUF9IY8zP8Mo/R5A6AfLd4Oe+9n0TWioxHcm1iWIcQqd4yKb0EF5ipcbZpUDpNue3vW/fLOKW8w/f6HSeckhTdVHQhsiorPdEKvvinHzlOUl+z1dnw1FhmhpOey1HVsIqgcsg8V/syqntHXje0OHCuohtG3Dx7mTZaKCYDK/fVmb4e1qT/hreW0luqRpoQGYnawiPg/4/mdK6MMZcAkfjAC+qt+C4wbuY2SeEJj+BUFxUYsoopp4WqrdI7BSBpX8OIw0zGuY5PD/i69nvV4GUbwUgzLl7FfI2kwiv3G0glIfRAiRrGfcfpWdoiAHKdlKFg75N9GrDIxp/k+pe1JXA72qod4GSTL/lyD4umqBwZeN60ZpDNflbPx5ltH66PM//eRqxQaCLJfZ/pehv+XskvHj+2CEBOArgWZ6Jj/xx2i5DrW4mL8O6k2vM3RRicPi2mKXhJXe//W7UOSe0u9dwtU2ryrxFe74XQi/Q7R/GreeXH0bvmxErg+fH62E6SYCjw+WVlbYOKN5YqD9fcQSdj+dU+JMEK3vDWqj/ejn0HOeEpNY2TdP5UwCGdDRbI9EjMhUFyPAe76UPBBT9lG29abYvhAiF5D5HU0rRDS/BlQfS+OnIvNA2uOzXGripIcIPvZPuPj9XSlVMY3ye3h3QYseow/pZ96+AAQhe2U1Qi8t1WK0jm1QQiKX1RQ2sd+hTF29aUUdpNcg6oxtKYR4+K05pW3Emc4VZ7q7C6erJT9+xE2FOons7OFOLw5TlgfR/nVECv0vd456jonWfXO08vYlyt2X5pN5nKHheAGf3lR+oSUMKS0t9DN74Q2p+B0MgA/ELT3+wq47Q7kIZfFKalNm/Fzz72tuGAlUSlxtZqhFsu+vJ74EZq/XTRBM04jiJY/anjAUuMcoXjpdh/CBmpqfhgzX+b4Gv+RFXyBLRKs1M2uZEmPs6iE9lmF7ytRaOxrb9noFOKL2Ht9BC+/5TJkymTHNVs5NELLrklLCAh7oC9+nJpO4sOF+ofZE/jGkBOw6WfCYliWbn6wk5xuGojfnBMdH3cmKm0k+7KYs4NwL014tcJ7c0hIZoLeHB4TrWTFxALwvdxJkEicnyYOcqKxZR/U4o0wOhaWFsyicOh9/6ZlniVPUiq8/yzF6WEIp25F0nR1Qh7VW2+1fQw0TVSgyXfx95Xj4HU5QwtbEbVH75UkCLVtVw7T+SzuPevhSCxuMky21b/J1Ku+lELa9Z12EGRgvYIZbJ49LAAPrftkeULI91BnP/0Ufeqv8ZcNlwQ2Vus4VTUPd6CQ8oOh4uQNIi+hX1wd/SqFfm7tZ0+LUj8OTfKwnUATfpcT/L02mk+XOdOtb/ceO+OaA/R2X1quMbmLGKFtLSZdNqpqkp6K0R99hON4X8LeEJmnPP9/qhAUX+l9vUrnxXFcq7cs3uW06oZjrAnMO0kPs4+v/+U4GIKs1WYYBC/QvxWfnEqzyPx49gw0UUGXsHBDyXm4QKnLbabsclXShEm8TA/nzoU2PCxejf+Muuwpq98GqgS1If9SHA2bD8Qq/Ls7O8xyBGwuwLyO594QKGgkg9HCNImvoAx74Y0vVECMrHgJNDD0ZefdW/ZVO8hfiPtthMXmUf5ifMWcIlu+ZVpVlo3T68CwK9519TG00Mxw4qsFz6rx1L40q2LzeTBSORr5mR8UlkGz2846w9j/HKiiL59+UM8PMfrG9ijaBdNjoncrHdkCk29vq9PElwtsXXVtSB93klEA/xR0L/ySLyhbcJjJpJh5uhJMI8e/70wjZgmf4Q06on1g7Mz6e/Nfj74QmBISntjITUw537kT1NnIUr1o8GT5qAkyTMBMD5b1WYfoc4grNvN2N80AFDKLDUJyHWbg75CMDGyb3/DF9Tkc/sNRBcQkCtx+upYB2/2I7/K4VvjDT1XtgzHS83zPkXzER/s1BtE0QZL7IgCBARQReoED2K4wj8WvKf1qY/6X25Qe+OPAZ9JZxKdQlM7mK4NJFFRt21v8UGfg/rWcE4XZ3jLtVY5YPZi08elCzgk4+0WLLxZUCaoqvAlejaalQCktc7I2mNm1/1iCheaiY172QibsYKaTMmeN8r3LLGqVduZMtWQNod1cHGLwjQ0++OAYcf2zLGpxvJfAsoAKpVsI6MGQZz4yQScyYMgx+0Sy0hPbJ5VdbMPJbOTagrJeVHUWlvXa2PEGvMNQ4MraWaJ6f62rt2jrO8NJ/HTQAL5l6ZUwvis1krVOSUP9ps1wLvQymVDFtAUx+rTYtz/X94/RJEWmTY9K639tdndaZW7uUpPBdY11gtKxC32tyvgasGDxVRszOm1Y9Y5wU5nf90kw1QnspqFdgdvaksGx+s2u/+1//qZ4jddv8Gea5VxglpJoPHFTu+QlU+V/51CFbACU81UEIrZQ6iCpBcIigQvaxTmyMmnv5eE8UgXDektdfAl//gKmm3XohaCgAACzIprDJQcQJ5Ipg7wvvy/+x8Ym3n7ULRzQqodNtINr975WaFNfUWIhwBDlIF05bl0zGNza7dDK/i6Ej7L0kWCYLLGOPQ4KSqePhnF/8Ioi/+ukDIhXXAejGPmj+Haxsi2k/LfJI+rC95+f6eeTTDuVCpFhM9p3+2wJpqbAwYBf6GhL96GNRvPxanI03mEp36J0HL1mcr67BJlJNtX+cY1aL3fl5lPtaPR0AgcbJcIwgzQaDmdxio6Sl5SuBxcrdU//oakl8EINu7gnvzmbc2cd5usPg0ajfDj/SWA+jqvQuO3eYSiHHbKBzduwOZ4j3tKwtAjH/JargJKYyk/xgQK2gKyMSsuDsFBEnci2bzaNkyRSXVe3mEAAiAt5b54NbDOVf/D+sACP3GBg6dAOuu89kz/uq1d79PF2gN2z5CIQirLJ2jAog4+UcJqkAy7SpSrwzq3yRqL1o+UVBqszOx0AAAAAAAA==',
-                 imageSize:48,
+                 imageSize:60,
                  round:true,
                  name:{zh:'莲花月光', th:'บัวจันทร์'} },
     catmoon: { emoji:null,
                // 🧪 测试用素材3：猫咪坐月亮+蝴蝶结+樱花挂饰，花朵会露出圆形轮廓之外，
                // 跟爱心天使一样 round:false，完整显示不裁切
                image:'data:image/webp;base64,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',
-               imageSize:64,
+               imageSize:76,
                round:false,
                name:{zh:'月光猫咪', th:'แมวจันทรา'} }
   };
@@ -11374,6 +11491,49 @@ window.setLang = setLang;
     el.classList.toggle('sel-multi');
   }
 
+  // ═══ 详细记录弹窗：表情包分类横滑翻页轮播（心情/症状/PMS/经期中共用） ═══
+  // 每类表情包数量较多，超过10个就分页横滑；这里负责给每个轮播生成对应数量的
+  // 底部小圆点、绑定滚动同步（划到哪页亮哪个点）、点圆点也能直接跳页。
+  function initMrCarousel(carouselId){
+    var root = document.getElementById(carouselId);
+    if(!root) return;
+    var track = root.querySelector('.mr-carousel-track');
+    var pager = root.querySelector('.mr-pager');
+    if(!track || !pager) return;
+    var pages = track.querySelectorAll('.mr-carousel-page');
+    if(pages.length <= 1){ pager.style.display = 'none'; return; }
+    pager.style.display = '';
+
+    pager.innerHTML = '';
+    pages.forEach(function(pageEl, i){
+      var dot = document.createElement('span');
+      dot.className = 'mr-pager-dot' + (i === 0 ? ' active' : '');
+      dot.onclick = function(){ pageEl.scrollIntoView({inline:'start', block:'nearest', behavior:'smooth'}); };
+      pager.appendChild(dot);
+    });
+
+    function syncDots(){
+      var maxScroll = track.scrollWidth - track.clientWidth;
+      var progress = maxScroll > 0 ? (track.scrollLeft / maxScroll) : 0;
+      var idx = Math.min(pages.length - 1, Math.round(progress * (pages.length - 1)));
+      pager.querySelectorAll('.mr-pager-dot').forEach(function(d, i){ d.classList.toggle('active', i === idx); });
+    }
+    if(!track._mrPagerBound){
+      track._mrPagerBound = true;
+      track.addEventListener('scroll', syncDots, {passive:true});
+    }
+    syncDots();
+  }
+  function initAllMrCarousels(){
+    ['mrCarouselMood','mrCarouselSym','mrCarouselPms','mrCarouselDur'].forEach(initMrCarousel);
+  }
+  window.initAllMrCarousels = initAllMrCarousels;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAllMrCarousels);
+  } else {
+    initAllMrCarousels();
+  }
+
   // ═══ 症状记录存储 ═══
   let logs = JSON.parse(localStorage.getItem('luna_logs') || '[]');
 
@@ -11398,23 +11558,25 @@ window.setLang = setLang;
           // 合并本地与云端经期日（去重），避免云端旧数据覆盖本地新记录
           const local = [...periodSet];
           const merged = Array.from(new Set([...local, ...data])).sort();
+          // 🩹 优化：只有合并后真的比本地原来多了新数据（比如在别的设备上记录过），
+          // 才需要重新渲染首页数字——不然每次打开 App，哪怕云端数据跟本地完全一样，
+          // 也会跟着"抖"一下重新算一遍，其实没必要。merged 一定是 local 的超集，
+          // 长度没变就说明这次云端数据没带来任何新东西，用长度对比就够了。
+          const hasNewData = merged.length !== local.length;
           periodSet = new Set(merged);
           try { localStorage.setItem('luna_period_days', JSON.stringify(merged)); }
           catch(e) { console.log('luna_period_days local cache write failed:', e); }
           // 合并结果回写云端，保持两端一致
           if(merged.length !== data.length) window._fb.set('userdata/'+code+'/periodDays', merged).catch(()=>{});
           if(typeof updateOnboard==='function') updateOnboard();  // ✨ 补上：经期数据从云端同步回来后，首页要立刻从"欢迎新用户卡"切到真实数据卡，不然要等手动刷新才会正确显示
+          // 只有真的合并进新数据才重新渲染——_initApp() 启动时已经用本地缓存同步渲染过一次了，
+          // 这里没有新东西的话，那次渲染就已经是对的，不用再刷一次。
+          if(hasNewData) calUpdateStats && calUpdateStats();
         }
       }).catch(e=>{
-        // 🩹 之前这里是空的 .catch(()=>{})，网络/权限失败会被完全吞掉，控制台连个错误都看不到。
-        // 这也是首页数字卡在占位符"--"最可疑的一个点——一旦这次请求失败，下面 calUpdateStats()
-        // 原来只写在 .then() 成功分支里，永远没有第二次机会跑，首页就再也刷不出数字了。
+        // 🩹 网络/权限失败：不需要额外补渲染——_initApp() 启动时已经用本地缓存同步渲染过一次，
+        // 数据没被这次失败的请求动过，那次渲染已经是当下能给到的最新、最正确的结果。
         console.log('periodDays fetch failed:', e);
-      }).finally(()=>{
-        // 不管这次云端读取成功、失败、还是压根没有数据，都让首页数字重新计算一次——
-        // 那怕这次真的没读到任何新数据，至少能保证用本地已有的缓存正确渲染，
-        // 不会因为这一次网络请求失败，首页数字就永久停在占位符上。
-        calUpdateStats && calUpdateStats();
       });
       window._fb.get('userdata/'+code+'/logs').then(data=>{
         if(data && Array.isArray(data)){
@@ -13115,36 +13277,31 @@ window.setLang = setLang;
   }
   window.closeCyclePhasePanel = closeCyclePhasePanel;
 
-  function selectCyclePhaseTab(phaseKey){
-    if(!_cyclePhaseState.hasData) return;
-    _cyclePhaseState.selected = phaseKey;
-    paintCyclePhasePanel();
-  }
-  window.selectCyclePhaseTab = selectCyclePhaseTab;
-
-  function paintCyclePhasePanel(){
-    var wrap = document.getElementById('cyclePhaseContent');
-    if(!wrap || !_cyclePhaseState.hasData) return;
-
-    var lang = (typeof _appLang !== 'undefined' && _appLang === 'zh') ? 'zh' : 'th';
-    var selectedKey = _cyclePhaseState.selected;
-    var isViewingToday = selectedKey === _cyclePhaseState.realPhase;
-    var data = PHASE_SNAPSHOT_CONTENT[selectedKey] || PHASE_SNAPSHOT_CONTENT.normal;
-
-    var titleEl = document.getElementById('cyclePhasePanelTitle');
-    if(titleEl) titleEl.textContent = (lang==='zh' ? '周期详情' : 'รายละเอียดรอบเดือนของคุณ');
-
-    var toneColor = {
-      low:    {bg:'rgba(138,132,158,0.12)', fg:'#8a849e'},
-      mid:    {bg:'rgba(240,127,160,0.14)', fg:'#d4638c'},
-      rising: {bg:'rgba(124,92,191,0.10)',  fg:'#7c5cbf'},
-      high:   {bg:'rgba(124,92,191,0.18)',  fg:'#6a4aad'}
-    };
+  // ✨ 四个阶段的先后顺序、标签文案，共用一份
+  var _PHASE_ORDER = ['period','normal','fertile','luteal'];
+  var _PHASE_TAB_LABELS = {
+    period:  {zh:'经期',   th:'ประจำเดือน'},
+    normal:  {zh:'卵泡期', th:'ฟอลลิเคิล'},
+    fertile: {zh:'排卵期', th:'ตกไข่'},
+    luteal:  {zh:'黄体期', th:'ลูเทียล'}
+  };
+  var _PHASE_TONE_COLOR = {
+    low:    {bg:'rgba(138,132,158,0.12)', fg:'#8a849e'},
+    mid:    {bg:'rgba(240,127,160,0.14)', fg:'#d4638c'},
+    rising: {bg:'rgba(124,92,191,0.10)',  fg:'#7c5cbf'},
+    high:   {bg:'rgba(124,92,191,0.18)',  fg:'#6a4aad'}
+  };
+  // 生成"一屏"完整内容（标题+描述+激素+常见感受+免责声明），四个阶段各生成一份，
+  // 拼在一起就是可以左右滑动的轮播。fgVar/fgMutedVar 传 CSS 变量名；
+  // backToTodayFn 传"回到今天"要调用哪个函数名。
+  function _buildPhaseSlideHtml(phaseKey, lang, realPhase, cycleDay, fgVar, fgMutedVar, backToTodayFn){
+    var data = PHASE_SNAPSHOT_CONTENT[phaseKey] || PHASE_SNAPSHOT_CONTENT.normal;
+    var isViewingToday = phaseKey === realPhase;
 
     var hormonesHtml = data.hormones.map(function(h){
-      var c = toneColor[h.tone] || toneColor.mid;
+      var c = _PHASE_TONE_COLOR[h.tone] || _PHASE_TONE_COLOR.mid;
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border-radius:12px;background:'+c.bg+';margin-bottom:8px;">'
-        + '<span style="font-size:13.5px;color:var(--stat-fg);font-weight:600;">'+h.label[lang]+'</span>'
+        + '<span style="font-size:13.5px;color:var('+fgVar+');font-weight:600;">'+h.label[lang]+'</span>'
         + '<span style="font-size:13.5px;color:'+c.fg+';font-weight:700;">'+h.level[lang]+'</span>'
         + '</div>';
     }).join('');
@@ -13153,47 +13310,101 @@ window.setLang = setLang;
       return '<li style="margin-bottom:7px;">'+f+'</li>';
     }).join('');
 
-    var phaseOrder = ['period','normal','fertile','luteal'];
-    var phaseLabels = {
-      period:  {zh:'经期',   th:'ประจำเดือน'},
-      normal:  {zh:'卵泡期', th:'ฟอลลิเคิล'},
-      fertile: {zh:'排卵期', th:'ตกไข่'},
-      luteal:  {zh:'黄体期', th:'ลูเทียล'}
-    };
-    var tabsHtml = phaseOrder.map(function(ph){
-      var active = ph === selectedKey;
-      var isToday = ph === _cyclePhaseState.realPhase;
-      return '<div class="phase-tab'+(active?' active':'')+'" onclick="selectCyclePhaseTab(\''+ph+'\')">'
-        + phaseLabels[ph][lang]
-        + (isToday ? '<span class="phase-tab-today-dot"></span>' : '')
-        + '</div>';
-    }).join('');
-
     var eyebrowHtml;
     if(isViewingToday){
-      eyebrowHtml = (lang==='zh' ? '第 '+_cyclePhaseState.cycleDay+' 天 · 现在是' : 'วันที่ '+_cyclePhaseState.cycleDay+' ของรอบ · ตอนนี้คือ');
+      eyebrowHtml = (lang==='zh' ? '第 '+cycleDay+' 天 · 现在是' : 'วันที่ '+cycleDay+' ของรอบ · ตอนนี้คือ');
     } else {
       eyebrowHtml = (lang==='zh' ? '了解一下' : 'มาทำความรู้จัก')
-        + ' · <span style="text-decoration:underline;cursor:pointer;color:var(--purple);" onclick="selectCyclePhaseTab(\''+_cyclePhaseState.realPhase+'\')">'
+        + ' · <span style="text-decoration:underline;cursor:pointer;color:var(--purple);" onclick="'+backToTodayFn+'(\''+realPhase+'\')">'
         + (lang==='zh' ? '回到今天' : 'กลับไปวันนี้') + '</span>';
     }
 
-    wrap.innerHTML =
-      '<div style="font-size:11.5px;color:var(--stat-fg-muted);font-weight:600;letter-spacing:.3px;margin-bottom:4px;">'+eyebrowHtml+'</div>'
-      + '<div style="font-size:22px;font-weight:700;color:var(--stat-fg);font-family:Georgia,\'Songti SC\',serif;margin-bottom:14px;">'+data.title[lang]+'</div>'
-      + '<div class="phase-tab-scroller">'+tabsHtml+'</div>'
-      + '<div class="phase-tab-pager"><span class="phase-tab-pager-dot"></span><span class="phase-tab-pager-dot"></span></div>'
-      + '<div style="font-size:14px;line-height:1.8;color:var(--stat-fg-muted);margin-bottom:16px;">'+data.desc[lang]+'</div>'
+    return '<div class="phase-slide">'
+      + '<div style="font-size:11.5px;color:var('+fgMutedVar+');font-weight:600;letter-spacing:.3px;margin-bottom:4px;">'+eyebrowHtml+'</div>'
+      + '<div style="font-size:22px;font-weight:700;color:var('+fgVar+');font-family:Georgia,\'Songti SC\',serif;margin-bottom:14px;">'+data.title[lang]+'</div>'
+      + '<div style="font-size:14px;line-height:1.8;color:var('+fgMutedVar+');margin-bottom:16px;">'+data.desc[lang]+'</div>'
       + '<div style="margin-bottom:14px;">'+hormonesHtml+'</div>'
-      + '<div style="font-size:13px;color:var(--stat-fg-muted);font-weight:700;margin-bottom:7px;">'+(lang==='zh'?'常见感受':'ความรู้สึกที่พบได้บ่อย')+'</div>'
-      + '<ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.75;color:var(--stat-fg-muted);">'+feelingsHtml+'</ul>'
-      // 💡 信息来源声明：跟统计页深度分析、AI 聊天页、Android 版周期详情用的同一条
-      + '<div style="font-size:10.5px;color:var(--stat-fg-muted);line-height:1.8;text-align:center;padding:14px 4px 2px;border-top:1px solid rgba(0,0,0,0.05);margin-top:16px;">'
+      + '<div style="font-size:13px;color:var('+fgMutedVar+');font-weight:700;margin-bottom:7px;">'+(lang==='zh'?'常见感受':'ความรู้สึกที่พบได้บ่อย')+'</div>'
+      + '<ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.75;color:var('+fgMutedVar+');">'+feelingsHtml+'</ul>'
+      // 💡 信息来源声明（跟统计页深度分析、AI 聊天页用的同一条，Apple Guideline 1.4.1 要求：
+      // 涉及健康/医疗信息的内容需标注信息来源 + 不能替代专业医疗建议 + 可点击查看来源）
+      + '<div style="font-size:10.5px;color:var('+fgMutedVar+');line-height:1.8;text-align:center;padding:14px 4px 2px;border-top:1px solid rgba(0,0,0,0.05);margin-top:16px;">'
         + (lang==='zh'
           ? '💡 以上内容参考世界卫生组织（WHO）、妙佑医疗国际（Mayo Clinic）等权威医疗机构的公开资料整理，仅供健康参考，不能替代专业医疗诊断或治疗建议。如有持续不适，请咨询医生。'
           : 'เนื้อหาข้างต้นอ้างอิงจากข้อมูลสาธารณะขององค์การอนามัยโลก (WHO) และ Mayo Clinic ใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้ หากมีอาการผิดปกติต่อเนื่อง ควรปรึกษาแพทย์')
         + ' <span onclick="showReferences()" style="text-decoration:underline;cursor:pointer;color:var(--purple);font-weight:600;">'+(lang==='zh'?'查看来源 ›':'ดูแหล่งอ้างอิง ›')+'</span>'
+      + '</div>'
       + '</div>';
+  }
+  // 轮播跟标签条的双向同步：手指滑动轮播 → 标签高亮跟着换，并把新选中的标签滚进可见范围；
+  // 点标签 → 轮播丝滑滚过去。
+  function _wirePhaseCarouselSync(carousel, wrap, stateObj){
+    var scrollTimer = null;
+    carousel.addEventListener('scroll', function(){
+      if(scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(function(){
+        var idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+        var ph = _PHASE_ORDER[idx];
+        if(!ph) return;
+        stateObj.selected = ph;
+        var newActiveTab = null;
+        wrap.querySelectorAll('.phase-tab').forEach(function(t){
+          var isMatch = t.getAttribute('data-phase') === ph;
+          t.classList.toggle('active', isMatch);
+          if(isMatch) newActiveTab = t;
+        });
+        if(newActiveTab){
+          newActiveTab.scrollIntoView({inline:'nearest', block:'nearest'});
+        }
+      }, 80); // 滑动停下来再判断是哪一屏，不用每个像素都算一次
+    }, {passive:true});
+  }
+
+  function selectCyclePhaseTab(phaseKey){
+    if(!_cyclePhaseState.hasData) return;
+    var idx = _PHASE_ORDER.indexOf(phaseKey);
+    var carousel = document.getElementById('cyclePhaseCarousel');
+    if(carousel && idx >= 0) carousel.scrollTo({ left: idx * carousel.clientWidth, behavior: 'smooth' });
+  }
+  window.selectCyclePhaseTab = selectCyclePhaseTab;
+
+  function paintCyclePhasePanel(){
+    var wrap = document.getElementById('cyclePhaseContent');
+    if(!wrap || !_cyclePhaseState.hasData) return;
+
+    var lang = (typeof _appLang !== 'undefined' && _appLang === 'zh') ? 'zh' : 'th';
+    var realPhase = _cyclePhaseState.realPhase;
+    var cycleDay = _cyclePhaseState.cycleDay;
+    var selectedKey = _cyclePhaseState.selected || realPhase;
+
+    var titleEl = document.getElementById('cyclePhasePanelTitle');
+    if(titleEl) titleEl.textContent = (lang==='zh' ? '周期详情' : 'รายละเอียดรอบเดือนของคุณ');
+
+    var tabsHtml = _PHASE_ORDER.map(function(ph){
+      var active = ph === selectedKey;
+      var isToday = ph === realPhase;
+      return '<div class="phase-tab'+(active?' active':'')+'" data-phase="'+ph+'" onclick="selectCyclePhaseTab(\''+ph+'\')">'
+        + _PHASE_TAB_LABELS[ph][lang]
+        + (isToday ? '<span class="phase-tab-today-dot"></span>' : '')
+        + '</div>';
+    }).join('');
+
+    var slidesHtml = _PHASE_ORDER.map(function(ph){
+      return _buildPhaseSlideHtml(ph, lang, realPhase, cycleDay, '--stat-fg', '--stat-fg-muted', 'selectCyclePhaseTab');
+    }).join('');
+
+    wrap.innerHTML =
+      '<div class="phase-tab-scroller">'+tabsHtml+'</div>'
+      + '<div class="phase-tab-pager"><span class="phase-tab-pager-dot"></span><span class="phase-tab-pager-dot"></span></div>'
+      + '<div class="phase-carousel" id="cyclePhaseCarousel">'+slidesHtml+'</div>';
+
+    // 一打开先定位到该显示的那一屏，不要动画
+    var carousel = document.getElementById('cyclePhaseCarousel');
+    var selIdx = _PHASE_ORDER.indexOf(selectedKey);
+    if(carousel && selIdx >= 0){
+      carousel.scrollLeft = selIdx * carousel.clientWidth;
+      _wirePhaseCarouselSync(carousel, wrap, _cyclePhaseState);
+    }
 
     var scrollerEl = wrap.querySelector('.phase-tab-scroller');
     var activeTabEl = wrap.querySelector('.phase-tab.active');
@@ -16215,13 +16426,23 @@ const LANG = {
     flow_none: 'ไม่มี', flow_light: 'น้อย', flow_medium: 'กลาง', flow_heavy: 'มาก',
     color_bright: 'แดงสด', color_dark: 'แดงเข้ม', color_brown: 'น้ำตาล', color_black: 'ดำ', color_pink: 'ชมพู',
     mood_happy: 'ดีใจ', mood_calm: 'สงบ', mood_sad: 'เศร้า', mood_irritated: 'หงุดหงิด', mood_anxious: 'กังวล',
+    mood_loved: 'ถูกรัก', mood_grateful: 'ซาบซึ้ง', mood_excited: 'ตื่นเต้น', mood_lonely: 'เหงา', mood_stressed: 'เครียด',
+    mood_vulnerable: 'อ่อนไหว', mood_angry: 'โกรธ', mood_confused: 'สับสน', mood_confident: 'มั่นใจ', mood_bored: 'เบื่อ',
+    mood_inspired: 'มีไฟ', mood_numb: 'ชา', mood_celebratory: 'อยากฉลอง', mood_disappointed: 'ผิดหวัง', mood_tired: 'เหนื่อยใจ',
     sym_cramp: 'ปวดท้อง', sym_headache: 'ปวดหัว', sym_bloat: 'ท้องอืด', sym_fatigue: 'เพลีย',
     sym_backpain: 'ปวดหลัง', sym_nausea: 'คลื่นไส้', sym_acne: 'สิว', sym_chest: 'เจ็บอก',
     sym_mood: 'อารมณ์',
     sym_mood_swings: 'อารมณ์แปรปรวน', sym_good: 'สุขภาพดี',
+    sym_hotflash: 'ร้อนวูบวาบ', sym_chills: 'หนาวสั่น', sym_dizzy: 'เวียนหัว', sym_diarrhea: 'ท้องเสีย', sym_constipation: 'ท้องผูก',
+    sym_insomnia: 'นอนไม่หลับ', sym_swelling: 'บวมน้ำ', sym_brainfog: 'คิดไม่ค่อยออก', sym_smell: 'ไวต่อกลิ่น', sym_severecramp: 'ปวดบีบรุนแรง',
     pms_discharge: 'ตกขาว', pms_migraine: 'ไมเกรน', pms_waist: 'ปวดเอว', pms_bodyache: 'ปวดทั่วตัว',
     pms_lower: 'ปวดท้องน้อย', pms_sour: 'อยากเปรี้ยว', pms_sweet: 'อยากหวาน', pms_fried: 'อยากทอด',
+    pms_moody: 'อารมณ์แปรปรวน', pms_choc: 'อยากช็อกโกแลต', pms_salty: 'อยากเค็ม', pms_irritable: 'หงุดหงิดง่าย', pms_tension: 'ตึงเครียด',
+    pms_sleepy: 'ง่วงตลอดเวลา', pms_bloat2: 'ท้องอืดก่อนมีประจำเดือน', pms_needhug: 'อยากให้กอด', pms_crying: 'ร้องไห้ง่าย', pms_lowenergy: 'พลังงานต่ำ',
     dur_sweet: 'ชอบหวาน', dur_fried: 'ชอบทอด', dur_fever: 'ไข้',
+    dur_heavyflow: 'มามาก', dur_lightflow: 'มาน้อย', dur_rest: 'อยากพักผ่อน', dur_caffeine: 'อยากกาแฟ', dur_thirsty: 'กระหายน้ำ',
+    dur_stretch: 'อยากยืดเส้น', dur_cramps: 'ปวดบีบท้อง', dur_sleepy: 'ง่วงนอน', dur_shower: 'อยากอาบน้ำอุ่น', dur_leak: 'กังวลเปื้อน',
+    dur_skincare: 'ผิวแพ้ง่าย', dur_painkiller: 'กินยาแก้ปวด',
     notes_placeholder: 'อยากบันทึกอะไรวันนี้?', other_placeholder: 'พิมพ์อาการอื่นๆ ได้เลย...',
     // ── 统计页 ──
     stats_title: 'สถิติ',
@@ -16468,13 +16689,23 @@ const LANG = {
     flow_none: '无', flow_light: '少', flow_medium: '中', flow_heavy: '多',
     color_bright: '鲜红', color_dark: '暗红', color_brown: '棕色', color_black: '黑褐', color_pink: '粉色',
     mood_happy: '开心', mood_calm: '平静', mood_sad: '难过', mood_irritated: '烦躁', mood_anxious: '焦虑',
+    mood_loved: '被爱', mood_grateful: '感恩', mood_excited: '兴奋', mood_lonely: '孤独', mood_stressed: '压力大',
+    mood_vulnerable: '脆弱', mood_angry: '生气', mood_confused: '困惑', mood_confident: '自信', mood_bored: '无聊',
+    mood_inspired: '有动力', mood_numb: '麻木', mood_celebratory: '想庆祝', mood_disappointed: '失望', mood_tired: '心累',
     sym_cramp: '痛经', sym_headache: '头痛', sym_bloat: '胀气', sym_fatigue: '疲劳',
     sym_backpain: '背痛', sym_nausea: '恶心', sym_acne: '痘痘', sym_chest: '胸痛',
     sym_mood: '情绪',
     sym_mood_swings: '情绪波动', sym_good: '状态良好',
+    sym_hotflash: '潮热', sym_chills: '发冷', sym_dizzy: '头晕', sym_diarrhea: '腹泻', sym_constipation: '便秘',
+    sym_insomnia: '失眠', sym_swelling: '水肿', sym_brainfog: '脑雾', sym_smell: '嗅觉敏感', sym_severecramp: '剧烈绞痛',
     pms_discharge: '白带', pms_migraine: '偏头痛', pms_waist: '腰痛', pms_bodyache: '全身酸痛',
     pms_lower: '下腹坠痛', pms_sour: '想吃酸', pms_sweet: '想吃甜', pms_fried: '想吃炸物',
+    pms_moody: '情绪起伏', pms_choc: '想吃巧克力', pms_salty: '想吃咸的', pms_irritable: '易怒', pms_tension: '紧绷',
+    pms_sleepy: '一直想睡', pms_bloat2: '经前腹胀', pms_needhug: '想要拥抱', pms_crying: '容易哭', pms_lowenergy: '精力低落',
     dur_sweet: '爱吃甜食', dur_fried: '爱吃炸物', dur_fever: '发烧',
+    dur_heavyflow: '量多', dur_lightflow: '量少', dur_rest: '想休息', dur_caffeine: '想喝咖啡', dur_thirsty: '口渴',
+    dur_stretch: '想拉伸', dur_cramps: '腹部绞痛', dur_sleepy: '犯困', dur_shower: '想洗热水澡', dur_leak: '担心侧漏',
+    dur_skincare: '皮肤敏感', dur_painkiller: '吃了止痛药',
     notes_placeholder: '今天有什么想记录的？', other_placeholder: '自由填写其他症状或不适...',
     // ── 统计页 ──
     stats_title: '统计',
@@ -17413,8 +17644,7 @@ window.openAchDetail=openAchDetail;
 window.closeAchDetail=closeAchDetail;
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.lunacalm.flow';
-// 🩹 TODO：等 App Store Connect 那边把 App 创建好、拿到真实的 Apple App ID 之后，把下面这行换成真实链接
-const APP_STORE_URL = 'https://apps.apple.com/app/idYOUR_APPLE_APP_ID';
+const APP_STORE_URL = 'https://apps.apple.com/us/app/luna-calm/id6796192825'; // 🩹 之前是占位符，现在 App Store 已经拿到真实 Apple App ID 了，换成真实链接
 function getStoreUrl(){
   try {
     if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios') {

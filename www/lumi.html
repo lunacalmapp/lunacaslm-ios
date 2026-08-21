@@ -7901,8 +7901,15 @@ function drawSecretConfirmBubble(){
   const sc=lumiScreen();
   const cx=sc.x, cy=sc.y-198*sc.s;   // ✨ 比头顶其它气泡再高出一截，气泡底边不会盖住她毛茸茸的头顶
   const bob=Math.sin(time*1.8)*3;
-  const w=180, h=68, by=cy+bob;
   ctx.save();
+  // 🩹 之前这里气泡宽度、按钮宽度都写死（180 / 76），泰语翻译普遍比中文长很多，
+  // 超出这个宽度的文字会直接溢出气泡/按钮的边框——改成跟旁边 drawStatusTag() 一样，
+  // 先用 measureBubbleWidth() 量出这次实际要显示的文字有多宽，再据此撑开框，
+  // 中文短文字保持原来的紧凑大小，泰语长文字会自动撑宽，两边都不会溢出。
+  ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
+  const bubbleText = T('要进入秘密空间吗？✨');
+  const textW = measureBubbleWidth(bubbleText);
+  const w=Math.max(180, textW+44), h=68, by=cy+bob;
   ctx.shadowColor='rgba(80,40,90,.25)';ctx.shadowBlur=14;ctx.shadowOffsetY=4;
   rRect(cx-w/2,by-h/2,w,h,20);
   const bg=ctx.createLinearGradient(cx-w/2,by-h/2,cx+w/2,by+h/2);
@@ -7912,15 +7919,18 @@ function drawSecretConfirmBubble(){
   ctx.strokeStyle='rgba(220,150,190,.4)';ctx.lineWidth=1.5;rRect(cx-w/2+.5,by-h/2+.5,w-1,h-1,20);ctx.stroke();
   ctx.fillStyle='#7a4a68';ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
   ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(T('要进入秘密空间吗？✨'),cx,by-16);
-  // 确认按钮（比最初版本大一点、比上一版小一点，比例更协调）
-  const btnY=by+15, btnW=76, btnH=32;
+  ctx.fillText(bubbleText,cx,by-16);
+  // 确认按钮（比最初版本大一点、比上一版小一点，比例更协调）——按钮文字同样量宽后再撑框
+  const btnLabel = T('进入');
+  ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
+  const btnTextW = measureBubbleWidth(btnLabel);
+  const btnY=by+15, btnW=Math.max(76, btnTextW+34), btnH=32;
   rRect(cx-btnW/2,btnY-btnH/2,btnW,btnH,15);
   const btnG=ctx.createLinearGradient(cx-btnW/2,btnY,cx+btnW/2,btnY);
   btnG.addColorStop(0,'#f5a9c4');btnG.addColorStop(1,'#e88ab0');
   ctx.fillStyle=btnG;ctx.fill();
   ctx.fillStyle='#fff';ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-  ctx.fillText(T('进入'),cx,btnY);
+  ctx.fillText(btnLabel,cx,btnY);
   // 小尾巴（指向 Lumi）
   ctx.fillStyle='#ffeaf4';
   ctx.beginPath();ctx.moveTo(cx-8,by+h/2-1);ctx.lineTo(cx+8,by+h/2-1);ctx.lineTo(cx,by+h/2+9);ctx.closePath();ctx.fill();

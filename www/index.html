@@ -15527,6 +15527,8 @@ window.setLang = setLang;
     watchActivation();
     // 有效期定期检查
     startValidityCheck();
+    // 🔔 快到期提前提醒（关掉自动续费的用户才会收到）
+    checkExpiryReminder();
   })();
 
   // ══ 有效期定期检查 ══
@@ -15536,6 +15538,11 @@ window.setLang = setLang;
     // 🩹（2026-07-16）连续两次读到"禁用"才真踢，防止单次脏读/管理员误操作误伤——
     // 参考 luna-admin 那次设备时钟偏差的教训：单次读到的值不一定可信，多确认一次更稳。
     let _inactiveStrikes = 0;
+    // 🩹 真正在付费的会员被误判"已过期"，退回试用版——之前"是否过期"这条判断只读一次就
+    // 立刻执行，没有跟上面"禁用"判断一样做"连续两次才动手"的保护，是当年同一类教训
+    // 只补了一半。这里补上同样的连续确认机制，不管背后是网络抖动、时钟偏差、还是
+    // webhook 续费同步偶尔慢半拍，单次误读都不会真的把人踢回试用版。
+    let _expiredStrikes = 0;
 
     async function check() {
       if(!window._fb) return;
@@ -15563,6 +15570,7 @@ window.setLang = setLang;
         if(reallyActive && !currentlyActivated) {
           localStorage.setItem('luna_activated','1');
           sessionStorage.setItem('luna_activated','1');
+          _expiredStrikes = 0; // 确认过是真的激活了，之前攒的"过期"计数也一并清零
           if(typeof onActivated === 'function') onActivated();
           return;
         }
@@ -15581,9 +15589,29 @@ window.setLang = setLang;
           const inPurchaseGrace = (Date.now() - lastPurchaseAt) < (3 * 60 * 1000);
           const expired = Date.now() > userData.expiry;
           if(expired && !inPurchaseGrace) {
-            goTrialMode();
+            _expiredStrikes++;
+            if(_expiredStrikes < 2) return; // 第一次读到"过期"先不动手，等下一轮确认
+            // 🩹 真正判定"过期"之前，再直接问一次 RevenueCat/App Store 本身，双重确认——
+            // 就算连续两次都读到 Firebase 说过期了，也可能是续费同步整体慢了、不是单次抖动，
+            // 这里再兜底问一次苹果，两边都说没有生效订阅了，才真正把人退回试用版。
+            let rcSaysActive = false;
+            if(!window.IS_PLAY_BUILD){
+              try {
+                const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+                if(Purchases && typeof Purchases.getCustomerInfo === 'function'){
+                  const rcResult = await Purchases.getCustomerInfo();
+                  const rcActive = rcResult && rcResult.customerInfo && rcResult.customerInfo.entitlements && rcResult.customerInfo.entitlements.active;
+                  rcSaysActive = !!(rcActive && rcActive['pro']);
+                }
+              } catch(e) { console.log('startValidityCheck RevenueCat 兜底检查出错:', e); }
+            }
+            if(!rcSaysActive){
+              goTrialMode();
+            }
+            _expiredStrikes = 0;
             return;
           }
+          _expiredStrikes = 0; // 这次没读到过期，计数清零，不能让上次的记录累加到下次
         }
       } catch(e) {
         // 网络错误不处理，等下次
@@ -15596,6 +15624,57 @@ window.setLang = setLang;
       if(document.visibilityState === 'visible') check();
     });
   }
+
+  // 🔔 快到期提前提醒——只提醒"自动续费已经关掉、真的快要断"的用户，
+  // 已经开着自动续费的不用管（到时候会自动续上，没必要制造焦虑）。
+  // 直接问 RevenueCat/App Store（willRenew 字段），不依赖 Firebase 那份数据，
+  // 提前 6 天进窗口后只提醒一次（不是一天一次），同一个到期周期不会反复弹。
+  async function checkExpiryReminder() {
+    if(window.IS_PLAY_BUILD) return; // Play 版目前无 VIP，不涉及这个提醒
+    try {
+      const uid = localStorage.getItem('luna_uid');
+      if(!uid || uid.startsWith('trial_')) return;
+      if(localStorage.getItem('luna_activated') !== '1') return; // 不是会员，不用提醒
+
+      const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
+      if(!Purchases || typeof Purchases.getCustomerInfo !== 'function') return;
+      const rcResult = await Purchases.getCustomerInfo();
+      const ent = rcResult && rcResult.customerInfo && rcResult.customerInfo.entitlements
+        && rcResult.customerInfo.entitlements.active && rcResult.customerInfo.entitlements.active['pro'];
+      if(!ent) return;
+
+      // willRenew === false：说明用户自己关掉了自动续费（或者续费已经失败到没法再重试），
+      // 这才是真正需要提醒"记得处理一下"的情况——还开着自动续费的话，到时候会自动续上，不用打扰。
+      if(ent.willRenew !== false) return;
+      if(!ent.expirationDate) return;
+
+      const expiryMs = new Date(ent.expirationDate).getTime();
+      const daysLeft = (expiryMs - Date.now()) / (24 * 60 * 60 * 1000);
+      // 🩹 周卡/月卡/年卡周期长度差太多，用同一个提前天数不合理——
+      // 周卡总共才 7 天，提前 6 天等于订阅第二天就开始提醒；年卡 365 天，提前 6 天又太仓促。
+      // 按套餐类型分别设置一个跟周期长度成比例的提前量。
+      const planKey = localStorage.getItem('luna_vip_plan') || '';
+      const REMIND_WITHIN_DAYS = planKey === 'weekly' ? 2 : (planKey === 'yearly' ? 14 : 6);
+      if(daysLeft <= 0 || daysLeft > REMIND_WITHIN_DAYS) return; // 还没到提醒窗口，或者已经过期了（过期走 goTrialMode 那套逻辑）
+
+      // 🩹 改成"这个到期周期只提醒一次"，不是"一天最多一次"——记的是这次具体的到期时间戳，
+      // 提前 6 天进窗口后第一次检测到就提醒，之后同一个周期内不会再重复弹；
+      // 等续费成功、到期时间变了，标记自然对不上，下一个周期到期前又能正常提醒一次。
+      if(localStorage.getItem('luna_expiry_reminder_shown_for') === String(expiryMs)) return;
+      localStorage.setItem('luna_expiry_reminder_shown_for', String(expiryMs));
+
+      const isTh = _appLang === 'th';
+      const daysText = Math.max(1, Math.ceil(daysLeft));
+      if(typeof showToast === 'function') {
+        showToast(isTh
+          ? `🌙 สมาชิกของคุณจะหมดอายุใน ${daysText} วัน กรุณาตรวจสอบการชำระเงิน`
+          : `🌙 会员还有 ${daysText} 天到期，记得检查一下付款方式`);
+      }
+    } catch(e) {
+      console.log('checkExpiryReminder 出错:', e);
+    }
+  }
+  window.checkExpiryReminder = checkExpiryReminder;
 
   // 回到试用模式（数据保留，只锁保存功能）
   function goTrialMode() {

@@ -9536,13 +9536,34 @@ window.setLang = setLang;
     // 面板底部（输入框所在的地方）就被键盘死死盖住；用户上滑想找输入框时，body 会跟着
     // 一起漂移，面板顶部（关闭按钮那一排）也跟着飞出屏幕。用 visualViewport（iOS 能实时感知
     // "键盘弹出后到底还剩多少可见区域"）动态纠正面板的高度和位置，键盘弹出/收起都能跟上。
+    let _cachedSafeAreaTop = null;
+    function _getSafeAreaTopPx(){
+      // env(safe-area-inset-top) 是纯 CSS 概念，JS 里没法直接读数值，用一个隐藏探针元素
+      // 间接量出来（padding-top 设成这个值，再用 getComputedStyle 读回算好的像素数）。
+      // 同一台设备/同一次安装期间这个值不会变，量一次缓存住，不用每次都重新量。
+      if(_cachedSafeAreaTop != null) return _cachedSafeAreaTop;
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top,0px);pointer-events:none;visibility:hidden;';
+      document.body.appendChild(probe);
+      _cachedSafeAreaTop = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+      probe.remove();
+      return _cachedSafeAreaTop;
+    }
     function _syncAiPanelToViewport(){
       if(!isFull || panel.style.display === 'none') return;
       if(!window.visualViewport) return;
       const vv = window.visualViewport;
-      panel.style.top = vv.offsetTop + 'px';
-      panel.style.height = vv.height + 'px';
-      panel.style.maxHeight = vv.height + 'px';
+      // 🩹 之前这里直接把面板顶部设成 vv.offsetTop——键盘弹出时这个值通常还是 0，
+      // 等于把 applyFull() 里本来算好的"避开刘海"这段安全区留白给冲掉了，关闭按钮
+      // 就跟着一起被状态栏/刘海挡住、找不到地方退出。改成取"安全区高度"和
+      // "visualViewport 顶部偏移"两者中较大的一个——键盘弹出时该收的地方还收（面板整体
+      // 跟着往上提，避开键盘），但顶部永远不会缩到安全区以内去。
+      const safeTop = _getSafeAreaTopPx();
+      const top = Math.max(safeTop, vv.offsetTop);
+      const bottomEdge = vv.offsetTop + vv.height; // 当前真正可见区域的底边，键盘弹出时会跟着往上缩
+      panel.style.top = top + 'px';
+      panel.style.height = Math.max(0, bottomEdge - top) + 'px';
+      panel.style.maxHeight = panel.style.height;
     }
     if(window.visualViewport){
       window.visualViewport.addEventListener('resize', _syncAiPanelToViewport);

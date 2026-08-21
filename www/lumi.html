@@ -7877,6 +7877,31 @@ function drawBiomeToggle(){
   ctx.restore();
   window.biomeToggleRect={x:bx,y:by,w:btnW,h:btnH};
 }
+// ✨✨ 修复：之前"图标 emoji + 空格 + 泰语文字"是拼成一整段字符串一起量宽、一起画的——
+// 混着 emoji 的文字，在部分 iOS 设备上，量出来的宽度跟实际画出来的宽度会对不上（尤其是
+// 泰语声调符号叠着 emoji 一起测量时更明显），轻则文字贴边、重则超出气泡边框，
+// 看起来就像文字中间断了一截、或者一部分文字"消失"在气泡外面看不清。
+// 改成图标和文字分开单独测量、单独画，不再依赖浏览器去猜"混合内容"该量多宽；
+// 而且安全边距给得比原来更宽松（不是卡着测量结果的最小值），哪怕测量结果还有些许
+// 误差，也留有足够缓冲，不会顶到边框。四个圆角气泡（"想要"/闲聊/树洞提示/后面秘密空间确认）都改用这份逻辑。
+function fillIconTextBubble(iconStr, bodyStr, cx, by, bgColor, textColor){
+  const iconW = measureBubbleWidth(iconStr);
+  const bodyW = measureBubbleWidth(bodyStr);
+  const gap = 6;
+  const totalW = iconW + gap + bodyW;
+  const boxW = totalW + 34;   // 左右各留出比原来更宽松的安全边距
+  const boxH = 32;
+  rRect(cx-boxW/2, by-boxH/2, boxW, boxH, 16);
+  ctx.fillStyle=bgColor; ctx.fill();
+  // 小尾巴指向她（跟原来位置一致，只是从写死的坐标改成跟着新的 boxH 走）
+  ctx.beginPath();ctx.moveTo(cx-6,by+boxH/2-1);ctx.lineTo(cx+4,by+boxH/2-1);ctx.lineTo(cx-2,by+boxH/2+9);ctx.closePath();
+  ctx.fillStyle=bgColor;ctx.fill();
+  ctx.fillStyle=textColor;
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  const startX = cx - totalW/2;
+  ctx.fillText(iconStr, startX, by+1);
+  ctx.fillText(bodyStr, startX+iconW+gap, by+1);
+}
 // —— 睡着一段时间后，头顶淡淡浮出一个小标签，提示"在睡觉"以及已经睡了多久 ——
 function drawStatusTag(){
   if(lumi.state!=='sleep' || lumi.stateT<0.8) return;
@@ -7903,13 +7928,14 @@ function drawSecretConfirmBubble(){
   const bob=Math.sin(time*1.8)*3;
   ctx.save();
   // 🩹 之前这里气泡宽度、按钮宽度都写死（180 / 76），泰语翻译普遍比中文长很多，
-  // 超出这个宽度的文字会直接溢出气泡/按钮的边框——改成跟旁边 drawStatusTag() 一样，
-  // 先用 measureBubbleWidth() 量出这次实际要显示的文字有多宽，再据此撑开框，
-  // 中文短文字保持原来的紧凑大小，泰语长文字会自动撑宽，两边都不会溢出。
+  // 超出这个宽度的文字会直接溢出气泡/按钮的边框——改成先用 measureBubbleWidth() 量出
+  // 这次实际要显示的文字有多宽，再据此撑开框。这里的 emoji 是嵌在句子末尾、不是独立图标，
+  // 没法像别的气泡那样拆开单独画，所以安全边距给得比别处更宽松一些（+64 而不是 +44），
+  // 多留一截缓冲，防止测量结果跟实际渲染宽度还有出入时文字顶到边框。
   ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
   const bubbleText = T('要进入秘密空间吗？✨');
   const textW = measureBubbleWidth(bubbleText);
-  const w=Math.max(180, textW+44), h=68, by=cy+bob;
+  const w=Math.max(180, textW+64), h=68, by=cy+bob;
   ctx.shadowColor='rgba(80,40,90,.25)';ctx.shadowBlur=14;ctx.shadowOffsetY=4;
   rRect(cx-w/2,by-h/2,w,h,20);
   const bg=ctx.createLinearGradient(cx-w/2,by-h/2,cx+w/2,by+h/2);
@@ -7920,11 +7946,11 @@ function drawSecretConfirmBubble(){
   ctx.fillStyle='#7a4a68';ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(bubbleText,cx,by-16);
-  // 确认按钮（比最初版本大一点、比上一版小一点，比例更协调）——按钮文字同样量宽后再撑框
+  // 确认按钮（比最初版本大一点、比上一版小一点，比例更协调）——按钮文字同样量宽后再撑框，同样多留缓冲
   const btnLabel = T('进入');
   ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
   const btnTextW = measureBubbleWidth(btnLabel);
-  const btnY=by+15, btnW=Math.max(76, btnTextW+34), btnH=32;
+  const btnY=by+15, btnW=Math.max(76, btnTextW+44), btnH=32;
   rRect(cx-btnW/2,btnY-btnH/2,btnW,btnH,15);
   const btnG=ctx.createLinearGradient(cx-btnW/2,btnY,cx+btnW/2,btnY);
   btnG.addColorStop(0,'#f5a9c4');btnG.addColorStop(1,'#e88ab0');
@@ -9260,15 +9286,8 @@ function drawLumi(){
       const by=sc.y-150*sc.s+Math.sin(time*1.4)*2;
       ctx.save();ctx.globalAlpha=alpha;
       ctx.font='600 12.5px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-      const txt=`${want.icon} ${T(want.text)}`;
-      const tw=measureBubbleWidth(txt);
       ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
-      rRect(sc.x-tw/2-13,by-15,tw+26,30,15);ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();
-      ctx.shadowColor='transparent';
-      // 小尾巴指向她
-      ctx.beginPath();ctx.moveTo(sc.x-6,by+14);ctx.lineTo(sc.x+4,by+14);ctx.lineTo(sc.x-2,by+22);ctx.closePath();
-      ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();
-      ctx.fillStyle='#7c5cbf';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,sc.x,by+1);
+      fillIconTextBubble(want.icon, T(want.text), sc.x, by, 'rgba(255,255,255,.92)', '#7c5cbf');
       ctx.restore();
     }
   }
@@ -9279,14 +9298,8 @@ function drawLumi(){
     const by=sc.y-150*sc.s+Math.sin(time*1.4)*2;
     ctx.save();ctx.globalAlpha=alpha;
     ctx.font='600 12.5px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-    const txt=`${lumi.chatTxt.icon} ${T(lumi.chatTxt.text)}`;
-    const tw=measureBubbleWidth(txt);
     ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
-    rRect(sc.x-tw/2-13,by-15,tw+26,30,15);ctx.fillStyle='rgba(255,250,245,.92)';ctx.fill();
-    ctx.shadowColor='transparent';
-    ctx.beginPath();ctx.moveTo(sc.x-6,by+14);ctx.lineTo(sc.x+4,by+14);ctx.lineTo(sc.x-2,by+22);ctx.closePath();
-    ctx.fillStyle='rgba(255,250,245,.92)';ctx.fill();
-    ctx.fillStyle='#a87c5c';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,sc.x,by+1);
+    fillIconTextBubble(lumi.chatTxt.icon, T(lumi.chatTxt.text), sc.x, by, 'rgba(255,250,245,.92)', '#a87c5c');
     ctx.restore();
   }
   // ✨ 树洞提示气泡：同样的位置/样式，绿色调区分一下，只在前两种气泡都没显示时才会出现
@@ -9296,14 +9309,8 @@ function drawLumi(){
     const by=sc.y-150*sc.s+Math.sin(time*1.4)*2;
     ctx.save();ctx.globalAlpha=alpha;
     ctx.font='600 12.5px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-    const txt=`${lumi.treehintTxt.icon} ${T(lumi.treehintTxt.text)}`;
-    const tw=measureBubbleWidth(txt);
     ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
-    rRect(sc.x-tw/2-13,by-15,tw+26,30,15);ctx.fillStyle='rgba(236,250,236,.94)';ctx.fill();
-    ctx.shadowColor='transparent';
-    ctx.beginPath();ctx.moveTo(sc.x-6,by+14);ctx.lineTo(sc.x+4,by+14);ctx.lineTo(sc.x-2,by+22);ctx.closePath();
-    ctx.fillStyle='rgba(236,250,236,.94)';ctx.fill();
-    ctx.fillStyle='#4a8a5c';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,sc.x,by+1);
+    fillIconTextBubble(lumi.treehintTxt.icon, T(lumi.treehintTxt.text), sc.x, by, 'rgba(236,250,236,.94)', '#4a8a5c');
     ctx.restore();
   }
 }

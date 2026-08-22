@@ -1865,6 +1865,52 @@ window.installPWA = function() {
     box-shadow: 0 1px 3px rgba(var(--purple-rgb),0.28), inset 0 1px 0 rgba(255,255,255,0.5);
   }
 
+  /* 🕊️ 回到今天：翻了好几个月之后不用再一屏一屏滑回来，点一下直接跳回当前月。
+     平时（就在本月时）用opacity+scale缩没，不占位置也不会挡到‹›按钮，翻走了才丝滑地弹出来 */
+  .cal-today-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 12px;
+    margin-right: 2px;
+    border-radius: 15px;
+    background: var(--purple-pale);
+    border: 1px solid rgba(var(--purple-rgb),0.3);
+    color: var(--purple);
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.82);
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .cal-today-btn.show {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+  .cal-today-btn:active { transform: scale(0.9); }
+
+  /* ✨ 日历左右滑动翻月：借鉴「周期详情」轮播的做法，靠浏览器原生 scroll-snap 实现，
+     手指跟手 1:1、松手自动回弹或吸附，不用自己算拖动距离/临界值，天然丝滑 */
+  .cal-swipe-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .cal-swipe-track::-webkit-scrollbar { display: none; }
+  .cal-swipe-pane {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    min-width: 0;
+    box-sizing: border-box;
+  }
   .cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -12667,14 +12713,56 @@ window.setLang = setLang;
 
   function calRender() {
     document.getElementById('calMonthLabel').textContent = _appLang==='zh' ? `${calYear}年 ${calMonth+1}月` : `${MONTHS_TH[calMonth]} ${calYear}`;
-    document.getElementById('calGrid').innerHTML = calBuildGridHtml(calYear, calMonth);
+    calBuildSwipeTrack();
     calUpdateStats();
+    calUpdateTodayBtn();
     // 批量选区间模式下跨月翻页：把已选的起止日（含预览）高亮补回来（如果在当前视图里）
     if (typeof calRangeMode !== 'undefined' && calRangeMode && typeof calRenderRangeHighlight === 'function'){
       calRenderRangeHighlight();
     }
-    if (typeof calInitSwipe === 'function') calInitSwipe();
   }
+
+  // 「回到今天」按钮：正在看的不是当前月才露出来，已经在本月就缩没，不占地方也不会跟‹›撞在一起
+  function calUpdateTodayBtn(){
+    const btn = document.getElementById('calTodayBtn');
+    if(!btn) return;
+    const t = getTodayTH();
+    const isCurrent = (calYear === t.getFullYear() && calMonth === t.getMonth());
+    btn.classList.toggle('show', !isCurrent);
+  }
+
+  // 点「回到今天」：不再是直接瞬间跳过去，而是借用跟手动滑动/点‹›完全一样的翻页效果，
+  // 翻了几个月就一页一页地翻回来，翻到当前月为止——每一步都等上一页的滑动+渲染真正播完
+  // （_calSwipeBusy变回false）才翻下一页，不会几页叠在一起抢动画
+  let _calGoTodayRunning = false;
+  function calGoToday(){
+    if (_calGoTodayRunning) return;
+    const t = getTodayTH();
+    const ty = t.getFullYear(), tm = t.getMonth();
+    if (calYear === ty && calMonth === tm) return; // 已经在本月，点了也没意义
+    _calGoTodayRunning = true;
+    let guard = 0; // 兜底：正常情况走不到这么多步，只是防止极端情况下卡住翻不完
+    function stepOnce(){
+      guard++;
+      if ((calYear === ty && calMonth === tm) || guard > 60){
+        _calGoTodayRunning = false;
+        if (!(calYear === ty && calMonth === tm)) { calYear = ty; calMonth = tm; calRender(); }
+        return;
+      }
+      const diff = (ty - calYear) * 12 + (tm - calMonth);
+      if (diff > 0) calNext(); else calPrev();
+      _calWaitSwipeIdle(stepOnce);
+    }
+    stepOnce();
+  }
+  // 等上一页的翻页动画+重新渲染彻底结束（_calSwipeBusy回到false）再执行回调，翻下一页
+  function _calWaitSwipeIdle(cb){
+    function check(){
+      if (!_calSwipeBusy) cb(); else requestAnimationFrame(check);
+    }
+    requestAnimationFrame(check);
+  }
+  window.calGoToday = calGoToday;
 
   // ── 当天记录弹窗 ──
   let currentDayKey = null;
@@ -12982,156 +13070,85 @@ window.setLang = setLang;
   window.calCommitRange = calCommitRange;
   window.calRangeFillGap = calRangeFillGap;
 
-  // 切月过渡动画：旧内容先滑出淡出，换完数据后新内容从另一侧滑入淡入，避免"啪"一下瞬间切换
-  function calAnimateChange(dir, changeFn){
-    const grid = document.getElementById('calGrid');
-    if(!grid){ changeFn(); calRender(); return; }
-    const outX  = (dir === 'next') ? '-16px' : '16px';
-    const inX   = (dir === 'next') ? '16px'  : '-16px';
-    grid.style.transition = 'transform .14s ease, opacity .14s ease';
-    grid.style.transform  = 'translateX(' + outX + ')';
-    grid.style.opacity    = '0';
-    setTimeout(function(){
-      changeFn();
-      calRender();
-      grid.style.transition = 'none';
-      grid.style.transform  = 'translateX(' + inX + ')';
-      void grid.offsetWidth; // 强制重排，确保下面的过渡能生效
-      grid.style.transition = 'transform .24s cubic-bezier(0.34,1.15,0.64,1), opacity .2s ease';
-      grid.style.transform  = 'translateX(0)';
-      grid.style.opacity    = '1';
-    }, 140);
-  }
-
-  function calPrev() {
-    if (window._calSwipeJustHandled && (Date.now() - window._calSwipeJustHandled) < 400) return; // 刚被滑动处理过，忽略紧跟着的幽灵点击
-    calAnimateChange('prev', function(){
-      calMonth--;
-      if (calMonth < 0) { calMonth = 11; calYear--; }
-    });
-  }
-  function calNext() {
-    if (window._calSwipeJustHandled && (Date.now() - window._calSwipeJustHandled) < 400) return; // 同上
+  // ══ 日历左右滑动翻月：借鉴「周期详情」轮播的思路——把"上个月/当前月/下个月"三屏
+  //    提前渲染好摆成一排，靠浏览器原生 scroll-snap 左右滑动，手指一拖就跟手，
+  //    松手自动吸附到最近一屏，不用自己算拖动距离和回弹临界值 ══
+  function calCanGoNext(){
     // 最多往后翻3个月，超过就不给翻
     const maxDate = new Date(today.getFullYear(), today.getMonth()+3, 1);
     const viewDate = new Date(calYear, calMonth+1, 1);
-    if (viewDate > maxDate) return;
-    calAnimateChange('next', function(){
-      calMonth++;
-      if (calMonth > 11) { calMonth = 0; calYear++; }
-    });
+    return viewDate <= maxDate;
   }
 
-  // ══ 日历左右滑动翻月：拖到一半能同时看到当前月和相邻月，松手根据拖动距离决定翻页还是弹回 ══
-  let _calSwipeBound = false;
-  function calInitSwipe(){
-    const wrap = document.getElementById('calSwipeWrap');
-    const grid = document.getElementById('calGrid');
-    if(!wrap || !grid || _calSwipeBound) return;
+  let _calSwipeBound = false;  // scroll监听只绑一次，翻页时不用重新绑
+  let _calSwipeBusy   = false; // 点击按钮触发的平滑滚动播完之前，先忽略新的点击，避免叠加
+  let _calIgnoreScroll = false; // 用来跳过"重新摆正中间那屏"这一下瞬间跳位自己触发的scroll事件
+
+  // 铺三联屏：左边上个月、中间当前月（原来的#calGrid还留在中间这屏里，
+  // 别的地方靠id找它改高亮/改颜色的代码不用跟着改）、右边下个月（翻到最远月份时就不铺了）
+  function calBuildSwipeTrack(){
+    const track = document.getElementById('calSwipeTrack');
+    if(!track) return;
+    let pm = calMonth - 1, py = calYear; if (pm < 0) { pm = 11; py--; }
+    let nm = calMonth + 1, ny = calYear; if (nm > 11) { nm = 0; ny++; }
+    const canNext = calCanGoNext();
+
+    let html = '<div class="cal-swipe-pane"><div class="cal-grid">' + calBuildGridHtml(py, pm) + '</div></div>'
+             + '<div class="cal-swipe-pane"><div class="cal-grid" id="calGrid">' + calBuildGridHtml(calYear, calMonth) + '</div></div>';
+    if (canNext) {
+      html += '<div class="cal-swipe-pane"><div class="cal-grid">' + calBuildGridHtml(ny, nm) + '</div></div>';
+    }
+    track.innerHTML = html;
+
+    // 瞬间把"当前月"这屏摆回正中（永远是第2屏），不带动画——真正的翻页动效
+    // 前面已经通过手指原生滑动或下面calPrev/calNext的平滑滚动播过了，这里只是摆正数据
+    _calIgnoreScroll = true;
+    track.style.scrollBehavior = 'auto';
+    track.scrollLeft = track.clientWidth;
+    _calSwipeBusy = false;
+
+    calInitSwipe(track);
+  }
+
+  function calInitSwipe(track){
+    track = track || document.getElementById('calSwipeTrack');
+    if(!track || _calSwipeBound) return;
     _calSwipeBound = true;
 
-    let startX = 0, startY = 0, dx = 0, dragging = false, committed = false, dir = null, peekEl = null, wrapW = 0, busy = false;
-
-    function canGoNext(){
-      const maxDate = new Date(today.getFullYear(), today.getMonth()+3, 1);
-      const viewDate = new Date(calYear, calMonth+1, 1);
-      return viewDate <= maxDate;
-    }
-    function getAdjacent(){
-      let y = calYear, m = calMonth + (dir==='next' ? 1 : -1);
-      if(m > 11){ m = 0; y++; }
-      if(m < 0){ m = 11; y--; }
-      return {y, m};
-    }
-    function beginPeek(){
-      if(dir === 'next' && !canGoNext()){ dir = null; return; } // 已经到能翻的最远月份，不允许再往后拖
-      const adj = getAdjacent();
-      peekEl = document.createElement('div');
-      peekEl.className = 'cal-grid';
-      peekEl.style.position = 'absolute';
-      peekEl.style.top = '0';
-      peekEl.style.left = (dir==='next') ? '100%' : '-100%';
-      peekEl.style.width = '100%';
-      peekEl.innerHTML = calBuildGridHtml(adj.y, adj.m);
-      wrap.appendChild(peekEl);
-      wrapW = wrap.offsetWidth || 1;
-      grid.style.transition = 'none';
-      peekEl.style.transition = 'none';
-    }
-    function cleanupPeek(){
-      if(peekEl){ peekEl.remove(); peekEl = null; }
-      grid.style.transition = 'none';
-      grid.style.transform = 'translateX(0)';
-    }
-    function onStart(x, y){
-      if(busy) return; // 上一次滑动的翻页/回弹动画还没播完，先不响应新的手指按下，避免叠加
-      startX = x; startY = y; dx = 0; dragging = true; committed = false; dir = null;
-      if(peekEl){ peekEl.remove(); peekEl = null; }
-    }
-    function onMove(x, y, evt){
-      if(!dragging || busy) return;
-      const ddx = x - startX, ddy = y - startY;
-      if(!committed){
-        if(Math.abs(ddx) < 10) return; // 太短还看不出方向，先不动
-        if(Math.abs(ddy) > Math.abs(ddx)){ dragging = false; return; } // 更像是竖直滚动，让给页面滚动
-        committed = true;
-        dir = (ddx < 0) ? 'next' : 'prev';
-        beginPeek();
-        if(!dir){ dragging = false; return; }
-      }
-      if(!dir) return;
-      if(evt && evt.cancelable) evt.preventDefault(); // 确认是横向滑动，阻止页面跟着上下滚
-      dx = ddx;
-      const clamped = Math.max(-wrapW, Math.min(wrapW, dx));
-      grid.style.transform = `translateX(${clamped}px)`;
-      if(peekEl) peekEl.style.transform = `translateX(${clamped}px)`;
-    }
-    // touchend：正常判断是"翻页"还是"回弹"
-    function onEnd(){
-      if(!dragging || busy) return;
-      dragging = false;
-      if(!committed || !dir){ return; }
-      busy = true; // 从这里开始到动画结束，忽略任何新手势，也让calPrev/calNext暂时忽略幽灵点击
-      window._calSwipeJustHandled = Date.now();
-      const threshold = wrapW * 0.28;
-      const doCommit = Math.abs(dx) > threshold;
-      grid.style.transition = 'transform .22s ease';
-      if(peekEl) peekEl.style.transition = 'transform .22s ease';
-      if(doCommit){
-        const target = (dir==='next') ? -wrapW : wrapW;
-        grid.style.transform = `translateX(${target}px)`;
-        if(peekEl) peekEl.style.transform = 'translateX(0px)';
-        setTimeout(function(){
-          if(dir==='next'){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} }
-          else { calMonth--; if(calMonth<0){calMonth=11;calYear--;} }
-          cleanupPeek();
-          calRender(); // 重新渲染成真正的当前月（会把peek层清掉的效果替换成正式内容）
-          busy = false;
-        }, 220);
-      } else {
-        grid.style.transform = 'translateX(0)';
-        if(peekEl) peekEl.style.transform = (dir==='next') ? 'translateX(100%)' : 'translateX(-100%)';
-        setTimeout(function(){ cleanupPeek(); busy = false; }, 220);
-      }
-    }
-    // touchcancel：手势被系统打断，永远只回弹，绝不翻页，避免跟touchend重复触发翻页叠加
-    function onCancel(){
-      if(!dragging) return;
-      dragging = false;
-      if(!committed || !dir) return;
-      grid.style.transition = 'transform .18s ease';
-      if(peekEl) peekEl.style.transition = 'transform .18s ease';
-      grid.style.transform = 'translateX(0)';
-      if(peekEl) peekEl.style.transform = (dir==='next') ? 'translateX(100%)' : 'translateX(-100%)';
-      setTimeout(cleanupPeek, 200);
-    }
-
-    wrap.addEventListener('touchstart', function(e){ if(e.touches[0]) onStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:true});
-    wrap.addEventListener('touchmove', function(e){ if(e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY, e); }, {passive:false});
-    wrap.addEventListener('touchend', onEnd, {passive:true});
-    wrap.addEventListener('touchcancel', onCancel, {passive:true});
+    let scrollTimer = null;
+    track.addEventListener('scroll', function(){
+      if(_calIgnoreScroll){ _calIgnoreScroll = false; return; } // 跳过"摆正中间屏"自己触发的这一下
+      if(scrollTimer) clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(function(){
+        const w = track.clientWidth;
+        if(!w) return;
+        const idx = Math.round(track.scrollLeft / w); // 停在了第几屏：0=上个月，1=当前月，2=下个月
+        if(idx === 1){ _calSwipeBusy = false; return; } // 拖到一半又弹回正中，什么都没翻，不用重新渲染
+        if(idx < 1){ calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } }
+        else       { calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } }
+        calRender(); // 真正切到新的月份，并把新的"当前月"重新摆到正中
+      }, 90); // 等滑动/惯性彻底停下来再判断落在哪一屏，避免划到一半就误判
+    }, {passive:true});
   }
   window.calInitSwipe = calInitSwipe;
+
+  function calPrev() {
+    if (_calSwipeBusy) return;
+    const track = document.getElementById('calSwipeTrack');
+    if (!track) { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } calRender(); return; }
+    _calSwipeBusy = true;
+    track.style.scrollBehavior = 'smooth';
+    track.scrollLeft = 0; // 平滑滚到左边那屏，滚动停下来后交给calInitSwipe里的监听去真正翻月
+  }
+  function calNext() {
+    if (_calSwipeBusy) return;
+    if (!calCanGoNext()) return;
+    const track = document.getElementById('calSwipeTrack');
+    if (!track) { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } calRender(); return; }
+    _calSwipeBusy = true;
+    track.style.scrollBehavior = 'smooth';
+    track.scrollLeft = track.clientWidth * 2; // 平滑滚到右边那屏
+  }
 
   // 🪗 周期分析手风琴：展开/收起，页面原地变长，不跳新页面
   function toggleCalAnalysis(){
@@ -15615,11 +15632,23 @@ window.setLang = setLang;
             // 🩹 真正判定"过期"之前，再直接问一次 RevenueCat/App Store 本身，双重确认——
             // 就算连续两次都读到 Firebase 说过期了，也可能是续费同步整体慢了、不是单次抖动，
             // 这里再兜底问一次苹果，两边都说没有生效订阅了，才真正把人退回试用版。
+            //
+            // 🩹（重要修复）这里问的方向是"要不要把人打回试用版"，跟登录/初始化那几处"要不要提前
+            // 放行"刚好相反——那几处就算偶尔信了缓存里过期的旧数据，最多是晚几秒才解锁，问题不大；
+            // 但这里如果信了一份没刷新过的本地缓存（缓存里还写着"生效中"），就会一直卡在"SDK说还生效"，
+            // 导致真的已经过期很久的会员在这台设备上永远退不出VIP状态——之前这两个会员反馈的
+            // "admin显示过期、手机却一直是VIP"，根源就在这儿。
+            // 修法：问之前先让SDK本地缓存作废，逼getCustomerInfo()去RevenueCat服务器现查一次，
+            // 不会用本地那份可能没刷新的旧结果。这一步只是让RevenueCat SDK自己的缓存失效，
+            // 不会调起App Store/Google Play原生的支付确认框，用户完全无感知，静默进行。
             let rcSaysActive = false;
             if(!window.IS_PLAY_BUILD){
               try {
                 const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
                 if(Purchases && typeof Purchases.getCustomerInfo === 'function'){
+                  if(typeof Purchases.invalidateCustomerInfoCache === 'function'){
+                    try { await Purchases.invalidateCustomerInfoCache(); } catch(e){}
+                  }
                   const rcResult = await Purchases.getCustomerInfo();
                   const rcActive = rcResult && rcResult.customerInfo && rcResult.customerInfo.entitlements && rcResult.customerInfo.entitlements.active;
                   rcSaysActive = !!(rcActive && rcActive['pro']);
@@ -16077,11 +16106,13 @@ window.setLang = setLang;
   <div style="position:relative;overflow:hidden;margin:0 16px; background:var(--cal-surface-bg); border-radius:var(--radius); box-shadow:var(--cal-surface-shadow); border:1px solid var(--cal-surface-border); padding:14px 10px 16px; transition:background .4s ease;">
     <!-- 莲花水印：呼应首页卡片的低调装饰，纯点缀不挡内容 -->
     <div style="position:absolute;right:-10px;bottom:-18px;font-size:110px;line-height:1;opacity:0.07;pointer-events:none;">🪷</div>
-    <!-- 导航行：‹ 和 › 停在两端不动，月份文字绝对居中（不受第三个按钮加入影响），批量标记图标跟›放一起，收在卡片内部，不会跟月份箭头撞在一起 -->
+    <!-- 导航行：‹和›停在两端不动；月份文字改成flex弹性居中（在‹和右侧按钮组之间的剩余空间里居中），
+         这样右边不管加了几个按钮（比如翻走了才出现的"回到今天"）都不会盖住月份文字，尤其是年份 -->
     <div style="position:relative;display:flex; align-items:center; justify-content:space-between; padding:0 6px; margin-bottom:10px;">
       <button onclick="calPrev()" class="cal-nav-btn">‹</button>
-      <span id="calMonthLabel" style="position:absolute; left:50%; transform:translateX(-50%); font-size:16px; font-weight:600; color:var(--cal-fg); white-space:nowrap;"></span>
-      <div style="display:flex; align-items:center; gap:2px;">
+      <span id="calMonthLabel" style="flex:1; min-width:0; text-align:center; font-size:16px; font-weight:600; color:var(--cal-fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 4px;"></span>
+      <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
+        <button id="calTodayBtn" onclick="calGoToday()" class="cal-today-btn" data-i18n="cal_back_today">วันนี้</button>
         <button onclick="calNext()" class="cal-nav-btn">›</button>
         <!-- 🎯 批量标记经期入口：小图标按钮，收在导航行末尾 -->
         <button id="calRangeEntryBtn" onclick="calEnterRangeMode()" title="ทำเครื่องหมายช่วงประจำเดือน" class="cal-range-btn">
@@ -16104,7 +16135,7 @@ window.setLang = setLang;
       </button>
     </div>
     <div id="calSwipeWrap" style="position:relative;overflow:hidden;">
-      <div id="calGrid" class="cal-grid" style="position:relative;"></div>
+      <div id="calSwipeTrack" class="cal-swipe-track"></div>
     </div>
   </div>
 
@@ -16499,6 +16530,7 @@ const LANG = {
     cycle_setting_section: 'ตั้งค่ารอบเดือน',
     cal_tip: '💡 บันทึกย้อนหลังได้ 31 วัน เพื่อคาดการณ์รอบเดือนได้แม่นยำขึ้น',
     cal_today: 'วันนี้',
+    cal_back_today: 'วันนี้',
     cal_period_day: 'มีประจำเดือน',
     cal_fertile_day: 'ช่วงไข่ตก',
     cal_predicted_day: 'คาดว่าจะมา',
@@ -16762,6 +16794,7 @@ const LANG = {
     cycle_setting_section: '周期设置',
     cal_tip: '💡 点击日期标记月经天数（可标记过去31天内）。系统将自动分析周期规律，推算下次月经时间。',
     cal_today: '今天',
+    cal_back_today: '今天',
     cal_period_day: '月经日',
     cal_fertile_day: '易孕期',
     cal_predicted_day: '预测经期',
@@ -17987,38 +18020,9 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
   }
 })();
 
-// ════════ 周期日历：左右滑动切换月份（未来月份仍受 calNext() 原有限制，无法滑到未来）════════
-(function setupCalSwipe(){
-  var startX = 0, startY = 0, tracking = false, horizontal = false;
-
-  document.addEventListener('touchstart', function(e){
-    var panel = document.getElementById('calPanel');
-    if(!panel || panel.style.display === 'none') return;
-    var grid = document.getElementById('calGrid');
-    if(!grid || !grid.contains(e.target)) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    tracking = true; horizontal = false;
-  }, {passive:true});
-
-  document.addEventListener('touchmove', function(e){
-    if(!tracking) return;
-    var dx = e.touches[0].clientX - startX;
-    var dy = e.touches[0].clientY - startY;
-    if(!horizontal && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) horizontal = true;
-  }, {passive:true});
-
-  document.addEventListener('touchend', function(e){
-    if(!tracking) return;
-    tracking = false;
-    if(!horizontal) return;
-    var dx = e.changedTouches[0].clientX - startX;
-    var THRESHOLD = 50;
-    if(Math.abs(dx) < THRESHOLD) return;
-    if(dx < 0){ if(typeof calNext === 'function') calNext(); }   // 左滑 → 下个月（原有逻辑会挡住未来月份）
-    else      { if(typeof calPrev === 'function') calPrev(); }   // 右滑 → 上个月
-  }, {passive:true});
-})();
+// ════════ 周期日历：左右滑动切换月份，已改为calSwipeTrack原生scroll-snap实现（见calRender/calInitSwipe），
+//    这里不用再额外监听touch算拖动距离了，原来这段document级别的手势判断整段去掉，
+//    避免跟原生滑动重复触发翻两次月 ════════
 
 </script>
 <!-- ═══ 法律页 iframe 全屏覆盖层（隐私/条款/帮助）═══ -->

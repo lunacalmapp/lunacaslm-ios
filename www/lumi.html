@@ -346,6 +346,19 @@
   <button id="btnRoom" data-zh-aria="选择房间" aria-label="选择房间"
     style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:12;width:66px;height:48px;border-radius:18px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:21px;line-height:1;cursor:pointer;">🏠</button>
 
+  <!-- ✨ 秘密空间确认气泡：原来这句话（含按钮）是画在 canvas 上，泰语文字量宽跟实际渲染宽度
+       在部分 iOS 设备上对不上，试了两轮"多留缓冲空间"都没能根治，索性改成真正的 HTML 文字层——
+       文字换行/宽度这件事交给浏览器原生处理，天然比手动量 Canvas 文字宽度可靠，不会再受
+       泰语声调符号这些细节干扰。位置每帧跟着 Lumi 的画布坐标同步，视觉效果不变。 -->
+  <div id="secretConfirmDOM" style="display:none;position:fixed;z-index:50;left:0;top:0;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+    <div id="secretConfirmDOMBubble" style="background:linear-gradient(135deg,#fff5fa,#ffeaf4);border:1.5px solid rgba(220,150,190,.4);border-radius:20px;box-shadow:0 4px 14px rgba(80,40,90,.25);padding:12px 20px;font:600 13px system-ui,Noto Sans Thai,-apple-system,PingFang SC;color:#7a4a68;white-space:nowrap;"></div>
+    <div id="secretConfirmDOMBtn" style="pointer-events:auto;margin:10px auto 0;background:linear-gradient(135deg,#f5a9c4,#e88ab0);border-radius:15px;padding:8px 18px;font:600 13px system-ui,Noto Sans Thai,-apple-system,PingFang SC;color:#fff;white-space:nowrap;width:fit-content;cursor:pointer;"></div>
+  </div>
+
+  <!-- ✨ 睡觉状态小标签（"正在睡觉，已经 X 分 X 秒"）：原来也是画在 canvas 上，
+       跟秘密空间那个气泡是同一类"泰语量宽不准"的问题，这次一并换成 DOM 文字层。 -->
+  <div id="statusTagDOM" style="display:none;position:fixed;z-index:45;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;background:rgba(255,255,255,.9);border-radius:13px;box-shadow:0 4px 14px rgba(40,30,70,.18);padding:6px 14px;font:600 12px system-ui,Noto Sans Thai,-apple-system,PingFang SC;color:#7c5cbf;white-space:nowrap;"></div>
+
   <!-- 🌙 返回 Luna 首页：点左下角小房子上方这个按钮，先弹确认框，点确定才真的回 index 首页 -->
   <button id="btnLuna" aria-label="返回 Luna"
     onclick="var s=document.getElementById('lunaExitSheet'); if(s) s.classList.add('show');"
@@ -7904,64 +7917,53 @@ function fillIconTextBubble(iconStr, bodyStr, cx, by, bgColor, textColor){
 }
 // —— 睡着一段时间后，头顶淡淡浮出一个小标签，提示"在睡觉"以及已经睡了多久 ——
 function drawStatusTag(){
-  if(lumi.state!=='sleep' || lumi.stateT<0.8) return;
+  const el = document.getElementById('statusTagDOM');
+  if(lumi.state!=='sleep' || lumi.stateT<0.8){
+    if(el) el.style.display='none';
+    return;
+  }
+  if(!el) return;
   const sc=lumiScreen();
   const mins=Math.floor(lumi.stateT/60), secs=Math.floor(lumi.stateT%60);
   const txt=tSleepStatus(mins, secs);
-  ctx.save();
-  ctx.font='600 12px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-  const tw=measureBubbleWidth(txt);
   const px=sc.x, py=sc.y-152*sc.s;
-  ctx.globalAlpha=clamp((lumi.stateT-1.6)*1.5,0,1)*0.92;
-  ctx.shadowColor='rgba(40,30,70,.18)';ctx.shadowBlur=8;
-  rRect(px-tw/2-11,py-13,tw+22,26,13);
-  ctx.fillStyle='rgba(255,255,255,.9)';ctx.fill();
-  ctx.shadowColor='transparent';
-  ctx.fillStyle='#7c5cbf';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,px,py+1);
-  ctx.restore();
+  el.style.display='block';
+  el.style.left = px+'px';
+  el.style.top = py+'px';
+  el.style.opacity = clamp((lumi.stateT-1.6)*1.5,0,1)*0.92;
+  if(el.textContent !== txt) el.textContent = txt;
 }
 // ✨✨ 秘密空间确认气泡：走到树洞前弹出，"进入"按钮点了才会触发开门动画
 function drawSecretConfirmBubble(){
-  if(!secretConfirm.show) return;
+  const domWrap = document.getElementById('secretConfirmDOM');
+  if(!secretConfirm.show){
+    if(domWrap) domWrap.style.display='none';
+    return;
+  }
   const sc=lumiScreen();
   const cx=sc.x, cy=sc.y-198*sc.s;   // ✨ 比头顶其它气泡再高出一截，气泡底边不会盖住她毛茸茸的头顶
   const bob=Math.sin(time*1.8)*3;
-  ctx.save();
-  // 🩹 之前这里气泡宽度、按钮宽度都写死（180 / 76），泰语翻译普遍比中文长很多，
-  // 超出这个宽度的文字会直接溢出气泡/按钮的边框——改成先用 measureBubbleWidth() 量出
-  // 这次实际要显示的文字有多宽，再据此撑开框。这里的 emoji 是嵌在句子末尾、不是独立图标，
-  // 没法像别的气泡那样拆开单独画，所以安全边距给得比别处更宽松一些（+64 而不是 +44），
-  // 多留一截缓冲，防止测量结果跟实际渲染宽度还有出入时文字顶到边框。
-  ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
+  const by=cy+bob;
+  // 🩹 之前这段"要不要进秘密空间"的提示，是画在 canvas 上的——量出文字宽度、按宽度撑开
+  // 气泡边框，两轮加大安全边距都还是没能完全根治泰语文字顶到边框的问题（iOS 上 canvas
+  // 测量文字宽度这件事，跟实际渲染宽度本来就容易对不上，尤其是带声调符号的泰语）。
+  // 这次改成真正的 HTML 文字层：气泡背景、文字、按钮全部交给浏览器原生排版，
+  // 换行/宽度这些交给浏览器自己处理，不用再手动测量、也不会再跟实际渲染宽度对不上。
+  if(!domWrap) return;
+  domWrap.style.display='block';
+  domWrap.style.left = cx+'px';
+  domWrap.style.top = by+'px';
+  const bubbleEl = document.getElementById('secretConfirmDOMBubble');
+  const btnEl = document.getElementById('secretConfirmDOMBtn');
   const bubbleText = T('要进入秘密空间吗？✨');
-  const textW = measureBubbleWidth(bubbleText);
-  const w=Math.max(180, textW+64), h=68, by=cy+bob;
-  ctx.shadowColor='rgba(80,40,90,.25)';ctx.shadowBlur=14;ctx.shadowOffsetY=4;
-  rRect(cx-w/2,by-h/2,w,h,20);
-  const bg=ctx.createLinearGradient(cx-w/2,by-h/2,cx+w/2,by+h/2);
-  bg.addColorStop(0,'#fff5fa');bg.addColorStop(1,'#ffeaf4');
-  ctx.fillStyle=bg;ctx.fill();
-  ctx.shadowColor='transparent';
-  ctx.strokeStyle='rgba(220,150,190,.4)';ctx.lineWidth=1.5;rRect(cx-w/2+.5,by-h/2+.5,w-1,h-1,20);ctx.stroke();
-  ctx.fillStyle='#7a4a68';ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(bubbleText,cx,by-16);
-  // 确认按钮（比最初版本大一点、比上一版小一点，比例更协调）——按钮文字同样量宽后再撑框，同样多留缓冲
   const btnLabel = T('进入');
-  ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-  const btnTextW = measureBubbleWidth(btnLabel);
-  const btnY=by+15, btnW=Math.max(76, btnTextW+44), btnH=32;
-  rRect(cx-btnW/2,btnY-btnH/2,btnW,btnH,15);
-  const btnG=ctx.createLinearGradient(cx-btnW/2,btnY,cx+btnW/2,btnY);
-  btnG.addColorStop(0,'#f5a9c4');btnG.addColorStop(1,'#e88ab0');
-  ctx.fillStyle=btnG;ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='600 13px system-ui,"Noto Sans Thai",-apple-system,"PingFang SC"';
-  ctx.fillText(btnLabel,cx,btnY);
-  // 小尾巴（指向 Lumi）
-  ctx.fillStyle='#ffeaf4';
-  ctx.beginPath();ctx.moveTo(cx-8,by+h/2-1);ctx.lineTo(cx+8,by+h/2-1);ctx.lineTo(cx,by+h/2+9);ctx.closePath();ctx.fill();
-  ctx.restore();
-  window.secretConfirmBtnRect={x:cx-btnW/2,y:btnY-btnH/2,w:btnW,h:btnH};
+  if(bubbleEl && bubbleEl.textContent !== bubbleText) bubbleEl.textContent = bubbleText;
+  if(btnEl && btnEl.textContent !== btnLabel) btnEl.textContent = btnLabel;
+  // 按钮的点击判定范围，直接从真实渲染出来的 DOM 元素量，不用再手动算宽高
+  if(btnEl){
+    const r = btnEl.getBoundingClientRect();
+    window.secretConfirmBtnRect = {x:r.left, y:r.top, w:r.width, h:r.height};
+  }
 }
 // ✨ 衣柜选择器：头顶大预览圆 + ◀▶箭头/左右滑动 + ✓确认（纯 Canvas，不用 DOM）
 let _wardrobePreviewCanvas=null;
@@ -8034,12 +8036,19 @@ function drawWardrobePicker(){
   ctx.restore();
   ctx.restore();
 
-  // 衣服名称
+  // 衣服名称——之前直接画在场景背景上，没有任何底色衬托，遇到背景颜色相近的地方就看不清楚。
+  // 补上一个跟其他文字标签一致的浅色圆角底板，不管背后是什么场景，文字都能看得清。
   ctx.save(); ctx.globalAlpha=appear;
   ctx.font='600 14px "Noto Sans Thai",-apple-system,"PingFang SC",sans-serif';
+  const costumeName = T(cos.name);
+  const nameW = measureBubbleWidth(costumeName);
+  ctx.shadowColor='rgba(40,30,70,.16)'; ctx.shadowBlur=6;
+  rRect(L.cx-nameW/2-12, L.nameY-5, nameW+24, 27, 13);
+  ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fill();
+  ctx.shadowColor='transparent';
   ctx.textAlign='center'; ctx.textBaseline='top';
   ctx.fillStyle='#6a4e8c';
-  ctx.fillText(T(cos.name), L.cx, L.nameY);
+  ctx.fillText(costumeName, L.cx, L.nameY);
   ctx.restore();
 
   // ◀ ▶ 箭头按钮（点击可单步切换，等同滑动）
@@ -11319,6 +11328,17 @@ $('btnChar').onclick=()=>{buildWard();$('charSheet').classList.add('show');};
 })();
 $('btnRoom').onclick=()=>{ buildRoomPickerGrid(); $('roomPickerSheet').classList.add('show'); };
 $('btnOutdoor').onclick=()=>{ buildOutdoorPickerGrid(); $('outdoorPickerSheet').classList.add('show'); };
+// ✨ 秘密空间确认气泡的"进入"按钮：改成 DOM 真按钮之后，点击会被这个按钮自己接住，
+// 不会再落到 canvas 上——原来 canvas 点击处理里那段"点中按钮就进入"的判断已经摸不到了，
+// 这里补上按钮自己的点击事件，直接触发进入动作。"点别处取消"那部分不用管，
+// 因为按钮外的点击本来就还是会穿透到 canvas，走的还是原来那套取消逻辑。
+$('secretConfirmDOMBtn').onclick=(e)=>{
+  e.stopPropagation();
+  if(!secretConfirm.show) return;
+  const domWrap=$('secretConfirmDOM'); if(domWrap) domWrap.style.display='none';
+  beginSecretEntrance(secretConfirm.f);
+  secretConfirm.show=false;
+};
 $('btnNightViewExit').onclick=()=>{ leaveNightView(); };
 // ✨✨ 点"🌙luna"按钮弹出的确认框：真正点了"确定"才停音乐+跳转回 Luna 首页，点"取消"/data-close 只是把弹窗关掉，原地不动
 $('lunaExitConfirmBtn').onclick=()=>{

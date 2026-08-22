@@ -58,13 +58,13 @@ workflows:
           #!/bin/sh
           set -e
           cd "$CM_BUILD_DIR/ios/App"
-          agvtool new-marketing-version 1.0.2
+          agvtool new-marketing-version 1.0.3
 
           PLIST="App/Info.plist"
           echo "== 修改前 Info.plist 里的版本号 =="
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST" || echo "⚠️ 没找到 CFBundleShortVersionString 这个 key"
 
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.2" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0.3" "$PLIST"
 
           echo "== 修改后 Info.plist 里的版本号 =="
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"

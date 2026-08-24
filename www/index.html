@@ -1737,6 +1737,7 @@ window.installPWA = function() {
   body.theme-moonlotus #trendPanel .back-btn,
   body.theme-moonlotus #ratePanel .back-btn,
   body.theme-moonlotus #mine-panel .back-btn,
+  body.theme-moonlotus #scPanel .back-btn,
   body.theme-aurora #calPanel .back-btn,
   body.theme-aurora #moreLogPanel .back-btn,
   body.theme-aurora #dayDetailPanel .back-btn,
@@ -1748,6 +1749,7 @@ window.installPWA = function() {
   body.theme-aurora #trendPanel .back-btn,
   body.theme-aurora #ratePanel .back-btn,
   body.theme-aurora #mine-panel .back-btn,
+  body.theme-aurora #scPanel .back-btn,
   body.theme-amber #calPanel .back-btn,
   body.theme-amber #moreLogPanel .back-btn,
   body.theme-amber #dayDetailPanel .back-btn,
@@ -1758,7 +1760,8 @@ window.installPWA = function() {
   body.theme-amber #top5Panel .back-btn,
   body.theme-amber #trendPanel .back-btn,
   body.theme-amber #ratePanel .back-btn,
-  body.theme-amber #mine-panel .back-btn {
+  body.theme-amber #mine-panel .back-btn,
+  body.theme-amber #scPanel .back-btn {
     background: none;
     color: var(--home-fg);
     box-shadow: none;
@@ -3607,6 +3610,31 @@ window.installPWA = function() {
         <div style="font-size:13px;font-weight:700;color:var(--text);">CDC</div>
         <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_cdc_hpv_desc">HPV 与 HPV 疫苗</div>
       </a>
+      <a href="https://www.who.int/news-room/fact-sheets/detail/polycystic-ovary-syndrome" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">World Health Organization (WHO)</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_who_pcos_desc">多囊卵巢综合征（PCOS）概况</div>
+      </a>
+      <a href="https://www.mayoclinic.org/diseases-conditions/pcos/symptoms-causes/syc-20353439" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Mayo Clinic</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_mayo_pcos_desc">多囊卵巢综合征：症状与病因</div>
+      </a>
+      <a href="https://www.mayoclinic.org/diseases-conditions/menstrual-cramps/symptoms-causes/syc-20374938" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Mayo Clinic</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_mayo_cramps_desc">痛经：症状与病因</div>
+      </a>
+      <a href="https://www.mayoclinic.org/diseases-conditions/menorrhagia/symptoms-causes/syc-20352829" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Mayo Clinic</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_mayo_heavy_desc">经量过多：症状与病因</div>
+      </a>
+      <a href="https://www.mayoclinic.org/diseases-conditions/premenstrual-syndrome/symptoms-causes/syc-20376780" target="_blank" rel="noopener"
+        style="text-decoration:none;display:block;background:var(--purple-pale);border-radius:14px;padding:14px 16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">Mayo Clinic</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;" data-i18n="ref_mayo_pms_desc">经前综合征（PMS）：症状与病因</div>
+      </a>
     </div>
 
     <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-top:18px;padding-top:14px;border-top:1px solid rgba(0,0,0,0.06);" data-i18n="references_footer">
@@ -5161,6 +5189,9 @@ async function handleAuthUser(user) {
           lastLogin: now,
           provider: user.provider || 'google',
           platform: 'ios',   // 供后台「平台记录」区分 iOS / APK 用，这个包固定写死 'ios'
+          // 🩹 引导页问的"是否满13岁"，同步一份到Firebase（不只存本地）——这样换设备重新登录
+          // 同一账号时，这个限制能跟着账号走，不会因为清了本地缓存/换了手机就形同虚设
+          ageUnder13: localStorage.getItem('luna_age_under_13') === '1',
           // 🌙 月光点数：试用期一次性5点（不是每月重置），够尝几次真AI，但不够无限用，
           // 想一直用就要开会员——开会员之后 revenuecatWebhook 会把这个覆盖成每月50点
           aiPoints: { remaining: 5, resetAt: null, cycleType: 'trial' }
@@ -5535,8 +5566,26 @@ onValue(ref(db,'notifications'), snap => {
     <!-- 卡片 -->
     <div style="background:rgba(255,255,255,0.96);border-radius:28px;padding:30px 24px;box-shadow:0 12px 40px rgba(80,40,120,0.25);perspective:900px;">
 
-      <!-- Step1：使用目的 -->
+      <!-- Step1：年龄确认——只问"是否满13岁"，不收集具体生日，符合"只收集必要信息"的原则。
+           答案只影响后面AI相关功能（Luna小助手/Luna智能洞察）是否开放，不影响记录/统计这些核心功能，
+           所以不管选哪个都能继续用App，不是"拒之门外"式的硬拦截。 -->
       <div id="obStep1">
+        <div style="font-size:42px;text-align:center;margin-bottom:8px;">🎂</div>
+        <div id="obTAge" style="font-family:Georgia,'Songti SC',serif;font-size:20px;font-weight:700;color:#2d2640;text-align:center;margin-bottom:6px;"></div>
+        <div id="obSAge" style="font-size:13px;color:#8a849e;text-align:center;margin-bottom:20px;"></div>
+        <div id="obAgeOptions" style="display:flex;flex-direction:column;gap:10px;">
+          <button type="button" class="ob-age-btn" data-age="ok" onclick="obSelectAge(true)">
+            <span style="font-size:22px;">🙋‍♀️</span><span class="ob-age-txt" id="obAgeOkTxt"></span>
+          </button>
+          <button type="button" class="ob-age-btn" data-age="under" onclick="obSelectAge(false)">
+            <span style="font-size:22px;">🧒</span><span class="ob-age-txt" id="obAgeUnderTxt"></span>
+          </button>
+        </div>
+        <div id="obAgeHint" style="display:none;text-align:center;font-size:12.5px;color:#e0568c;font-weight:600;margin-top:10px;"></div>
+      </div>
+
+      <!-- Step2：使用目的 -->
+      <div id="obStep2">
         <div style="font-size:42px;text-align:center;margin-bottom:8px;">🌸</div>
         <div id="obT1" style="font-family:Georgia,'Songti SC',serif;font-size:20px;font-weight:700;color:#2d2640;text-align:center;margin-bottom:6px;"></div>
         <div id="obS1" style="font-size:13px;color:#8a849e;text-align:center;margin-bottom:20px;"></div>
@@ -5565,8 +5614,8 @@ onValue(ref(db,'notifications'), snap => {
         <div id="obGoalHint" style="display:none;text-align:center;font-size:12.5px;color:#e0568c;font-weight:600;margin-top:10px;"></div>
       </div>
 
-      <!-- Step2：上次经期开始日 -->
-      <div id="obStep2" style="display:none;">
+      <!-- Step3：上次经期开始日 -->
+      <div id="obStep3" style="display:none;">
         <div style="font-size:42px;text-align:center;margin-bottom:8px;">🩸</div>
         <div id="obT2" style="font-family:Georgia,'Songti SC',serif;font-size:20px;font-weight:700;color:#2d2640;text-align:center;margin-bottom:6px;"></div>
         <div id="obS2" style="font-size:13px;color:#8a849e;text-align:center;margin-bottom:20px;"></div>
@@ -5607,8 +5656,8 @@ onValue(ref(db,'notifications'), snap => {
         </label>
       </div>
 
-      <!-- Step3：周期天数 + 经期天数 -->
-      <div id="obStep3" style="display:none;">
+      <!-- Step4：周期天数 + 经期天数 -->
+      <div id="obStep4" style="display:none;">
         <div style="font-size:42px;text-align:center;margin-bottom:8px;">📏</div>
         <div id="obT3" style="font-family:Georgia,'Songti SC',serif;font-size:20px;font-weight:700;color:#2d2640;text-align:center;margin-bottom:6px;"></div>
         <div id="obS3" style="font-size:13px;color:#8a849e;text-align:center;margin-bottom:22px;"></div>
@@ -5644,8 +5693,8 @@ onValue(ref(db,'notifications'), snap => {
         </div>
       </div>
 
-      <!-- Step4：完成页 -->
-      <div id="obStep4" style="display:none;text-align:center;">
+      <!-- Step5：完成页 -->
+      <div id="obStep5" style="display:none;text-align:center;">
         <div style="font-size:50px;margin-bottom:10px;">🎉</div>
         <div id="obT4" style="font-family:Georgia,'Songti SC',serif;font-size:20px;font-weight:700;color:#2d2640;margin-bottom:16px;"></div>
         <div id="obPredictionBox" style="background:#f3edfb;border-radius:18px;padding:16px;margin-bottom:22px;">
@@ -5674,13 +5723,13 @@ onValue(ref(db,'notifications'), snap => {
 </div>
 
 <style>
-  .ob-goal-btn {
+  .ob-goal-btn, .ob-age-btn {
     display:flex;align-items:center;gap:12px;width:100%;text-align:left;
     padding:14px 16px;border-radius:16px;border:1.5px solid #e8e4f0;background:#fdfcff;
     font-size:14.5px;font-weight:600;color:#2d2640;cursor:pointer;font-family:inherit;
     transition:border-color .15s, background .15s;
   }
-  .ob-goal-btn.selected { border-color:#7c5cbf; background:#f3edfb; }
+  .ob-goal-btn.selected, .ob-age-btn.selected { border-color:#7c5cbf; background:#f3edfb; }
   #obLangTh:active, #obLangZh:active { transform:scale(0.92); }
   #obLangTh, #obLangZh { transition:transform .1s, background .15s, color .15s, border-color .15s; outline:none; -webkit-tap-highlight-color:transparent; }
   .ob-stepper-btn {
@@ -5733,8 +5782,8 @@ onValue(ref(db,'notifications'), snap => {
 
     function obLang(){ return window._appLang || localStorage.getItem('luna_lang') || detectSystemLang(); }
     function obT(th, zh){ return obLang()==='zh' ? zh : th; }
-    const OB_TOTAL = 4;
-    let _obStep = 1, _obGoal = null;
+    const OB_TOTAL = 5;
+    let _obStep = 1, _obGoal = null, _obAgeOk = null;
     const TH_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 
     function obSetLang(lang){
@@ -5790,6 +5839,10 @@ onValue(ref(db,'notifications'), snap => {
 
     function obRenderTexts(){
       document.getElementById('obSkipBtn').textContent = obT('ข้าม','跳过');
+      document.getElementById('obTAge').textContent = obT('ก่อนอื่น ขอถามหน่อยนะคะ','先问一个小问题');
+      document.getElementById('obSAge').textContent = obT('คุณอายุครบ 13 ปีหรือยังคะ？','你满13岁了吗？');
+      document.getElementById('obAgeOkTxt').textContent = obT('ครบแล้ว／อายุ 13 ปีขึ้นไป','是的，13岁及以上');
+      document.getElementById('obAgeUnderTxt').textContent = obT('ยังไม่ครบ 13 ปี','还不到13岁');
       document.getElementById('obT1').textContent = obT('มาทำความรู้จักกันก่อน','先来认识一下你');
       document.getElementById('obS1').textContent = obT('คุณใช้ Luna เพื่ออะไร？','你用Luna主要是为了？');
       document.querySelectorAll('.ob-goal-btn')[0].querySelector('.ob-goal-txt').textContent = obT('บันทึกและติดตามรอบเดือน','记录和追踪周期规律');
@@ -5871,6 +5924,16 @@ onValue(ref(db,'notifications'), snap => {
         b.classList.toggle('selected', b.getAttribute('data-goal')===g);
       });
       const hint = document.getElementById('obGoalHint');
+      if(hint) hint.style.display = 'none';
+    };
+
+    window.obSelectAge = function(isOk){
+      _obAgeOk = isOk;
+      const opts = document.getElementById('obAgeOptions');
+      if(opts) opts.querySelectorAll('.ob-age-btn').forEach(function(b){
+        b.classList.toggle('selected', b.getAttribute('data-age') === (isOk ? 'ok' : 'under'));
+      });
+      const hint = document.getElementById('obAgeHint');
       if(hint) hint.style.display = 'none';
     };
 
@@ -6102,7 +6165,21 @@ onValue(ref(db,'notifications'), snap => {
     };
 
     window.obNext = function(){
-      if(_obStep===1 && !_obGoal){
+      if(_obStep===1 && _obAgeOk===null){
+        const opts = document.getElementById('obAgeOptions');
+        const hint = document.getElementById('obAgeHint');
+        if(hint){
+          hint.textContent = obT('เลือกอันหนึ่งก่อนนะ 👆', '先选一个哦 👆');
+          hint.style.display = 'block';
+        }
+        if(opts){
+          opts.classList.remove('ob-shake');
+          void opts.offsetWidth; // 强制重排，确保连续点两次也能重新触发抖动
+          opts.classList.add('ob-shake');
+        }
+        return;
+      }
+      if(_obStep===2 && !_obGoal){
         const opts = document.getElementById('obGoalOptions');
         const hint = document.getElementById('obGoalHint');
         if(hint){
@@ -6158,6 +6235,11 @@ onValue(ref(db,'notifications'), snap => {
         if(lp) localStorage.setItem('luna_onboard_last_period', lp);
         localStorage.setItem('luna_onboard_cycle_len', document.getElementById('obCycleVal').textContent);
         localStorage.setItem('luna_onboard_period_len', document.getElementById('obPeriodVal').textContent);
+        // 🩹 年龄答案：这个不进"onboard_*"那组临时键（那组答案应用完就会被清掉），
+        // 而是直接写成永久标记 luna_age_under_13，之后 canUseAI()/renderAiAnalysisGate() 会一直读它。
+        // _obAgeOk===null（理论上不该发生，obNext()已经挡住不选就不让往下走，这里只是双重保险）时
+        // 不写任何值，不会误伤成"限制"或"不限制"，交给后面默认值（未设置=不限制）处理。
+        if(_obAgeOk !== null) localStorage.setItem('luna_age_under_13', _obAgeOk ? '0' : '1');
         localStorage.setItem('luna_onboard_seen', '1');
       } catch(e){}
       if(typeof window.trackEvent === 'function') window.trackEvent('onboarding_complete');
@@ -6667,6 +6749,15 @@ window.setLang = setLang;
   function canRecord() {
     return isActivated() || inTrial();
   }
+
+  // 🩹 年龄限制：低于13岁的用户，AI相关功能（Luna小助手聊天、Luna智能洞察）不开放——
+  // 这两个功能会把用户输入/健康数据摘要发到第三方AI服务处理，风险跟App其他纯本地功能不是一个量级，
+  // 所以只限制这两处，记录/统计/自测这些纯本地功能仍然对所有年龄开放，不受影响。
+  // 判断依据是引导页问的那道"是否满13岁"，答案存在本地；13岁及以上、或者没有答过这道题（老用户）都返回false，不受影响。
+  function isAgeRestricted(){
+    try { return localStorage.getItem('luna_age_under_13') === '1'; } catch(e){ return false; }
+  }
+  window.isAgeRestricted = isAgeRestricted;
 
   // 实时监听激活状态（后台点「开始计时」后前台立刻感知）
   function watchActivation() {
@@ -8175,7 +8266,11 @@ window.setLang = setLang;
     const chips = document.getElementById('aiChips');
 
     function zh(){ return _appLang === 'zh'; }
-    function canUseAI(){ return (typeof isPro==='function'&&isPro()) || (typeof inTrial==='function'&&inTrial()); }
+    // 🩹 年龄限制：低于13岁的用户，不管是不是VIP/试用期，AI聊天一律不开放
+    function canUseAI(){
+      if(typeof isAgeRestricted==='function' && isAgeRestricted()) return false;
+      return (typeof isPro==='function'&&isPro()) || (typeof inTrial==='function'&&inTrial());
+    }
 
     // ── 知识库：每条 = {kw:[关键词], th:答案, zh:答案} ──
     // 你可以自由往下面这个数组里继续添加更多条目！格式照抄即可。
@@ -9369,6 +9464,12 @@ window.setLang = setLang;
     // ── 真AI兜底：只有预设库匹配不上才会走到这里，会真的消耗月光点数 ──
     async function askRealAI(q){
       const isTh = _appLang !== 'zh';
+      // 🩹 兜底防线：正常情况下canUseAI()已经在更前面拦住了，这里是双重保险
+      if(typeof isAgeRestricted === 'function' && isAgeRestricted()){
+        const t=document.getElementById('aiTyping'); if(t) t.remove();
+        showLockBubble();
+        return;
+      }
       if(!auth || !auth.currentUser){
         const t=document.getElementById('aiTyping'); if(t) t.remove();
         bubble(isTh?'กรุณาเข้าสู่ระบบก่อนนะคะ':'请先登录哦', 'luna');
@@ -9543,6 +9644,21 @@ window.setLang = setLang;
       body.innerHTML='';
       const w=document.createElement('div');
       w.style.cssText='text-align:center;padding:30px 18px;';
+      // 🩹 年龄限制导致的锁，跟"没开会员"导致的锁，文案必须分开——
+      // 年龄限制这种情况下，掏钱开会员并不能解锁，如果还照搬"开通会员解锁"这套话术，
+      // 会误导未成年用户以为付费能绕过去，所以这里单独一套文案，也不放"开始聊天/去开通"这个按钮
+      if(typeof isAgeRestricted==='function' && isAgeRestricted()){
+        w.innerHTML = (zh()
+          ? '<div style="font-size:40px;margin-bottom:12px;">🌙🔒</div>'
+            +'<div style="font-size:15px;font-weight:700;color:#2d2640;margin-bottom:8px;">Luna 小助手暂未开放</div>'
+            +'<div style="font-size:13px;color:#8b84a0;line-height:1.7;">这个功能涉及把内容发送给AI处理，为了保护未成年用户，暂时还不能使用哦，记录和统计功能不受影响 💗</div>'
+          : '<div style="font-size:40px;margin-bottom:12px;">🌙🔒</div>'
+            +'<div style="font-size:15px;font-weight:700;color:#2d2640;margin-bottom:8px;">Luna ผู้ช่วยน้อย ยังไม่เปิดให้ใช้</div>'
+            +'<div style="font-size:13px;color:#8b84a0;line-height:1.7;">ฟีเจอร์นี้ต้องส่งข้อมูลให้ AI ประมวลผล เพื่อปกป้องผู้ใช้ที่ยังไม่บรรลุนิติภาวะ จึงยังไม่เปิดให้ใช้ค่ะ การบันทึกและสถิติยังใช้ได้ตามปกตินะคะ 💗');
+        body.appendChild(w);
+        chips.style.display='none';
+        return;
+      }
       w.innerHTML = (zh()
         ? '<div style="font-size:40px;margin-bottom:12px;">🌙💎</div>'
           +'<div style="font-size:15px;font-weight:700;color:#2d2640;margin-bottom:8px;">Luna 小助手是 VIP 专属</div>'
@@ -9551,7 +9667,9 @@ window.setLang = setLang;
           +'<div style="font-size:15px;font-weight:700;color:#2d2640;margin-bottom:8px;">Luna ผู้ช่วยน้อย สำหรับสมาชิก VIP</div>'
           +'<div style="font-size:13px;color:#8b84a0;line-height:1.7;margin-bottom:18px;">Luna อยู่เป็นเพื่อนคุย เรื่องประจำเดือน อารมณ์ และตอบทุกข้อสงสัยได้เลยค่ะ 💗</div>');
       const btn=document.createElement('button');
-      btn.textContent = zh()?'เริ่มแชท':'เริ่มแชท';
+      // 🩹 顺手修了个跟这次任务无关但正好在同一行发现的bug：中文分支之前也写的是泰语"เริ่มแชท"，
+      // 两个分支文字一模一样，中文用户看到的按钮也是泰语——这个不是这次任务要改的，只是顺手带上
+      btn.textContent = zh()?'开始聊天':'เริ่มแชท';
       btn.style.cssText='border:none;background:linear-gradient(135deg,#9d7bd6,#e98ab0);color:#fff;font-weight:700;font-size:14px;padding:12px 28px;border-radius:14px;cursor:pointer;font-family:inherit;';
       btn.onclick=()=>{ closeAi(); if(typeof showTrialLockModal==='function'){showTrialLockModal('Luna 小助手为VIP专属','Luna ผู้ช่วยน้อยสำหรับสมาชิก VIP');} };
       w.appendChild(btn);
@@ -14001,7 +14119,20 @@ window.setLang = setLang;
     const realBlock = document.getElementById('aiAnalysisRealBlock');
     const lockedBlock = document.getElementById('aiAnalysisLockedBlock');
     if (!realBlock || !lockedBlock) return;
+    const ageBlocked = (typeof isAgeRestricted === 'function') && isAgeRestricted();
     const pro = (typeof isPro === 'function') && isPro();
+    // 🩹 年龄限制优先于VIP判断：就算是VIP账号，只要年龄不够，这个功能一样不开放，
+    // 锁定态的文案也要跟着换——年龄限制不是"没开会员"，不能引导去"解锁VIP"，那没用
+    const label = document.getElementById('aiAnalysisLockedLabel');
+    const unlockBtn = document.getElementById('aiAnalysisUnlockBtn');
+    if (ageBlocked) {
+      realBlock.style.display = 'none';
+      lockedBlock.style.display = 'block';
+      if (label) label.textContent = (_appLang==='zh' ? '🔒 该功能暂未开放' : '🔒 ฟีเจอร์นี้ยังไม่เปิดให้ใช้');
+      if (unlockBtn) unlockBtn.style.display = 'none';
+      return;
+    }
+    if (unlockBtn) unlockBtn.style.display = ''; // 从"年龄限制"状态切回正常状态时，按钮要还原回来
     if (pro) {
       realBlock.style.display = 'block';
       lockedBlock.style.display = 'none';
@@ -14009,6 +14140,7 @@ window.setLang = setLang;
     } else {
       realBlock.style.display = 'none';
       lockedBlock.style.display = 'block';
+      if (label) label.textContent = (_appLang==='zh' ? '🔒 VIP 专属 AI 分析' : '🔒 การวิเคราะห์เชิงลึกด้วย AI สำหรับ VIP');
     }
   }
   window.renderAiAnalysisGate = renderAiAnalysisGate;
@@ -14232,6 +14364,9 @@ window.setLang = setLang;
     const btn = document.getElementById('aiAnalysisBtn');
     const btnText = document.getElementById('aiAnalysisBtnText');
     const isTh = _appLang !== 'zh';
+    // 🩹 兜底防线：正常情况下未满13岁用户根本看不到这个按钮（renderAiAnalysisGate已经拦在UI层），
+    // 这里是双重保险，防止有别的路径能绕开UI直接调用这个函数
+    if (typeof isAgeRestricted === 'function' && isAgeRestricted()) return;
     if (!auth || !auth.currentUser) {
       if (typeof showToast === 'function') showToast(isTh ? 'กรุณาเข้าสู่ระบบก่อน' : '请先登录');
       return;
@@ -15811,6 +15946,447 @@ window.setLang = setLang;
     });
   });
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     🩺 自我护理 · 分支问卷引擎（独立新功能，框架先行，内容主题后续再定）
+     这是个完全独立的新脚本块：不读取、不修改、不依赖上面任何现有
+     功能的变量/函数/状态，所有函数名都带 sc 前缀，零命名冲突风险。
+
+     只提供一套通用的"聊天气泡式分支问卷"播放器——传入一份JSON格式的
+     "流程定义"（flow），它就能自动播放：
+       · messages：连续气泡消息，一条一条播出来（带打字间隔）
+       · continueTo：播完这一节点的消息后，显示一个"继续"按钮，
+         点了不会回显成"用户说了什么"，只是单纯展开下一节点的内容
+         （对应截图里那种"把一大段话拆成几屏慢慢看"的效果）
+       · options：真正的选项按钮，点了会像用户发消息一样回显一条气泡，
+         然后跳到该选项指定的下一节点（对应截图里"很高兴见到你"那种）
+       · isResult：终点节点，播完消息后显示"完成"按钮关闭面板
+
+     视觉上跟"Luna小助手"的聊天气泡是同一套语言（同样的渐变紫粉色、
+     同样的气泡圆角，直接复用同一套 aiBubbleIn / aiChipPop 动画关键帧），
+     一眼看上去像同一个产品做的，不会显得违和。
+
+     ⚠️ 目前只接了一份占位/演示用的流程（SC_DEMO_FLOW），内容是随便写的、
+     非医疗性质的示例，只是为了证明播放器本身能跑通、能左右横跳分支。
+     真正要上线的自测主题（经期不规律/PCOS倾向、怀孕迹象等）内容还没定，
+     等确定了具体要问哪些问题、每层怎么回答、结果怎么措辞，只需要照着
+     SC_DEMO_FLOW 的格式新写一份 flow JSON 传给 scOpenPanel() 就行，
+     完全不用碰这个引擎本身的代码。
+
+     临时测试方式：浏览器控制台执行 scOpenPanel() 即可打开演示流程看效果，
+     等正式的入口位置/内容主题定下来后，再把入口按钮摆到该放的地方。
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+  const SC_DEMO_FLOW = {
+    id: 'demo',
+    title: { zh:'自我护理（演示）', th:'ดูแลตัวเอง (ตัวอย่าง)' },
+    entry: 'start',
+    nodes: {
+      start: {
+        messages: [
+          { zh:'这是你的助手 💗', th:'นี่คือผู้ช่วยของคุณ 💗' },
+          { zh:'我会陪你一层一层看看这个功能要怎么问、怎么答 ✍️', th:'ฉันจะช่วยคุณดูทีละขั้นว่าฟีเจอร์นี้จะถามและตอบยังไง ✍️' }
+        ],
+        options: [
+          { label:{ zh:'好呀，开始吧', th:'ได้เลย เริ่มกันเลย' }, next:'step2' }
+        ]
+      },
+      step2: {
+        messages: [
+          { zh:'（示例内容）这里之后会换成真正的自测问题，比如"最近周期规律吗？"这一类', th:'(ตัวอย่าง) ตรงนี้จะเปลี่ยนเป็นคำถามจริงในภายหลัง เช่น "รอบเดือนช่วงนี้ปกติไหม?"' }
+        ],
+        continueTo: 'step3'
+      },
+      step3: {
+        messages: [
+          { zh:'点下面的按钮试试选项要怎么跳转 👇', th:'ลองกดปุ่มด้านล่างดูว่าตัวเลือกจะพาไปต่อยังไง 👇' }
+        ],
+        options: [
+          { label:{ zh:'选项 A', th:'ตัวเลือก A' }, next:'resultA' },
+          { label:{ zh:'选项 B', th:'ตัวเลือก B' }, next:'resultB' }
+        ]
+      },
+      resultA: {
+        messages: [ { zh:'这里会是走 A 分支的结果内容（示例）', th:'ตรงนี้จะเป็นผลลัพธ์ของสาย A (ตัวอย่าง)' } ],
+        isResult: true
+      },
+      resultB: {
+        messages: [ { zh:'这里会是走 B 分支的结果内容（示例）', th:'ตรงนี้จะเป็นผลลัพธ์ของสาย B (ตัวอย่าง)' } ],
+        isResult: true
+      }
+    }
+  };
+
+  let _scCurrentFlow = null;
+
+  // ══════════════════════════════════════════════════════════════
+  // 🩺 第一个正式上线的自测主题：月经规律自测（已扩充分支——原来2层问答，
+  //    现在是"周期规律程度→伴随症状→症状持续多久"3层，末端一共6种不同结果，
+  //    覆盖更多组合情况，但每一步依然是用户自己点选项，没有任何App自动算分/
+  //    自动判断的逻辑，安全原则跟第一版完全一致）
+  // 写作原则（呼应之前讨论的"不说医疗器械话题"）：
+  //   · 全程不用"确诊""你有XX病"这类诊断性语言，只说"这几个信号常一起出现"
+  //   · PCOS/怀孕 只作为"可能原因之一"提到，不暗示测完就等于有没有这个情况
+  //   · 每条结果都引导"持续记录 + 有需要就去看医生"，不给出具体诊疗建议
+  //   · 内容是我自己写的原创文案，没有照抄任何第三方App的题目或说法
+  // ══════════════════════════════════════════════════════════════
+  const SC_FLOW_IRREGULAR_PERIODS = {
+    id: 'irregular_periods',
+    title: { zh:'月经规律自测', th:'ตรวจสอบความสม่ำเสมอของประจำเดือน' },
+    entry: 'start',
+    nodes: {
+      start: {
+        messages: [
+          { zh:'嗨，我是你的自我护理小助手 💗', th:'สวัสดีค่ะ ฉันคือผู้ช่วยดูแลตัวเอง 💗' },
+          { zh:'接下来会问你几个关于月经周期的问题，只是想帮你更了解自己的身体信号，不是诊断哦 ✍️', th:'ต่อไปนี้จะถามคำถามเกี่ยวกับรอบเดือนสักสองสามข้อ เพื่อช่วยให้คุณเข้าใจสัญญาณร่างกายตัวเองมากขึ้น ไม่ใช่การวินิจฉัยนะคะ ✍️' }
+        ],
+        options: [
+          { label:{ zh:'好，开始吧', th:'ได้เลย เริ่มเลย' }, next:'q_cycle' }
+        ]
+      },
+      q_cycle: {
+        messages: [
+          { zh:'你的月经周期，大概是多少天来一次呢？（从这次来第一天，到下次来第一天）', th:'รอบเดือนของคุณปกติมาทุกกี่วันคะ? (นับจากวันแรกของรอบนี้ ถึงวันแรกของรอบถัดไป)' }
+        ],
+        options: [
+          { label:{ zh:'挺规律的，21-35天左右', th:'ค่อนข้างสม่ำเสมอ ประมาณ 21-35 วัน' }, next:'q_regular_followup' },
+          { label:{ zh:'有时候差很多，不太固定', th:'บางครั้งคลาดเคลื่อนเยอะ ไม่ค่อยแน่นอน' }, next:'q_age_mild' },
+          { label:{ zh:'经常隔好几个月才来，很难预测', th:'มักจะห่างกันหลายเดือน คาดเดายากมาก' }, next:'q_age_severe' }
+        ]
+      },
+      q_regular_followup: {
+        messages: [
+          { zh:'虽然周期挺规律的，但有没有这些困扰呢？', th:'ถึงแม้รอบเดือนจะสม่ำเสมอ แต่มีเรื่องกวนใจแบบนี้บ้างไหมคะ?' }
+        ],
+        options: [
+          { label:{ zh:'痛经比较明显', th:'ปวดประจำเดือนค่อนข้างมาก' }, next:'result_pain_managed' },
+          { label:{ zh:'经量比较大，用量很多', th:'ปริมาณประจำเดือนค่อนข้างเยอะ ใช้ผ้าอนามัยเปลือง' }, next:'result_heavy_flow' },
+          { label:{ zh:'都还好，没有特别困扰', th:'ทุกอย่างโอเค ไม่มีอะไรกวนใจเป็นพิเศษ' }, next:'result_regular' }
+        ]
+      },
+      result_pain_managed: {
+        messages: [
+          { zh:'痛经很常见，热敷、适度运动、充分休息通常能缓解不少', th:'อาการปวดประจำเดือนพบได้บ่อยมาก การประคบร้อน ออกกำลังกายเบา ๆ และพักผ่อนให้เพียงพอ มักช่วยบรรเทาได้เยอะเลยค่ะ' },
+          { zh:'但如果疼痛已经严重到影响日常生活、吃止痛药也没什么效果，或者比以前明显加重了，就比较建议找医生看看，排查一下是不是有其他原因', th:'แต่ถ้าอาการปวดรุนแรงจนกระทบชีวิตประจำวัน กินยาแก้ปวดแล้วไม่ค่อยดีขึ้น หรือปวดมากกว่าเดิมชัดเจน แนะนำให้ไปพบแพทย์เพื่อตรวจดูสาเหตุอื่น ๆ เพิ่มเติมนะคะ' }
+        ],
+        isResult: true
+      },
+      result_heavy_flow: {
+        messages: [
+          { zh:'每个人的经量本来就有差异，但如果经常一小时就要换一次卫生用品、经期超过7天，或者伴有头晕、乏力这些贫血相关的感觉，会比较建议找医生检查一下', th:'ปริมาณประจำเดือนของแต่ละคนไม่เหมือนกันอยู่แล้ว แต่ถ้าต้องเปลี่ยนผ้าอนามัยทุกชั่วโมง มีประจำเดือนนานเกิน 7 วัน หรือมีอาการวิงเวียน อ่อนเพลียแบบภาวะโลหิตจาง แนะนำให้ไปพบแพทย์เพื่อตรวจดูนะคะ' },
+          { zh:'平时在 Luna 里记录一下经量和天数，看医生时带上这些记录会很有帮助', th:'ลองบันทึกปริมาณและจำนวนวันของประจำเดือนใน Luna ไว้นะคะ พอไปหาหมอจะได้เอาข้อมูลนี้ไปด้วย' }
+        ],
+        isResult: true
+      },
+      q_age_mild: {
+        messages: [
+          { zh:'你的月经初潮，大概是多久之前呢？', th:'คุณมีประจำเดือนครั้งแรกมานานแค่ไหนแล้วคะ?' }
+        ],
+        options: [
+          { label:{ zh:'不到2年', th:'ไม่ถึง 2 ปี' }, next:'result_young_mild' },
+          { label:{ zh:'已经好几年了', th:'หลายปีแล้ว' }, next:'q_symptoms_mild' }
+        ]
+      },
+      result_young_mild: {
+        messages: [
+          { zh:'初潮后的头2年内，身体的荷尔蒙系统还在慢慢建立规律，周期不太固定其实很常见，大多会随着时间自己慢慢变规律——但这不代表这段时间内什么情况都可以先不管', th:'ในช่วง 2 ปีแรกหลังมีประจำเดือนครั้งแรก ระบบฮอร์โมนในร่างกายยังอยู่ในช่วงปรับตัว รอบเดือนไม่ค่อยแน่นอนถือเป็นเรื่องปกติมากค่ะ ส่วนใหญ่จะค่อย ๆ สม่ำเสมอขึ้นเองตามเวลา แต่ไม่ได้แปลว่าช่วงนี้จะปล่อยผ่านทุกอย่างได้นะคะ' },
+          { zh:'如果出现连续3个月以上完全没有月经、疼痛严重到影响日常生活、或者经量特别大这些情况，就算还在头2年内，也建议尽早找医生看看，不用非等到2-3年后', th:'ถ้าขาดประจำเดือนติดต่อกันเกิน 3 เดือน ปวดรุนแรงจนกระทบชีวิตประจำวัน หรือมีเลือดออกเยอะผิดปกติ ต่อให้ยังอยู่ในช่วง 2 ปีแรก ก็แนะนำให้ไปพบแพทย์เร็ว ๆ นี้ได้เลย ไม่ต้องรอถึง 2-3 ปีนะคะ' },
+          { zh:'如果只是周期长短不太固定、没有其他明显不舒服，那确实可以先继续在 Luna 里观察记录，多给身体一点适应的时间', th:'แต่ถ้าแค่รอบเดือนสั้นยาวไม่แน่นอน ไม่มีอาการผิดปกติอื่น ก็บันทึกสังเกตอาการใน Luna ต่อไปก่อนได้ค่ะ ให้เวลาร่างกายปรับตัวสักหน่อย' }
+        ],
+        isResult: true
+      },
+      q_age_severe: {
+        messages: [
+          { zh:'你的月经初潮，大概是多久之前呢？', th:'คุณมีประจำเดือนครั้งแรกมานานแค่ไหนแล้วคะ?' }
+        ],
+        options: [
+          { label:{ zh:'不到2年', th:'ไม่ถึง 2 ปี' }, next:'result_young_severe' },
+          { label:{ zh:'已经好几年了', th:'หลายปีแล้ว' }, next:'q_symptoms_severe' }
+        ]
+      },
+      result_young_severe: {
+        messages: [
+          { zh:'初潮后的头2年内，周期不规律、甚至隔好几个月才来，也是有可能发生的，身体还在慢慢找到自己的节奏', th:'ในช่วง 2 ปีแรกหลังมีประจำเดือนครั้งแรก การที่รอบเดือนไม่สม่ำเสมอ หรือห่างกันหลายเดือน ก็เป็นไปได้เช่นกันค่ะ ร่างกายยังอยู่ในช่วงค้นหาจังหวะของตัวเอง' },
+          { zh:'不过如果超过3个月完全没有来，或者出现疼痛严重、经量异常这些明显不舒服的情况，就算还在头2年内，也建议跟家人商量一下，尽早找医生看看比较放心，不用等', th:'แต่ถ้าขาดประจำเดือนไปนานเกิน 3 เดือนเต็ม หรือมีอาการปวดรุนแรง เลือดออกผิดปกติที่ไม่สบายตัวชัดเจน ต่อให้ยังอยู่ในช่วง 2 ปีแรก ก็แนะนำให้ปรึกษาครอบครัวและรีบไปพบแพทย์เพื่อความสบายใจนะคะ ไม่ต้องรอ' }
+        ],
+        isResult: true
+      },
+      result_regular: {
+        messages: [
+          { zh:'听起来你的周期算是比较规律的 🌸 继续保持现在的记录习惯就很好，能帮你更早发现万一以后出现的变化', th:'ฟังดูรอบเดือนของคุณค่อนข้างสม่ำเสมอนะคะ 🌸 แนะนำให้บันทึกต่อไปเรื่อย ๆ จะช่วยให้สังเกตความเปลี่ยนแปลงในอนาคตได้เร็วขึ้น' },
+          { zh:'如果之后周期开始变得不规律，或者出现明显不舒服的症状，随时可以回来看看，或者直接咨询医生', th:'ถ้าในอนาคตรอบเดือนเริ่มไม่สม่ำเสมอ หรือมีอาการผิดปกติที่รู้สึกไม่สบายตัว กลับมาดูตรงนี้ได้เสมอ หรือปรึกษาแพทย์โดยตรงก็ได้นะคะ' }
+        ],
+        isResult: true
+      },
+      q_symptoms_mild: {
+        messages: [
+          { zh:'周期不太固定的原因有很多，压力、体重变化、作息，还有多囊卵巢综合征（PCOS）都可能是其中之一', th:'สาเหตุที่รอบเดือนไม่ค่อยแน่นอนมีหลายอย่าง ทั้งความเครียด น้ำหนักที่เปลี่ยนแปลง การพักผ่อน หรือแม้แต่ภาวะถุงน้ำรังไข่หลายใบ (PCOS) ก็เป็นไปได้เช่นกัน' },
+          { zh:'除了周期不准，最近有没有留意到这些变化呢？', th:'นอกจากรอบเดือนไม่แน่นอนแล้ว ช่วงนี้สังเกตเห็นความเปลี่ยนแปลงแบบนี้บ้างไหมคะ?' }
+        ],
+        options: [
+          { label:{ zh:'痘痘变多、毛发也变多了', th:'สิวขึ้นเยอะขึ้น ขนก็ดกขึ้น' }, next:'q_duration_hormonal' },
+          { label:{ zh:'体重变化明显，比较难控制', th:'น้ำหนักเปลี่ยนแปลงชัดเจน ควบคุมยาก' }, next:'q_duration_hormonal' },
+          { label:{ zh:'情绪波动比较大，容易觉得累', th:'อารมณ์แปรปรวนง่าย รู้สึกเหนื่อยง่าย' }, next:'result_mood_fatigue' },
+          { label:{ zh:'经前特别不舒服（胀痛/情绪低落）', th:'ก่อนมีประจำเดือนรู้สึกไม่สบายตัวมาก (ปวดตึง/อารมณ์หดหู่)' }, next:'q_pms_severity' },
+          { label:{ zh:'没有，就是周期不准而已', th:'ไม่มีค่ะ แค่รอบเดือนไม่แน่นอนเท่านั้น' }, next:'result_irregular_only' }
+        ]
+      },
+      q_symptoms_severe: {
+        messages: [
+          { zh:'隔好几个月才来一次，这样的情况本身就值得多留意一下', th:'การที่รอบเดือนห่างกันหลายเดือน เป็นสัญญาณที่ควรใส่ใจสักหน่อยนะคะ' },
+          { zh:'除了这个，最近有没有留意到这些变化呢？', th:'นอกจากนี้ ช่วงนี้สังเกตเห็นความเปลี่ยนแปลงแบบนี้บ้างไหมคะ?' }
+        ],
+        options: [
+          { label:{ zh:'痘痘变多、毛发也变多了', th:'สิวขึ้นเยอะขึ้น ขนก็ดกขึ้น' }, next:'q_duration_hormonal' },
+          { label:{ zh:'体重变化明显，比较难控制', th:'น้ำหนักเปลี่ยนแปลงชัดเจน ควบคุมยาก' }, next:'q_duration_hormonal' },
+          { label:{ zh:'没有其他变化，就是很久没来', th:'ไม่มีการเปลี่ยนแปลงอื่น แค่ประจำเดือนขาดไปนาน' }, next:'result_amenorrhea_only' }
+        ]
+      },
+      q_duration_hormonal: {
+        messages: [
+          { zh:'这些变化，你大概是从什么时候开始留意到的呢？', th:'ความเปลี่ยนแปลงเหล่านี้ คุณเริ่มสังเกตเห็นตั้งแต่เมื่อไหร่คะ?' }
+        ],
+        options: [
+          { label:{ zh:'最近一两个月才这样', th:'เพิ่งสังเกตเห็นในช่วง 1-2 เดือนที่ผ่านมา' }, next:'result_hormonal_recent' },
+          { label:{ zh:'已经持续半年以上了', th:'เป็นแบบนี้มานานกว่า 6 เดือนแล้ว' }, next:'result_hormonal_prolonged' }
+        ]
+      },
+      result_hormonal_recent: {
+        messages: [
+          { zh:'最近一两个月才出现的变化，很多时候跟近期的压力、作息、体重波动有关，属于比较常见的情况', th:'ความเปลี่ยนแปลงที่เพิ่งเกิดขึ้นในช่วง 1-2 เดือน ส่วนใหญ่มักเกี่ยวข้องกับความเครียด การพักผ่อน หรือน้ำหนักที่เปลี่ยนแปลงในช่วงนี้ ถือเป็นเรื่องที่พบได้บ่อยค่ะ' },
+          { zh:'建议继续在 Luna 里记录，观察一阵子；如果这些变化持续超过2-3个月都没有缓解，再考虑找医生看看', th:'แนะนำให้บันทึกใน Luna ต่อไปเรื่อย ๆ สังเกตอาการสักพัก ถ้ายังไม่ดีขึ้นภายใน 2-3 เดือน ค่อยพิจารณาไปพบแพทย์นะคะ' }
+        ],
+        isResult: true
+      },
+      result_hormonal_prolonged: {
+        messages: [
+          { zh:'持续半年以上的话，这几个信号加在一起，比较建议尽快找妇科医生做个检查——抽血或B超都能帮忙确认具体原因，PCOS只是其中一种可能，医生会综合判断，不用自己先吓自己', th:'ถ้าเป็นต่อเนื่องมานานกว่า 6 เดือน สัญญาณเหล่านี้รวมกันแนะนำให้ไปพบสูตินรีแพทย์เพื่อตรวจโดยเร็วนะคะ ไม่ว่าจะเจาะเลือดหรืออัลตราซาวด์ก็ช่วยยืนยันสาเหตุได้ PCOS เป็นแค่หนึ่งในความเป็นไปได้เท่านั้น หมอจะพิจารณาให้อย่างครบถ้วน ไม่ต้องกังวลไปก่อนนะคะ' },
+          { zh:'去看医生之前，记得把 Luna 里记录的周期和症状带上，会很有帮助 💗', th:'ก่อนไปหาหมอ อย่าลืมเอาข้อมูลรอบเดือนและอาการที่บันทึกไว้ใน Luna ไปด้วยนะคะ จะเป็นประโยชน์มากเลยค่ะ 💗' }
+        ],
+        isResult: true
+      },
+      result_mood_fatigue: {
+        messages: [
+          { zh:'情绪波动比较大、容易觉得累，其实跟月经周期本身的荷尔蒙变化关系很密切，压力和睡眠也会放大这种感觉', th:'อารมณ์แปรปรวนง่ายหรือรู้สึกเหนื่อยง่าย จริง ๆ แล้วเกี่ยวข้องกับการเปลี่ยนแปลงของฮอร์โมนในรอบเดือนโดยตรง ความเครียดและการนอนหลับก็ทำให้รู้สึกแบบนี้มากขึ้นได้เช่นกัน' },
+          { zh:'可以试着在 Luna 里同步记录心情和周期，看看两者是不是有关联；如果情绪已经明显影响到日常生活了，找人聊聊（家人朋友，或者专业咨询）也是很好的选择', th:'ลองบันทึกอารมณ์คู่กับรอบเดือนใน Luna ดูนะคะ จะได้เห็นว่ามันเกี่ยวข้องกันไหม ถ้าอารมณ์เริ่มส่งผลกระทบต่อชีวิตประจำวันชัดเจน การพูดคุยกับคนใกล้ตัวหรือผู้เชี่ยวชาญก็เป็นทางเลือกที่ดีนะคะ' }
+        ],
+        isResult: true
+      },
+      result_irregular_only: {
+        messages: [
+          { zh:'只是周期不准、没有其他明显变化的话，也别太担心，压力、熬夜、体重波动都可能暂时打乱周期', th:'ถ้าแค่รอบเดือนไม่แน่นอน แต่ไม่มีความเปลี่ยนแปลงอื่นที่ชัดเจน ก็ไม่ต้องกังวลมากเกินไปนะคะ ความเครียด นอนดึก หรือน้ำหนักที่ขึ้นลง ก็ทำให้รอบเดือนแปรปรวนชั่วคราวได้' },
+          { zh:'建议继续在 Luna 里记录，如果这种不规律持续超过3个月，或者出现新的不舒服症状，就比较建议找医生看看了', th:'แนะนำให้บันทึกใน Luna ต่อไปเรื่อย ๆ นะคะ ถ้าอาการไม่สม่ำเสมอแบบนี้เป็นต่อเนื่องเกิน 3 เดือน หรือมีอาการผิดปกติใหม่ ๆ เกิดขึ้น แนะนำให้ไปพบแพทย์ดีกว่าค่ะ' }
+        ],
+        isResult: true
+      },
+      result_amenorrhea_only: {
+        messages: [
+          { zh:'连续几个月没有月经，就算没有其他不舒服，这件事本身也值得去看看医生——可能是压力、体重变化，也可能是怀孕或者其他原因，检查一下会比较安心', th:'ประจำเดือนขาดหายไปหลายเดือนติดต่อกัน แม้จะไม่มีอาการอื่นที่ไม่สบายตัว ก็ยังคุ้มค่าที่จะไปพบแพทย์นะคะ — อาจเกิดจากความเครียด น้ำหนักที่เปลี่ยนแปลง หรือแม้แต่การตั้งครรภ์ก็เป็นไปได้ ตรวจดูสักครั้งจะสบายใจกว่าค่ะ' }
+        ],
+        isResult: true
+      },
+      q_pms_severity: {
+        messages: [
+          { zh:'这种经前的不舒服，有没有明显影响到你的日常生活或工作呢？', th:'อาการไม่สบายตัวก่อนมีประจำเดือนแบบนี้ ส่งผลกระทบต่อชีวิตประจำวันหรือการทำงานของคุณชัดเจนไหมคะ?' }
+        ],
+        options: [
+          { label:{ zh:'会，比较严重，很难专心做事', th:'ใช่ ค่อนข้างรุนแรง มีสมาธิทำอะไรยาก' }, next:'result_pms_severe' },
+          { label:{ zh:'还好，能应付得来', th:'พอไหว จัดการได้' }, next:'result_pms_lifestyle' }
+        ]
+      },
+      result_pms_lifestyle: {
+        messages: [
+          { zh:'经前出现胀痛、情绪波动这些，是很常见的经前综合征（PMS），规律作息、适度运动、减少咖啡因和盐分摄入，通常能帮忙缓解一些', th:'อาการปวดตึงหรืออารมณ์แปรปรวนก่อนมีประจำเดือน เป็นกลุ่มอาการก่อนมีประจำเดือน (PMS) ที่พบได้ทั่วไปค่ะ การนอนหลับให้เป็นเวลา ออกกำลังกายเบา ๆ และลดคาเฟอีนกับเกลือ มักช่วยบรรเทาอาการได้บ้าง' },
+          { zh:'可以在 Luna 里记录一下经前这几天的感受，慢慢摸清自己的规律', th:'ลองบันทึกความรู้สึกช่วงก่อนมีประจำเดือนใน Luna ดูนะคะ จะได้ค่อย ๆ เข้าใจรูปแบบของตัวเองมากขึ้น' }
+        ],
+        isResult: true
+      },
+      result_pms_severe: {
+        messages: [
+          { zh:'如果经前的情绪或身体不适已经严重到影响生活和工作，有一种叫经前不悦症（PMDD）的情况也可能是原因之一，这个通常需要医生帮忙评估和处理', th:'ถ้าอารมณ์หรืออาการทางร่างกายก่อนมีประจำเดือนรุนแรงจนกระทบชีวิตและการทำงาน ภาวะที่เรียกว่า PMDD ก็อาจเป็นสาเหตุหนึ่งได้ค่ะ ซึ่งมักต้องให้แพทย์ช่วยประเมินและดูแล' },
+          { zh:'建议找医生或者专业咨询聊聊，不用一个人硬撑，这种情况是可以被帮助和改善的', th:'แนะนำให้ปรึกษาแพทย์หรือผู้เชี่ยวชาญนะคะ ไม่ต้องฝืนทนคนเดียว อาการแบบนี้สามารถได้รับการช่วยเหลือและดีขึ้นได้ค่ะ' }
+        ],
+        isResult: true
+      }
+    }
+  };
+
+  function scLang(){ return (typeof _appLang !== 'undefined' && _appLang === 'zh') ? 'zh' : 'th'; }
+
+  // ══════════════════════════════════════════════════════════════
+  // 🩹 折中方案：把用户自己记录的真实周期天数摆出来给TA看，但不由App替TA下判断
+  //   · 只显示原始天数（比如"28天、31天、24天"），不贴"规律/不规律""波动较大"这类
+  //     App自己给的标签或形容词——判断权完全留在用户自己手上
+  //   · 后面q_cycle那道题的文字和三个自报选项完全没动，用户还是自己点自己的判断，
+  //     App不会拿这几个数字自动算出"规律与否"再据此分支
+  //   · 直接读localStorage的luna_period_days，不依赖periodSet这类可能跨脚本作用域
+  //     看不到的变量——这个模块要保持完全独立，不跟主脚本的变量耦合
+  //   · 数据不够（比如新用户还没积累够2个完整周期）就跳过这一步，
+  //     直接回退成原来纯自报的版本，不会因为没数据就卡住或报错
+  // ══════════════════════════════════════════════════════════════
+  function scGetRecentCycleLengths(n){
+    let pdArr = [];
+    try { pdArr = JSON.parse(localStorage.getItem('luna_period_days') || '[]'); } catch(e){}
+    if(!Array.isArray(pdArr) || !pdArr.length) return [];
+    const parseLocal = k => { const parts = String(k).split('-').map(Number); return new Date(parts[0], parts[1]-1, parts[2]); };
+    const today = new Date(); today.setHours(0,0,0,0);
+    let sorted;
+    try { sorted = [...new Set(pdArr)].filter(k=>{ const d=parseLocal(k); return d instanceof Date && !isNaN(d) && d<=today; }).sort(); }
+    catch(e){ return []; }
+    if(!sorted.length) return [];
+    // 把连续（间隔<=2天算同一次）的日期归并成一次次「经期」，逻辑跟统计页「周期长度历史」那处一致
+    let runs = [[sorted[0]]];
+    for(let i=1;i<sorted.length;i++){
+      const diff = (parseLocal(sorted[i]) - parseLocal(sorted[i-1])) / 86400000;
+      if(diff <= 2) runs[runs.length-1].push(sorted[i]);
+      else runs.push([sorted[i]]);
+    }
+    if(runs.length < 2) return []; // 完成的周期数不够，还算不出"周期长度"
+    const cycles = [];
+    for(let i=1;i<runs.length;i++){
+      const from = parseLocal(runs[i-1][0]);
+      const to = parseLocal(runs[i][0]);
+      const len = Math.round((to-from)/86400000);
+      if(len > 0) cycles.push(len);
+    }
+    return cycles.slice(-n);
+  }
+
+  function scBuildIrregularPeriodsFlow(){
+    const flow = JSON.parse(JSON.stringify(SC_FLOW_IRREGULAR_PERIODS)); // 深拷贝，每次打开都是干净的一份，不会互相污染
+    const lens = scGetRecentCycleLengths(3);
+    if(lens.length >= 2){
+      const zhList = lens.map(l=>l+'天').join('、');
+      const thList = lens.map(l=>l+' วัน').join(', ');
+      // 只摆事实（原始天数），不加"规律/不规律"这类App自己给的形容词或结论
+      flow.nodes.q_cycle_intro = {
+        messages: [
+          { zh:'先看看你自己记录的情况——最近几次周期分别是 '+zhList, th:'มาดูข้อมูลที่คุณบันทึกไว้ก่อนนะคะ — รอบล่าสุดของคุณคือ '+thList }
+        ],
+        continueTo: 'q_cycle'
+      };
+      if(flow.nodes.start && flow.nodes.start.options && flow.nodes.start.options[0]){
+        flow.nodes.start.options[0].next = 'q_cycle_intro';
+      }
+    }
+    return flow;
+  }
+
+
+  function scOpenPanel(flow){
+    _scCurrentFlow = flow || SC_DEMO_FLOW;
+    const panel = document.getElementById('scPanel');
+    const titleEl = document.getElementById('scPanelTitle');
+    const body = document.getElementById('scBody');
+    if(!panel || !body) return;
+    if(titleEl) titleEl.textContent = (_scCurrentFlow.title && _scCurrentFlow.title[scLang()]) || '';
+    body.innerHTML = '';
+    panel.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    scGoToNode(_scCurrentFlow.entry);
+  }
+  window.scOpenPanel = scOpenPanel;
+
+  function scClosePanel(){
+    const panel = document.getElementById('scPanel');
+    if(panel) panel.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  window.scClosePanel = scClosePanel;
+
+  function scBubble(text, who){
+    const body = document.getElementById('scBody');
+    if(!body) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;'+(who==='me'?'justify-content:flex-end;':'justify-content:flex-start;')+'animation:aiBubbleIn 0.35s ease both;';
+    const b = document.createElement('div');
+    b.style.cssText = 'max-width:80%;padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;'
+      + (who==='me'
+        ? 'background:linear-gradient(135deg,var(--purple,#a585dd),var(--purple-light,#d68fc4));color:#fff;border-bottom-right-radius:5px;box-shadow:0 4px 12px rgba(var(--purple-rgb),0.32);'
+        : 'background:var(--card,#fff);color:var(--text,#2d2640);border:1px solid rgba(var(--purple-rgb),0.1);border-bottom-left-radius:5px;box-shadow:0 4px 14px rgba(var(--purple-rgb),0.12);');
+    b.textContent = text;
+    wrap.appendChild(b);
+    body.appendChild(wrap);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function scOptions(list){
+    const body = document.getElementById('scBody');
+    if(!body || !list || !list.length) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;margin-top:2px;';
+    list.forEach(function(opt, idx){
+      const c = document.createElement('span');
+      c.textContent = (opt.label && opt.label[scLang()]) || '';
+      c.className = 'ai-chip-anim';
+      c.style.cssText = 'background:var(--purple-pale,#f6f1fc);color:var(--purple,#7c5cbf);font-size:13px;padding:9px 15px;border-radius:16px;cursor:pointer;border:1px solid rgba(var(--purple-rgb),0.14);font-weight:600;animation-delay:'+(idx*0.08)+'s;';
+      c.onclick = function(){
+        wrap.remove();
+        scBubble((opt.label && opt.label[scLang()]) || '', 'me');
+        setTimeout(function(){ scGoToNode(opt.next); }, 350);
+      };
+      wrap.appendChild(c);
+    });
+    body.appendChild(wrap);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function scContinueBtn(nextId){
+    const body = document.getElementById('scBody');
+    if(!body) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;justify-content:flex-start;margin-top:2px;';
+    const c = document.createElement('span');
+    c.textContent = (scLang()==='zh' ? '继续' : 'ต่อไป') + ' →';
+    c.className = 'ai-chip-anim';
+    c.style.cssText = 'background:var(--card,#fff);color:var(--purple,#9d7bd6);font-size:13px;padding:9px 16px;border-radius:16px;cursor:pointer;border:1.5px dashed rgba(var(--purple-rgb),0.35);font-weight:600;';
+    c.onclick = function(){ wrap.remove(); scGoToNode(nextId); };
+    wrap.appendChild(c);
+    body.appendChild(wrap);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  // 🩹 走到结果节点后，之前这里会自动弹一个"完成"按钮，点了直接关掉整个面板——
+  // 这样等于变相逼用户看完结果就得离开，而不是让TA自己决定什么时候退出。
+  // 现在改成：播完结果消息后什么都不做，留在当前页面，用户想走的时候自己点
+  // 顶栏那个‹返回箭头就行（这个箭头本来就一直在，从头到尾随时能点）。
+  // scShowResultActions 这个函数本身留着不删，只是不再自动调用——万一以后
+  // 想在结果页加别的按钮（比如"重新测一次""分享"之类），随时能接回来用。
+  function scShowResultActions(){
+    const body = document.getElementById('scBody');
+    if(!body) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;justify-content:center;margin-top:10px;';
+    const c = document.createElement('span');
+    c.textContent = scLang()==='zh' ? '完成' : 'เสร็จสิ้น';
+    c.style.cssText = 'background:linear-gradient(135deg,#a585dd,#d68fc4);color:#fff;font-size:13.5px;padding:10px 22px;border-radius:18px;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(150,90,180,0.32);';
+    c.onclick = scClosePanel;
+    wrap.appendChild(c);
+    body.appendChild(wrap);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function scGoToNode(nodeId){
+    if(!_scCurrentFlow) return;
+    const node = _scCurrentFlow.nodes[nodeId];
+    if(!node) return;
+    const msgs = node.messages || [];
+    let i = 0;
+    function playNext(){
+      if(i >= msgs.length){
+        if(node.options) scOptions(node.options);
+        else if(node.continueTo) scContinueBtn(node.continueTo);
+        // isResult 节点：消息播完就停在这里，不自动弹按钮、不自动关闭，
+        // 用户看完想退出的话，自己点顶栏‹箭头就行
+        return;
+      }
+      const m = msgs[i]; i++;
+      scBubble((m && m[scLang()]) || '', 'luna');
+      setTimeout(playNext, 450 + Math.random()*250);
+    }
+    playNext();
+  }
+</script>
 <!-- ═══ 统计面板 ═══ -->
 <div id="statsPanel" style="display:none; position:fixed; inset:0; background:var(--stat-bg); z-index:150; overflow-y:auto; padding-bottom:30px; transition:background .4s ease;">
 
@@ -15870,6 +16446,19 @@ window.setLang = setLang;
         <div style="flex:1; min-width:0;">
           <div style="font-size:15px;font-weight:700;color:var(--stat-fg);"><span data-i18n="cycle_phase_entry_title">รายละเอียดรอบเดือน</span></div>
           <div style="font-size:12px; color:var(--stat-fg-muted); margin-top:3px;"><span data-i18n="cycle_phase_entry_sub">ประจำเดือน / ฟอลลิเคิล / ตกไข่ / ลูเทียล</span></div>
+        </div>
+        <span style="font-size:32px; font-weight:700; color:var(--stat-fg); flex-shrink:0;">›</span>
+      </div>
+
+      <!-- 🩺 自我护理 磁贴（红，放在"周期详情"正下方）——已接入正式内容：月经规律自测。
+           点开时通过 scBuildIrregularPeriodsFlow() 现算一份flow：如果用户自己有足够的周期记录，
+           会先把真实天数摆给TA看（不贴判断标签），再问原来那道自报题；数据不够就自动回退成
+           纯自报版本，两种情况入口都是这一个按钮，不用分开做两个入口 -->
+      <div onclick="scOpenPanel(scBuildIrregularPeriodsFlow())" class="stat-tile">
+        <span class="s-svg-icon" data-c="red" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/><path d="M3.5 12h4l1.5-3 2 6 1.5-3h4"/></svg></span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:15px;font-weight:700;color:var(--stat-fg);"><span data-i18n="self_care_entry_title">自我护理</span></div>
+          <div style="font-size:12px; color:var(--stat-fg-muted); margin-top:3px;"><span data-i18n="self_care_entry_sub">测一测你的月经周期规律吗</span></div>
         </div>
         <span style="font-size:32px; font-weight:700; color:var(--stat-fg); flex-shrink:0;">›</span>
       </div>
@@ -15986,8 +16575,8 @@ window.setLang = setLang;
           </button>
         </div>
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-          <div style="font-size:13px;font-weight:600;color:var(--purple);" data-i18n="ai_analysis_locked_label">🔒 VIP 专属 AI 分析</div>
-          <button onclick="if(window.showTrialLockModal)showTrialLockModal('AI深度分析为VIP专属','การวิเคราะห์เชิงลึกด้วย AI สำหรับสมาชิก VIP');else{const b=document.getElementById('trialBanner');if(b)b.scrollIntoView();}"
+          <div id="aiAnalysisLockedLabel" style="font-size:13px;font-weight:600;color:var(--purple);" data-i18n="ai_analysis_locked_label">🔒 VIP 专属 AI 分析</div>
+          <button id="aiAnalysisUnlockBtn" onclick="if(window.showTrialLockModal)showTrialLockModal('AI深度分析为VIP专属','การวิเคราะห์เชิงลึกด้วย AI สำหรับสมาชิก VIP');else{const b=document.getElementById('trialBanner');if(b)b.scrollIntoView();}"
             style="background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;border:none;border-radius:20px;padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(var(--purple-rgb),0.3);"
             data-i18n="ai_analysis_unlock_btn">解锁 VIP 查看</button>
         </div>
@@ -16203,6 +16792,27 @@ window.setLang = setLang;
     </div>
   </div>
 
+</div>
+
+<!-- ═══ 🩺 自我护理 · 分支问卷框架（独立新功能，只是播放器，内容主题待定）═══
+     跟"日历设置面板"一样是顶层fixed全屏面板，不嵌套在.phone里，样式上跟"Luna小助手"
+     那套聊天气泡是同一视觉语言（复用同一套 aiBubbleIn/aiChipPop 动画），但功能代码
+     完全独立，不读、不改、不依赖任何现有面板 -->
+<div id="scPanel" style="display:none; position:fixed; inset:0; background:var(--bg); z-index:150; flex-direction:column;">
+  <!-- 🩹 顶部：换成跟统计页/日历设置页等全App其他面板同一套——.back-btn 大箭头 + 标题，
+       不再用之前那条自己另起的渐变色头部条，退出按钮的位置、大小、点击动效
+       （playExitSlide 滑出）都跟别的页面统一。安全区适配保留（max()兜底不戳刘海），
+       只是从固定52px改成了动态算，取更大的那个 -->
+  <div style="display:flex; align-items:center; gap:12px; padding:20px 20px 4px; padding-top:max(52px, calc(20px + var(--safe-area-inset-top, env(safe-area-inset-top,0px)))); flex-shrink:0;">
+    <button onclick="playExitSlide(document.getElementById('scPanel'), scClosePanel)" class="back-btn">‹</button>
+    <div id="scPanelTitle" style="font-size:20px; font-weight:600; color:var(--text); font-family:Georgia,'Songti SC',serif;">自我护理</div>
+  </div>
+  <div id="scBody" style="flex:1; overflow-y:auto; padding:16px 14px; display:flex; flex-direction:column; gap:10px;"></div>
+  <div style="padding:0 16px 8px; font-size:10px; color:var(--stat-fg-muted, #a89bc4); text-align:center; flex-shrink:0;">
+    <span data-i18n="ai_disclaimer">💡 内容参考 WHO、Mayo Clinic、CDC 等权威机构公开资料，仅供参考，不能替代专业医疗建议</span>
+    <span onclick="showReferences()" style="text-decoration:underline;cursor:pointer;color:var(--purple, #8b7ab8);font-weight:600;" data-i18n="ai_disclaimer_link">查看来源 ›</span>
+  </div>
+  <div style="flex-shrink:0; padding-bottom:calc(6px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));"></div>
 </div>
 
 <!-- ═══ 📅 日历设置面板（从"我的"页搬来的周期/经期/提醒）═══ -->
@@ -16508,6 +17118,8 @@ const LANG = {
     insight_enter_sub: 'แตะเพื่อดูการวิเคราะห์เชิงลึก',
     cycle_phase_entry_title: 'รายละเอียดรอบเดือน',
     cycle_phase_entry_sub: 'ประจำเดือน / ฟอลลิเคิล / ตกไข่ / ลูเทียล',
+    self_care_entry_title: 'ดูแลตัวเอง',
+    self_care_entry_sub: 'ตรวจสอบว่ารอบเดือนของคุณสม่ำเสมอไหม',
     ai_analysis_title: 'การวิเคราะห์ด้วย AI',
     ai_analysis_btn: 'สร้างการวิเคราะห์ครั้งนี้',
     ai_analysis_locked_label: '🔒 วิเคราะห์ด้วย AI สำหรับ VIP',
@@ -16729,6 +17341,11 @@ const LANG = {
     ref_mayo_anemia_desc: 'ภาวะโลหิตจางจากการขาดธาตุเหล็ก: อาการและสาเหตุ',
     ref_cdc_uti_desc: 'ความรู้พื้นฐานเรื่องการติดเชื้อทางเดินปัสสาวะ (UTI)',
     ref_cdc_hpv_desc: 'HPV และวัคซีน HPV',
+    ref_who_pcos_desc: 'ข้อมูลภาวะถุงน้ำรังไข่หลายใบ (PCOS)',
+    ref_mayo_pcos_desc: 'ภาวะถุงน้ำรังไข่หลายใบ: อาการและสาเหตุ',
+    ref_mayo_cramps_desc: 'ปวดประจำเดือน: อาการและสาเหตุ',
+    ref_mayo_heavy_desc: 'ประจำเดือนมามาก: อาการและสาเหตุ',
+    ref_mayo_pms_desc: 'กลุ่มอาการก่อนมีประจำเดือน (PMS): อาการและสาเหตุ',
     ai_disclaimer: '💡 เนื้อหาอ้างอิงจาก WHO, Mayo Clinic, CDC ใช้เพื่ออ้างอิงเท่านั้น ไม่ใช้แทนคำแนะนำทางการแพทย์',
     ai_disclaimer_link: 'ดูแหล่งอ้างอิง ›',
     privacy_policy_title: '🔒 นโยบายความเป็นส่วนตัว',
@@ -16772,6 +17389,8 @@ const LANG = {
     insight_enter_sub: '点击查看深度健康分析',
     cycle_phase_entry_title: '周期详情',
     cycle_phase_entry_sub: '经期 / 卵泡期 / 排卵期 / 黄体期',
+    self_care_entry_title: '自我护理',
+    self_care_entry_sub: '测一测你的月经周期规律吗',
     ai_analysis_title: 'AI 深度分析',
     ai_analysis_btn: '生成本次分析',
     ai_analysis_locked_label: '🔒 VIP 专属 AI 分析',
@@ -16996,6 +17615,11 @@ const LANG = {
     ref_mayo_anemia_desc: '缺铁性贫血：症状与病因',
     ref_cdc_uti_desc: '尿路感染（UTI）基础知识',
     ref_cdc_hpv_desc: 'HPV 与 HPV 疫苗',
+    ref_who_pcos_desc: '多囊卵巢综合征（PCOS）概况',
+    ref_mayo_pcos_desc: '多囊卵巢综合征：症状与病因',
+    ref_mayo_cramps_desc: '痛经：症状与病因',
+    ref_mayo_heavy_desc: '经量过多：症状与病因',
+    ref_mayo_pms_desc: '经前综合征（PMS）：症状与病因',
     ai_disclaimer: '💡 内容参考 WHO、Mayo Clinic、CDC 等权威机构公开资料，仅供参考，不能替代专业医疗建议',
     ai_disclaimer_link: '查看来源 ›',
     privacy_policy_title: '🔒 隐私与政策',

@@ -3651,7 +3651,12 @@ window.installPWA = function() {
         </div>
         <span class="s-arrow">›</span>
       </div>
-      <div class="s-item" onclick="doLogout()">
+      <!-- 🩹 "退出登录" / "删除账号" 这两项，之前是不管有没有登录过都写死显示的——
+           纯游客（从头到尾没登录过）点这两个，一个会稀里糊涂清空本机数据（当事人没账号，
+           数据从没同步过云端，这一下清空就是真丢了，跟"清除数据"那个选项撞了功能但没有提示），
+           一个是"删除一个根本不存在的账号"，没有意义。这次给这两项各自加了id，
+           按 isGuest() 状态动态控制显示/隐藏，具体逻辑见 updateAccountSectionVisibility() -->
+      <div class="s-item" id="logoutMenuItem" onclick="doLogout()">
         <span class="s-svg-icon" data-c="gray"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
         <div class="s-info">
           <div class="s-label"><span data-i18n="logout">ออกจากระบบ</span></div>
@@ -3661,7 +3666,7 @@ window.installPWA = function() {
       </div>
       <!-- 🩹 Apple Guideline 5.1.1(v)：支持注册账号的App，必须支持用户自己发起删除账号，
            不能只有"清除数据"（那个只清本地记录，不注销账号本身），也不能只能靠联系客服才能删 -->
-      <div class="s-item" onclick="initiateSelfAccountDeletion()">
+      <div class="s-item" id="deleteAccountMenuItem" onclick="initiateSelfAccountDeletion()">
         <span class="s-svg-icon" data-c="red"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>
         <div class="s-info">
           <div class="s-label"><span data-i18n="delete_account" style="color:#E05A5A;">ลบบัญชีถาวร</span></div>
@@ -5506,6 +5511,11 @@ window.signOutGoogle = async function() {
     LunaDB.remove('luna_uid');
     LunaDB.remove('luna_activated');
   }
+  // 🩹 退出登录之前，没有任何"你已经退出了"的提示，清空数据+刷新这两步做完用户就直接
+  // 看到一个焕然一新的空白首页，很容易被当成bug（"我的数据怎么突然没了"）。
+  // 用sessionStorage存一个标记活过这次reload，页面重新加载完之后再读到这个标记，
+  // 弹一条解释清楚的提示，说明数据在退出前已经存云端了，用同个账号登录就能拿回来
+  try { sessionStorage.setItem('luna_just_logged_out', '1'); } catch(e) {}
   window.location.reload();
 };
 
@@ -11147,6 +11157,16 @@ window.setLang = setLang;
     const uid = localStorage.getItem('luna_uid') || '';
     const displayName = localStorage.getItem('luna_display_name') || '';
     const photoURL = localStorage.getItem('luna_photo_url') || '';
+    // 🩹 "退出登录"/"删除账号"这两项只对真正登录过的人有意义——纯游客看到会困惑，
+    // 点了"退出登录"还会稀里糊涂清空从没同步过云端的本机数据。这里跟头像/昵称一样，
+    // 每次进"我的"页都重新判断一次，登录状态变了（比如刚登录完/刚退出完）能跟着刷新
+    (function updateAccountSectionVisibility(){
+      const guest = (typeof isGuest === 'function') ? isGuest() : !uid;
+      const logoutItem = document.getElementById('logoutMenuItem');
+      const deleteItem = document.getElementById('deleteAccountMenuItem');
+      if(logoutItem) logoutItem.style.display = guest ? 'none' : '';
+      if(deleteItem) deleteItem.style.display = guest ? 'none' : '';
+    })();
 
     // 显示发给管理员的识别码（邮箱优先，没有则 uid 截断显示）
     const el = document.getElementById('profileCode');
@@ -18432,6 +18452,25 @@ document.addEventListener('DOMContentLoaded', function() {
   switchAppLang(_appLang);
   if(typeof checkConsent==='function') checkConsent();
   setTimeout(function(){ if(typeof updateOnboard==='function') updateOnboard(); }, 300);
+  // 🩹 退出登录刷新页面之后，在这里接住之前存的标记，弹一条解释清楚的提示——
+  // 不然用户看到的就是"数据突然没了的空白首页"，容易被当成bug。
+  // 用完立刻删掉标记，保证只在真正刚退出登录这一次刷新时弹一次，正常刷新/重新打开App不会误触发
+  try {
+    if(sessionStorage.getItem('luna_just_logged_out') === '1'){
+      sessionStorage.removeItem('luna_just_logged_out');
+      setTimeout(function(){
+        if(typeof _lunaSimpleAlert === 'function'){
+          _lunaSimpleAlert(
+            _appLang === 'zh'
+              ? '已成功退出登录\n本机数据已清空，别担心——用同一个账号重新登录，之前的记录都会自动找回来'
+              : 'ออกจากระบบเรียบร้อยแล้ว\nข้อมูลในเครื่องถูกล้างแล้ว ไม่ต้องกังวลนะคะ เข้าสู่ระบบด้วยบัญชีเดิมอีกครั้ง ข้อมูลเก่าจะกลับมาเองค่ะ',
+            _appLang === 'zh' ? '知道了' : 'เข้าใจแล้ว',
+            null, '👋'
+          );
+        }
+      }, 500);
+    }
+  } catch(e) {}
 });
 if(document.readyState !== 'loading') switchAppLang(_appLang);
 

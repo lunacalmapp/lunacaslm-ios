@@ -5136,6 +5136,14 @@ onAuthStateChanged(auth, async (user) => {
         if(typeof applyAppLang === 'function') applyAppLang(window._appLang || 'th');
         if(typeof _restoreLastPage === 'function') _restoreLastPage(); else if(typeof showPage === 'function') showPage('home');
         if(typeof calUpdateStats === 'function') calUpdateStats(); // 🩹 同上：本地缓存数据立刻显示，不等网络
+        // 🩹 真正的病根找到了：登录/恢复会话这几处一直都只调用了 calUpdateStats()，从来没调用过
+        // updateOnboard()——首页"三态"（欢迎卡/标记经期日卡/真实数据卡）完全是靠 updateOnboard()
+        // 一个函数决定谁显示谁隐藏的，这里漏了它，就会导致 cycleCard 停留在HTML默认的"可见"状态
+        // （它默认不是display:none，只有updateOnboard()运行过才会正确隐藏），
+        // 而 calUpdateStats() 又往它里面塞了旧版"没数据"提示文字，两者叠加就是用户看到的乱码画面。
+        // 冷启动路径（DOMContentLoaded）和游客路径（previewSkipLogin）本来就有调用，独独登录成功
+        // 这条路径漏掉了，这次补上
+        if(typeof updateOnboard === 'function') updateOnboard();
       } catch(e){}
       // 🩹 性能优化：经期数据(logs/periodDays)跟"是否已激活/RevenueCat订阅状态"是两件互不相关的事。
       // 之前这里排在最后面，要等下面"查激活状态→写lastLogin→问RevenueCat"三个网络请求全部串行
@@ -5357,6 +5365,9 @@ async function handleAuthUser(user) {
     // 主题/悬浮球没初始化好更致命，这里单独兜底，报错也要放行到下一行。
     try { if(typeof initProFeatures === 'function') initProFeatures(); } catch(e){ console.log('_initApp: initProFeatures 出错:', e); }
     if(typeof calUpdateStats === 'function') calUpdateStats();
+    // 🩹 同一个病根（详细说明见上面 onAuthStateChanged 那处），这条"引导问卷答完→直接登录"
+    // 路径也漏了 updateOnboard()，一并补上
+    if(typeof updateOnboard === 'function') updateOnboard();
     // 登录成功后主动拉取该 uid 的云端数据（修复启动时 uid 为空导致数据不加载）
     if(typeof window.loadUserDataFromFirebase === 'function') window.loadUserDataFromFirebase();
     // 若是"引导问卷答完→直接登录"这条路（没走预览模式），暂存的答案在这里补应用到刚登录的账号
@@ -6822,6 +6833,9 @@ function _waitAndCall(fnName, ...args) {
         // 🩹 补上：光把页面框架露出来还不够，周期天数这些"数字"也要用本地缓存立刻算出来，
         // 不然还是会有"导航栏先出来，数字过几秒才蹦出来"的空档——本地数据其实早就有了，不用等网络。
         if(typeof calUpdateStats === 'function') calUpdateStats();
+        // 🩹 同一个病根（详细说明见 onAuthStateChanged 那处），这条"已有登录会话，App启动时直接恢复"
+        // 路径也漏了 updateOnboard()，一并补上，不然首页三态逻辑不会生效
+        if(typeof updateOnboard === 'function') updateOnboard();
       } catch(e){}
       document.getElementById('codeGate').style.display = 'none';
     }
@@ -14080,29 +14094,16 @@ window.setLang = setLang;
       if(_lateRow0) _lateRow0.style.display = 'none';
       const _fertileRow0 = document.getElementById('calFertileRow');
       if(_fertileRow0) _fertileRow0.style.display = 'none';
-      // 🩹 状态B（点过"开始记录"但还没标经期）：两张卡片完全不出现任何数字，
-      // 大数字那一整行直接隐藏，只留一句友善的提示语。
-      // 🩹 泰语字号比中文再大一号（"รอบปัจจุบัน"那个小标签不受影响，那个没在这次改动范围里，
-      // 还是原来的13px）——泰语单看字形普遍比中文瘦一些，同样字号摆在一起会显得比中文小，
-      // 之前15px两种语言共用一个尺寸，这次改成泰语单独更大。同时让这句话在卡片里横向、
-      // 纵向都居中，不再是贴着左上角、大数字消失后显得空荡荡的样子
+      // 🩹 状态B（点过"开始记录"但还没标经期）：cycleCard整张卡片现在由 updateOnboard() 统一
+      // 隐藏（改显示"标记经期日"引导卡代替），这里不再需要对卡片内部的数字/提示语做任何处理——
+      // 之前这里还留着一段"隐藏大数字、显示提示语"的代码，是更早一版设计的残留（那时候是
+      // cycleCard自己变身显示提示语，不是隐藏整张卡换成另一张），一直没清理干净。
+      // 这段死代码本身不会显示出来（因为cycleCard被隐藏了，子元素设置什么都看不见），
+      // 但它一直是个隐患：一旦哪个入口漏调用了updateOnboard()（这次登录那几处就漏了），
+      // cycleCard就会用HTML默认的"可见"状态显示出来，这段死代码设置的旧版内容就会跟着露出来，
+      // 这正是这次用户看到"乱七八糟"画面的根本原因。这次连根源（补齐updateOnboard()调用）
+      // 和这段隐患代码一起清理，不留后患
       const isThNew = _appLang === 'th';
-      const hint = document.getElementById('cycleHint');
-      if(hint) {
-        hint.textContent = isThNew ? 'ประจำเดือนยังไม่มา งั้นลองบันทึกอารมณ์และความรู้สึกก่อนนะ' : '月经还没来，那就先记录心情与身体感受吧';
-        hint.style.display = 'block';
-        hint.style.fontSize = isThNew ? '18px' : '15px';
-        hint.style.fontWeight = '600';
-        hint.style.lineHeight = '1.6';
-        hint.style.color = 'var(--home-fg)';
-        hint.style.textAlign = 'center';
-      }
-      const cycleDayRow = document.getElementById('cycleDay') ? document.getElementById('cycleDay').parentElement : null;
-      if(cycleDayRow) cycleDayRow.style.display = 'none';
-      // 大数字那行一藏起来，卡片会瞬间变矮、提示语贴在顶上——给这个包裹容器一个最小高度，
-      // 配合它自己的 justify-content:center，提示语才能真的悬浮在卡片纵向中间，不是靠边站
-      const cycleContentWrap = document.getElementById('cycleContentWrap');
-      if(cycleContentWrap) cycleContentWrap.style.minHeight = '120px';
 
       // 🩹 日历图标那个方框，状态B里不需要了——这句话本身要做成气泡样式，旁边不再需要
       // 一个独立的图标框，两个视觉元素挤在一起反而乱
@@ -14166,12 +14167,6 @@ window.setLang = setLang;
     }
     // 有数据：还原状态B里隐藏/改样式的那几处，恢复成正常的数字展示
     {
-      const hint = document.getElementById('cycleHint');
-      if(hint) { hint.style.display = 'none'; hint.style.fontSize = ''; hint.style.fontWeight = ''; hint.style.color = ''; hint.style.lineHeight = ''; hint.style.textAlign = ''; }
-      const cycleDayRow = document.getElementById('cycleDay') ? document.getElementById('cycleDay').parentElement : null;
-      if(cycleDayRow) cycleDayRow.style.display = '';
-      const cycleContentWrapRestore = document.getElementById('cycleContentWrap');
-      if(cycleContentWrapRestore) cycleContentWrapRestore.style.minHeight = '';
       const dlRestore = document.getElementById('daysLeft');
       const dlRowRestore = dlRestore ? dlRestore.parentElement : null;
       if(dlRowRestore) dlRowRestore.style.display = '';

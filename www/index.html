@@ -2,6 +2,14 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<!-- 🔒 基础 CSP：禁止加载白名单之外的第三方脚本/连接，堵住"注入一段外部 <script src> 就能为所欲为"
+     这类最典型的 XSS 利用路径；object-src/base-uri/frame-ancestors 顺手收紧。
+     注意：script-src/style-src 里保留了 'unsafe-inline'——这是因为整个 App 从头到尾都是用
+     onclick="..."/style="..." 这种内联写法（不是这次改动引入的），要做到完全禁止内联，
+     得把全站几百处 onclick 都改成 addEventListener，是另一件工程量大得多的独立重构，
+     不在这次"顺手修一下"的范围内。当前这版 CSP 挡的是"外部脚本注入"这一类真正的高危场景，
+     跟内联 onclick 本身不是一回事。 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://*.firebaseapp.com https://asia-southeast1-sasomboon.cloudfunctions.net; frame-src https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self';">
 <script>
   // ██ PLAY 版总开关（必须最早定义，全文件生效）██
   // Play 上架版第一版=纯净免费版：隐藏外部支付、关闭试用锁、功能全开。
@@ -9,6 +17,68 @@
   window.IS_PLAY_BUILD = false; // iOS 包：关闭 Play 免费开关，走真实试用+VIP/内购流程
   window.FRAMES_ALL_FREE = true; // 🔓 头像框全部免费解锁(测试/欣赏用；正式想用月光值解锁改成 false)
   try{ if(window.IS_PLAY_BUILD) localStorage.setItem('luna_activated','1'); }catch(e){}
+
+  // ══ 🌐 Remote Config：几个"不用发版就能远程改"的值/开关，集中放 Firebase remoteConfig 节点下 ══
+  // 跟下面的错误监控同一个思路：用原生 fetch 直连 REST 接口，不等 _fb 模块/Firebase SDK 加载完——
+  // 这样试用天数、主题点数这些东西，在全文件最早的地方就已经发出请求了，尽量减少
+  // "业务代码跑到要用它的地方了，但还没请求回来"这种时间差。
+  // 安全规则要求：remoteConfig 节点 .read:true（公开只读配置，不涉及任何用户隐私数据，跟 appControl 同级）。
+  // window._remoteConfig 下面这份就是兜底默认值——远程没配置该字段/整个请求失败，全部原样保留默认值，
+  // 绝不会因为这个新功能本身出问题就影响app正常使用（跟 appControl 那段查询失败直接放行是同一个原则）。
+  window._remoteConfig = {
+    trialDays: 7,
+    trialAiPoints: 5,
+    supportEmail: 'lunacalm00@gmail.com',
+    lineUrl: 'https://lin.ee/STIfOtU',
+    appStoreUrl: 'https://apps.apple.com/us/app/luna-calm/id6796192825',
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=app.lunacalm.flow',
+    themeUnlockCost: { lotus:200, rose:200, orange:200, sky:200, mint:200, lavender:200 },
+    banner: null,      // {enabled, title:{zh,th}, body:{zh,th}, icon, link, startAt, endAt}
+    featureFlags: {},  // 例如 {aiAssistant:false} 就能远程关掉首页AI小助手悬浮球，不用发版
+    images: {}         // 例如 {cycleGirlPose0:'https://...'} 就能远程换掉首页那几张卡通女孩插画，不用发版
+  };
+  // 功能灾度开关读取小助手：不在表里 / 值不是 false，一律当"开启"处理，只有明确写 false 才关闭
+  window._isFeatureEnabled = function(name){
+    try{ return window._remoteConfig.featureFlags[name] !== false; }catch(e){ return true; }
+  };
+  // 客服邮箱统一走这个函数打开邮件App，不用在每个按钮/文案里各写各的邮箱地址——
+  // 换客服邮箱只用改 remoteConfig.supportEmail 这一个地方，全App所有入口跟着变
+  window._contactSupport = function(){
+    try{ window.location.href = 'mailto:' + (window._remoteConfig.supportEmail || 'lunacalm00@gmail.com'); }catch(e){}
+  };
+  // LINE 联系方式同理，统一走这个函数，换官方账号链接只用改 remoteConfig.lineUrl 一个地方
+  window._openLineContact = function(){
+    try{ window.open(window._remoteConfig.lineUrl || 'https://lin.ee/STIfOtU', '_blank'); }catch(e){}
+  };
+  (function _loadRemoteConfigEarly(){
+    try{
+      var dbBase = 'https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app';
+      fetch(dbBase + '/remoteConfig.json').then(function(r){ return r && r.ok ? r.json() : null; }).then(function(rc){
+        if(!rc || typeof rc !== 'object') return;
+        if(typeof rc.trialDays === 'number' && rc.trialDays > 0) window._remoteConfig.trialDays = rc.trialDays;
+        if(typeof rc.trialAiPoints === 'number' && rc.trialAiPoints >= 0) window._remoteConfig.trialAiPoints = rc.trialAiPoints;
+        if(typeof rc.supportEmail === 'string' && rc.supportEmail.indexOf('@') > 0) window._remoteConfig.supportEmail = rc.supportEmail;
+        if(typeof rc.lineUrl === 'string' && rc.lineUrl.indexOf('http') === 0) window._remoteConfig.lineUrl = rc.lineUrl;
+        if(typeof rc.appStoreUrl === 'string' && rc.appStoreUrl.indexOf('http') === 0) window._remoteConfig.appStoreUrl = rc.appStoreUrl;
+        if(typeof rc.playStoreUrl === 'string' && rc.playStoreUrl.indexOf('http') === 0) window._remoteConfig.playStoreUrl = rc.playStoreUrl;
+        if(rc.themeUnlockCost && typeof rc.themeUnlockCost === 'object'){
+          Object.keys(rc.themeUnlockCost).forEach(function(k){
+            var v = rc.themeUnlockCost[k];
+            if(typeof v === 'number' && v >= 0) window._remoteConfig.themeUnlockCost[k] = v;
+          });
+        }
+        if(rc.banner && typeof rc.banner === 'object') window._remoteConfig.banner = rc.banner;
+        if(rc.featureFlags && typeof rc.featureFlags === 'object') window._remoteConfig.featureFlags = rc.featureFlags;
+        if(rc.images && typeof rc.images === 'object') window._remoteConfig.images = rc.images;
+        // 首页公告横幅 / 卡通女孩插画 这时候DOM/函数不一定已经就绪，两个函数内部自己会做存在性检查；
+        // 横幅真正的显示时机主要靠 updateOrbVisibility() 里那个钩子（每次进首页都会重新判断一次），
+        // 女孩插画则是靠 calUpdateStats() 首次调用时的 renderCycleGirlPose()，这里额外补调一次，
+        // 防止那次调用发生得比这个远程请求还早，导致外链图片配置晚到没生效。
+        try{ if(typeof window._applyRemoteBanner === 'function') window._applyRemoteBanner(); }catch(e){}
+        try{ if(typeof window.renderCycleGirlPose === 'function') window.renderCycleGirlPose(); }catch(e){}
+      }).catch(function(){ /* 请求失败就用上面的默认值，不影响app正常使用 */ });
+    }catch(e){}
+  })();
 
   // ══ 全局错误监控（静默上报到 Firebase errorReports，便于远程排查"某页打不开/白屏"类问题）══
   // 设计：① 不打扰用户（纯后台）② 同一错误每会话只报一次（防循环报错刷爆数据库）
@@ -244,6 +314,10 @@ window.installPWA = function() {
     /* 首页两个"关键数字"（第一张卡的天数、第二张卡倒计时天数）专属变量，默认跟随 --home-fg，
        只有"蜜桃粉"主题会单独覆盖成统一的珊瑚粉，其余主题不受影响 */
     --home-key-num-fg: var(--home-fg);
+    /* 🩹 "本次经期"卡片里数字旁边的单位小字（天/วัน），默认跟大数字同色即可；
+       莲夜水/极光紫境/琥珀光这三个深色主题会单独覆盖成更亮的白色+文字阴影，
+       避免小字被背景衬得看不清（大数字字号大不受影响，小字字号小对比不够容易糊） */
+    --home-unit-fg: var(--home-key-num-fg);
     --home-icon-purple-fg: #8060c0;
     --home-icon-green-fg: #7060b0;
 
@@ -316,6 +390,9 @@ window.installPWA = function() {
     --mine-lang-inactive-border: #e0dcea;
     --mine-lang-inactive-fg: #8a849e;
     --mine-track-bg: #e8e4f0;
+    /* 🩹 "清除数据"/"删除账号"这两条危险操作下面的小字说明，默认用这个粉红色即可；
+       莲夜水/极光紫境/琥珀光会单独覆盖成更亮的版本，避免在深色背景上看不清 */
+    --mine-danger-fg: #E88098;
   }
 
   /* ══ 莲夜水：仅在"我的→主题颜色"选中它时才生效（现在是免费主题，不再是VIP专属——
@@ -427,6 +504,8 @@ window.installPWA = function() {
     --mine-lang-inactive-border: rgba(255,255,255,0.18);
     --mine-lang-inactive-fg: var(--home-fg-muted);
     --mine-track-bg: rgba(255,255,255,0.14);
+    --mine-danger-fg: #ffb3c2;
+    --home-unit-fg: #ffffff;
   }
 
   /* ══ 极光紫境 Aurora Purple：第二款 VIP 专属深色主题，目前只做了首页 ══
@@ -556,6 +635,8 @@ window.installPWA = function() {
     --mine-lang-inactive-border: rgba(210,180,255,0.20);
     --mine-lang-inactive-fg: var(--home-fg-muted);
     --mine-track-bg: rgba(210,180,255,0.16);
+    --mine-danger-fg: #ffb3c2;
+    --home-unit-fg: #ffffff;
   }
 
   /* ══ 琥珀光 Amber Glow：第三款 VIP 专属主题，半深色调（暖棕金渐变，不是纯黑夜色）══
@@ -665,6 +746,8 @@ window.installPWA = function() {
     --mine-lang-inactive-border: rgba(240,196,121,0.24);
     --mine-lang-inactive-fg: var(--home-fg-muted);
     --mine-track-bg: rgba(240,196,121,0.18);
+    --mine-danger-fg: #ffb89c;
+    --home-unit-fg: #fff6e6;
   }
 
   /* 🌫️ 浅色高级款三件套（雾松青/暖金沙/暮霭藕紫）共用的首页柔光雾感层：
@@ -2726,6 +2809,18 @@ window.installPWA = function() {
       background:radial-gradient(circle, rgba(var(--purple-rgb),0.11) 0%, rgba(var(--purple-rgb),0) 70%);"></div>
   </div>
 
+  <!-- 📣 首页公告横幅：内容全部来自 Firebase remoteConfig/banner，后台改了直接生效，不用发版。
+       默认隐藏，_applyRemoteBanner() 会在拉到远程配置后判断是否显示——没启用 / 不在起止时间
+       范围内 / 标题正文都是空的 / 用户已经点过关闭这条，四种情况都不显示，绝不会硬露出个空壳。 -->
+  <div id="homeAnnounceBanner" style="display:none;margin:8px 16px 0;padding:11px 14px;border-radius:16px;background:var(--home-card-bg);box-shadow:0 2px 10px rgba(0,0,0,0.06);align-items:center;gap:10px;cursor:pointer;position:relative;z-index:5;" onclick="_onAnnounceBannerTap(event)">
+    <span id="homeAnnounceBannerIcon" style="font-size:20px;flex-shrink:0;">📣</span>
+    <div style="flex:1;min-width:0;">
+      <div id="homeAnnounceBannerTitle" style="font-size:13px;font-weight:700;color:var(--home-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+      <div id="homeAnnounceBannerBody" style="font-size:11.5px;color:var(--home-fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;"></div>
+    </div>
+    <span onclick="_closeAnnounceBanner(event)" style="font-size:15px;color:var(--home-fg-muted);padding:4px;flex-shrink:0;">✕</span>
+  </div>
+
   <!-- Next Period Card -->
   <!-- Card 1: 经期第几天 — 默认浅色跟随主题；选中"莲夜水"主题时才切换为深蓝+莲花丝带装饰 -->
   <div class="card next-card" id="cycleCard" style="padding:22px 22px 0;">
@@ -2812,7 +2907,7 @@ window.installPWA = function() {
     <div id="cycleContentWrap" style="display:flex; flex-direction:column; justify-content:center; position:relative; z-index:1;">
       <div style="display:flex;align-items:flex-end;gap:0;">
         <span class="days-big" id="cycleDay" style="font-size:100px;line-height:1;color:var(--home-key-num-fg);letter-spacing:-4px;font-weight:700;text-shadow:var(--home-fg-shadow);">--</span>
-        <span class="days-unit" style="font-size:26px;color:var(--home-key-num-fg);margin-bottom:12px;margin-left:6px;" data-i18n="days_unit">วัน</span>
+        <span class="days-unit" style="font-size:26px;color:var(--home-unit-fg);font-weight:600;text-shadow:var(--home-fg-shadow);margin-bottom:12px;margin-left:6px;" data-i18n="days_unit">วัน</span>
       </div>
       <div id="cycleHint" style="display:none;font-size:13px;color:var(--home-fg-muted);margin-bottom:10px;">รอข้อมูล</div>
     </div>
@@ -2914,7 +3009,7 @@ window.installPWA = function() {
       <div style="display:flex;align-items:baseline;gap:5px;">
         <span style="font-family:Georgia,serif;font-size:60px;font-weight:700;
           color:var(--home-key-num-fg);line-height:1;letter-spacing:2px;" id="daysLeft">--</span>
-        <span style="font-size:22px;color:var(--home-key-num-fg);font-weight:400;" data-i18n="days_unit">วัน</span>
+        <span style="font-size:22px;color:var(--home-unit-fg);font-weight:600;text-shadow:var(--home-fg-shadow);" data-i18n="days_unit">วัน</span>
       </div>
       <div style="font-size:14px;color:var(--home-fg-muted);margin-top:5px;">
         <span data-i18n="next_date_label">คาดว่าเริ่ม: </span>
@@ -3436,7 +3531,7 @@ window.installPWA = function() {
         <span class="s-svg-icon" data-c="purple"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/></svg></span>
         <div class="s-info">
           <div class="s-label"><span data-i18n="theme_color_label">ธีมสี</span></div>
-          <div class="s-val" id="theme-current-txt" data-i18n="theme_default">ค่าเริ่มต้น</div>
+          <div class="s-val" id="theme-current-txt" data-i18n="theme_default">ชมพูอมม่วง</div>
         </div>
         <span id="themeArrow" style="color:var(--mine-fg);font-size:35px;font-weight:600;transition:transform 0.25s;display:inline-block;">›</span>
       </div>
@@ -3468,16 +3563,17 @@ window.installPWA = function() {
           <button class="theme-pick" data-theme="duskmauve" onclick="pickTheme(this,'duskmauve')" style="background:linear-gradient(145deg,#D3AFC5,#8C5F7D);">
             <div style="font-size:22px;">🌆</div><div class="tp-label" style="color:#fdf3f8;" data-i18n="theme_duskmauve">ม่วงสนธยา</div>
           </button>
+          <!-- 🩹 default（默认）/ dream（梦幻紫）这次从下面VIP区搬上来，onclick 从 pickThemeOrUpgrade
+               换回 pickTheme，theme-pro 这个class和里面的锁图标 div 都去掉了，处理方式跟莲夜水那三个一致 -->
+          <button class="theme-pick" data-theme="default" onclick="pickTheme(this,'default')" style="background:linear-gradient(145deg,#FDE8EF,#E89BB8);">
+            <div style="font-size:22px;">🌸</div><div class="tp-label" style="color:#C2477A;" data-i18n="theme_default">ชมพูอมม่วง</div>
+          </button>
+          <button class="theme-pick" data-theme="dream" onclick="pickTheme(this,'dream')" style="background:linear-gradient(145deg,#EDE6F8,#B49CDB);">
+            <div style="font-size:22px;">💜</div><div class="tp-label" style="color:#6B4FA8;" data-i18n="theme_dream">ม่วงฝัน</div>
+          </button>
 
           <!-- ══ 👑 VIP เท่านั้น / VIP 专属 ══ -->
           <div class="theme-tier-tag tag-vip"><span class="tt-icon">👑</span><span data-i18n="theme_tier_vip">VIP</span></div>
-          <!-- 🩹 default（老"默认"配色）这次从上面免费区搬下来，onclick 换成 pickThemeOrUpgrade，
-               补上 theme-pro class 和锁图标 div，处理方式跟其他VIP款完全一致 -->
-          <button class="theme-pick theme-pro" data-theme="default" onclick="pickThemeOrUpgrade(this,'default')" style="background:linear-gradient(145deg,#FDE8EF,#E89BB8);position:relative;">
-            <div id="lock-default" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">🌸</div><div class="tp-label" style="color:#C2477A;" data-i18n="theme_default">ค่าเริ่มต้น</div>
-          </button>
-          <!-- 🩹 暖金沙同样从免费区搬下来 -->
           <button class="theme-pick theme-pro" data-theme="goldsand" onclick="pickThemeOrUpgrade(this,'goldsand')" style="background:linear-gradient(145deg,#E3BE7C,#B9853A);position:relative;">
             <div id="lock-goldsand" class="theme-lock-overlay" style="display:none;">🔒</div>
             <div style="font-size:22px;">🌾</div><div class="tp-label" style="color:#3f2a0e;" data-i18n="theme_goldsand">ทรายทอง</div>
@@ -3489,10 +3585,6 @@ window.installPWA = function() {
           <button class="theme-pick theme-pro" data-theme="jasmine" onclick="pickThemeOrUpgrade(this,'jasmine')" style="background:linear-gradient(145deg,#E3F2E6,#8FC79A);position:relative;">
             <div id="lock-jasmine" class="theme-lock-overlay" style="display:none;">🔒</div>
             <div style="font-size:22px;">🌿</div><div class="tp-label" style="color:#3F7A4A;" data-i18n="theme_jasmine">มะลิ</div>
-          </button>
-          <button class="theme-pick theme-pro" data-theme="dream" onclick="pickThemeOrUpgrade(this,'dream')" style="background:linear-gradient(145deg,#EDE6F8,#B49CDB);position:relative;">
-            <div id="lock-dream" class="theme-lock-overlay" style="display:none;">🔒</div>
-            <div style="font-size:22px;">💜</div><div class="tp-label" style="color:#6B4FA8;" data-i18n="theme_dream">ม่วงฝัน</div>
           </button>
           <button class="theme-pick theme-pro" data-theme="sakura" onclick="pickThemeOrUpgrade(this,'sakura')" style="background:linear-gradient(145deg,#FCE0E8,#F4A8C0);position:relative;">
             <div id="lock-sakura" class="theme-lock-overlay" style="display:none;">🔒</div>
@@ -3572,6 +3664,13 @@ window.installPWA = function() {
           <div style="font-size:14px;font-weight:500;color:var(--mine-fg);" data-i18n="orb_enable_label">แสดงลูกแก้วลอยบนหน้าแรก</div>
           <div class="s-toggle on" id="orbEnabledToggle" onclick="toggleOrbEnabled(this)"></div>
         </div>
+        <!-- 🔒 游客（未登录）提示：悬浮球需要登录才能使用。默认先隐藏（display:none），
+             避免"已登录用户刷新页面那一瞬间"闪一下这句话；真实显隐由 renderGuestAccountCard()
+             统一控制——那个函数本来就是"我的"页每次打开、以及登录成功后都会重新跑一次，
+             跟游客账号卡是否显示用的是同一个判断，登录状态一变这句话就跟着同步消失/出现 -->
+        <div id="orbLoginRequiredHint" style="display:none; margin-top:10px; background:var(--mine-chip-bg); border:1px solid var(--mine-chip-border); border-radius:12px; padding:9px 12px; font-size:11.5px; color:#dd8a3c; line-height:1.6;">
+          <span data-i18n="orb_login_required">🔒 需要登录才能使用悬浮球</span>
+        </div>
         <div style="margin-top:14px;background:var(--mine-chip-bg);border:1px solid var(--mine-chip-border);border-radius:12px;padding:10px 12px;font-size:11.5px;color:var(--mine-chip-fg);line-height:1.6;">
           <span data-i18n="orb_style_hint">🔮 เลือกลูกแก้วลอยหน้าแรกที่ชอบที่สุด</span>
         </div>
@@ -3647,7 +3746,7 @@ window.installPWA = function() {
         <span class="s-svg-icon" data-c="red"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>
         <div class="s-info">
           <div class="s-label"><span data-i18n="clear_data">ลบข้อมูล</span></div>
-          <div class="s-val" style="color:#E88098;"><span data-i18n="clear_data_sub">ลบบันทึกทั้งหมด ไม่สามารถกู้คืนได้</span></div>
+          <div class="s-val" style="color:var(--mine-danger-fg);"><span data-i18n="clear_data_sub">ลบบันทึกทั้งหมด ไม่สามารถกู้คืนได้</span></div>
         </div>
         <span class="s-arrow">›</span>
       </div>
@@ -3670,7 +3769,7 @@ window.installPWA = function() {
         <span class="s-svg-icon" data-c="red"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>
         <div class="s-info">
           <div class="s-label"><span data-i18n="delete_account" style="color:#E05A5A;">ลบบัญชีถาวร</span></div>
-          <div class="s-val" style="color:#E88098;"><span data-i18n="delete_account_sub">ลบบัญชีและข้อมูลทั้งหมด ไม่สามารถกู้คืนได้</span></div>
+          <div class="s-val" style="color:var(--mine-danger-fg);"><span data-i18n="delete_account_sub">ลบบัญชีและข้อมูลทั้งหมด ไม่สามารถกู้คืนได้</span></div>
         </div>
         <span class="s-arrow">›</span>
       </div>
@@ -3851,7 +3950,7 @@ window.installPWA = function() {
 
     <!-- LINE（主要联系方式） -->
     <div style="background:var(--purple-pale);border-radius:16px;padding:18px 20px;cursor:pointer;margin-bottom:12px;"
-      onclick="window.open('https://lin.ee/STIfOtU','_blank')">
+      onclick="_openLineContact()">
       <div style="display:flex;align-items:center;gap:14px;">
         <div style="width:48px;height:48px;background:#06C755;border-radius:14px;
           display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:.5px;">LINE</div>
@@ -3864,7 +3963,7 @@ window.installPWA = function() {
 
     <!-- 客服联系（邮箱）-->
     <div style="background:var(--purple-pale);border-radius:16px;padding:18px 20px;cursor:pointer;margin-bottom:12px;"
-      onclick="window.location.href='mailto:lunacalm00@gmail.com'">
+      onclick="_contactSupport()">
       <div style="display:flex;align-items:center;gap:14px;">
         <div style="width:48px;height:48px;background:var(--purple);border-radius:14px;
           display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">✉️</div>
@@ -3872,7 +3971,7 @@ window.installPWA = function() {
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:3px;">Email</div>
           <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:.3px;" data-i18n="contact_email_label">ติดต่อฝ่ายสนับสนุน (อีเมล)</div>
         </div>
-        <button onclick="event.stopPropagation();window.location.href='mailto:lunacalm00@gmail.com'"
+        <button onclick="event.stopPropagation();_contactSupport()"
           style="margin-left:auto;background:var(--purple);border:none;border-radius:10px;
           color:#fff;font-size:12px;padding:8px 14px;cursor:pointer;font-family:inherit;font-weight:600;">
           Email
@@ -4602,6 +4701,27 @@ trackEvent('app_open');
         }
       }catch(e){ /* 拿不到版本号就不强制拦，避免误伤正常用户 */ }
     }
+
+    // ③ 推荐更新：不强制拦，只弹一个可以点"取消"关掉的提示，跟②是两件独立的事——
+    // ②卡死用户必须更新，③只是提醒一下、用户可以选择先不更新。同一个推荐版本号只弹一次
+    // （本地记一个"已经关过这个版本的提示"标记），下次后台又推了更新的推荐版本号才会再弹
+    if(cfg.recommendVersion && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.getInfo){
+      try{
+        const info2 = await window.Capacitor.Plugins.App.getInfo();
+        if(_versionLessThan(info2.version, cfg.recommendVersion)){
+          const dismissedVer = localStorage.getItem('luna_update_dismissed_ver');
+          if(dismissedVer !== cfg.recommendVersion){
+            _showSoftUpdatePopup({
+              title: isZh ? '发现新版本' : 'มีเวอร์ชันใหม่',
+              body: (cfg.recommendMsg && (isZh ? cfg.recommendMsg.zh : cfg.recommendMsg.th))
+                    || (isZh ? '新版本带来了一些改进，要不要现在更新一下？' : 'เวอร์ชันใหม่มีการปรับปรุงหลายอย่าง อัปเดตตอนนี้เลยไหม'),
+              updateUrl: cfg.updateUrl || '',
+              version: cfg.recommendVersion
+            });
+          }
+        }
+      }catch(e){ /* 拿不到版本号就不弹，不影响正常使用 */ }
+    }
   }catch(e){ /* 查询失败就直接放行——绝不能因为这个检查本身出错就把所有人挡在外面 */ }
 })();
 
@@ -4636,6 +4756,41 @@ function _showAppBlockOverlay(opts){
   if(opts.updateUrl){
     const btn=document.getElementById('appBlockUpdateBtn');
     if(btn) btn.addEventListener('click', ()=>{ window.open(opts.updateUrl, '_blank'); });
+  }
+}
+
+// 🔔 软性推荐更新弹窗：跟上面 _showAppBlockOverlay 不一样，这个能关——点"取消"、或者点
+// 半透明背景空白处，都能直接关掉，不强制用户更新，友好一点
+function _showSoftUpdatePopup(opts){
+  if(document.getElementById('softUpdatePopup')) return; // 已经在显示了就不重复弹
+  const isZh = (window._appLang || window._gateLang) === 'zh';
+  const ov=document.createElement('div');
+  ov.id='softUpdatePopup';
+  ov.style.cssText='position:fixed;inset:0;z-index:999998;background:rgba(30,20,45,0.55);display:flex;align-items:center;justify-content:center;padding:24px;';
+  const dismiss = () => {
+    // 记住这个版本号已经被关过了，同一个推荐版本不会再弹第二次；后台推了更高的推荐版本才会重新弹
+    try{ if(opts.version) localStorage.setItem('luna_update_dismissed_ver', opts.version); }catch(e){}
+    ov.remove();
+  };
+  const goBtnHtml = opts.updateUrl
+    ? `<button id="softUpdateGoBtn" style="flex:1;padding:14px;background:#7c5cbf;border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">${isZh?'去下载':'ไปดาวน์โหลด'}</button>`
+    : '';
+  ov.innerHTML = `<div style="max-width:340px;width:100%;text-align:center;background:#fff;border-radius:24px;padding:32px 24px;box-shadow:0 12px 40px rgba(80,40,120,0.3);">
+    <div style="font-size:44px;margin-bottom:14px;">✨</div>
+    <div style="font-size:17px;font-weight:700;color:#2d2640;margin-bottom:10px;">${opts.title}</div>
+    <div style="font-size:14px;color:#6a6480;line-height:1.7;">${opts.body}</div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button id="softUpdateCancelBtn" style="flex:1;padding:14px;background:#f0ecf7;border:none;border-radius:14px;color:#6a5a8a;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">${isZh?'取消':'ยกเลิก'}</button>
+      ${goBtnHtml}
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', (e)=>{ if(e.target===ov) dismiss(); }); // 点背景空白处也能关掉
+  const cancelBtn=document.getElementById('softUpdateCancelBtn');
+  if(cancelBtn) cancelBtn.addEventListener('click', dismiss);
+  if(opts.updateUrl){
+    const goBtn=document.getElementById('softUpdateGoBtn');
+    if(goBtn) goBtn.addEventListener('click', ()=>{ window.open(opts.updateUrl, '_blank'); dismiss(); });
   }
 }
 
@@ -5426,9 +5581,10 @@ async function handleAuthUser(user) {
           // 🩹 引导页问的"是否满13岁"，同步一份到Firebase（不只存本地）——这样换设备重新登录
           // 同一账号时，这个限制能跟着账号走，不会因为清了本地缓存/换了手机就形同虚设
           ageUnder13: localStorage.getItem('luna_age_under_13') === '1',
-          // 🌙 月光点数：试用期一次性5点（不是每月重置），够尝几次真AI，但不够无限用，
+          // 🌙 月光点数：试用期一次性给（不是每月重置），够尝几次真AI，但不够无限用，
           // 想一直用就要开会员——开会员之后 revenuecatWebhook 会把这个覆盖成每月50点
-          aiPoints: { remaining: 5, resetAt: null, cycleType: 'trial' }
+          // 🌐 remote config：默认5点，remoteConfig.trialAiPoints 可以远程调整（比如活动期间给10点）
+          aiPoints: { remaining: window._remoteConfig.trialAiPoints, resetAt: null, cycleType: 'trial' }
         });
         localStorage.setItem('luna_activated', '0');
         localStorage.removeItem('luna_expiry');
@@ -6682,7 +6838,7 @@ onValue(ref(db,'notifications'), snap => {
 
       <!-- 客服按钮（邮箱）-->
       <button id="contactLineBtn"
-        onclick="window.location.href='mailto:lunacalm00@gmail.com'"
+        onclick="_contactSupport()"
         style="width:100%;padding:16px;background:#fff;border:1.5px solid #e8e4f0;border-radius:16px;
         color:#2d2640;font-size:15.5px;font-weight:600;cursor:pointer;font-family:inherit;
         display:flex;align-items:center;justify-content:center;gap:10px;
@@ -6983,19 +7139,22 @@ window.setLang = setLang;
   }
   window.computeMoodTrend = computeMoodTrend;
 
-  // ── 7 天免费试用判断（基于 firstLogin，纯前端，不动后台）──
-  const TRIAL_DAYS = 7;
+  // ── 试用天数：默认 7 天，remoteConfig.trialDays 可以远程调整（比如做"限时延长试用"活动）──
+  function _trialDays(){
+    return (window._remoteConfig && typeof window._remoteConfig.trialDays === 'number' && window._remoteConfig.trialDays > 0)
+      ? window._remoteConfig.trialDays : 7;
+  }
   // 返回剩余试用天数（>0 表示还在试用期；<=0 表示已结束）
   function trialDaysLeft() {
     const fl = parseInt(localStorage.getItem('luna_first_login') || '0');
-    if(!fl) return TRIAL_DAYS; // 拿不到首登时间，先按满额给（极少见）
+    if(!fl) return _trialDays(); // 拿不到首登时间，先按满额给（极少见）
     // 过了几个完整 24 小时；用 correctedNow() 而不是裸的 Date.now()，防止用户调手机时间
     // 来刷新试用天数——校正后的"现在"就算设备时钟被人为改动，也基本还是准的
     let passed = Math.floor((correctedNow() - fl) / 86400000);
     if(passed < 0) passed = 0;
-    let left = TRIAL_DAYS - passed;
-    // 钳制在 0~7，避免任何边界/时区问题导致显示 8 或负数
-    if(left > TRIAL_DAYS) left = TRIAL_DAYS;
+    let left = _trialDays() - passed;
+    // 钳制在 0~试用天数，避免任何边界/时区问题导致显示超额或负数
+    if(left > _trialDays()) left = _trialDays();
     if(left < 0) left = 0;
     return left;
   }
@@ -7782,6 +7941,55 @@ window.setLang = setLang;
   }
   window.closeTrialBanner = closeTrialBanner;
 
+  // ══ 📣 首页公告横幅：判断显示/关闭/点击跳转，数据来自 window._remoteConfig.banner ══
+  // 调用时机：updateOrbVisibility() 每次判断"是否在首页"时会顺带调用一次，
+  // 所以远程配置晚到、或者用户切页面回到首页，都会重新检查一遍，不需要额外轮询。
+  function _applyRemoteBanner(){
+    try{
+      const el = document.getElementById('homeAnnounceBanner');
+      if(!el) return;
+      const rc = window._remoteConfig && window._remoteConfig.banner;
+      if(!rc || rc.enabled !== true){ el.style.display='none'; return; }
+      const now = Date.now();
+      if(rc.startAt && now < rc.startAt){ el.style.display='none'; return; } // 还没到开始时间
+      if(rc.endAt && now > rc.endAt){ el.style.display='none'; return; }     // 已经过了结束时间
+      const isZh = (window._appLang || window._gateLang) === 'zh';
+      const title = (rc.title && (isZh ? rc.title.zh : rc.title.th)) || '';
+      const body = (rc.body && (isZh ? rc.body.zh : rc.body.th)) || '';
+      if(!title && !body){ el.style.display='none'; return; } // 内容全是空的，不硬显示一个空壳
+      // 同一条公告（用起始时间+标题拼签名）只关一次；后台换了新公告，签名变了就会重新出现
+      const sig = String(rc.startAt||'') + '|' + title;
+      if(localStorage.getItem('luna_announce_closed') === sig){ el.style.display='none'; return; }
+      document.getElementById('homeAnnounceBannerIcon').textContent = rc.icon || '📣';
+      document.getElementById('homeAnnounceBannerTitle').textContent = title;
+      document.getElementById('homeAnnounceBannerBody').textContent = body;
+      el.dataset.sig = sig;
+      el.dataset.link = rc.link || '';
+      el.style.display = 'flex';
+    }catch(e){}
+  }
+  window._applyRemoteBanner = _applyRemoteBanner;
+
+  function _closeAnnounceBanner(ev){
+    try{
+      if(ev) ev.stopPropagation();
+      const el = document.getElementById('homeAnnounceBanner');
+      if(!el) return;
+      if(el.dataset.sig) localStorage.setItem('luna_announce_closed', el.dataset.sig);
+      el.style.display = 'none';
+    }catch(e){}
+  }
+  window._closeAnnounceBanner = _closeAnnounceBanner;
+
+  function _onAnnounceBannerTap(){
+    try{
+      const el = document.getElementById('homeAnnounceBanner');
+      const link = el && el.dataset.link;
+      if(link) window.open(link, '_blank');
+    }catch(e){}
+  }
+  window._onAnnounceBannerTap = _onAnnounceBannerTap;
+
   // ── 新手引导卡：完全没有记录时显示，有记录后自动消失 ──
   // 上一次 updateOnboard() 跑的时候 started 是什么状态——用来准确判断"这次调用是不是刚发生的
   // 状态转场"，比检查DOM当前display字符串可靠（元素刚渲染出来时display是空字符串，不是'none'，
@@ -7890,7 +8098,13 @@ window.setLang = setLang;
   // Early definition of _appLang to prevent temporal dead zone errors
   if(typeof _appLang === 'undefined') window._appLang = localStorage.getItem('luna_lang') || 'th';
   function getTodayTH() {
-    const now = new Date();
+    // 🩹 修复：这是全App"今天是哪天"的唯一权威来源（经期打点、日历、统计全靠它），之前用的是
+    // 裸设备时间 new Date()，手机时钟只要短暂跳错一下（比如系统时间同步、时区重算），当下记的
+    // 那条经期就会被打上错误日期。后续 calUpdateStats() 用 correctedNow() 重新算出正确的"今天"
+    // 过滤数据时，那条错日期的记录就被排除在外，导致"卡片1显示有数据、卡片2却当没数据处理"这种
+    // 两边不一致的画面（比如"今天第1天"和"试试记录经期"同时出现）。改成跟 usedays/试用期那几处
+    // 一样用 correctedNow()（Firebase服务器时间校正过的时间戳），不再受设备时钟波动影响。
+    const now = new Date((typeof correctedNow==='function') ? correctedNow() : Date.now());
     // 转换为泰国时间字符串再解析，确保年月日正确
     const thStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }); // 'YYYY-MM-DD'
     const [y, m, d] = thStr.split('-').map(Number);
@@ -8030,13 +8244,15 @@ window.setLang = setLang;
   function isPro() { if(window.IS_PLAY_BUILD) return true; return localStorage.getItem('luna_activated') === '1'; }
   // 主题权限：正式会员 或 试用期内 都可用全部主题（试用到期后回退）
   // ── 主题三档（这次调整过一轮，下面是最新的） ──
-  // 免费：peach（新默认） / aurora / moonlotus / mistteal / duskmauve（永久免费，不在下面两个表里）
+  // 免费：peach（新默认） / aurora / moonlotus / mistteal / duskmauve / default / dream（永久免费，不在下面两个表里）
   // 月光值 200 兑换：lotus / rose / orange / sky / mint / lavender
-  // VIP 专属：default（老配色） / goldsand / amber / jasmine / dream / sakura / cream（不能用月光值买，只能开会员）
-  const THEME_UNLOCK = { lotus:200, rose:200, orange:200, sky:200, mint:200, lavender:200 };
+  // VIP 专属：goldsand / amber / jasmine / sakura / cream（不能用月光值买，只能开会员）
+  // 🌐 remote config：直接引用 window._remoteConfig.themeUnlockCost 这同一个对象（不是复制一份数字），
+  // 远程配置晚到也没关系——真正读取都发生在用户点主题的那一刻，那时候数值早就该同步过了
+  const THEME_UNLOCK = window._remoteConfig.themeUnlockCost;
   // 🩹 主题分级调整：莲夜水/雾松青/暮霭藕紫 从VIP移到免费；default（老的"默认"配色）和暖金沙
-  // 从免费移到VIP；蜜桃粉、极光紫境保持免费——蜜桃粉现在还兼任"新默认主题"，见下面 initSavedTheme
-  const VIP_THEMES = ['default','amber','goldsand','jasmine','dream','sakura','cream'];
+  // 从免费移到VIP，后来 default 和 dream（梦幻紫）又从VIP移回免费——蜜桃粉、极光紫境保持免费
+  const VIP_THEMES = ['amber','goldsand','jasmine','sakura','cream'];
   function isThemeUnlocked(key){
     // 🩹 安全兜底不再是 'default'（那个键现在是VIP了，不能再当兜底，不然兜底本身都要锁）——
     // 换成 'peach'，理由跟下面 initSavedTheme 的新默认值是同一个：peach 现在是唯一保证
@@ -8074,9 +8290,12 @@ window.setLang = setLang;
   // 🩹 游客登录卡：登录了就隐藏，没登录就显示——用 isGuest() 判断，跟"记录"那几处用的是同一个函数
   function renderGuestAccountCard(){
     const card = document.getElementById('guestAccountCard');
-    if(!card) return;
     const guest = (typeof isGuest === 'function') ? isGuest() : !localStorage.getItem('luna_uid');
-    card.style.display = guest ? 'block' : 'none';
+    if(card) card.style.display = guest ? 'block' : 'none';
+    // 🔒 悬浮球需要登录才能用：跟游客账号卡用同一个 guest 判断，同一次刷新里一起更新，
+    // 保证"登录状态"和"这句提示是否显示"永远同步，不会各算各的、也不用额外单独监听登录事件
+    const orbHint = document.getElementById('orbLoginRequiredHint');
+    if(orbHint) orbHint.style.display = guest ? 'block' : 'none';
   }
   window.renderGuestAccountCard = renderGuestAccountCard;
 
@@ -8476,6 +8695,17 @@ window.setLang = setLang;
     window._closeLunaPanel = closePanel;
 
     function toggleOrbPanel(){
+      // 🩹 保险检查：悬浮球理论上登录前是隐藏的（见 updateOrbVisibility 里的 luna_uid 判断），
+      // 这里再兜底查一次——万一有边界情况按钮还是被点到了，给个友好提示，而不是打开一个没有
+      // 数据支撑的空面板
+      // 🩹 用 isGuest() 而不是直接查 localStorage.luna_uid——后者在"预览模式残留会话偷偷写了uid"
+      // 这种边界情况下会误判成"已登录"，导致这条提示永远不会弹出来（isGuest() 专门处理了这种情况，
+      // 见 isGuest() 函数里的注释，是这个 App 判断"是不是游客"的唯一权威来源，不要自己再重新判断一遍）
+      if(isGuest()){
+        const isZh = (window._appLang || window._gateLang) === 'zh';
+        showToast(isZh ? '需要先登录才能使用悬浮球功能 🌙' : 'ต้องเข้าสู่ระบบก่อนถึงจะใช้ปุ่มลอยได้ 🌙');
+        return;
+      }
       if(panel.style.display==='block'){
         // 面板已打开 → 再点球就换下一句文案（带轻微动画）
         renderOrbContent();
@@ -8611,6 +8841,10 @@ window.setLang = setLang;
     function zh(){ return _appLang === 'zh'; }
     // 🩹 年龄限制：低于13岁的用户，不管是不是VIP/试用期，AI聊天一律不开放
     function canUseAI(){
+      // 🌐 远程灾度开关：优先级最高，比年龄限制/VIP/试用判断都先检查——这是唯一集中判断
+      // "能不能用AI聊天"的地方，所有调用 canUseAI() 的入口（悬浮球面板、话题菜单等）都会
+      // 一起被这一个开关统一拦住，不用一个个入口分别去接
+      if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('aiAssistant')) return false;
       if(typeof isAgeRestricted==='function' && isAgeRestricted()) return false;
       return (typeof isPro==='function'&&isPro()) || (typeof inTrial==='function'&&inTrial());
     }
@@ -8784,8 +9018,8 @@ window.setLang = setLang;
        zh:'🌙 在"我的"页面可以设置通知哦,有经期前提醒、排卵日提醒、每日记录提醒,可以自由开关',
        fuTh:[], fuZh:[]},
       {kw:['ติดต่อ','แอดมิน','ติดต่อยังไง','line','ไลน์','ช่วยเหลือ','联系','客服','联系管理员','怎么联系','求助'],
-       th:'🌙 ติดต่อ Luna ได้ทางอีเมล lunacalm00@gmail.com เลยค่ะ หรือดูปุ่มติดต่อในหน้า "โปรไฟล์" ยินดีช่วยเหลือคุณนะ 💗',
-       zh:'🌙 可以通过邮箱 lunacalm00@gmail.com 联系 Luna 哦,或在"我的"页面查看联系按钮,很乐意帮你 💗',
+       th:'🌙 ติดต่อ Luna ได้ทางอีเมล {{EMAIL}} เลยค่ะ หรือดูปุ่มติดต่อในหน้า "โปรไฟล์" ยินดีช่วยเหลือคุณนะ 💗',
+       zh:'🌙 可以通过邮箱 {{EMAIL}} 联系 Luna 哦,或在"我的"页面查看联系按钮,很乐意帮你 💗',
        fuTh:[], fuZh:[]},
       {kw:['ออกจากระบบ','logout','ล็อกเอาท์','退出','退出登录','登出','怎么退出'],
        th:'🌙 ออกจากระบบได้ที่หน้า "โปรไฟล์" เลื่อนลงไปจะเจอปุ่มออกจากระบบค่ะ ข้อมูลของคุณยังปลอดภัยอยู่ เข้าใหม่ด้วย Google เดิมก็เจอครบนะ',
@@ -9702,7 +9936,8 @@ window.setLang = setLang;
     }
     function reply(q){
       const m = match(q);
-      if(m) return { text: zh()? m.zh : m.th, crisis: !!m.crisis, fu: zh()? (m.fuZh||[]) : (m.fuTh||[]), noMatch:false };
+      const _email = (window._remoteConfig && window._remoteConfig.supportEmail) || 'lunacalm00@gmail.com';
+      if(m) return { text: (zh()? m.zh : m.th).replace(/\{\{EMAIL\}\}/g, _email), crisis: !!m.crisis, fu: zh()? (m.fuZh||[]) : (m.fuTh||[]), noMatch:false };
       const fb = FALLBACK[zh()?'zh':'th'];
       return { text: fb[Math.floor(Math.random()*fb.length)], crisis:false, fu:[], noMatch:true };
     }
@@ -9969,11 +10204,11 @@ window.setLang = setLang;
       const lineBtn=document.createElement('button');
       lineBtn.textContent = zh() ? '💬 LINE 联系管理员' : '💬 ติดต่อแอดมินทาง LINE';
       lineBtn.style.cssText='border:none;background:linear-gradient(135deg,#06c755,#00b544);color:#fff;font-weight:700;font-size:13.5px;padding:12px 20px;border-radius:14px;cursor:pointer;font-family:inherit;';
-      lineBtn.onclick=()=>{ window.open('https://lin.ee/STIfOtU','_blank'); };
+      lineBtn.onclick=()=>{ _openLineContact(); };
       const mailBtn=document.createElement('button');
       mailBtn.textContent = zh() ? '✉️ 邮箱联系我们' : '✉️ ติดต่อทางอีเมล';
       mailBtn.style.cssText='border:none;background:linear-gradient(135deg,#9d7bd6,#e98ab0);color:#fff;font-weight:700;font-size:13.5px;padding:12px 20px;border-radius:14px;cursor:pointer;font-family:inherit;';
-      mailBtn.onclick=()=>{ window.location.href='mailto:lunacalm00@gmail.com'; };
+      mailBtn.onclick=()=>{ _contactSupport(); };
       btnRow.appendChild(lineBtn);
       btnRow.appendChild(mailBtn);
       w.appendChild(btnRow);
@@ -10250,15 +10485,24 @@ window.setLang = setLang;
       const mine = document.getElementById('mine-panel');
       const cal = document.getElementById('calPanel');
       const stats = document.getElementById('statsPanel');
+      // 🩹 修复：App 现在支持"跳过登录先逛逛"（见6566行附近注释），游客也能停留在首页，
+      // 之前这里写死要求 luna_uid 存在才显示球，导致游客状态下球整个被隐藏、根本点不到，
+      // toggleOrbPanel() 里那句"需要先登录"的提示永远没有机会弹出来。现在改成：球始终跟着
+      // "是否在首页"显示，登录与否只影响点开后的行为（未登录会被 toggleOrbPanel 拦下弹提示）。
+      const loggedIn = (typeof isGuest === 'function') ? !isGuest() : !!localStorage.getItem('luna_uid');
       const onHome = (!mine||mine.style.display==='none') &&
                      (!cal||cal.style.display==='none') &&
                      (!stats||stats.style.display==='none') &&
-                     !!localStorage.getItem('luna_uid') && // 登录后才显示
-                     localStorage.getItem('luna_orb_enabled') !== '0'; // 用户在"我的"页手动关闭时也不显示
+                     localStorage.getItem('luna_orb_enabled') !== '0' && // 用户在"我的"页手动关闭时也不显示
+                     window._isFeatureEnabled('aiAssistant'); // 🌐 远程灾度开关：后台能一键关掉AI小助手入口
       orb.style.display = onHome ? 'flex' : 'none';
+      orb.style.opacity = loggedIn ? '' : '0.5'; // 未登录时视觉上调暗一点，暗示"点了要先登录"
       if(!onHome){ panel.style.display='none'; _orbWasVisible=false; clearTimeout(_dimTimer); }
       else if(!_orbWasVisible){ _orbWasVisible=true; wakeOrb(); breatheOrb(); } // 球刚出现→亮起、呼吸提示、开始计时
-      if(onHome){ try{ updateLumiNudge(); }catch(e){} }   // 🌙 刷新久未到访 Lumi 小红点
+      if(onHome && loggedIn){ try{ updateLumiNudge(); }catch(e){} }   // 🌙 刷新久未到访 Lumi 小红点（游客没账号，跳过）
+      // 🌐 首页公告横幅：跟悬浮球共用"是否在首页"这个判断——每次进首页都重新检查一次远程配置
+      try{ const home2 = (!mine||mine.style.display==='none') && (!cal||cal.style.display==='none') && (!stats||stats.style.display==='none');
+        if(home2 && typeof window._applyRemoteBanner==='function') window._applyRemoteBanner(); }catch(e){}
     }
     window._updateOrbVisibility = updateOrbVisibility;
     // 定期检查页面状态（面板切换没有统一事件，轮询最稳）
@@ -10806,7 +11050,9 @@ window.setLang = setLang;
           const recent = logs.find(l=>l && (l.date===todayKey || l.date===yKey) && l.symptoms && l.symptoms.length);
           if(!recent) return null;
           const isToday = recent.date===todayKey;
-          const symName = recent.symptoms[0];
+          // 🔒 symName 可能是用户在"其他症状"里打的自由文本，这条问候语最终会拼进首页宠物卡片的
+          // innerHTML 里显示——之前没转义，这里补上
+          const symName = escHtml(recent.symptoms[0]);
           const emo = (recent.emojis && recent.emojis[0]) || '💜';
           if(isToday) return zh? `看到你今天记录了"${symName}"${emo}，要好好照顾自己哦`:`เห็นว่าวันนี้คุณบันทึก "${symName}" ${emo} ดูแลตัวเองด้วยนะ`;
           return zh? `昨天你记录了"${symName}"${emo}，今天感觉好一些了吗？`:`เมื่อวานคุณบันทึก "${symName}" ${emo} วันนี้รู้สึกดีขึ้นไหม?`;
@@ -10849,7 +11095,8 @@ window.setLang = setLang;
           if(todayLog && typeof PAIN_KEYWORD_RE!=='undefined'){
             const idx = todayLog.symptoms.findIndex(s=>PAIN_KEYWORD_RE.test(s));
             if(idx>-1){
-              const symName = todayLog.symptoms[idx];
+              // 🔒 同上，这条问候语也会拼进首页宠物卡片的 innerHTML，先转义
+              const symName = escHtml(todayLog.symptoms[idx]);
               const emo = (todayLog.emojis && todayLog.emojis[idx]) || '🥺';
               return {
                 mood:'caring',
@@ -10920,7 +11167,7 @@ window.setLang = setLang;
         // 🌙 只算一次，下面表情和文案(petGreeting)都用这同一份结果，逐字保证一致
         const todayCare = getTodayMoodCareInfo();
         const mood = currentMood(todayCare);
-        const claimedToday = localStorage.getItem(PLAY_REWARD_KEY) === new Date().toISOString().slice(0,10);
+        const claimedToday = localStorage.getItem(PLAY_REWARD_KEY) === new Date((typeof correctedNow==='function')?correctedNow():Date.now()).toISOString().slice(0,10);
         // 🌙🎀 每次打开/重开弹窗，服装按顺序换下一套；表情基调跟着真实周期阶段走
         const costume = nextRotatingCostume();
         const phaseForAvatar = currentCyclePhaseForAvatar();
@@ -11102,10 +11349,11 @@ window.setLang = setLang;
           },1000);
           claim.onclick=()=>{
             if(petElapsed<NEED_SEC) return;
-            if(localStorage.getItem(PLAY_REWARD_KEY)===new Date().toISOString().slice(0,10)) return;
+            const _rewardDateKey = new Date((typeof correctedNow==='function')?correctedNow():Date.now()).toISOString().slice(0,10);
+            if(localStorage.getItem(PLAY_REWARD_KEY)===_rewardDateKey) return;
             const r=Math.random(); let reward=20;
             if(r<0.65) reward=20; else if(r<0.85) reward=25; else if(r<0.95) reward=30; else if(r<0.99) reward=40; else reward=50;
-            localStorage.setItem(PLAY_REWARD_KEY, new Date().toISOString().slice(0,10));
+            localStorage.setItem(PLAY_REWARD_KEY, _rewardDateKey);
             if(typeof addMoonPoints==='function') addMoonPoints(reward);
             petSound('reward');
             const stage=document.getElementById('petStage');
@@ -12207,6 +12455,9 @@ window.setLang = setLang;
           if(typeof renderCheckin==='function') renderCheckin();
         }
       }).catch(()=>{});
+      // 🩹 补发上次没同步成功的 logs/periodDays（见 _flushPendingSync 定义处的说明）——
+      // 放在这里是因为这个位置已经确认 Firebase 连上了、用户也登录了，是最合适的重试时机
+      if(typeof _flushPendingSync==='function') _flushPendingSync();
       // 已领取档位（取较大值，避免重复领）
       window._fb.get('userdata/'+code+'/rewardClaimed').then(data=>{
         if(typeof data==='number'){
@@ -12425,14 +12676,18 @@ window.setLang = setLang;
       const pdSet = new Set(pdArr);
       // 🌙 记录前先判断：今天是不是"新一次经期的第一天"，如果是就用旧数据估算一下"当初预测的开始日"，等下和今天比对
       if (periodToggle.checked) {
-        const yest = new Date(); yest.setDate(yest.getDate()-1);
+        // 🩹 同一个 correctedNow() 校正过的"现在"，跟 getTodayTH() 用的是同一个时间源——避免这里
+        // 算出来的"昨天"/"今天"，跟真正写进 periodDays 的那个日期（走 getTodayKey()→today→getTodayTH()）
+        // 各用各的时钟，两边算出不同结果
+        const _correctedTs = (typeof correctedNow==='function') ? correctedNow() : Date.now();
+        const yest = new Date(_correctedTs); yest.setDate(yest.getDate()-1);
         const yKey = `${yest.getFullYear()}-${String(yest.getMonth()+1).padStart(2,'0')}-${String(yest.getDate()).padStart(2,'0')}`;
         const isNewStart = !pdSet.has(yKey);
         _isNewPeriodStart = isNewStart;
         if (isNewStart) {
           const oldPred = _predictOldStart(pdArr);
           if (oldPred) {
-            const todayMid = new Date(); todayMid.setHours(0,0,0,0);
+            const todayMid = new Date(_correctedTs); todayMid.setHours(0,0,0,0);
             oldPred.setHours(0,0,0,0);
             const diffDays = Math.round((todayMid - oldPred)/86400000);
             if (Math.abs(diffDays) <= 1) _predictionHit = true;
@@ -12450,7 +12705,7 @@ window.setLang = setLang;
       try { if(typeof periodSet !== 'undefined') periodSet = new Set(newArr); } catch(e) {}
       try {
         const code = localStorage.getItem('luna_uid');
-        if(code && window._fb) window._fb.set('userdata/'+code+'/periodDays', newArr).catch(()=>{});
+        if(code && window._fb) _fbSetWithRetry('userdata/'+code+'/periodDays', newArr);
       } catch(e) {}
     }
 
@@ -12469,7 +12724,7 @@ window.setLang = setLang;
       try { if(typeof logs !== 'undefined') logs = logArr; } catch(e) {}
       try {
         const code = localStorage.getItem('luna_uid');
-        if(code && window._fb) window._fb.set('userdata/'+code+'/logs', logArr).catch(()=>{});
+        if(code && window._fb) _fbSetWithRetry('userdata/'+code+'/logs', logArr);
       } catch(e) {}
     }
     // 成就检查：只要保存了（经期或症状任一）就触发一次（含月光值增长+成就解锁）
@@ -12530,7 +12785,7 @@ window.setLang = setLang;
       try { if(typeof checkAchievements==='function') checkAchievements(); } catch(e) {}
       try {
         const code = localStorage.getItem('luna_uid');
-        if(code && window._fb) window._fb.set('userdata/'+code+'/logs', logArr).catch(()=>{});
+        if(code && window._fb) _fbSetWithRetry('userdata/'+code+'/logs', logArr);
       } catch(e) {}
       if (typeof renderLogList === 'function') renderLogList();  // 即时刷新列表
     }
@@ -12583,6 +12838,17 @@ window.setLang = setLang;
     return name;
   }
   window.translateSym = translateSym;
+
+  // 🔒 通用 HTML 转义：凡是"用户自己打的自由文本"（备注、症状里的"其他"自定义项等）
+  // 后面要拼进 innerHTML 的模板字符串里，一律先过一遍这个函数，防止有人在这些输入框里
+  // 打 <img onerror=...> 这类内容，回显时被当成真 HTML/脚本执行（自我 XSS：只影响本机本账号，
+  // 不会波及别人，但顺手转义成本很低，能堵就堵）
+  function escHtml(s) {
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  window.escHtml = escHtml;
 
   // ── 症状小图标（按中文canonical名对照，跟录入语言/用户当时选的emoji无关）──
   // 🩹 之前 Top5 用"用户当时选的emoji + 原始文本"做分组 key，同一个症状如果两次选了不同emoji、
@@ -12643,9 +12909,12 @@ window.setLang = setLang;
         // （硬套会把后缀词换了、前面的泰语心情词却没跟着换，变成"ดีใจ（情绪）"这种怪异混合）
         const isAnnotated = rawSym.includes('（ปริมาณ）')||rawSym.includes('（สี）')||rawSym.includes('（อารมณ์）');
         const dispSym = isAnnotated ? rawSym : translateSym(rawSym);
-        return `<span class="log-tag log-tag-del" onclick="confirmDeleteTag(${origIdx},${si})">${e} ${dispSym}<span class="log-tag-x">✕</span></span>`;
+        // 🔒 dispSym 可能来自用户在"其他症状"里打的自由文本，之前没转义就直接拼进 innerHTML，
+        // 打个 <img onerror=...> 之类的会被当真 HTML 执行——现在过一遍 escHtml 堵住
+        return `<span class="log-tag log-tag-del" onclick="confirmDeleteTag(${origIdx},${si})">${e} ${escHtml(dispSym)}<span class="log-tag-x">✕</span></span>`;
       }).join('');
-      const noteHtml = l.note ? `<div class="log-note log-note-del" onclick="confirmDeleteNote(${origIdx})">📝 ${String(l.note).replace(/</g,'&lt;')}<span class="log-note-x">✕</span></div>` : '';
+      // 🔒 备注原来只转义了 < 一个字符（够挡住开标签，但不完整）；统一换成 escHtml 全转义
+      const noteHtml = l.note ? `<div class="log-note log-note-del" onclick="confirmDeleteNote(${origIdx})">📝 ${escHtml(l.note)}<span class="log-note-x">✕</span></div>` : '';
       return `
         <div class="log-entry" id="logentry-${origIdx}">
           <div class="log-entry-top">
@@ -13139,14 +13408,60 @@ window.setLang = setLang;
   let periodDays = JSON.parse(localStorage.getItem('luna_period_days') || '[]');
   let periodSet  = new Set(periodDays);
 
+  // ══ 🩹 补上失败重试：之前 logs / periodDays 的云端写入都是 fire-and-forget
+  // （window._fb.set(...).catch(()=>{})，失败了就真的丢了，没有任何补救）。
+  // 现在改成：写失败先把这次的完整内容记一笔"待同步"到本地，下次打开App、Firebase
+  // 连上之后自动重新尝试。只包 logs / periodDays 这两个"记录"相关的核心数据——
+  // 这两个丢了对用户伤害最大；成就/月光点数这些字段重要性没那么高，先不动，
+  // 保持原来的 fire-and-forget，避免这次改动范围扩得太大。
+  // 队列结构：{ "userdata/uid/logs": {value:[...], ts:169...}, "userdata/uid/periodDays": {...} }
+  // 同一个 path 多次写入只保留最新一次的 value，不会越攒越多。
+  function _fbSetWithRetry(path, value){
+    if(!window._fb){ _queuePendingSync(path, value); return; }
+    window._fb.set(path, value)
+      .then(()=>{ _clearPendingSync(path); })
+      .catch(()=>{ _queuePendingSync(path, value); });
+  }
+  function _queuePendingSync(path, value){
+    try{
+      const q = JSON.parse(localStorage.getItem('luna_pending_sync') || '{}');
+      q[path] = { value: value, ts: Date.now() };
+      localStorage.setItem('luna_pending_sync', JSON.stringify(q));
+    }catch(e){ /* 连本地队列都写不进去（存储满了之类），只能放弃，不影响本次操作本身 */ }
+  }
+  function _clearPendingSync(path){
+    try{
+      const q = JSON.parse(localStorage.getItem('luna_pending_sync') || '{}');
+      if(q[path]){ delete q[path]; localStorage.setItem('luna_pending_sync', JSON.stringify(q)); }
+    }catch(e){}
+  }
+  // App 启动、Firebase 连上、用户已登录之后调用一次：把上次没写成功的东西重新试一遍。
+  // 每个 path 独立重试、独立成功/失败，互不影响；这次还是失败就继续留在队列里，下次再试。
+  function _flushPendingSync(){
+    if(!window._fb) return;
+    try{
+      const q = JSON.parse(localStorage.getItem('luna_pending_sync') || '{}');
+      const paths = Object.keys(q);
+      if(!paths.length) return;
+      paths.forEach(function(path){
+        const entry = q[path];
+        if(!entry) return;
+        window._fb.set(path, entry.value)
+          .then(()=>{ _clearPendingSync(path); })
+          .catch(()=>{ /* 还是失败，留在队列里，下次再试 */ });
+      });
+    }catch(e){}
+  }
+  window._flushPendingSync = _flushPendingSync;
+
   function savePeriodDays() {
     // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试
     try { localStorage.setItem('luna_period_days', JSON.stringify([...periodSet])); }
     catch(e) { console.log('luna_period_days local cache write failed:', e); }
-    // 同步到 Firebase
+    // 同步到 Firebase（带失败重试，见上面 _fbSetWithRetry）
     const code = localStorage.getItem('luna_uid');
     if(code && window._fb) {
-      window._fb.set('userdata/'+code+'/periodDays', [...periodSet]).catch(()=>{});
+      _fbSetWithRetry('userdata/'+code+'/periodDays', [...periodSet]);
     }
     if(typeof _markUserRecordActivity==='function') _markUserRecordActivity();
     if(typeof updateOnboard==='function') updateOnboard();
@@ -13159,10 +13474,10 @@ window.setLang = setLang;
     try { localStorage.setItem('luna_logs', JSON.stringify(logs)); }
     catch(e) { console.log('luna_logs local cache write failed:', e); }
     if(typeof checkAchievements==='function') checkAchievements();
-    // 同步到 Firebase
+    // 同步到 Firebase（带失败重试，见上面 _fbSetWithRetry）
     const code = localStorage.getItem('luna_uid');
     if(code && window._fb) {
-      window._fb.set('userdata/'+code+'/logs', logs).catch(()=>{});
+      _fbSetWithRetry('userdata/'+code+'/logs', logs);
     }
     if(typeof _markUserRecordActivity==='function') _markUserRecordActivity();
     if(typeof updateOnboard==='function') updateOnboard();
@@ -14012,7 +14327,12 @@ window.setLang = setLang;
     }
     for(let i=0; i<CYCLE_GIRL_POSE_COUNT; i++){
       const img = document.getElementById('cycleGirlPose'+i);
-      if(img) img.style.display = (i === _cycleGirlPoseIndex) ? 'block' : 'none';
+      if(!img) continue;
+      img.style.display = (i === _cycleGirlPoseIndex) ? 'block' : 'none';
+      // 🌐 remote config：如果后台给这张插画配了外链图片，就用外链覆盖内嵌的 base64；
+      // 没配置就保持原样（base64 兜底，不依赖网络也能正常显示）
+      const _url = window._remoteConfig && window._remoteConfig.images && window._remoteConfig.images['cycleGirlPose'+i];
+      if(_url && img.dataset.remoteApplied !== _url){ img.src = _url; img.dataset.remoteApplied = _url; }
     }
   }
   window.renderCycleGirlPose = renderCycleGirlPose;
@@ -14117,15 +14437,16 @@ window.setLang = setLang;
 
       // 🩹 女孩+气泡合成图 vs 纯文字气泡，二选一：跟着"当前主题是不是免费主题"决定，
       // 跟数据状态（有没有标经期）是两件独立的事——数据状态决定"这整块要不要出现"，
-      // 主题只决定"出现的时候，出的是图还是纯文字"。免费主题固定这5个，不用 VIP_THEMES
-      // 反着推（那个数组还包含月光值兑换那六个，不算"免费"，这里要严格对应用户说的范围）
-      const FREE_THEMES_FOR_COMBO = ['peach', 'aurora', 'moonlotus', 'mistteal', 'duskmauve'];
+      // 主题只决定"出现的时候，出的是图还是纯文字"。补上了 default（胭脂粉）和 dream（梦幻紫）——
+      // 这两个都是淡色调，之前只是漏加，不是刻意排除；深色主题（比如琥珀光，VIP专属）先不加
+      const FREE_THEMES_FOR_COMBO = ['peach', 'aurora', 'moonlotus', 'mistteal', 'duskmauve', 'default', 'dream'];
       const curThemeKey = localStorage.getItem('luna_theme') || 'peach';
       const isFreeThemeForCombo = FREE_THEMES_FOR_COMBO.indexOf(curThemeKey) !== -1;
       const comboImg = document.getElementById('nextComboImg');
       const comboImgTh = document.getElementById('nextComboImgTh');
 
       const labelEl0 = document.getElementById('nextLabel');
+      const comboCard0 = document.getElementById('nextPeriodCard');
       if(isFreeThemeForCombo && (comboImg || comboImgTh)){
         // 🩹 免费主题下具体显示中文图还是泰语图，跟着 App 当前语言走（isThNew），
         // 不能只做中文版——图里的文字是画上去的，泰语用户看中文图会看不懂，两张图
@@ -14133,10 +14454,16 @@ window.setLang = setLang;
         if(comboImg) comboImg.style.display = isThNew ? 'none' : 'block';
         if(comboImgTh) comboImgTh.style.display = isThNew ? 'block' : 'none';
         if(labelEl0) labelEl0.style.display = 'none';
+        // 卡片高度恢复成配图需要的 200px（比如从"胭脂粉"切回"蜜桃粉"这种同一会话内换主题的情况）
+        if(comboCard0) comboCard0.style.minHeight = '200px';
       } else {
-        // VIP主题（或者极少数情况读不到合法主题名）：没有配图，退回纯文字气泡兜底
+        // VIP主题 / 默认(胭脂粉) / 梦幻紫（这三个没有专属配图，退回纯文字气泡兜底）：
+        // 🩹 之前卡片高度写死200px是照着配图的高度定的，气泡换上纯文字后卡片没跟着变矮，
+        // 上面就会空出一大截（首页"记录月经一次看看"那截空白就是这个原因）——这里改成
+        // 让卡片高度贴合内容本身，不再强制留出配图那么高的空间
         if(comboImg) comboImg.style.display = 'none';
         if(comboImgTh) comboImgTh.style.display = 'none';
+        if(comboCard0) comboCard0.style.minHeight = '0';
         if(labelEl0) {
           labelEl0.textContent = isThNew ? 'ลองบันทึกประจำเดือนสักครั้งดูสิ' : '记录月经一次看看';
           // 🩹 从"一行小字"改成气泡样式——背景/文字颜色都用主题色变量（--purple/--purple-pale），
@@ -14714,15 +15041,24 @@ window.setLang = setLang;
     const realBlock = document.getElementById('aiAnalysisRealBlock');
     const lockedBlock = document.getElementById('aiAnalysisLockedBlock');
     if (!realBlock || !lockedBlock) return;
+    const label = document.getElementById('aiAnalysisLockedLabel');
+    const unlockBtn = document.getElementById('aiAnalysisUnlockBtn');
+    const desc = document.getElementById('aiAnalysisLockedDesc');
+    // 🌐 远程灾度开关：优先级最高，比年龄限制/VIP判断都先检查——后台一键关掉后，
+    // 不管是不是VIP、够不够年龄，统一显示"暂时维护中"，不会露出任何跟"能不能解锁"相关的文案，
+    // 避免用户误以为是自己账号的问题去找客服/尝试付费解锁
+    if (typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('aiAnalysis')) {
+      realBlock.style.display = 'none';
+      lockedBlock.style.display = 'block';
+      if (label) label.textContent = (_appLang==='zh' ? '🛠 AI 分析暂时维护中' : '🛠 ฟีเจอร์นี้กำลังปรับปรุงชั่วคราว');
+      if (unlockBtn) unlockBtn.style.display = 'none';
+      if (desc) desc.style.display = 'none';
+      return;
+    }
     const ageBlocked = (typeof isAgeRestricted === 'function') && isAgeRestricted();
     const pro = (typeof isPro === 'function') && isPro();
     // 🩹 年龄限制优先于VIP判断：就算是VIP账号，只要年龄不够，这个功能一样不开放，
     // 锁定态的文案也要跟着换——年龄限制不是"没开会员"，不能引导去"解锁VIP"，那没用
-    const label = document.getElementById('aiAnalysisLockedLabel');
-    const unlockBtn = document.getElementById('aiAnalysisUnlockBtn');
-    // 🩹 新加的这行价值说明，年龄限制状态下也要跟着隐藏——unlockBtn都没了（按钮已经隐藏），
-    // 光留一句"会帮你看出什么"却没有任何能点的下一步，看着莫名其妙
-    const desc = document.getElementById('aiAnalysisLockedDesc');
     if (ageBlocked) {
       realBlock.style.display = 'none';
       lockedBlock.style.display = 'block';
@@ -14964,6 +15300,12 @@ window.setLang = setLang;
     const btn = document.getElementById('aiAnalysisBtn');
     const btnText = document.getElementById('aiAnalysisBtnText');
     const isTh = _appLang !== 'zh';
+    // 🌐 远程灾度开关：跟悬浮球那边一样的双重保险——正常情况下 renderAiAnalysisGate() 已经在UI层
+    // 把按钮换成"暂时维护中"了，这里是防止有别的路径绕开UI直接调用这个函数
+    if (typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('aiAnalysis')) {
+      if (typeof showToast === 'function') showToast(isTh ? 'ฟีเจอร์นี้กำลังปรับปรุงชั่วคราว' : 'AI 分析暂时维护中');
+      return;
+    }
     // 🩹 兜底防线：正常情况下未满13岁用户根本看不到这个按钮（renderAiAnalysisGate已经拦在UI层），
     // 这里是双重保险，防止有别的路径能绕开UI直接调用这个函数
     if (typeof isAgeRestricted === 'function' && isAgeRestricted()) return;
@@ -15887,6 +16229,104 @@ window.setLang = setLang;
     try { if(typeof renderLogList === 'function') renderLogList(); } catch(e) { console.log('renderLogList err:', e); }  // 渲染情绪与备注列表
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // 🌱 自我护理文案库（供"深度健康洞察→健康提醒"模块使用）
+  //    分 6 个主题：休息/饮水/饮食/运动/情绪/暖宫，每个主题各 6 条 zh+th。
+  //    不是随便瞎写乱掰的"疗效话术"，都是很基础、不涉及具体诊疗的日常自我照顾建议，
+  //    跟原来 3 句写死的"健康提醒"配合使用：原来那句仍然保留（交代规律性现状），
+  //    这里再按"当前周期阶段"挑一个更相关的主题、按"今天的日期"挑一条具体小贴士，
+  //    两层组合起来就不会总是那几句了。
+  // ══════════════════════════════════════════════════════════════
+  const SC_SELFCARE_TIPS = {
+    rest: {
+      zh: ['今天早点休息，让身体好好充电一下 🌙','如果觉得累，先放下手边的事，休息优先 😴','试着睡前留一点安静时间，不刷手机 🌌','午后小睡十几分钟，也是很好的恢复方式 🛌','身体在提醒你放慢脚步，今天就听它的话吧 🍃','早睡半小时，比熬夜赶完事更值得 ✨'],
+      th: ['วันนี้ลองพักผ่อนให้เร็วขึ้น ให้ร่างกายได้ชาร์จพลัง 🌙','ถ้ารู้สึกเหนื่อย วางงานตรงหน้าไว้ก่อน พักผ่อนสำคัญกว่า 😴','ลองงดเล่นมือถือก่อนนอนสักหน่อย ให้ใจสงบลง 🌌','งีบสัก 10-15 นาทีตอนบ่าย ก็ช่วยฟื้นพลังได้ดีนะ 🛌','ร่างกายกำลังบอกให้คุณช้าลง วันนี้ลองฟังมันดูนะ 🍃','นอนเร็วขึ้นสักครึ่งชั่วโมง ดีกว่าฝืนทำงานดึก ✨']
+    },
+    hydration: {
+      zh: ['记得多喝水，一小口一小口地喝更容易吸收 🚰','如果觉得胀胀的，喝点温水会舒服一些 💧','桌上放一杯水，看到就顺手喝一口 🥤','少喝含糖饮料，多喝白开水，身体会感谢你 🌊','起床先喝一杯温水，唤醒身体 ☀️','水分够了，皮肤和精神都会好一点 🌿'],
+      th: ['อย่าลืมดื่มน้ำเยอะ ๆ ค่อย ๆ จิบทีละนิดจะดูดซึมง่ายกว่า 🚰','ถ้ารู้สึกท้องอืด ลองดื่มน้ำอุ่นดูจะสบายขึ้นนะ 💧','วางน้ำไว้ใกล้ตัว เห็นเมื่อไรก็จิบสักหน่อย 🥤','ลดเครื่องดื่มหวาน ดื่มน้ำเปล่าให้มากขึ้น ร่างกายจะขอบคุณคุณ 🌊','ตื่นเช้าลองดื่มน้ำอุ่นสักแก้ว ปลุกร่างกายให้ตื่นตัว ☀️','ดื่มน้ำพอ ผิวและสมองก็จะแจ่มใสขึ้นด้วยนะ 🌿']
+    },
+    nutrition: {
+      zh: ['这几天可以多吃点含铁的食物，比如红肉、深绿色蔬菜 🥬','少一点重口味和油腻，肠胃会更轻松 🍵','三餐尽量按时吃，血糖稳了心情也会稳一些 🍚','水果换着吃，营养更均衡一点 🍓','如果没什么胃口，吃点清淡好消化的也没关系 🍲','偶尔吃点甜的犒赏自己，也是自我关怀的一种 🍫'],
+      th: ['ช่วงนี้ลองกินอาหารที่มีธาตุเหล็กเยอะ ๆ เช่น เนื้อแดง ผักใบเขียวเข้ม 🥬','ลดของมันของเค็ม ท้องจะได้สบายขึ้น 🍵','พยายามกินให้ตรงเวลา น้ำตาลในเลือดคงที่ อารมณ์ก็จะคงที่ตาม 🍚','สลับกินผลไม้หลายชนิด จะได้สารอาหารครบขึ้น 🍓','ถ้าไม่ค่อยอยากอาหาร กินอะไรเบา ๆ ย่อยง่ายก็ได้นะ 🍲','นาน ๆ ทีกินของหวานให้รางวัลตัวเอง ก็ถือเป็นการดูแลใจเหมือนกัน 🍫']
+    },
+    movement: {
+      zh: ['出去散散步，晒点太阳，心情会不一样 🚶‍♀️','简单拉伸几分钟，身体会觉得轻松很多 🧘‍♀️','不用逼自己做剧烈运动，动一动就好 🌼','久坐一会儿记得起来走走，活动一下肩颈 🦋','如果没力气，慢慢走走也是一种照顾自己 🍃','找个自己喜欢的运动方式，坚持比强度更重要 💪'],
+      th: ['ลองออกไปเดินเล่น รับแดดอ่อน ๆ อารมณ์จะดีขึ้นนะ 🚶‍♀️','ยืดเส้นยืดสายสักไม่กี่นาที ร่างกายจะรู้สึกเบาขึ้นเยอะ 🧘‍♀️','ไม่ต้องฝืนออกกำลังกายหนัก ขยับตัวนิดหน่อยก็พอ 🌼','นั่งนานแล้วอย่าลืมลุกเดิน ขยับไหล่กับคอบ้าง 🦋','ถ้าไม่ค่อยมีแรง เดินช้า ๆ ก็ถือเป็นการดูแลตัวเองแบบหนึ่ง 🍃','หากิจกรรมที่ชอบทำ ความสม่ำเสมอสำคัญกว่าความหนักหน่วง 💪']
+    },
+    mood: {
+      zh: ['心情不好的时候，允许自己什么都不做一会儿 🌙','找信任的人聊聊天，说出来会轻松一些 💬','写下今天的心情，也是很好的自我照顾 📝','深呼吸几次，让紧绷的身体慢慢放松下来 🌬️','不必对自己太苛刻，今天已经做得很好了 🤍','给自己一点独处的时间，安静地待一会儿 ☁️'],
+      th: ['เวลาอารมณ์ไม่ดี อนุญาตให้ตัวเองไม่ต้องทำอะไรสักพักก็ได้ 🌙','ลองคุยกับคนที่ไว้ใจ พูดออกมาแล้วจะรู้สึกเบาขึ้น 💬','จดบันทึกความรู้สึกวันนี้ ก็เป็นการดูแลใจที่ดีนะ 📝','หายใจลึก ๆ สักสองสามครั้ง ให้ร่างกายที่ตึงเครียดค่อย ๆ ผ่อนคลาย 🌬️','ไม่ต้องเข้มงวดกับตัวเองมากเกินไป วันนี้คุณทำได้ดีแล้ว 🤍','ให้เวลาตัวเองอยู่คนเดียวเงียบ ๆ สักพักก็ได้นะ ☁️']
+    },
+    warmth: {
+      zh: ['小腹不舒服的话，热敷一下会缓解很多 🫖','穿暖一点，尤其是腰腹和脚，会舒服很多 🧣','洗个温暖的澡，让身体和心情都放松 🛁','泡杯姜茶或红糖水，暖暖身子 ☕','疼痛明显时，别硬撑，先躺下休息一下 🛌','疼得厉害就适量吃止痛药，不用觉得不好意思 💊'],
+      th: ['ถ้าปวดท้องน้อย ลองประคบร้อนดู จะช่วยบรรเทาได้เยอะ 🫖','ใส่เสื้อผ้าให้อุ่น โดยเฉพาะเอวกับเท้า จะรู้สึกสบายขึ้น 🧣','อาบน้ำอุ่น ๆ ให้ทั้งร่างกายและใจได้ผ่อนคลาย 🛁','ลองจิบชาขิงหรือน้ำตาลแดงอุ่น ๆ ให้ร่างกายอบอุ่น ☕','ถ้าปวดมาก อย่าฝืน นอนพักสักครู่ก่อนนะ 🛌','ถ้าปวดมากจริง ๆ กินยาแก้ปวดตามขนาดที่เหมาะสมได้ ไม่ต้องรู้สึกผิด 💊']
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  // 🌱 症状标签 → 自我护理分类 的映射表（供"健康提醒"模块做"标签匹配"用）
+  //    key 是 LANG 字典里已有的症状/情绪 i18n key（sym_*/pms_*/dur_*/mood_*），
+  //    不新造词表——直接复用记录页已经在用的那套标签，保证"用户实际点了什么"
+  //    和"文案库怎么选"是同一套语义，不会各算各的。
+  //    只挑"信号明确、给基础自我照顾建议是安全的"标签纳入映射；
+  //    像"发烧""担心侧漏""状态良好""白带"这类要么是需要留意就医的红旗信号、
+  //    要么本身不适合套用这几类日常小贴士，故意不纳入，交给上面已有的
+  //    "健康提醒"总结句/其他模块处理，避免给出不合适的自我护理建议。
+  //    正向情绪（开心/平静/被爱等）也不纳入——没有"要护理"的信号，不用强行配一条。
+  // ══════════════════════════════════════════════════════════════
+  const SC_SYMPTOM_MAP = {
+    // 偏"暖宫/止痛"相关
+    sym_cramp:'warmth', sym_headache:'warmth', sym_backpain:'warmth', sym_severecramp:'warmth',
+    pms_migraine:'warmth', pms_waist:'warmth', pms_bodyache:'warmth', pms_lower:'warmth',
+    dur_cramps:'warmth', dur_shower:'warmth', dur_painkiller:'warmth',
+    // 偏"喝水/消肿"相关
+    sym_bloat:'hydration', sym_hotflash:'hydration', sym_diarrhea:'hydration', sym_swelling:'hydration',
+    pms_bloat2:'hydration', dur_thirsty:'hydration', dur_caffeine:'hydration',
+    // 偏"饮食/营养"相关
+    sym_nausea:'nutrition', sym_acne:'nutrition', sym_dizzy:'nutrition', sym_constipation:'nutrition',
+    pms_sour:'nutrition', pms_sweet:'nutrition', pms_fried:'nutrition', pms_choc:'nutrition', pms_salty:'nutrition',
+    dur_sweet:'nutrition', dur_fried:'nutrition', dur_heavyflow:'nutrition', dur_skincare:'nutrition',
+    // 偏"休息"相关
+    sym_fatigue:'rest', sym_insomnia:'rest', sym_brainfog:'rest', sym_chills:'rest',
+    pms_sleepy:'rest', pms_lowenergy:'rest', dur_rest:'rest', dur_sleepy:'rest', dur_fever:'rest', mood_tired:'rest',
+    // 偏"情绪"相关
+    sym_mood:'mood', sym_mood_swings:'mood', pms_moody:'mood', pms_irritable:'mood', pms_tension:'mood',
+    pms_needhug:'mood', pms_crying:'mood', mood_sad:'mood', mood_irritated:'mood', mood_anxious:'mood',
+    mood_stressed:'mood', mood_lonely:'mood', mood_vulnerable:'mood', mood_angry:'mood', mood_confused:'mood', mood_disappointed:'mood',
+    // 偏"运动/拉伸"相关
+    dur_stretch:'movement'
+  };
+
+  // 读最近几天的症状记录，跟 SC_SYMPTOM_MAP 对照，返回命中次数最多的分类（没有命中就返回 null，
+  // 由调用方 fallback 回原来"按周期阶段"的逻辑）。用 indexOf 而不是严格相等，是因为记录页有些
+  // 标签会拼接后缀（比如"开心（อารมณ์）"），indexOf 能兼容这种带后缀的存法。
+  function scMatchSymptomCategory(){
+    try{
+      const recentLogs = (typeof logs !== 'undefined' && Array.isArray(logs)) ? logs.slice(0,3) : []; // logs 已按日期倒序排列，取最近3天
+      const dict = (typeof LANG !== 'undefined') ? LANG : null;
+      if(!dict) return null;
+      const tally = {};
+      recentLogs.forEach(l=>{
+        (l && l.symptoms || []).forEach(s=>{
+          const raw = String(s||'');
+          if(!raw) return;
+          for(const key in SC_SYMPTOM_MAP){
+            const zhTxt = dict.zh && dict.zh[key];
+            const thTxt = dict.th && dict.th[key];
+            if((zhTxt && raw.indexOf(zhTxt)!==-1) || (thTxt && raw.indexOf(thTxt)!==-1)){
+              const cat = SC_SYMPTOM_MAP[key];
+              tally[cat] = (tally[cat]||0) + 1;
+            }
+          }
+        });
+      });
+      let best=null, bestN=0;
+      Object.keys(tally).forEach(c=>{ if(tally[c]>bestN){ bestN=tally[c]; best=c; } });
+      return best;
+    } catch(e){ console.log('scMatchSymptomCategory err:', e); return null; }
+  }
+
   // ══ 深度健康洞察（VIP 专属·完整报告）══
   function renderInsights(runs, avgCycle) {
     const zh = _appLang === 'zh';
@@ -16184,14 +16624,56 @@ window.setLang = setLang;
       );
     }
 
-    // 模块6：温和提醒
+    // 模块6：温和提醒 + 自我护理小贴士
+    // 🌱（改造）原来这里只按 score 三档写死 3 句话，感觉总是重复。
+    //    现在分两层：① 规律性总结句仍按 score 三档（交代现状，不动它）
+    //              ② 额外加一条"自我护理小贴士"，按"当前周期阶段"决定优先从哪个主题库挑，
+    //                 再用"今天的日期"当种子选一条具体内容——同一天打开看到的是同一条（不会一刷新就变），
+    //                 换一天、换阶段，看到的组合就会不一样，不再是死记的那 3 句。
     let tip;
     if(score>=85) tip = zh?'你的周期暂无明显异常，继续保持记录即可，Luna 会持续关注你的身体变化 🌸':'รอบเดือนของคุณปกติดี บันทึกต่อไปได้เลย Luna จะคอยดูแลให้ 🌸';
     else if(score>=65) tip = zh?'周期偶有波动，建议保持规律睡眠、减少压力，观察未来两个月的变化 🌸':'รอบเดือนมีผันผวนบ้าง แนะนำนอนให้เป็นเวลา ลดความเครียด และสังเกต 2 เดือนข้างหน้า 🌸';
     else tip = zh?'近期周期波动较大，可能与作息或压力有关，建议持续记录观察，若长期异常可咨询医生 🌸':'ช่วงนี้รอบเดือนผันผวนพอควร อาจเกี่ยวกับการพักผ่อนหรือความเครียด แนะนำบันทึกต่อเนื่อง หากผิดปกตินานควรปรึกษาแพทย์ 🌸';
+
+    let selfCareTip = '';
+    let selfCareSource = ''; // 'symptom'=命中了最近的症状记录 / 'phase'=没命中，按周期阶段轮换（原逻辑）
+    try {
+      // phaseHint 是上面已经算好的字符串（数据积累中/经期中/经期前几天/排卵期前后），
+      // 反查出对应的分类 key，用来决定"没有症状信号时，优先从哪几个自我护理主题里挑"
+      let phaseKey = 'general';
+      if(phaseHint === (zh?'经期中':'ช่วงมีประจำเดือน')) phaseKey = 'menstrual';
+      else if(phaseHint === (zh?'经期前几天':'ช่วงก่อนมีประจำเดือน')) phaseKey = 'premenstrual';
+      else if(phaseHint === (zh?'排卵期前后':'ช่วงตกไข่')) phaseKey = 'ovulation';
+
+      const _scCatMap = {
+        menstrual: ['warmth','rest','nutrition','mood'],
+        premenstrual: ['mood','rest','hydration','nutrition'],
+        ovulation: ['hydration','movement','nutrition','mood'],
+        general: ['rest','hydration','nutrition','movement','mood','warmth']
+      };
+      const _scCats = _scCatMap[phaseKey];
+
+      // 用"今天的日期"做种子：同一天稳定不变，换天会换新内容
+      const _scSeedDate = (typeof getTodayTH === 'function') ? getTodayTH() : new Date();
+      const _scSeed = _scSeedDate.getFullYear()*372 + (_scSeedDate.getMonth()+1)*31 + _scSeedDate.getDate();
+
+      // 🎯 标签匹配：先看"最近3天实际记录的症状"有没有命中某个分类——命中了就优先用这个分类
+      //    （比只看周期阶段更贴近当下的真实状态）；没命中（没记录/记录的标签不在映射表里）
+      //    就还是按周期阶段轮换，跟改造前的行为完全一致，不会因为接了标签匹配而"退步"
+      const _scMatched = (typeof scMatchSymptomCategory === 'function') ? scMatchSymptomCategory() : null;
+      const _scCat = _scMatched || _scCats[_scSeed % _scCats.length];
+      selfCareSource = _scMatched ? 'symptom' : 'phase';
+
+      const _scPool = (SC_SELFCARE_TIPS[_scCat] && SC_SELFCARE_TIPS[_scCat][zh?'zh':'th']) || [];
+      if(_scPool.length){
+        selfCareTip = _scPool[(_scSeed*7 + (score||0)) % _scPool.length];
+      }
+    } catch(e) { console.log('selfCareTip pick err:', e); }
+
     html += card(
       blkLabel('🌷', zh?'健康提醒':'คำเตือนสุขภาพ') +
-      `<div style="background:linear-gradient(150deg,#fff6f9,#fdf4f8);border:1px solid #f8dde7;border-radius:14px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.85;">${tip}</div>`
+      `<div style="background:linear-gradient(150deg,#fff6f9,#fdf4f8);border:1px solid #f8dde7;border-radius:14px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.85;">${tip}</div>` +
+      (selfCareTip ? `<div style="margin-top:10px;background:var(--purple-pale);border-radius:14px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.85;">🌱 <b style="color:var(--purple);">${zh?'自我护理小贴士':'เคล็ดลับดูแลตัวเอง'}</b>${selfCareSource==='symptom'?`<span style="font-size:10px;color:var(--stat-fg-muted);font-weight:400;">（${zh?'根据你最近的记录':'ตามบันทึกล่าสุดของคุณ'}）</span>`:''}：${selfCareTip}</div>` : '')
     );
 
     // 模块9：信息来源声明（Apple Guideline 1.4.1 要求：涉及健康/医疗建议的AI分析需标注信息来源，
@@ -17935,7 +18417,8 @@ const LANG = {
     orb_style_lotuspond: 'บัวจันทร์',
     orb_style_catmoon: 'แมวจันทรา',
     orb_enable_label: 'แสดงลูกแก้วลอยบนหน้าแรก',
-    theme_default: 'ค่าเริ่มต้น',
+    orb_login_required: '🔒 ต้องเข้าสู่ระบบก่อน จึงจะใช้งานลูกแก้วลอยได้',
+    theme_default: 'ชมพูอมม่วง',
     theme_lotus: 'บัวหลวง',
     theme_jasmine: 'มะลิ',
     theme_rose: 'กุหลาบ',
@@ -18225,7 +18708,8 @@ const LANG = {
     orb_style_lotuspond: '莲花月光',
     orb_style_catmoon: '月光猫咪',
     orb_enable_label: '首页显示悬浮球',
-    theme_default: '默认',
+    orb_login_required: '🔒 需要登录才能使用悬浮球',
+    theme_default: '胭脂粉',
     theme_lotus: '莲花紫粉',
     theme_jasmine: '茉莉森绿',
     theme_rose: '玫瑰橘红',
@@ -18767,7 +19251,14 @@ window.updateAchieveCard=updateAchieveCard;
 // ══ 📅 持续使用天数 + 月光值奖励（累计7天领20，可补领，不记录也算）══
 // 数据：luna_usedays = 用过App的日期数组；luna_reward_claimed = 已领取的档位数
 function _useGetDays(){ try{ return JSON.parse(localStorage.getItem('luna_usedays')||'[]'); }catch(e){ return []; } }
-function _useTodayKey(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'}); }
+// 🩹 修复：之前直接用 new Date()（裸设备时间）算"今天"，手机时钟被意外调错（或者干脆调到几个月后）
+// 就会把一个未来日期写进 usedays，出现过 "2026-10-10" 夹在一堆当月日期中间这种情况。
+// 改成跟 firstLogin/trialDaysLeft 那几处一样，用 correctedNow()（用 Firebase 服务器时间校正过的时间戳），
+// 设备时钟不管多离谱都不影响这里算出来的"今天"
+function _useTodayKey(){
+  const ts = (typeof correctedNow==='function') ? correctedNow() : Date.now();
+  return new Date(ts).toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
+}
 // 每次打开App调用：把今天加入使用天数
 function markUsedToday(){
   const days=_useGetDays();
@@ -19098,13 +19589,18 @@ window.closeAchDetail=closeAchDetail;
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=app.lunacalm.flow';
 const APP_STORE_URL = 'https://apps.apple.com/us/app/luna-calm/id6796192825'; // 🩹 之前是占位符，现在 App Store 已经拿到真实 Apple App ID 了，换成真实链接
+// 🌐 remote config：评分/商店链接可以远程改（比如 App ID 换了、或者临时想跳到别的落地页），不用发版；
+// 读的时候优先用远程配置，读不到就退回上面这两个写死的默认值——两个函数都在"真的要用的那一刻"才读，
+// 不是在这两个 const 赋值的时候就定死，这样哪怕远程配置晚到，只要用户真正点"评分"时已经到了就有效
+function _getAppStoreUrl(){ return (window._remoteConfig && window._remoteConfig.appStoreUrl) || APP_STORE_URL; }
+function _getPlayStoreUrl(){ return (window._remoteConfig && window._remoteConfig.playStoreUrl) || PLAY_STORE_URL; }
 function getStoreUrl(){
   try {
     if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() === 'ios') {
-      return APP_STORE_URL;
+      return _getAppStoreUrl();
     }
   } catch(e){}
-  return PLAY_STORE_URL; // 安卓、网页预览等其他情况，统一退回 Play 商店链接
+  return _getPlayStoreUrl(); // 安卓、网页预览等其他情况，统一退回 Play 商店链接
 }
 
 // ── 给好评 ──
@@ -19121,7 +19617,7 @@ async function rateApp(){
       try { await ReviewP.requestReview(); return; } catch(e){ /* 插件没装/调用失败，往下走兜底 */ }
     }
     const platform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || '';
-    const url = (platform === 'ios') ? (APP_STORE_URL + '?action=write-review') : getStoreUrl();
+    const url = (platform === 'ios') ? (_getAppStoreUrl() + '?action=write-review') : getStoreUrl();
     window.open(url, '_blank');
   } catch(e){ console.log('rateApp error:', e); }
 }

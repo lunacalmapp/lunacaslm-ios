@@ -1,0 +1,3120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>月光游戏中心 · Luna Games</title>
+<style>
+  /* ══════════════════════════════════════════════════════════════
+     🎨 设计 token：跟首页（index-27.html）同一套语言——
+     浅紫背景 #f4f2f9 / 品牌紫 #7c5cbf → 粉 #c47ab0 的渐变按钮 /
+     标题用 Georgia,'Songti SC' 衬线，正文用系统无衬线。
+     游戏本体是"黄昏夜空接光球"，跟首页"月光"调性统一，
+     球的配色直接照抄首页悬浮球的 5 款渐变（经典/樱花/星辰/蜜桃/薄荷）。
+     ══════════════════════════════════════════════════════════════ */
+  :root{
+    --sky-top:#241a3d;      /* 夜空顶部：深靛紫 */
+    --sky-mid:#4a3172;      /* 夜空中段：暮色紫 */
+    --sky-horizon:#7c5cbf;  /* 地平线：品牌紫，呼应首页主色 */
+    --gold:#f4c96b;
+    --gold-deep:#e8b653;
+    --pink:#c47ab0;
+    --paper:#f4f2f9;
+    --card:#ffffff;
+    --ink:#2d1b4e;
+    --ink-soft:#7a6ea3;
+    --danger:#e2604f;
+    --mint:#4fc9b0;
+    --font-display:Georgia,'Songti SC','STSong',serif;
+    --font-body:-apple-system,'PingFang SC','Hiragino Sans GB',sans-serif;
+  }
+  *{
+    box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+    -webkit-touch-callout:none; /* 🩹 长按不弹系统的"复制/分享/网页搜索"菜单，游戏界面不需要选字 */
+  }
+  input, textarea{ /* 🩹 昵称输入框要能正常打字/选字，不能被上面那条全局规则禁用 */
+    -webkit-user-select:text; -moz-user-select:text; -ms-user-select:text; user-select:text;
+    -webkit-touch-callout:default;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0; font-family:var(--font-body); background:var(--paper); color:var(--ink);
+    overflow:hidden; height:100dvh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #app{position:relative; width:100%; height:100%; max-width:480px; margin:0 auto; overflow:hidden;}
+  .screen{
+    position:absolute; inset:0; display:none; flex-direction:column;
+    opacity:0; transition:opacity .25s ease;
+  }
+  .screen.active{display:flex; opacity:1;}
+
+  /* ---------- 通用按钮 ---------- */
+  .btn{
+    border:none; border-radius:24px; font-family:inherit; font-weight:700; cursor:pointer;
+    padding:14px 28px; font-size:15px; letter-spacing:.5px;
+  }
+  .btn-primary{
+    color:#fff; background:linear-gradient(135deg,var(--sky-horizon),var(--pink));
+    box-shadow:0 8px 20px rgba(124,92,191,0.4);
+  }
+  .btn-primary:active{transform:scale(.97);}
+  .btn-ghost{
+    color:var(--ink); background:var(--card);
+    box-shadow:0 3px 10px rgba(45,27,78,0.08);
+  }
+  .btn-ghost:active{transform:scale(.97);}
+  .btn:focus-visible{outline:2px solid var(--gold-deep); outline-offset:2px;}
+
+  /* ---------- 菜单屏 ---------- */
+  #screen-menu{
+    background:radial-gradient(circle at 50% -10%, #ede7fb 0%, var(--paper) 55%);
+    align-items:center; justify-content:center; text-align:center; gap:0;
+    padding:calc(env(safe-area-inset-top,0px) + 32px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);
+  }
+  .menu-moon{font-size:52px; line-height:1; filter:drop-shadow(0 4px 10px rgba(124,92,191,0.35));}
+  .menu-title{font-family:var(--font-display); font-size:30px; font-weight:700; margin:10px 0 2px; color:var(--ink);}
+  .menu-sub{font-size:12px; letter-spacing:2px; color:var(--ink-soft); text-transform:uppercase; margin-bottom:18px;}
+  .menu-tagline{font-size:13px; color:var(--ink-soft); margin-bottom:22px; line-height:1.6;}
+  /* 🎨 选场景预览：只改"直接铺在页面背景上、没有自己卡片"的文字颜色——最高分卡片、
+     模式切换条这些本来就是白底深字的卡片，不在这个范围内，保持原样不受影响 */
+  #screen-menu.bg-preview-active .menu-title,
+  #screen-menu.bg-preview-active .menu-sub,
+  #screen-menu.bg-preview-active .menu-tagline,
+  #screen-menu.bg-preview-active .skin-label{ color:#fff; }
+  .menu-highscore{
+    display:inline-flex; align-items:center; gap:6px; background:var(--card); border-radius:16px;
+    padding:8px 18px; font-size:13px; color:var(--ink-soft); box-shadow:0 3px 10px rgba(45,27,78,0.08);
+    margin-bottom:26px;
+  }
+  .menu-highscore b{color:var(--gold-deep); font-family:var(--font-display); font-size:16px;}
+
+  /* ---------- 玩法模式切换（挡球 / 弹球，菜单屏 + 统计屏共用一套样式）---------- */
+  .mode-row{
+    display:flex; gap:6px; background:var(--card); padding:4px; border-radius:16px;
+    box-shadow:0 3px 10px rgba(45,27,78,0.08); width:100%; max-width:280px; margin:0 auto 14px;
+  }
+  .mode-pick{
+    flex:1; border:none; background:transparent; padding:9px 6px; border-radius:12px;
+    font-family:inherit; font-size:13px; font-weight:700; color:var(--ink-soft); cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .mode-pick.sel{background:linear-gradient(135deg,var(--sky-horizon),var(--pink)); color:#fff;}
+  /* 排行榜/统计屏现在有 3 个 tab（接球/弹球/马里奥），窄一点、字小一点才塞得下 */
+  .mode-row.mode-row-3{ max-width:320px; }
+  .mode-row.mode-row-3 .mode-pick{ font-size:11px; padding:9px 3px; }
+
+  /* ---------- 语言切换（跟首页 .langbar 同一套语言）---------- */
+  .langbar{position:absolute; top:calc(env(safe-area-inset-top,0px) + 14px); right:16px; z-index:10;}
+  .langbtn{
+    display:flex; align-items:center; gap:5px; border:none; background:var(--card); color:var(--ink-soft);
+    font-family:inherit; font-weight:700; font-size:12px; padding:7px 10px; border-radius:14px; cursor:pointer;
+    box-shadow:0 3px 10px rgba(45,27,78,0.08);
+  }
+  .langbtn svg{flex:none; display:block;}
+  .langbtn .chev{transition:transform .2s ease;}
+  .langbar.open .langbtn .chev{transform:rotate(180deg);}
+  .langmenu{
+    position:absolute; top:calc(100% + 6px); right:0; min-width:112px; background:var(--card); border-radius:12px;
+    box-shadow:0 10px 24px rgba(45,27,78,0.2); padding:4px; opacity:0; visibility:hidden; transform:translateY(-6px);
+    transition:opacity .15s ease, transform .15s ease; display:flex; flex-direction:column; gap:2px;
+  }
+  .langbar.open .langmenu{opacity:1; visibility:visible; transform:translateY(0);}
+  .langmenu button{
+    border:none; background:none; font-family:inherit; font-weight:700; font-size:13px; text-align:left;
+    padding:8px 10px; border-radius:8px; cursor:pointer; color:var(--ink);
+  }
+  .langmenu button.on{background:var(--sky-horizon); color:#fff;}
+  .langmenu button:not(.on):active{background:var(--paper);}
+
+  .skin-label{font-size:12px; color:var(--ink-soft); margin-bottom:12px;}
+  .skin-row{display:flex; gap:14px; justify-content:center; margin-bottom:30px; flex-wrap:wrap;}
+  .skin-pick{
+    width:46px; height:46px; border-radius:50%; border:none; cursor:pointer; padding:0;
+    position:relative; transition:transform .15s ease;
+  }
+  .skin-pick.sel{transform:scale(1.16);}
+  .skin-pick.sel::after{
+    content:''; position:absolute; inset:-5px; border-radius:50%;
+    border:2px solid var(--gold-deep); box-shadow:0 0 0 2px rgba(232,182,83,0.25);
+  }
+  .skin-classic{background:radial-gradient(circle at 32% 28%, #f3c8e6 0%, #d79ad6 38%, #b07fd0 62%, #9d6ec4 100%); box-shadow:0 5px 12px rgba(150,90,180,0.45), inset 0 -3px 6px rgba(120,60,150,0.3), inset 0 3px 5px rgba(255,255,255,0.5);}
+  .skin-sakura{background:radial-gradient(circle at 32% 28%, #fff0f5 0%, #ffc4dd 38%, #ff8fb8 62%, #e8608f 100%); box-shadow:0 5px 12px rgba(232,96,143,0.45), inset 0 -3px 6px rgba(180,60,110,0.3), inset 0 3px 5px rgba(255,255,255,0.5);}
+  .skin-starlight{background:radial-gradient(circle at 32% 28%, #fff6d9 0%, #f0c96b 38%, #7a5cc4 72%, #2e2261 100%); box-shadow:0 5px 12px rgba(46,34,97,0.5), inset 0 -3px 6px rgba(20,12,50,0.35), inset 0 3px 5px rgba(255,255,255,0.45);}
+  .skin-peachy{background:radial-gradient(circle at 32% 28%, #fff0ec 0%, #fdbbaf 38%, #f58f84 62%, #e2604f 100%); box-shadow:0 5px 12px rgba(226,96,79,0.45), inset 0 -3px 6px rgba(180,70,55,0.3), inset 0 3px 5px rgba(255,255,255,0.5);}
+  .skin-mint{background:radial-gradient(circle at 32% 28%, #eafff9 0%, #a0eedb 38%, #4fc9b0 62%, #2b8f7c 100%); box-shadow:0 5px 12px rgba(43,143,124,0.45), inset 0 -3px 6px rgba(20,100,88,0.3), inset 0 3px 5px rgba(255,255,255,0.5);}
+  .menu-btns{display:flex; flex-direction:column; gap:10px; width:100%; max-width:240px;}
+
+  /* ---------- 游戏屏 ---------- */
+  #screen-game{background:var(--sky-top); padding-bottom:max(env(safe-area-inset-bottom,0px),10px);}
+  .hud{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:calc(env(safe-area-inset-top,0px) + 14px) 16px 14px;
+    position:relative; z-index:3; font-family:var(--font-body); flex-shrink:0;
+  }
+  .hud-lives{display:flex; gap:3px; font-size:18px; filter:drop-shadow(0 0 4px rgba(244,201,107,0.5));}
+  .hud-lives span.lost{opacity:.22; filter:none;}
+  .hud-score{text-align:center;}
+  .hud-score .num{font-family:var(--font-display); font-size:26px; font-weight:700; color:#fff; line-height:1;}
+  .hud-score .lbl{font-size:10px; color:rgba(255,255,255,0.55); letter-spacing:1.5px;}
+  .hud-right{display:flex; align-items:center; gap:8px;}
+  .hud-combo{
+    font-size:12px; font-weight:700; color:var(--gold); min-width:34px; text-align:right;
+    opacity:0; transform:scale(.8); transition:opacity .15s, transform .15s;
+  }
+  .hud-combo.show{opacity:1; transform:scale(1);}
+  .iconbtn{
+    width:42px; height:42px; border-radius:50%; border:none; background:rgba(255,255,255,0.14);
+    color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    flex-shrink:0;
+  }
+  .iconbtn:active{background:rgba(255,255,255,0.25);}
+  #gameCanvas{display:block; width:100%; flex:1; touch-action:none;}
+
+  .pause-layer{
+    position:absolute; inset:0; z-index:5; display:none; align-items:center; justify-content:center;
+    background:rgba(36,26,61,0.72); color:#fff; font-size:14px; text-align:center; flex-direction:column; gap:10px;
+    pointer-events:none; /* 🩹 关键修复：这层盖在画布上面，"点击继续"的逻辑其实绑在画布的
+      pointerdown 事件上——如果这层自己截住点击，画布永远收不到，就再也点不醒了。
+      设成穿透，点击会直接落到底下的画布上，由画布自己的逻辑接住并恢复。 */
+  }
+  .pause-layer.show{display:flex;}
+
+  /* ---------- 结算 / 统计 / 排行榜 屏（浅色卡片，跟首页统计页一致的调性） ---------- */
+  #screen-gameover, #screen-stats, #screen-leaderboard{
+    background:var(--paper); align-items:center; justify-content:center; text-align:center;
+    padding:calc(env(safe-area-inset-top,0px) + 28px) 22px calc(env(safe-area-inset-bottom,0px) + 22px);
+  }
+  .panel{width:100%; max-width:320px;}
+  .go-title{font-family:var(--font-display); font-size:24px; font-weight:700; margin-bottom:4px;}
+  .go-record{
+    display:inline-block; font-size:12px; font-weight:700; color:#fff; background:linear-gradient(135deg,var(--gold-deep),var(--gold));
+    padding:4px 14px; border-radius:12px; margin-bottom:14px;
+    animation:pop .4s ease, recordGlow 1.1s ease-in-out .4s 2;
+  }
+  @keyframes pop{from{transform:scale(.6); opacity:0;} to{transform:scale(1); opacity:1;}}
+  @keyframes recordGlow{
+    0%,100%{ box-shadow:0 0 0 rgba(244,201,107,0); }
+    50%{ box-shadow:0 0 16px rgba(244,201,107,0.85); }
+  }
+  .confetti-layer{position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:5;}
+  .confetti-piece{position:absolute; top:-24px; will-change:transform, opacity; animation:confettiFall linear forwards;}
+  @keyframes confettiFall{
+    0%{ transform:translateY(0) rotate(0deg); opacity:1; }
+    100%{ transform:translateY(340px) rotate(560deg); opacity:0; }
+  }
+  .go-score{font-family:var(--font-display); font-size:44px; font-weight:700; color:var(--ink); margin-bottom:18px;}
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px;}
+  .stat-cell{background:var(--card); border-radius:14px; padding:12px 8px; box-shadow:0 3px 10px rgba(45,27,78,0.06);}
+  .stat-cell .v{font-family:var(--font-display); font-size:19px; font-weight:700; color:var(--sky-horizon);}
+  .stat-cell .k{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+  .go-btns{display:flex; flex-direction:column; gap:10px;}
+
+  .stats-title{font-family:var(--font-display); font-size:22px; font-weight:700; margin-bottom:18px;}
+  .stats-scroll{max-height:100%; overflow-y:auto; width:100%; -webkit-overflow-scrolling:touch;}
+  .history-chart{background:var(--card); border-radius:16px; padding:14px 12px 6px; margin:18px 0; box-shadow:0 3px 10px rgba(45,27,78,0.06);}
+  .history-chart .cap{font-size:11px; color:var(--ink-soft); margin-bottom:8px; text-align:left;}
+  .stats-foot{display:flex; gap:10px; margin-top:6px;}
+  .stats-foot .btn{flex:1; padding:12px;}
+  .empty-note{font-size:12px; color:var(--ink-soft); margin-top:10px; line-height:1.7;}
+
+  /* ---------- 排行榜 ---------- */
+  .nick-row{display:flex; gap:8px; margin-bottom:10px;}
+  .nick-input{
+    flex:1; min-width:0; border:none; border-radius:12px; padding:10px 14px; font-size:13px;
+    background:var(--card); box-shadow:inset 0 0 0 1.5px rgba(124,92,191,0.15); color:var(--ink); font-family:inherit;
+  }
+  .nick-input:focus{outline:none; box-shadow:inset 0 0 0 1.5px var(--sky-horizon);}
+  .nick-row .btn{flex:none; padding:10px 16px; font-size:13px;}
+  .nick-hint{font-size:11px; color:var(--ink-soft); margin-bottom:9px; line-height:1.6; text-align:left;}
+  .nick-consent{display:flex; align-items:flex-start; gap:7px; font-size:12px; color:var(--ink-soft); margin-bottom:10px; text-align:left; cursor:pointer; line-height:1.5;}
+  .nick-consent input[type="checkbox"]{margin-top:2px; flex-shrink:0; width:15px; height:15px; accent-color:var(--sky-horizon);}
+  .nick-error{font-size:12px; color:var(--danger); margin-bottom:10px; text-align:left; line-height:1.5;}
+  .lb-list{display:flex; flex-direction:column; gap:6px; margin-bottom:4px; text-align:left;}
+  .lb-row{
+    display:flex; align-items:center; gap:10px; background:var(--card); border-radius:12px;
+    padding:9px 12px; box-shadow:0 2px 8px rgba(45,27,78,0.06);
+  }
+  .lb-row.me{
+    background:linear-gradient(135deg, rgba(124,92,191,0.16), rgba(196,122,176,0.16));
+    box-shadow:0 2px 10px rgba(124,92,191,0.22);
+  }
+  .lb-rank{width:26px; text-align:center; font-family:var(--font-display); font-weight:700; color:var(--ink-soft); flex-shrink:0; font-size:14px;}
+  .lb-rank.top1{color:#e8b653;} .lb-rank.top2{color:#9aa3b0;} .lb-rank.top3{color:#c98a5e;}
+  .lb-name{flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lb-score{font-family:var(--font-display); font-weight:700; color:var(--sky-horizon); font-size:15px; flex-shrink:0;}
+
+  /* ══════════════════════════════════════════════════════════════
+     🏠 游戏中心首页（新的顶层入口，两个游戏都从这里进）
+     ══════════════════════════════════════════════════════════════ */
+  #screen-hub{
+    background:radial-gradient(circle at 50% -10%, #ede7fb 0%, var(--paper) 55%);
+    align-items:center; justify-content:center; text-align:center; gap:0;
+    padding:calc(env(safe-area-inset-top,0px) + 32px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);
+  }
+  .hub-moon{font-size:44px; margin-bottom:8px; filter:drop-shadow(0 4px 10px rgba(124,92,191,0.35));}
+  .hub-title{font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--ink);}
+  .hub-sub{font-size:11px; letter-spacing:2px; color:var(--ink-soft); text-transform:uppercase; margin-bottom:28px;}
+  .hub-cards{display:flex; flex-direction:column; gap:14px; width:100%; max-width:290px;}
+  .hub-card{
+    border:none; border-radius:22px; padding:18px; background:var(--card); cursor:pointer;
+    box-shadow:0 6px 18px rgba(45,27,78,0.1); text-align:left; display:flex; align-items:center; gap:14px;
+    transition:transform .12s ease; font-family:inherit;
+  }
+  .hub-card:active{transform:scale(.97);}
+  .hub-card-icon{font-size:32px; flex-shrink:0; width:44px; text-align:center;}
+  .hub-card-text{display:flex; flex-direction:column; min-width:0;}
+  .hub-card-title{font-family:var(--font-display); font-size:16px; font-weight:700; color:var(--ink);}
+  .hub-card-tag{font-size:10px; color:var(--ink-soft); letter-spacing:1px; margin-top:2px;}
+  .hub-card-best{font-size:11px; color:var(--gold-deep); margin-top:5px; font-weight:700; min-height:14px;}
+
+  /* ══════════════════════════════════════════════════════════════
+     🍄 马里奥屏——套上月光风格的外壳（背景/边框/按钮/文字都换成品牌色），
+     但游戏本身画在 canvas 上的像素美术（平台/金币/敌人/马里奥本体）保持原样不动，
+     那部分是玩法可读性相关的配色，不属于"产品外壳"范畴。
+     ══════════════════════════════════════════════════════════════ */
+  #screen-mario{
+    background:var(--sky-top); flex-direction:column; align-items:center; gap:10px;
+    padding:calc(env(safe-area-inset-top,0px) + 10px) max(8px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 10px) max(8px,env(safe-area-inset-left,0px));
+    font-family:'Trebuchet MS', var(--font-body);
+  }
+  #marioTitle{ color:#fff; text-shadow:2px 2px 0 rgba(36,26,61,0.85); font-size:16px; font-family:var(--font-display); font-weight:700; flex-shrink:0; }
+  /* 🩹 不再用 JS 算像素宽高——#marioGameArea 是 flex:1 占满"标题和触控条之外剩下的全部空间"，
+     #gameWrap 用 aspect-ratio 在这块空间里自动算出"能放下的最大 480:640 比例的框"，
+     完全交给浏览器的原生布局引擎实时计算，不会再出现 JS 算错、算的时机不对导致框被压扁的问题。 */
+  #marioGameArea{
+    flex:1 1 auto; min-height:0; width:100%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #gameWrap{
+    position:relative; border:3px solid rgba(244,201,107,0.55); border-radius:14px; overflow:hidden;
+    box-shadow:0 10px 30px rgba(15,8,35,0.5), 0 0 0 1px rgba(255,255,255,0.06) inset;
+    aspect-ratio:480/640; height:100%; max-width:100%; width:auto;
+  }
+  #screen-mario canvas{ display:block; width:100%; height:100%; background:linear-gradient(#241a3d 0%, #4a3172 55%, #7c5cbf 100%); }
+  /* 🎨 开局背景选色：引用 index 主题色系里的几款，加上原本的夜幕紫一共 5 款 */
+  .bg-picker{ margin:6px 0 2px; }
+  .bg-picker-label{ color:#fff; font-size:13px; opacity:0.9; text-align:center; margin-bottom:8px; text-shadow:1px 1px 3px rgba(15,8,35,0.55); }
+  .bg-picker-row{ display:flex; gap:12px; justify-content:center; }
+  .bg-swatch{
+    width:40px; height:40px; border-radius:50%; border:2px solid rgba(255,255,255,0.4);
+    cursor:pointer; padding:0; transition:transform .12s ease, border-color .12s ease; box-shadow:0 2px 6px rgba(0,0,0,0.3);
+  }
+  .bg-swatch:active{ transform:scale(0.9); }
+  .bg-swatch.selected{ border-color:#f7d98a; box-shadow:0 0 0 3px rgba(247,217,138,0.55); }
+  /* 🗺️ 关卡地图：30 个格子的网格，滚动查看，当前最远进度高亮，之后的关卡淡一点表示"还没到" */
+  #levelMapGrid{
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; width:100%; max-width:320px;
+    max-height:280px; overflow-y:auto; padding:4px; margin:8px 0 14px;
+  }
+  .level-cell{
+    aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-size:15px; font-weight:700; color:#fff;
+    background:rgba(255,255,255,0.12); border:1.5px solid rgba(255,255,255,0.18);
+  }
+  .level-cell.cleared{ background:rgba(95,191,63,0.35); border-color:rgba(95,191,63,0.6); }
+  .level-cell.current{ background:rgba(247,217,138,0.35); border-color:#f7d98a; box-shadow:0 0 0 2px rgba(247,217,138,0.35); }
+  .level-cell.locked{ opacity:0.4; }
+  /* 🩹 通关继续时的短暂提示——不挡操作，淡入淡出一下就消失，不需要用户点掉 */
+  #clearToast{
+    position:absolute; top:38%; left:0; right:0; text-align:center; z-index:5; pointer-events:none;
+    color:#fff; font-family:var(--font-display); font-weight:700; font-size:19px;
+    text-shadow:2px 2px 0 rgba(36,26,61,0.85); opacity:0; transition:opacity .35s ease;
+  }
+  #clearToast.show{ opacity:1; }
+  #hud{
+    /* 🩹 topBar 图标从 32px 加到 42px(跟接球模式同款大小)之后，原来 top:44px 的 HUD
+       会跟 top:8px+42px=50px 的图标底边撞在一起，往下挪到 58px 留出净空 */
+    position:absolute; top:58px; left:10px; right:10px; display:flex; justify-content:space-between;
+    color:#fff; font-weight:700; font-size:14px; text-shadow:2px 2px 0 rgba(36,26,61,0.85);
+    pointer-events:none; z-index:4; font-family:var(--font-body);
+  }
+  #topBar{ position:absolute; top:8px; left:8px; right:8px; display:none; justify-content:space-between; z-index:7; pointer-events:none; }
+  #topBar .grp{ display:flex; gap:8px; pointer-events:auto; }
+  /* topBar 的三个按钮直接复用 .iconbtn，跟接球/弹球模式的暂停按钮一样大、一样质感 */
+  #screen-mario .overlay{
+    position:absolute; inset:0; z-index:10; background:rgba(36,26,61,0.55);
+    backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px); /* 🩹 之前遮罩几乎不透明(0.86)，
+      canvas 背景其实已经在切换了，只是完全被挡住看不见——改成半透明+磨砂玻璃，
+      点色块的时候能直接透过遮罩看到画布真实的颜色变化，文字靠模糊+暗色调还是看得清 */
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    color:#fff; text-align:center; gap:10px; padding:18px;
+  }
+  #screen-mario .overlay h1{ margin:0; font-family:var(--font-display); font-size:23px; text-shadow:2px 2px 0 rgba(15,8,35,0.6); }
+  #screen-mario .overlay p{ margin:0; font-size:13px; opacity:0.9; line-height:1.7; font-family:var(--font-body); text-shadow:1px 1px 3px rgba(15,8,35,0.55); }
+  #screen-mario .overlay .btn{ margin-top:6px; }
+  .btn-overlay-secondary{
+    background:rgba(255,255,255,0.16); color:#fff; border:none; border-radius:24px;
+    padding:12px 26px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .btn-overlay-secondary:active{ background:rgba(255,255,255,0.28); }
+  /* 🩹 触摸控制条：不再是盖住整个屏幕的 position:absolute 覆盖层，改成游戏框下方
+     一条独立的空白带——固定 130px 高、占满屏幕宽度，手指按在这里操作，永远不会挡住
+     画面里马里奥本体和平台/金币的位置。用 flex:0 0 130px 固定占位，
+     跟 #marioGameArea 的 flex:1 一起交给浏览器原生布局引擎实时分配空间。 */
+  #touchLayer{
+    flex:0 0 130px; display:flex; z-index:6; touch-action:none; width:100%;
+    visibility:hidden; /* 默认隐藏，JS 只在真正开始玩的时候才切成 visible */
+  }
+  #touchLayer .zone{ height:100%; display:flex; align-items:center; justify-content:center; }
+  #zoneMoveLeft, #zoneMoveRight{ flex:0 0 22%; }
+  #zoneAttack{ flex:0 0 24%; }
+  #zoneJump{ flex:0 0 32%; }
+  /* 🩹 半透明控制手柄——之前是完全隐形的触控区，看不清按在哪，现在画一个 50% 透明的
+     圆形按钮做视觉提示，按下时会稍微变亮+缩小一点，给一个"确实按到了"的反馈 */
+  .control-btn{
+    width:58px; height:58px; border-radius:50%;
+    background:rgba(255,255,255,0.5); border:2px solid rgba(255,255,255,0.35);
+    box-shadow:0 3px 10px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.35);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.35);
+    pointer-events:none; /* 触摸判定交给外层 .zone，图形本身只负责好看，不拦截点击 */
+    transition:transform .08s ease, background .08s ease;
+  }
+  .control-btn-jump{ width:76px; height:76px; font-size:28px; }
+  .control-btn-attack{ width:60px; height:60px; font-size:24px; background:rgba(255,214,110,0.55); border-color:rgba(255,214,110,0.4); }
+  /* 🩹 冷却 10 秒比较长，按钮要能看出"还没好"，不然玩家会以为按了没反应 */
+  .control-btn-attack.cooling{ background:rgba(120,120,130,0.35); border-color:rgba(120,120,130,0.3); opacity:0.6; }
+  .zone.pressed .control-btn{
+    background:rgba(255,255,255,0.85);
+    transform:scale(0.88);
+  }
+  .zone.pressed .control-btn-attack{ background:rgba(255,214,110,0.9); }
+
+  @media (prefers-reduced-motion: reduce){
+    .go-record{animation:none;}
+    .screen{transition:none;}
+    .confetti-piece{display:none;} /* JS 端也会跳过生成，这里是双保险 */
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══════════════ 游戏中心首页 ══════════════ -->
+  <section id="screen-hub" class="screen active">
+    <div class="langbar" id="hubLangBar">
+      <button class="langbtn" type="button" aria-haspopup="true" aria-expanded="false">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>
+        <span class="langCurrent">ไทย</span>
+        <svg class="chev" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="langmenu" role="menu">
+        <button data-lang="zh" role="menuitem">🇨🇳 中文</button>
+        <button data-lang="th" role="menuitem">🇹🇭 ไทย</button>
+      </div>
+    </div>
+    <div class="hub-moon">🌙</div>
+    <div class="hub-title" data-i18n="hub_title">月光游戏中心</div>
+    <div class="hub-sub">Luna Games</div>
+    <div class="hub-cards">
+      <button class="hub-card" id="cardBlockBall">
+        <div class="hub-card-icon">🌙</div>
+        <div class="hub-card-text">
+          <div class="hub-card-title" data-i18n="app_title">接住月光</div>
+          <div class="hub-card-tag">Block the Ball</div>
+          <div class="hub-card-best" id="hubBtbBest"></div>
+        </div>
+      </button>
+      <button class="hub-card" id="cardMario">
+        <div class="hub-card-icon">🌙</div>
+        <div class="hub-card-text">
+          <div class="hub-card-title" data-i18n="mario_title">Lumi Jump</div>
+          <div class="hub-card-tag">Lumi Jump</div>
+          <div class="hub-card-best" id="hubMarioBest"></div>
+        </div>
+      </button>
+    </div>
+  </section>
+
+  <!-- ══════════════ 菜单屏 ══════════════ -->
+  <section id="screen-menu" class="screen">
+    <button class="iconbtn" id="btnMenuHome" data-i18n-aria="hub_btn" aria-label="游戏中心" style="position:absolute; top:calc(env(safe-area-inset-top,0px) + 14px); left:16px; z-index:10; background:rgba(124,92,191,0.12); color:var(--sky-horizon);">🏠</button>
+    <div class="langbar" id="menuLangBar">
+      <button class="langbtn" type="button" aria-haspopup="true" aria-expanded="false">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>
+        <span class="langCurrent">ไทย</span>
+        <svg class="chev" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="langmenu" role="menu">
+        <button data-lang="zh" role="menuitem">🇨🇳 中文</button>
+        <button data-lang="th" role="menuitem">🇹🇭 ไทย</button>
+      </div>
+    </div>
+    <div class="menu-moon">🌙</div>
+    <div class="menu-title" data-i18n="app_title">接住月光</div>
+    <div class="menu-sub">Block the Ball</div>
+    <div class="mode-row" id="modeRow">
+      <button class="mode-pick" data-mode="catch" data-i18n="mode_catch_name">🌙 接球模式</button>
+      <button class="mode-pick" data-mode="bounce" data-i18n="mode_bounce_name">⚡ 弹球模式</button>
+    </div>
+    <div class="menu-tagline" id="modeDesc"></div>
+    <div class="menu-highscore"><span data-i18n="highscore_label">🏆 最高分</span> <b id="menuHighScore">0</b></div>
+    <div class="skin-label" data-i18n="skin_label">选择你的球</div>
+    <div class="skin-row" id="skinRow"></div>
+    <div class="bg-picker">
+      <div class="bg-picker-label" data-i18n="mario_bg_picker_label">选择场景</div>
+      <div class="bg-picker-row">
+        <button class="bg-swatch" data-bg="default" style="background:linear-gradient(#241a3d 0%, #4a3172 55%, #7c5cbf 100%);" aria-label="夜幕紫"></button>
+        <button class="bg-swatch" data-bg="aurora" style="background:linear-gradient(#1f7a6e 0%, #6a3aa8 45%, #c968b8 100%);" aria-label="极光"></button>
+        <button class="bg-swatch" data-bg="moonlotus" style="background:linear-gradient(#12507a 0%, #1c6f94 55%, #2f93ab 100%);" aria-label="月莲"></button>
+        <button class="bg-swatch" data-bg="duskmauve" style="background:linear-gradient(#4a2f42 0%, #8c5f7d 100%);" aria-label="暮色藕紫"></button>
+        <button class="bg-swatch" data-bg="dream" style="background:linear-gradient(#3a2a52 0%, #b49cdb 100%);" aria-label="梦境"></button>
+      </div>
+    </div>
+    <div class="menu-btns">
+      <button class="btn btn-primary" id="btnStart" data-i18n="btn_confirm">确定</button>
+      <button class="btn btn-ghost" id="btnGoLeaderboard" data-i18n="btn_leaderboard">🏆 排行榜</button>
+      <button class="btn btn-ghost" id="btnGoStats" data-i18n="btn_stats">查看统计</button>
+    </div>
+  </section>
+
+  <!-- ══════════════ 游戏屏 ══════════════ -->
+  <section id="screen-game" class="screen">
+    <div class="hud">
+      <div class="hud-lives" id="hudLives"></div>
+      <div class="hud-score"><div class="num" id="hudScore">0</div><div class="lbl" data-i18n="hud_score_label">得分</div></div>
+      <div class="hud-right">
+        <div class="hud-combo" id="hudCombo">×2</div>
+        <button class="iconbtn" id="btnPause" data-i18n-aria="pause_btn" aria-label="暂停">⏸</button>
+        <button class="iconbtn" id="btnSound" data-i18n-aria="sound_toggle" aria-label="声音开关">🔈</button>
+        <button class="iconbtn" id="btnQuit" data-i18n-aria="quit_btn" aria-label="退出">✕</button>
+      </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div class="pause-layer" id="pauseLayer">
+      <div data-i18n="pause_title">⏸ 已暂停</div>
+      <div style="font-size:12px;opacity:.7;" data-i18n="pause_hint">点击屏幕继续</div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 结算屏 ══════════════ -->
+  <section id="screen-gameover" class="screen">
+    <div class="confetti-layer" id="goConfetti"></div>
+    <div class="panel">
+      <div class="go-title" id="goTitle" data-i18n="gameover_title">游戏结束</div>
+      <div id="goModeLabel" style="font-size:12px; color:var(--ink-soft); margin-bottom:10px;"></div>
+      <div id="goRecordBadge" class="go-record" style="display:none;" data-i18n="record_badge">🎉 新纪录</div>
+      <div class="go-score" id="goScore">0</div>
+      <div class="stat-grid" id="goStatGridBtb">
+        <div class="stat-cell"><div class="v" id="goCaught">0</div><div class="k" data-i18n="stat_caught">接住</div></div>
+        <div class="stat-cell"><div class="v" id="goMissed">0</div><div class="k" data-i18n="stat_missed">漏接</div></div>
+        <div class="stat-cell"><div class="v" id="goAccuracy">0%</div><div class="k" data-i18n="stat_accuracy">正确率</div></div>
+        <div class="stat-cell"><div class="v" id="goCombo">×0</div><div class="k" data-i18n="stat_bestcombo">最佳连击</div></div>
+      </div>
+      <div class="stat-grid" id="goStatGridMario" style="display:none;">
+        <div class="stat-cell"><div class="v" id="goCoins">0</div><div class="k" data-i18n="mario_stat_coins">总金币</div></div>
+        <div class="stat-cell"><div class="v" id="goStomps">0</div><div class="k" data-i18n="mario_stat_stomps">踩死敌人</div></div>
+        <div class="stat-cell"><div class="v" id="goProgress">0%</div><div class="k" data-i18n="mario_stat_progress">最远进度</div></div>
+        <div class="stat-cell"><div class="v" id="goRunTime">0s</div><div class="k" data-i18n="mario_stat_time">用时</div></div>
+      </div>
+      <div id="goLbArea" style="margin-bottom:14px; font-size:12px; color:var(--ink-soft);">
+        <div id="goLbSynced" style="display:none;" data-i18n="lb_synced">🏆 已同步到排行榜</div>
+        <div id="goLbPrompt" style="display:none;">
+          <div data-i18n="lb_prompt" style="margin-bottom:8px;">想上排行榜就起个昵称吧</div>
+          <div class="nick-row">
+            <input type="text" id="goNickInput" class="nick-input" maxlength="14" data-i18n-placeholder="nickname_placeholder" placeholder="给自己起个昵称">
+            <button class="btn btn-primary" id="btnGoSaveNick" data-i18n="btn_save">保存</button>
+          </div>
+          <div class="nick-hint" data-i18n="nick_hint">请勿使用真实姓名、身份证号或其他个人信息</div>
+          <label class="nick-consent">
+            <input type="checkbox" id="goNickConsent">
+            <span data-i18n="nick_consent_label">我同意将此昵称和游戏成绩公开展示在排行榜上</span>
+          </label>
+          <div id="goNickError" class="nick-error" style="display:none;"></div>
+        </div>
+      </div>
+      <div class="go-btns">
+        <button class="btn btn-primary" id="btnRetry" data-i18n="btn_retry">再来一局</button>
+        <button class="btn btn-ghost" id="btnGoShare" data-i18n="share_btn">📤 分享我的成绩</button>
+        <button class="btn btn-ghost" id="btnBackHome" data-i18n="btn_backhome">返回主页</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 统计屏 ══════════════ -->
+  <section id="screen-stats" class="screen">
+    <div class="langbar" id="statsLangBar">
+      <button class="langbtn" type="button" aria-haspopup="true" aria-expanded="false">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>
+        <span class="langCurrent">ไทย</span>
+        <svg class="chev" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="langmenu" role="menu">
+        <button data-lang="zh" role="menuitem">🇨🇳 中文</button>
+        <button data-lang="th" role="menuitem">🇹🇭 ไทย</button>
+      </div>
+    </div>
+    <div class="panel stats-scroll">
+      <div class="stats-title" data-i18n="stats_title">我的统计</div>
+      <div class="mode-row mode-row-3" id="statsModeRow">
+        <button class="mode-pick" data-mode="catch" data-i18n="mode_catch_name">🌙 接球模式</button>
+        <button class="mode-pick" data-mode="bounce" data-i18n="mode_bounce_name">⚡ 弹球模式</button>
+        <button class="mode-pick" data-mode="mario" data-i18n="mario_tab_name">🌙 Lumi</button>
+      </div>
+      <div class="stat-grid" id="statGridBtb">
+        <div class="stat-cell"><div class="v" id="stGames">0</div><div class="k" data-i18n="stat_games">总局数</div></div>
+        <div class="stat-cell"><div class="v" id="stHigh">0</div><div class="k" data-i18n="stat_high">最高分</div></div>
+        <div class="stat-cell"><div class="v" id="stCaught">0</div><div class="k" data-i18n="stat_totalcaught">总接住</div></div>
+        <div class="stat-cell"><div class="v" id="stMissed">0</div><div class="k" data-i18n="stat_totalmissed">总漏接</div></div>
+        <div class="stat-cell"><div class="v" id="stAcc">0%</div><div class="k" data-i18n="stat_totalacc">总正确率</div></div>
+        <div class="stat-cell"><div class="v" id="stCombo">×0</div><div class="k" data-i18n="stat_bestcombo_ever">历史最佳连击</div></div>
+        <div class="stat-cell" style="grid-column:1/-1;"><div class="v" id="stTime">0</div><div class="k" data-i18n="stat_totaltime">累计游戏时长</div></div>
+      </div>
+      <div class="stat-grid" id="statGridMario" style="display:none;">
+        <div class="stat-cell"><div class="v" id="mstGames">0</div><div class="k" data-i18n="stat_games">总局数</div></div>
+        <div class="stat-cell"><div class="v" id="mstHigh">0</div><div class="k" data-i18n="stat_high">最高分</div></div>
+        <div class="stat-cell"><div class="v" id="mstCoins">0</div><div class="k" data-i18n="mario_stat_coins">总金币</div></div>
+        <div class="stat-cell"><div class="v" id="mstStomps">0</div><div class="k" data-i18n="mario_stat_stomps">踩死敌人</div></div>
+        <div class="stat-cell"><div class="v" id="mstDeaths">0</div><div class="k" data-i18n="mario_stat_deaths">死亡次数</div></div>
+        <div class="stat-cell"><div class="v" id="mstProgress">0%</div><div class="k" data-i18n="mario_stat_progress">最远进度</div></div>
+        <div class="stat-cell"><div class="v" id="mstWins">0</div><div class="k" data-i18n="mario_stat_wins">通关次数</div></div>
+        <div class="stat-cell"><div class="v" id="mstTime">0</div><div class="k" data-i18n="stat_totaltime">累计游戏时长</div></div>
+      </div>
+      <div class="history-chart">
+        <div class="cap" data-i18n="history_caption">最近战绩</div>
+        <canvas id="historyCanvas" height="90"></canvas>
+      </div>
+      <div id="statsEmptyNote" class="empty-note" style="display:none;" data-i18n="empty_note">还没有游戏记录，快去接住第一颗光球吧 🌙</div>
+      <div class="stats-foot">
+        <button class="btn btn-ghost" id="btnClearStats" data-i18n="btn_clear">清除数据</button>
+        <button class="btn btn-primary" id="btnStatsBack" data-i18n="btn_statsback">返回</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ 排行榜屏（真实跨用户，数据存 Firebase Realtime Database）══════════════ -->
+  <section id="screen-leaderboard" class="screen">
+    <div class="langbar" id="lbLangBar">
+      <button class="langbtn" type="button" aria-haspopup="true" aria-expanded="false">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>
+        <span class="langCurrent">ไทย</span>
+        <svg class="chev" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="langmenu" role="menu">
+        <button data-lang="zh" role="menuitem">🇨🇳 中文</button>
+        <button data-lang="th" role="menuitem">🇹🇭 ไทย</button>
+      </div>
+    </div>
+    <div class="panel stats-scroll">
+      <div class="stats-title" data-i18n="leaderboard_title">排行榜</div>
+      <div class="mode-row mode-row-3" id="lbModeRow">
+        <button class="mode-pick" data-mode="catch" data-i18n="mode_catch_name">🌙 接球模式</button>
+        <button class="mode-pick" data-mode="bounce" data-i18n="mode_bounce_name">⚡ 弹球模式</button>
+        <button class="mode-pick" data-mode="mario" data-i18n="mario_tab_name">🌙 Lumi</button>
+      </div>
+      <div class="nick-row">
+        <input type="text" id="nickInput" class="nick-input" maxlength="14" data-i18n-placeholder="nickname_placeholder" placeholder="给自己起个昵称">
+        <button class="btn btn-primary" id="btnSaveNick" data-i18n="btn_save">保存</button>
+      </div>
+      <div class="nick-hint" data-i18n="nick_hint">请勿使用真实姓名、身份证号或其他个人信息</div>
+      <label class="nick-consent">
+        <input type="checkbox" id="nickConsent">
+        <span data-i18n="nick_consent_label">我同意将此昵称和游戏成绩公开展示在排行榜上</span>
+      </label>
+      <div id="nickError" class="nick-error" style="display:none;"></div>
+      <div id="lbList" class="lb-list"></div>
+      <div id="lbLoadingNote" class="empty-note" data-i18n="lb_loading">加载中…</div>
+      <div id="lbEmptyNote" class="empty-note" style="display:none;" data-i18n="lb_empty">还没有人上榜，快来当第一名吧 🏆</div>
+      <div id="lbErrorNote" class="empty-note" style="display:none;" data-i18n="lb_error">加载失败，检查一下网络吧</div>
+      <button class="btn btn-ghost" id="btnShareScore" data-i18n="share_btn" style="width:100%; margin-top:4px;">📤 分享我的成绩</button>
+      <button class="btn btn-ghost" id="btnLbBack" data-i18n="btn_statsback" style="margin-top:10px; width:100%;">返回</button>
+    </div>
+  </section>
+
+  <!-- ══════════════ 马里奥大冒险屏（套壳自 mario-game.html，画面美术不动，外壳换成月光风）══════════════ -->
+  <section id="screen-mario" class="screen">
+    <div id="marioTitle" data-i18n="mario_title">🌙 Lumi Jump</div>
+    <div id="marioGameArea">
+    <div id="gameWrap">
+      <div id="topBar">
+        <div class="grp">
+          <button id="homeBtn" class="iconbtn" data-i18n-aria="hub_btn" aria-label="游戏中心">🏠</button>
+        </div>
+        <div class="grp">
+          <button id="soundBtn" class="iconbtn" data-i18n-aria="sound_toggle" aria-label="声音开关">🔊</button>
+          <button id="pauseBtn" class="iconbtn" data-i18n-aria="pause_btn" aria-label="暂停">⏸</button>
+        </div>
+      </div>
+      <div id="hud">
+        <div id="scoreText">💰 0</div>
+        <div id="progressText">0%</div>
+        <div id="livesText">❤️ x 5</div>
+      </div>
+      <canvas id="game" width="480" height="640"></canvas>
+      <div id="clearToast"></div>
+
+      <div id="startOverlay" class="overlay" style="display:flex;">
+        <h1 data-i18n="mario_title">🌙 Lumi Jump</h1>
+        <p data-i18n="mario_start_desc">一条路走到底，收集金币，躲开敌人和火坑。<br>左边移动，右边跳跃，📦键扔箱子打怪。</p>
+        <div id="bestScoreText" style="font-size:15px;"></div>
+        <div id="bgPicker" class="bg-picker">
+          <div class="bg-picker-label" data-i18n="mario_bg_picker_label">选择场景</div>
+          <div class="bg-picker-row">
+            <button class="bg-swatch" data-bg="default" style="background:linear-gradient(#241a3d 0%, #4a3172 55%, #7c5cbf 100%);" aria-label="夜幕紫"></button>
+            <button class="bg-swatch" data-bg="aurora" style="background:linear-gradient(#1f7a6e 0%, #6a3aa8 45%, #c968b8 100%);" aria-label="极光"></button>
+            <button class="bg-swatch" data-bg="moonlotus" style="background:linear-gradient(#12507a 0%, #1c6f94 55%, #2f93ab 100%);" aria-label="月莲"></button>
+            <button class="bg-swatch" data-bg="duskmauve" style="background:linear-gradient(#4a2f42 0%, #8c5f7d 100%);" aria-label="暮色藕紫"></button>
+            <button class="bg-swatch" data-bg="dream" style="background:linear-gradient(#3a2a52 0%, #b49cdb 100%);" aria-label="梦境"></button>
+          </div>
+        </div>
+        <button id="startBtn" class="btn btn-primary" data-i18n="mario_confirm_btn">确定</button>
+        <button id="levelMapBtn" class="btn-overlay-secondary" data-i18n="mario_level_map_btn" style="margin-top:8px;">🗺️ 关卡</button>
+      </div>
+
+      <div id="levelMapOverlay" class="overlay">
+        <h1 data-i18n="mario_level_map_title" style="font-size:20px;">全部关卡</h1>
+        <div id="levelMapBest" style="font-size:13px; opacity:0.85; margin-bottom:4px;"></div>
+        <div id="levelMapGrid"></div>
+        <button id="levelMapCloseBtn" class="btn btn-primary" data-i18n="mario_level_map_close">关闭</button>
+      </div>
+
+      <div id="pauseOverlay" class="overlay">
+        <h1 data-i18n="pause_title">⏸ 已暂停</h1>
+        <button id="resumeBtn" class="btn btn-primary" data-i18n="mario_resume">继续游戏</button>
+        <button id="pauseRestartBtn" class="btn-overlay-secondary" data-i18n="btn_retry">再来一局</button>
+        <button id="pauseHomeBtn" class="btn-overlay-secondary" data-i18n="btn_backhome">返回主页</button>
+      </div>
+
+      <div id="endOverlay" class="overlay">
+        <h1 id="endTitle"></h1>
+        <p id="endScoreText"></p>
+        <button id="retryBtn" class="btn btn-primary" data-i18n="btn_retry">再来一局</button>
+        <button id="endHomeBtn" class="btn-overlay-secondary" data-i18n="btn_backhome">返回主页</button>
+      </div>
+    </div>
+    </div>
+
+    <!-- 触摸控制区：游戏框下方专门留出来的一条空白带，手指按在这里操作，不会挡住画面。
+         按钮做成 50% 透明的圆形，看得清位置，按下时会有轻微反馈，但又不会太抢眼 -->
+    <div id="touchLayer">
+      <div class="zone" id="zoneMoveLeft"><div class="control-btn">◀</div></div>
+      <div class="zone" id="zoneMoveRight"><div class="control-btn">▶</div></div>
+      <div class="zone" id="zoneAttack"><div class="control-btn control-btn-attack">📦</div></div>
+      <div class="zone" id="zoneJump"><div class="control-btn control-btn-jump">▲</div></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ══════════════════════════════════════════════════════════════
+     🌐 语言：跟首页同一套——localStorage 共用 'luna_lang' 这个 key，
+     默认泰语（'th'），首页切了语言这边也会跟着变，反之亦然。
+     文案统一放 LANG 字典里，配合 [data-i18n] / [data-i18n-aria] 属性套用，
+     跟首页 applyAppLang() 的思路一致。
+     ══════════════════════════════════════════════════════════════ */
+  var LANG_KEY = 'luna_lang';
+  function loadLang(){ try{ return localStorage.getItem(LANG_KEY)==='zh' ? 'zh' : 'th'; }catch(e){ return 'th'; } }
+  function saveLang(l){ try{ localStorage.setItem(LANG_KEY, l); }catch(e){} }
+  var currentLang = loadLang();
+
+  var LANG = {
+    zh:{
+      app_title:'接住月光',
+      mode_catch_name:'🌙 接球模式', mode_bounce_name:'⚡ 弹球模式',
+      highscore_label:'🏆 最高分', skin_label:'选择你的球',
+      btn_start:'开始游戏', btn_confirm:'确定', btn_stats:'查看统计', btn_retry:'再来一局', btn_backhome:'返回主页',
+      btn_clear:'清除数据', btn_statsback:'返回',
+      hud_score_label:'得分', sound_toggle:'声音开关', quit_btn:'退出', pause_btn:'暂停',
+      pause_title:'⏸ 已暂停', pause_hint:'点击屏幕继续',
+      gameover_title:'游戏结束', record_badge:'🎉 新纪录',
+      stat_caught:'接住', stat_missed:'漏接', stat_accuracy:'正确率', stat_bestcombo:'最佳连击',
+      stats_title:'我的统计', stat_games:'总局数', stat_high:'最高分',
+      stat_totalcaught:'总接住', stat_totalmissed:'总漏接', stat_totalacc:'总正确率',
+      stat_bestcombo_ever:'历史最佳连击', stat_totaltime:'累计游戏时长',
+      history_caption:'最近战绩', empty_note:'还没有游戏记录，快去接住第一颗光球吧 🌙',
+      no_history:'还没有战绩数据', minutes_suffix:' 分钟',
+      leaderboard_title:'排行榜', btn_leaderboard:'🏆 排行榜',
+      nickname_placeholder:'给自己起个昵称', btn_save:'保存',
+      lb_loading:'加载中…', lb_empty:'还没有人上榜，快来当第一名吧 🏆', lb_error:'加载失败，检查一下网络吧',
+      lb_synced:'🏆 已同步到排行榜', lb_prompt:'想上排行榜就起个昵称吧',
+      nick_hint:'请勿使用真实姓名、身份证号或其他个人信息',
+      nick_consent_label:'我同意将此昵称和游戏成绩公开展示在排行榜上',
+      nick_err_empty:'请先输入一个昵称',
+      nick_err_idnum:'昵称里不能包含身份证号这类证件号码',
+      nick_err_consent:'需要先勾选同意，才能保存昵称哦',
+      share_btn:'📤 分享我的成绩',
+      share_score_line:function(score){ return '🏆 我的成绩：'+score+' 分'; },
+      share_rank_line:function(rank){ return (rank===1?'🥇':(rank===2?'🥈':(rank===3?'🥉':'📊')))+' 当前排名：#'+rank; },
+      share_challenge_line:function(name){ return name+' 向你发起挑战！你能超越这个成绩吗？'; },
+      share_copied:'✅ 已复制', share_manual_copy:'复制这段文字去分享吧：',
+      anon_player_name:'神秘玩家',
+      hub_title:'月光游戏中心', hub_btn:'游戏中心',
+      mario_title:'🌙 Lumi Jump', mario_tab_name:'🌙 Lumi',
+      mario_start_desc:'一条路走到底，收集金币，躲开敌人和火坑。<br>左边移动，右边跳跃，📦键扔箱子打怪。',
+      mario_best_label:function(n){ return '最高分: '+n; },
+      mario_start_btn:'开始挑战', mario_confirm_btn:'确定', mario_resume:'继续游戏', mario_bg_picker_label:'选择场景',
+      mario_level_map_btn:'🗺️ 关卡', mario_level_map_title:'全部关卡', mario_level_map_close:'关闭',
+      mario_level_map_best:function(lv){ return '目前最远到第 '+lv+' 关'; },
+      mario_win_title:'🏆 全程通关！', mario_lose_title:'💀 挑战结束',
+      mario_result_line:function(score,best,clears){
+        var s = '本局得分: '+score+'<br>最高分: '+best;
+        if(clears>0) s += '<br>本局通关 '+clears+' 次';
+        return s;
+      },
+      mario_clear_toast:function(n){ return '🎉 通关！继续下一段（第 '+n+' 次）'; },
+      mario_coins_label:function(n){ return '💰 '+n; },
+      mario_progress_label:function(pct){ return pct+'%'; },
+      mario_level_label:function(lv,total){ return '第 '+lv+'/'+total+' 关'; },
+      mario_lives_label:function(n){ return '❤️ x '+n; },
+      mario_stat_coins:'总金币', mario_stat_stomps:'踩死敌人', mario_stat_deaths:'死亡次数',
+      mario_stat_progress:'最远进度', mario_stat_wins:'通关次数', mario_stat_time:'用时',
+      confirm_clear:function(name){ return '确定要清除"'+name+'"的统计数据吗？此操作无法撤销。'; }
+    },
+    th:{
+      app_title:'รับแสงจันทร์',
+      mode_catch_name:'🌙 โหมดรับลูก', mode_bounce_name:'⚡ โหมดเด้งลูก',
+      highscore_label:'🏆 คะแนนสูงสุด', skin_label:'เลือกลูกบอลของคุณ',
+      btn_start:'เริ่มเกม', btn_confirm:'ยืนยัน', btn_stats:'ดูสถิติ', btn_retry:'เล่นอีกครั้ง', btn_backhome:'กลับหน้าแรก',
+      btn_clear:'ล้างข้อมูล', btn_statsback:'กลับ',
+      hud_score_label:'คะแนน', sound_toggle:'เปิด/ปิดเสียง', quit_btn:'ออก', pause_btn:'หยุดชั่วคราว',
+      pause_title:'⏸ หยุดชั่วคราว', pause_hint:'แตะหน้าจอเพื่อเล่นต่อ',
+      gameover_title:'จบเกม', record_badge:'🎉 สถิติใหม่',
+      stat_caught:'รับได้', stat_missed:'พลาด', stat_accuracy:'ความแม่นยำ', stat_bestcombo:'คอมโบสูงสุด',
+      stats_title:'สถิติของฉัน', stat_games:'จำนวนเกม', stat_high:'คะแนนสูงสุด',
+      stat_totalcaught:'รับได้ทั้งหมด', stat_totalmissed:'พลาดทั้งหมด', stat_totalacc:'ความแม่นยำรวม',
+      stat_bestcombo_ever:'คอมโบสูงสุดตลอดกาล', stat_totaltime:'เวลาเล่นสะสม',
+      history_caption:'ผลงานล่าสุด', empty_note:'ยังไม่มีประวัติการเล่น ไปรับลูกแสงจันทร์ลูกแรกกันเลย 🌙',
+      no_history:'ยังไม่มีข้อมูลผลงาน', minutes_suffix:' นาที',
+      leaderboard_title:'อันดับ', btn_leaderboard:'🏆 กระดานอันดับ',
+      nickname_placeholder:'ตั้งชื่อเล่นของคุณ', btn_save:'บันทึก',
+      lb_loading:'กำลังโหลด…', lb_empty:'ยังไม่มีใครติดอันดับ มาเป็นคนแรกกันเถอะ 🏆', lb_error:'โหลดไม่สำเร็จ ลองเช็คอินเทอร์เน็ตดูนะ',
+      lb_synced:'🏆 ซิงค์กับกระดานอันดับแล้ว', lb_prompt:'อยากติดอันดับก็ตั้งชื่อเล่นก่อนนะ',
+      nick_hint:'กรุณาอย่าใช้ชื่อจริง เลขบัตรประชาชน หรือข้อมูลส่วนตัวอื่นๆ',
+      nick_consent_label:'ฉันยินยอมให้แสดงชื่อเล่นและคะแนนนี้บนกระดานอันดับแบบสาธารณะ',
+      nick_err_empty:'กรุณาตั้งชื่อเล่นก่อน',
+      nick_err_idnum:'ชื่อเล่นห้ามมีเลขบัตรประชาชนหรือเลขเอกสารทำนองนี้',
+      nick_err_consent:'ต้องติ๊กยินยอมก่อนถึงจะบันทึกชื่อเล่นได้นะ',
+      share_btn:'📤 แชร์ผลงานของฉัน',
+      share_score_line:function(score){ return '🏆 คะแนนของฉัน: '+score+' คะแนน'; },
+      share_rank_line:function(rank){ return (rank===1?'🥇':(rank===2?'🥈':(rank===3?'🥉':'📊')))+' อันดับปัจจุบัน: #'+rank; },
+      share_challenge_line:function(name){ return name+' ท้าทายคุณแล้ว! คุณจะเอาชนะคะแนนนี้ได้ไหม?'; },
+      share_copied:'✅ คัดลอกแล้ว', share_manual_copy:'คัดลอกข้อความนี้ไปแชร์ได้เลย:',
+      anon_player_name:'ผู้เล่นลึกลับ',
+      hub_title:'ศูนย์เกมแสงจันทร์', hub_btn:'ศูนย์เกม',
+      mario_title:'🌙 Lumi Jump', mario_tab_name:'🌙 Lumi',
+      mario_start_desc:'ลุยเส้นทางเดียวจนจบ เก็บเหรียญ หลบศัตรูกับบ่อไฟ<br>ฝั่งซ้ายเดิน ฝั่งขวากระโดด ปุ่ม 📦 ขว้างกล่องใส่ศัตรู',
+      mario_best_label:function(n){ return 'คะแนนสูงสุด: '+n; },
+      mario_start_btn:'เริ่มท้าทาย', mario_confirm_btn:'ยืนยัน', mario_resume:'เล่นต่อ', mario_bg_picker_label:'เลือกฉากหลัง',
+      mario_level_map_btn:'🗺️ ด่าน', mario_level_map_title:'ด่านทั้งหมด', mario_level_map_close:'ปิด',
+      mario_level_map_best:function(lv){ return 'ไกลที่สุดถึงด่าน '+lv; },
+      mario_win_title:'🏆 ผ่านด่านครบทุกด่าน!', mario_lose_title:'💀 จบการท้าทาย',
+      mario_result_line:function(score,best,clears){
+        var s = 'คะแนนรอบนี้: '+score+'<br>คะแนนสูงสุด: '+best;
+        if(clears>0) s += '<br>ผ่านด่านรอบนี้ '+clears+' ครั้ง';
+        return s;
+      },
+      mario_clear_toast:function(n){ return '🎉 ผ่านด่าน! ไปต่อด่านถัดไป (ครั้งที่ '+n+')'; },
+      mario_coins_label:function(n){ return '💰 '+n; },
+      mario_progress_label:function(pct){ return pct+'%'; },
+      mario_level_label:function(lv,total){ return 'ด่าน '+lv+'/'+total; },
+      mario_lives_label:function(n){ return '❤️ x '+n; },
+      mario_stat_coins:'เหรียญทั้งหมด', mario_stat_stomps:'ฆ่าศัตรู', mario_stat_deaths:'จำนวนครั้งที่ตาย',
+      mario_stat_progress:'ความคืบหน้าสูงสุด', mario_stat_wins:'จำนวนครั้งที่ผ่านด่าน', mario_stat_time:'เวลาที่ใช้',
+      confirm_clear:function(name){ return 'ยืนยันล้างข้อมูลสถิติของ "'+name+'" หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้'; }
+    }
+  };
+  function modeName(mode){
+    if(mode==='mario') return LANG[currentLang].mario_tab_name;
+    return LANG[currentLang][mode==='bounce' ? 'mode_bounce_name' : 'mode_catch_name'];
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     🔮 球皮肤：直接照抄首页 LUNA_ORB_STYLES 里 5 款渐变球的配色和中/泰双语名字
+     （跳过 heartwing/lotuspond/catmoon 三款图片素材款，那三个是
+     首页专用的测试贴图，体积很大，游戏球用纯色渐变画更轻量流畅）。
+     以后如果首页悬浮球样式改了，这里的 stops 记得跟着同步一下。
+     ══════════════════════════════════════════════════════════════ */
+  var ORB_SKINS = {
+    classic:   { name:{zh:'经典', th:'คลาสสิก'},     stops:[[0,'#f3c8e6'],[0.38,'#d79ad6'],[0.62,'#b07fd0'],[1,'#9d6ec4']], glow:'#9d6ec4' },
+    sakura:    { name:{zh:'樱花', th:'ซากุระ'},       stops:[[0,'#fff0f5'],[0.38,'#ffc4dd'],[0.62,'#ff8fb8'],[1,'#e8608f']], glow:'#e8608f' },
+    starlight: { name:{zh:'星辰', th:'ดาวประกาย'},    stops:[[0,'#fff6d9'],[0.38,'#f0c96b'],[0.72,'#7a5cc4'],[1,'#2e2261']], glow:'#7a5cc4' },
+    peachy:    { name:{zh:'蜜桃', th:'พีช'},          stops:[[0,'#fff0ec'],[0.38,'#fdbbaf'],[0.62,'#f58f84'],[1,'#e2604f']], glow:'#f58f84' },
+    mint:      { name:{zh:'薄荷', th:'มินต์'},        stops:[[0,'#eafff9'],[0.38,'#a0eedb'],[0.62,'#4fc9b0'],[1,'#2b8f7c']], glow:'#2b8f7c' }
+  };
+  var SKIN_ORDER = ['classic','sakura','starlight','peachy','mint'];
+
+  /* ══════════════════════════════════════════════════════════════
+     🎮 两种玩法模式：
+     - catch  接球模式：球从顶部随机位置连续掉落，拖光台接住
+     - bounce 弹球模式：只有一颗球，在光台上反复弹跳——接住后自动弹回
+       天上，掉下来时再接一次，如此循环，每接住一次 +1 分
+     两种模式统计数据分开存，互不影响。模式名字走 LANG 字典（modeName()），
+     这里只放跟语言相关但又不适合塞进单个 data-i18n 节点的说明文案。
+     ══════════════════════════════════════════════════════════════ */
+  var MODE_TAGLINE = {
+    catch:  { zh:'拖动光台左右移动<br>接住不断落下的光球，别漏掉哦',
+              th:'ลากแท่นแสงไปทางซ้ายขวา<br>รับลูกแสงจันทร์ที่ตกลงมาเรื่อยๆ อย่าให้พลาดนะ' },
+    bounce: { zh:'光球会在光台上来回弹跳<br>接住会自动弹回天上，越弹越快，别漏接哦',
+              th:'ลูกแสงจันทร์จะเด้งไปมาบนแท่นแสง<br>รับได้แล้วจะเด้งกลับขึ้นฟ้าเอง ยิ่งเด้งยิ่งเร็ว อย่าพลาดนะ' }
+  };
+  var MODE_KEY = 'btb_mode';
+  function loadMode(){ try{ return localStorage.getItem(MODE_KEY)==='bounce' ? 'bounce' : 'catch'; }catch(e){ return 'catch'; } }
+  function saveMode(m){ try{ localStorage.setItem(MODE_KEY, m); }catch(e){} }
+  var currentMode = loadMode();     // 当前"要开始/正在玩"的模式
+  var statsViewMode = currentMode;  // 统计屏当前在看哪个模式的数据（跟上面这个是两件事）
+
+  /* ---------- 本地存储：统计数据（按模式分开）+ 皮肤/声音偏好 ---------- */
+  var STORAGE_KEY = 'btb_stats_v2'; // 🩹 结构改成按模式分桶了，版本号 +1，跟旧的 v1 数据区分开
+  var SKIN_KEY = 'btb_skin';
+  var SOUND_KEY = 'btb_sound';
+
+  function defaultModeStats(){
+    return { gamesPlayed:0, highScore:0, totalCaught:0, totalMissed:0, bestCombo:0, totalPlaySeconds:0, history:[] };
+  }
+  function defaultMarioStats(){
+    return { gamesPlayed:0, highScore:0, totalCoins:0, totalStomps:0, totalDeaths:0, bestProgress:0, wins:0, totalPlaySeconds:0, history:[] };
+  }
+  function defaultStats(){ return { catch:defaultModeStats(), bounce:defaultModeStats(), mario:defaultMarioStats() }; }
+  function loadStats(){
+    var d = defaultStats();
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return d;
+      var parsed = JSON.parse(raw);
+      ['catch','bounce','mario'].forEach(function(m){
+        var dm = d[m], pm = parsed[m] || {};
+        for(var k in dm){ if(pm[k]===undefined) pm[k]=dm[k]; }
+        d[m] = pm;
+      });
+      return d;
+    }catch(e){ return d; }
+  }
+  function saveStats(s){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }catch(e){} }
+  var stats = loadStats();
+
+  function loadSkin(){ try{ var v = localStorage.getItem(SKIN_KEY); return ORB_SKINS[v] ? v : 'classic'; }catch(e){ return 'classic'; } }
+  function saveSkin(k){ try{ localStorage.setItem(SKIN_KEY, k); }catch(e){} }
+  var currentSkinKey = loadSkin();
+
+  function loadSound(){ try{ return localStorage.getItem(SOUND_KEY) !== 'off'; }catch(e){ return true; } }
+  function saveSound(on){ try{ localStorage.setItem(SOUND_KEY, on?'on':'off'); }catch(e){} }
+  var soundOn = loadSound();
+
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ══════════════════════════════════════════════════════════════
+     🏆 真排行榜：挂在你们主 app 同一个 Firebase 项目（sasomboon）的
+     Realtime Database 下，单开一个 leaderboard/{mode}/{clientUid} 节点，
+     不碰 users/admins 那些已有数据。全部走 REST（fetch 直接打 .json
+     接口），不用 Firebase SDK/ES module——这样在 content://、file:// 这类
+     从下载文件直接打开的场景里也能正常联网，不会因为模块脚本的
+     跨域限制而加载失败。
+
+     身份：不接你们现有的账号系统，用设备本地生成的一个随机 ID
+     （存 localStorage）当"这台设备是谁"，配一个玩家自己起的昵称。
+     排行榜按 clientUid 一人一行，只在破了自己纪录时才覆盖上传，
+     不会刷屏。这是轻量匿名方案，认识到它防不了"清缓存刷新身份"
+     这种作弊——如果以后要接真账号防刷分，再考虑接 Firebase Auth
+     + 云函数校验分数，现在先满足"大家能互相看到成绩"这个需求。
+
+     🔧 需要你在 Firebase 控制台 → Realtime Database → 规则 里，
+     在现有规则 JSON 中【合并】进下面这段（不要整个替换掉，
+     免得动到 users/admins 现有的权限）：
+
+     "leaderboard": {
+       "$mode": {
+         ".read": true,
+         "$uid": {
+           ".write": true,
+           ".validate": "newData.hasChildren(['name','score','ts']) && newData.child('name').isString() && newData.child('name').val().length <= 20 && newData.child('score').isNumber() && newData.child('score').val() >= 0 && newData.child('score').val() <= 99999 && newData.child('ts').isNumber()"
+         }
+       }
+     }
+     ══════════════════════════════════════════════════════════════ */
+  var LB_DB_URL = 'https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+  var LB_UID_KEY = 'btb_client_uid';
+  function loadClientUid(){
+    try{
+      var v = localStorage.getItem(LB_UID_KEY);
+      if(v) return v;
+      v = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2,10);
+      localStorage.setItem(LB_UID_KEY, v);
+      return v;
+    }catch(e){ return 'anon' + Math.random().toString(36).slice(2,10); }
+  }
+  var clientUid = loadClientUid();
+
+  var LB_NICK_KEY = 'btb_nickname';
+  function loadNickname(){ try{ return localStorage.getItem(LB_NICK_KEY) || ''; }catch(e){ return ''; } }
+  function saveNickname(n){ try{ localStorage.setItem(LB_NICK_KEY, n); }catch(e){} }
+  var nickname = loadNickname();
+
+  function lbUrl(path){ return LB_DB_URL + '/' + path + '.json'; }
+
+  // 只有破了自己在这个模式下存的最高分才会真的写一次，平时不会因为每局都提交而狂打请求
+  function lbSubmitScore(mode, name, scoreVal){
+    var path = 'leaderboard/' + mode + '/' + clientUid;
+    return fetch(lbUrl(path)).then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(existing){
+        if(existing && typeof existing.score === 'number' && existing.score >= scoreVal){
+          return { ok:true, updated:false };
+        }
+        return fetch(lbUrl(path), {
+          method:'PUT',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ name:String(name).slice(0,14), score:scoreVal, ts:Date.now() })
+        }).then(function(r){ return { ok:r.ok, updated:r.ok }; });
+      })
+      .catch(function(err){ console.error('排行榜提交失败', err); return { ok:false, error:String(err) }; });
+  }
+
+  // 返回按分数降序排好的数组；null 表示读取失败（跟"确实没人上榜"的空数组区分开）
+  function lbFetchTop(mode, limitN){
+    var url = lbUrl('leaderboard/' + mode) + '?orderBy=%22score%22&limitToLast=' + (limitN || 50);
+    return fetch(url).then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){
+        if(!data) return [];
+        var list = Object.keys(data).map(function(uid){
+          var e = data[uid] || {};
+          return { uid:uid, name:e.name || '???', score:typeof e.score==='number' ? e.score : 0, ts:e.ts || 0 };
+        });
+        list.sort(function(a,b){ return b.score - a.score; });
+        return list;
+      })
+      .catch(function(err){ console.error('排行榜读取失败', err); return null; });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     🧚 Lumi 精灵陪伴钩子（占位）
+     现在全是空函数，不影响游戏运行。以后接入 Lumi 精灵组件时，
+     只需要在这几个时机点里补上真正的调用（比如飘一句鼓励气泡、
+     漏球时安慰一下、创新纪录时庆祝一下），不用改游戏逻辑本身。
+     ══════════════════════════════════════════════════════════════ */
+  window.LumiHooks = {
+    onGameStart: function(skinKey, mode){},
+    onCatch: function(combo, score){},
+    onMiss: function(livesLeft){},
+    onGameOver: function(session){},          // session: {score,caught,missed,bestCombo,durationSec,isNewRecord}
+    onNewHighScore: function(score){}
+  };
+
+  /* ---------- DOM refs ---------- */
+  var $ = function(id){ return document.getElementById(id); };
+  var screens = { hub:$('screen-hub'), menu:$('screen-menu'), game:$('screen-game'), gameover:$('screen-gameover'), stats:$('screen-stats'), leaderboard:$('screen-leaderboard'), mario:$('screen-mario') };
+  function showScreen(name){
+    Object.keys(screens).forEach(function(k){ screens[k].classList.toggle('active', k===name); });
+  }
+
+  /* ---------- 菜单：背景场景选择（预览 + 确定，跟 Lumi Jump 那边同一套配色） ---------- */
+  var BTB_BG_THEMES = {
+    default:   { gradient:'linear-gradient(180deg,#241a3d 0%, #4a3172 55%, #7c5cbf 100%)' },
+    aurora:    { gradient:'linear-gradient(180deg,#1f7a6e 0%, #6a3aa8 45%, #c968b8 100%)' },
+    moonlotus: { gradient:'linear-gradient(180deg,#12507a 0%, #1c6f94 55%, #2f93ab 100%)' },
+    duskmauve: { gradient:'linear-gradient(180deg,#4a2f42 0%, #8c5f7d 100%)' },
+    dream:     { gradient:'linear-gradient(180deg,#3a2a52 0%, #b49cdb 100%)' }
+  };
+  var currentBtbBgId = 'default';
+  try{ currentBtbBgId = localStorage.getItem('luna_btb_bg') || 'default'; }catch(e){}
+  function applyBtbBgPreview(id){
+    var theme = BTB_BG_THEMES[id] || BTB_BG_THEMES.default;
+    // 🩹 整个菜单页背景直接换成选中的渐变，才是真正"看到全部页面变色"，不是只看一小块。
+    // 注意：不能直接把 --ink/--ink-soft 这两个全局变量整体改成白色——菜单里最高分卡片、
+    // 模式切换条这些本来就是白色卡片(--card)+深色字，字色跟着变白的话就变成"白字白卡"看不见了。
+    // 改成只给"直接铺在页面背景上、没有自己卡片"的那几处文字（标题/副标题/说明/球选择标签）
+    // 单独加一个类名换成白色，卡片里的文字完全不受影响。
+    screens.menu.style.background = theme.gradient;
+    screens.menu.classList.add('bg-preview-active');
+    screens.game.style.background = theme.gradient; // 顺手把真正游戏页的背景也设好，进去就是这个颜色
+  }
+  function setBtbBgTheme(id){
+    currentBtbBgId = id;
+    applyBtbBgPreview(id);
+    try{ localStorage.setItem('luna_btb_bg', id); }catch(e){}
+  }
+  function markSelectedBtbSwatch(id){
+    document.querySelectorAll('#screen-menu .bg-swatch').forEach(function(sw){
+      sw.classList.toggle('selected', sw.getAttribute('data-bg')===id);
+    });
+  }
+  document.querySelectorAll('#screen-menu .bg-swatch').forEach(function(sw){
+    sw.addEventListener('click', function(){
+      setBtbBgTheme(sw.getAttribute('data-bg'));
+      markSelectedBtbSwatch(currentBtbBgId);
+    });
+  });
+  applyBtbBgPreview(currentBtbBgId);
+  markSelectedBtbSwatch(currentBtbBgId);
+
+  /* ---------- 菜单：皮肤选择 ---------- */
+  function renderSkinPicker(){
+    var row = $('skinRow');
+    row.innerHTML = '';
+    SKIN_ORDER.forEach(function(key){
+      var b = document.createElement('button');
+      b.className = 'skin-pick skin-' + key + (key===currentSkinKey ? ' sel' : '');
+      b.setAttribute('aria-label', ORB_SKINS[key].name[currentLang]);
+      b.addEventListener('click', function(){
+        currentSkinKey = key; saveSkin(key);
+        row.querySelectorAll('.skin-pick').forEach(function(el){ el.classList.remove('sel'); });
+        b.classList.add('sel');
+      });
+      row.appendChild(b);
+    });
+  }
+
+  /* ---------- 菜单：整屏刷新（皮肤 + 模式切换 + 对应最高分/说明文案）---------- */
+  function renderMenu(){
+    renderSkinPicker();
+    document.querySelectorAll('#modeRow .mode-pick').forEach(function(b){
+      b.classList.toggle('sel', b.getAttribute('data-mode') === currentMode);
+    });
+    $('modeDesc').innerHTML = MODE_TAGLINE[currentMode][currentLang];
+    $('menuHighScore').textContent = stats[currentMode].highScore;
+  }
+
+  /* ---------- 首页（游戏中心）：两张卡片各自的最高分预览 ---------- */
+  function renderHub(){
+    var btbBest = Math.max(stats.catch.highScore, stats.bounce.highScore);
+    $('hubBtbBest').textContent = btbBest > 0 ? ('🏆 ' + btbBest) : '';
+    $('hubMarioBest').textContent = stats.mario.highScore > 0 ? ('🏆 ' + stats.mario.highScore) : '';
+  }
+
+  /* ---------- 语言：套用 [data-i18n] 文案 + 语言下拉菜单交互 ---------- */
+  var langChangeListeners = []; // 马里奥模块会往这里塞一个自己的刷新函数
+  function applyLang(){
+    var t = LANG[currentLang];
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var key = el.getAttribute('data-i18n');
+      if(t[key] === undefined) return;
+      // 🩹 修 bug：之前统一用 textContent，词典里带 <br> 换行的文案（比如马里奥的开场说明）
+      // 会把 "<br>" 原样当文字显示出来，而不是真的换行。这里只在文案确实包含 <br> 时才用
+      // innerHTML（词典内容都是我们自己写的，不是外部输入，用 innerHTML 没有安全问题）。
+      if(t[key].indexOf('<br') !== -1) el.innerHTML = t[key];
+      else el.textContent = t[key];
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(function(el){
+      var key = el.getAttribute('data-i18n-aria');
+      if(t[key] !== undefined) el.setAttribute('aria-label', t[key]);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){
+      var key = el.getAttribute('data-i18n-placeholder');
+      if(t[key] !== undefined) el.placeholder = t[key];
+    });
+    document.querySelectorAll('.langbar').forEach(function(bar){
+      var cur = bar.querySelector('.langCurrent');
+      if(cur) cur.textContent = currentLang==='zh' ? '中文' : 'ไทย';
+      bar.querySelectorAll('.langmenu button').forEach(function(b){
+        b.classList.toggle('on', b.getAttribute('data-lang') === currentLang);
+      });
+    });
+    document.documentElement.setAttribute('lang', currentLang==='zh' ? 'zh-CN' : 'th');
+    document.title = t.hub_title;
+
+    renderMenu();
+    renderHub();
+    if(screens.stats.classList.contains('active')) renderStatsScreen(statsViewMode);
+    if(screens.gameover.classList.contains('active') && lastSession) renderGameOver(lastSession);
+    langChangeListeners.forEach(function(fn){ try{ fn(); }catch(e){} }); // 通知马里奥模块（在另一个 IIFE 里）刷新它自己的动态文字
+  }
+
+  function bindLangBar(barId){
+    var bar = $(barId);
+    if(!bar) return;
+    var btn = bar.querySelector('.langbtn');
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      document.querySelectorAll('.langbar').forEach(function(b){ if(b!==bar) b.classList.remove('open'); });
+      bar.classList.toggle('open');
+    });
+    bar.querySelectorAll('.langmenu button').forEach(function(b){
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        currentLang = b.getAttribute('data-lang'); saveLang(currentLang);
+        bar.classList.remove('open');
+        applyLang();
+      });
+    });
+  }
+  document.addEventListener('click', function(){
+    document.querySelectorAll('.langbar.open').forEach(function(b){ b.classList.remove('open'); });
+  });
+
+  /* ══════════════════════════════════════════════════════════════
+     🎮 游戏引擎
+     ══════════════════════════════════════════════════════════════ */
+  var canvas = $('gameCanvas'), ctx = canvas.getContext('2d');
+  var dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+  var W = 0, H = 0; // 逻辑像素尺寸（CSS px）
+
+  var paddle = { w:112, h:26, x:0, y:0, vx:0 };
+  var balls = [];       // catch 模式：若干颗掉落的球 {x,y,r,vy,vx}；bounce 模式：数组里始终只有 1 颗
+  var particles = [];   // 粒子：拖尾 + 命中光环 {x,y,r,alpha,vy,type,life,maxLife}
+  var stars = [];       // 背景星星 {x,y,r,phase}
+
+  var running = false, paused = false;
+  var lastSession = null; // 记录最近一次结算的数据，方便在结算屏上切语言时能重新渲染文案
+  var lastTs = 0, spawnTimer = 0, elapsed = 0;
+  var spawnInterval = 1450;   // ms（仅 catch 模式用）
+  var fallSpeed = 95;         // px/秒（仅 catch 模式用）
+  var BOUNCE_GRAVITY = 520;   // px/秒²（仅 bounce 模式用：重力加速度）
+  var BOUNCE_LAUNCH = 760;    // px/秒（仅 bounce 模式用：接住瞬间弹回天上的初速度）
+  var BOUNCE_GRAVITY_MULT_CAP = 2.2; // 🩹 重力倍率封顶——球不会被压到弹不起来，反应时间有个底线
+  var lives = 3, score = 0, combo = 0, bestComboThisRun = 0, caught = 0, missed = 0;
+
+  function resizeCanvas(){
+    var rect = canvas.parentElement.getBoundingClientRect();
+    W = canvas.clientWidth || rect.width;
+    H = canvas.clientHeight || rect.height;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    paddle.y = H - 54;
+    paddle.x = Math.min(Math.max(paddle.x, 0), W - paddle.w);
+    if(stars.length===0 || Math.abs(resizeCanvas._lastW - W) > 40){
+      stars = [];
+      var n = reduceMotion ? 26 : 46;
+      for(var i=0;i<n;i++){
+        stars.push({ x:Math.random()*W, y:Math.random()*H*0.75, r:0.6+Math.random()*1.4, phase:Math.random()*Math.PI*2 });
+      }
+      resizeCanvas._lastW = W;
+    }
+  }
+
+  function resetRun(){
+    balls = []; particles = [];
+    lives = 3; score = 0; combo = 0; bestComboThisRun = 0; caught = 0; missed = 0;
+    spawnTimer = 0; elapsed = 0; spawnInterval = 1450; fallSpeed = 95;
+    paddle.x = W/2 - paddle.w/2;
+    lastTs = 0;
+  }
+
+  // 🩹 暂停状态统一走这一个函数：无论是点暂停按钮、切后台自动暂停、还是点画布恢复，
+  // 图标和遮罩层都会保持同步，不会出现"按钮显示暂停但其实在跑"这种不一致。
+  function setPaused(p){
+    paused = p;
+    $('pauseLayer').classList.toggle('show', p);
+    $('btnPause').textContent = p ? '▶️' : '⏸';
+  }
+
+  function startGame(){
+    // 🩹 关键顺序:必须先把 #screen-game 切到可见(display:flex),浏览器完成一次布局之后
+    // 再去量 canvas 的实际宽高——如果在切屏之前就量,画布还是 display:none,量到的永远是 0,
+    // 光台/球的坐标就会被算到屏幕外面,看起来"整个游戏都消失了"。
+    ensureAudio();
+    showScreen('game');
+    requestAnimationFrame(function(){
+      resizeCanvas();
+      resetRun();
+      running = true; setPaused(false);
+      updateHudLives(); updateHudScore(); updateHudCombo();
+      $('btnSound').textContent = soundOn ? '🔈' : '🔇';
+      window.LumiHooks.onGameStart(currentSkinKey, currentMode);
+      requestAnimationFrame(loop);
+    });
+  }
+
+  /* ---------- catch 模式：从顶部随机位置连续掉落 ---------- */
+  function spawnBallCatch(){
+    var r = 24;
+    balls.push({ x:r + Math.random()*(W - r*2), y:-r, r:r, vy:fallSpeed*(0.85+Math.random()*0.3), vx:0 });
+  }
+
+  /* ---------- bounce 模式：只有一颗球，落地/接住时重新发射 ---------- */
+  function spawnBallBounce(mult){
+    var r = 24;
+    balls.push({
+      x: W/2 + (Math.random()-0.5)*Math.min(120, W*0.3),
+      y: r + 16,
+      r: r,
+      vy: 60,
+      vx: (Math.random() < 0.5 ? -1 : 1) * (90 + 40*mult)
+    });
+  }
+
+  function addTrail(x,y){
+    if(reduceMotion) return;
+    particles.push({ type:'trail', x:x+(Math.random()-0.5)*6, y:y, r:2+Math.random()*2, alpha:0.55, vy:16, life:0, maxLife:0.5, color:ORB_SKINS[currentSkinKey].glow });
+  }
+  function addRing(x,y,color){
+    particles.push({ type:'ring', x:x, y:y, r:paddle.w*0.32, alpha:0.7, life:0, maxLife:reduceMotion?0.01:0.4, color:color });
+  }
+  // 🎉 连击到里程碑时的粒子爆发——朝四面八方飞散的小光点，比普通接住的光环更热闹
+  function addBurst(x,y,color,count){
+    if(reduceMotion) return;
+    for(var i=0;i<count;i++){
+      var ang = Math.random()*Math.PI*2;
+      var spd = 60 + Math.random()*100;
+      particles.push({
+        type:'spark', x:x, y:y, r:2+Math.random()*2.2,
+        vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd,
+        alpha:0.95, life:0, maxLife:0.45+Math.random()*0.3, color:color
+      });
+    }
+  }
+
+  // 🎉 屏幕震动——连击里程碑时用，幅度会随时间自然衰减到 0
+  var shakeTimer = 0, shakeDuration = 0.32, shakeMag = 0;
+  function triggerShake(mag){
+    if(reduceMotion) return;
+    shakeTimer = shakeDuration;
+    shakeMag = mag;
+  }
+
+  /* ---------- 接住 / 漏接：两种模式共用，一次接住固定 +1 分（不再有连击倍率）---------- */
+  function registerCatch(x){
+    caught++; combo++;
+    if(combo > bestComboThisRun) bestComboThisRun = combo;
+    score += 1;
+    var glowColor = ORB_SKINS[currentSkinKey].glow;
+    addRing(x, paddle.y, glowColor);
+    // 🎉 连击里程碑：每 5 连震一下+小爆发，每 10 连加大版 + 专属音效，纯手感反馈，不影响分数
+    if(combo > 0 && combo % 5 === 0){
+      var big = (combo % 10 === 0);
+      triggerShake(big ? 6 : 3);
+      addBurst(x, paddle.y, big ? '#f4c96b' : glowColor, big ? 18 : 9);
+      if(big) playMilestoneSound(combo);
+    }
+    updateHudScore(); updateHudCombo();
+    playCatchSound(combo);
+    window.LumiHooks.onCatch(combo, score);
+  }
+  function registerMiss(){
+    missed++; combo = 0;
+    lives--;
+    updateHudLives(); updateHudCombo();
+    playMissSound();
+    window.LumiHooks.onMiss(lives);
+    if(lives <= 0) endGame();
+  }
+
+  function paddleHit(b){
+    var withinX = b.x > paddle.x - b.r*0.3 && b.x < paddle.x + paddle.w + b.r*0.3;
+    return b.y + b.r >= paddle.y && b.y + b.r <= paddle.y + paddle.h + 10 && withinX;
+  }
+
+  function updateCatch(dt, dtMs, mult){
+    // 🩹 掉落速度不再封顶——用根号增长，前期涨得明显，后期涨得慢一点但一直在涨，永远"会越来越快"
+    fallSpeed = 95 * mult;
+    spawnInterval = Math.max(500, 1450 - elapsed*14);
+
+    spawnTimer += dtMs;
+    if(spawnTimer >= spawnInterval && balls.length < 4){ spawnTimer = 0; spawnBallCatch(); }
+
+    for(var i=balls.length-1;i>=0;i--){
+      var b = balls[i];
+      b.y += b.vy * dt;
+      if(Math.random() < 0.6) addTrail(b.x, b.y - b.r*0.6);
+      if(paddleHit(b)){ registerCatch(b.x); balls.splice(i,1); continue; }
+      if(b.y - b.r > H){ registerMiss(); balls.splice(i,1); continue; }
+    }
+  }
+
+  function updateBounce(dt, dtMs, mult){
+    // 🩹 垂直方向的难度（重力）封顶在 2.2 倍，球再也不会被压得太低、太赶——
+    // 但左右移动速度不封顶，会一直变快，长期难度还是持续在涨，只是换了个维度。
+    var g = BOUNCE_GRAVITY * Math.min(mult, BOUNCE_GRAVITY_MULT_CAP);
+    if(balls.length === 0) spawnBallBounce(mult);
+    var b = balls[0];
+
+    b.vy += g * dt;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+
+    // 左右墙壁反弹
+    if(b.x - b.r < 0){ b.x = b.r; b.vx = Math.abs(b.vx); }
+    if(b.x + b.r > W){ b.x = W - b.r; b.vx = -Math.abs(b.vx); }
+    // 顶部兜底反弹，防止极端速度下飞出画布顶部
+    if(b.y - b.r < 0){ b.y = b.r; b.vy = Math.abs(b.vy); }
+    if(Math.random() < 0.6) addTrail(b.x, b.y - b.r*0.6);
+
+    if(b.vy > 0 && paddleHit(b)){
+      registerCatch(b.x);
+      // 🩹 接住瞬间弹回天上：起跳速度不再乘 mult，只有重力随难度倍率涨——
+      // 这样"弹一次要多久"这个周期才会真的缩短（之前 v0 和 g 同时乘 mult 会互相抵消，
+      // 算出来周期从头到尾都一样，只是球弹得越来越高，没有变快）。
+      // 击中点越靠近光台边缘，横向弹开越明显，增加一点"控球"的手感。
+      b.vy = -BOUNCE_LAUNCH;
+      var hitOffset = (b.x - (paddle.x + paddle.w/2)) / (paddle.w/2); // -1 ~ 1
+      b.vx = hitOffset * (120 + 70*mult) + (Math.random()-0.5)*30;
+    } else if(b.y - b.r > H){
+      registerMiss();
+      balls.splice(0,1); // 移除，下一帧 spawnBallBounce 会自动补一颗新球继续玩
+    }
+  }
+
+  function updateParticles(dt){
+    for(var j=particles.length-1;j>=0;j--){
+      var p = particles[j];
+      p.life += dt;
+      if(p.type==='trail'){ p.y += p.vy*dt; p.alpha -= dt*1.6; }
+      else if(p.type==='spark'){ p.x += p.vx*dt; p.y += p.vy*dt; p.vx *= (1 - dt*1.5); p.vy *= (1 - dt*1.5); p.alpha -= dt*2.0; }
+      else { p.r += (paddle.w*0.9)*dt; p.alpha -= dt*2.2; }
+      if(p.life >= p.maxLife || p.alpha <= 0) particles.splice(j,1);
+    }
+  }
+
+  function update(dtMs){
+    var dt = dtMs/1000;
+    elapsed += dt;
+    // 🩹 统一难度倍率：根号增长——一直在变快，但增速会随时间自然放缓，不会几十秒后就变成不可能的速度
+    var mult = 1 + Math.sqrt(elapsed) * 0.22;
+
+    if(currentMode === 'bounce') updateBounce(dt, dtMs, mult);
+    else updateCatch(dt, dtMs, mult);
+
+    updateParticles(dt);
+    if(shakeTimer > 0) shakeTimer = Math.max(0, shakeTimer - dt);
+  }
+
+  function drawBall(x,y,r){
+    var skin = ORB_SKINS[currentSkinKey];
+    var grad = ctx.createRadialGradient(x-r*0.28,y-r*0.32,r*0.08, x,y,r);
+    skin.stops.forEach(function(s){ grad.addColorStop(s[0], s[1]); });
+    ctx.save();
+    ctx.shadowColor = skin.glow; ctx.shadowBlur = 16;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle = grad; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.ellipse(x-r*0.3,y-r*0.36,r*0.26,r*0.16,-0.6,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fill();
+    ctx.restore();
+  }
+
+  function render(){
+    ctx.save();
+    if(shakeTimer > 0){
+      var s = shakeMag * (shakeTimer / shakeDuration); // 幅度随时间衰减到 0
+      ctx.translate((Math.random()-0.5)*2*s, (Math.random()-0.5)*2*s);
+    }
+
+    // 夜空渐变
+    var g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#241a3d'); g.addColorStop(0.55,'#4a3172'); g.addColorStop(1,'#6a4a95');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+    // 星星
+    var t = performance.now()/1000;
+    stars.forEach(function(s){
+      var a = reduceMotion ? 0.55 : (0.35 + 0.55*Math.abs(Math.sin(t*0.6 + s.phase)));
+      ctx.globalAlpha = a; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // 粒子（拖尾 + 光环 + 里程碑爆发的小光点）
+    particles.forEach(function(p){
+      ctx.globalAlpha = Math.max(0,p.alpha);
+      if(p.type==='trail' || p.type==='spark'){
+        ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      }else{
+        ctx.strokeStyle = p.color; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.stroke();
+      }
+    });
+    ctx.globalAlpha = 1;
+
+    // 球
+    balls.forEach(function(b){ drawBall(b.x,b.y,b.r); });
+
+    // 光台（paddle）
+    var pg = ctx.createLinearGradient(paddle.x,0,paddle.x+paddle.w,0);
+    pg.addColorStop(0,'#7c5cbf'); pg.addColorStop(1,'#c47ab0');
+    ctx.shadowColor = 'rgba(196,122,176,0.65)'; ctx.shadowBlur = 14;
+    roundRect(ctx, paddle.x, paddle.y, paddle.w, paddle.h, 8);
+    ctx.fillStyle = pg; ctx.fill();
+    ctx.shadowBlur = 0;
+    roundRect(ctx, paddle.x+4, paddle.y+2, paddle.w-8, paddle.h*0.35, 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fill();
+    ctx.restore();
+  }
+
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath();
+    c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
+
+  function loop(ts){
+    if(!running) return;
+    if(!lastTs) lastTs = ts;
+    var dt = Math.min(48, ts - lastTs);
+    lastTs = ts;
+    if(!paused){ update(dt); render(); }
+    requestAnimationFrame(loop);
+  }
+
+  function endGame(){
+    running = false;
+    var durationSec = Math.round(elapsed);
+    var bucket = stats[currentMode];
+    var wasHighScore = score > bucket.highScore;
+
+    bucket.gamesPlayed++;
+    bucket.totalCaught += caught;
+    bucket.totalMissed += missed;
+    bucket.totalPlaySeconds += durationSec;
+    if(bestComboThisRun > bucket.bestCombo) bucket.bestCombo = bestComboThisRun;
+    if(score > bucket.highScore) bucket.highScore = score;
+    bucket.history.push({ score:score, caught:caught, missed:missed, combo:bestComboThisRun, t:Date.now() });
+    if(bucket.history.length > 30) bucket.history = bucket.history.slice(-30);
+    saveStats(stats);
+
+    playGameOverSound();
+    var session = { mode:currentMode, score:score, caught:caught, missed:missed, bestCombo:bestComboThisRun, durationSec:durationSec, isNewRecord:wasHighScore };
+    window.LumiHooks.onGameOver(session);
+    if(wasHighScore) window.LumiHooks.onNewHighScore(score);
+
+    showGameOverScreen(session);
+  }
+
+  // 🌉 结算屏的公共入口——block-the-ball 自己的 endGame() 和马里奥模块都走这一个函数，
+  // 保证"记住这局是谁的、渲染、切屏、顺手同步排行榜"这几步永远一起发生，不会漏掉某一步。
+  function showGameOverScreen(session){
+    lastSession = session;
+    renderGameOver(session);
+    showScreen('gameover');
+    maybeSubmitScore(session);
+  }
+
+  // 🎉 分数从 0 数到目标值，比直接把数字甩出来更有"结算感"；尊重"减少动画"系统设置
+  function animateScoreCountUp(el, target, duration){
+    if(reduceMotion || target <= 0){ el.textContent = target; return; }
+    var startTime = null;
+    function step(ts){
+      if(!startTime) startTime = ts;
+      var p = Math.min(1, (ts - startTime) / duration);
+      var eased = 1 - Math.pow(1 - p, 3); // ease-out，快开始、慢结尾，比匀速数字更舒服
+      el.textContent = Math.round(target * eased);
+      if(p < 1) requestAnimationFrame(step);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(step);
+  }
+
+  // 🎉 破纪录时飘一层小彩纸/星星，纯 DOM+CSS 动画，2.2 秒后自动清空，不常驻占内存
+  function spawnConfetti(){
+    if(reduceMotion) return;
+    var layer = $('goConfetti');
+    layer.innerHTML = '';
+    var emojis = ['✨','🌙','⭐','💫','🎉'];
+    for(var i=0;i<18;i++){
+      var el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+      el.style.left = (Math.random()*100) + '%';
+      el.style.fontSize = (14 + Math.random()*10) + 'px';
+      el.style.animationDuration = (1.1 + Math.random()*0.8) + 's';
+      el.style.animationDelay = (Math.random()*0.3) + 's';
+      layer.appendChild(el);
+    }
+    setTimeout(function(){ layer.innerHTML = ''; }, 2200);
+  }
+
+  function renderGameOver(s){
+    var isMario = (s.mode === 'mario');
+    $('goModeLabel').textContent = modeName(s.mode);
+    animateScoreCountUp($('goScore'), s.score, 700);
+    $('goStatGridBtb').style.display = isMario ? 'none' : 'grid';
+    $('goStatGridMario').style.display = isMario ? 'grid' : 'none';
+
+    if(isMario){
+      $('goTitle').textContent = s.won ? LANG[currentLang].mario_win_title : LANG[currentLang].mario_lose_title;
+      $('goCoins').textContent = s.coins;
+      $('goStomps').textContent = s.stomps;
+      $('goProgress').textContent = s.progress + '%';
+      $('goRunTime').textContent = s.durationSec + 's';
+    } else {
+      $('goTitle').textContent = LANG[currentLang].gameover_title;
+      $('goCaught').textContent = s.caught;
+      $('goMissed').textContent = s.missed;
+      var total = s.caught + s.missed;
+      $('goAccuracy').textContent = total ? Math.round(s.caught/total*100) + '%' : '—';
+      $('goCombo').textContent = '×' + s.bestCombo;
+    }
+    $('goRecordBadge').style.display = s.isNewRecord ? 'inline-block' : 'none';
+    if(s.isNewRecord) spawnConfetti();
+  }
+
+  // 有昵称就悄悄同步（破了自己纪录才真的会写一次）；没昵称、且这局又不是 0 分，
+  // 就顺手在结算屏上问一句要不要起个昵称上榜——不强迫，不设置也完全不影响正常玩。
+  function maybeSubmitScore(s){
+    $('goLbSynced').style.display = 'none';
+    $('goLbPrompt').style.display = 'none';
+    if(nickname){
+      lbSubmitScore(s.mode, nickname, s.score).then(function(res){
+        if(res && res.ok && res.updated && screens.gameover.classList.contains('active')){
+          $('goLbSynced').style.display = 'block';
+        }
+      });
+    } else if(s.score > 0){
+      $('goLbPrompt').style.display = 'block';
+    }
+  }
+
+  /* ---------- HUD ---------- */
+  function updateHudLives(){
+    var el = $('hudLives'); el.innerHTML = '';
+    for(var i=0;i<3;i++){
+      var span = document.createElement('span');
+      span.textContent = '🌙';
+      if(i >= lives) span.className = 'lost';
+      el.appendChild(span);
+    }
+  }
+  function updateHudScore(){ $('hudScore').textContent = score; }
+  function updateHudCombo(){
+    var el = $('hudCombo');
+    if(combo >= 2){ el.textContent = '×' + combo; el.classList.add('show'); }
+    else el.classList.remove('show');
+  }
+
+  /* ---------- 输入：拖动 / 键盘 ---------- */
+  function pointerToPaddleX(clientX){
+    var rect = canvas.getBoundingClientRect();
+    return clientX - rect.left - paddle.w/2;
+  }
+  function setPaddleX(x){ paddle.x = Math.min(Math.max(x,0), W - paddle.w); }
+
+  var dragging = false;
+  canvas.addEventListener('pointerdown', function(e){
+    dragging = true;
+    if(paused){ setPaused(false); return; }
+    setPaddleX(pointerToPaddleX(e.clientX));
+  });
+  canvas.addEventListener('pointermove', function(e){
+    if(!dragging || paused) return;
+    setPaddleX(pointerToPaddleX(e.clientX));
+  });
+  window.addEventListener('pointerup', function(){ dragging = false; });
+
+  var keyState = {};
+  window.addEventListener('keydown', function(e){
+    if(e.key==='ArrowLeft' || e.key==='ArrowRight') keyState[e.key]=true;
+  });
+  window.addEventListener('keyup', function(e){ keyState[e.key]=false; });
+  (function keyLoop(){
+    if(running && !paused){
+      if(keyState.ArrowLeft) setPaddleX(paddle.x - 6);
+      if(keyState.ArrowRight) setPaddleX(paddle.x + 6);
+    }
+    requestAnimationFrame(keyLoop);
+  })();
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden && running){ setPaused(true); }
+  });
+
+  /* ---------- 音效（Web Audio，轻量合成，无外部资源）---------- */
+  var audioCtx = null;
+  function ensureAudio(){
+    if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); }
+  }
+  function beep(freq,dur,type,vol){
+    if(!soundOn || !audioCtx) return;
+    try{
+      var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type; o.frequency.value = freq; g.gain.value = vol;
+      o.connect(g); g.connect(audioCtx.destination);
+      var now = audioCtx.currentTime;
+      g.gain.setValueAtTime(vol, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+      o.start(now); o.stop(now+dur);
+    }catch(e){}
+  }
+  function playCatchSound(combo){ beep(520 + Math.min(combo,10)*18, 0.12, 'sine', 0.1); }
+  function playMissSound(){ beep(160, 0.22, 'sine', 0.08); }
+  function playGameOverSound(){ beep(300,0.28,'triangle',0.09); setTimeout(function(){ beep(220,0.32,'triangle',0.09); },120); }
+  // 🎉 每 10 连击的专属小华彩，比普通接住音效更亮，跟震屏+大爆发配一起
+  function playMilestoneSound(){ beep(680,0.1,'sine',0.11); setTimeout(function(){ beep(880,0.14,'sine',0.11); },90); }
+
+  /* ══════════════════════════════════════════════════════════════
+     📊 统计面板
+     ══════════════════════════════════════════════════════════════ */
+  function renderStatsScreen(mode){
+    statsViewMode = mode;
+    document.querySelectorAll('#statsModeRow .mode-pick').forEach(function(b){
+      b.classList.toggle('sel', b.getAttribute('data-mode') === mode);
+    });
+    var s = stats[mode];
+    var isMario = (mode === 'mario');
+    $('statGridBtb').style.display = isMario ? 'none' : 'grid';
+    $('statGridMario').style.display = isMario ? 'grid' : 'none';
+    var mins = Math.round(s.totalPlaySeconds/60);
+
+    if(isMario){
+      $('mstGames').textContent = s.gamesPlayed;
+      $('mstHigh').textContent = s.highScore;
+      $('mstCoins').textContent = s.totalCoins;
+      $('mstStomps').textContent = s.totalStomps;
+      $('mstDeaths').textContent = s.totalDeaths;
+      $('mstProgress').textContent = s.bestProgress + '%';
+      $('mstWins').textContent = s.wins;
+      $('mstTime').textContent = mins + LANG[currentLang].minutes_suffix;
+    } else {
+      $('stGames').textContent = s.gamesPlayed;
+      $('stHigh').textContent = s.highScore;
+      $('stCaught').textContent = s.totalCaught;
+      $('stMissed').textContent = s.totalMissed;
+      var total = s.totalCaught + s.totalMissed;
+      $('stAcc').textContent = total ? Math.round(s.totalCaught/total*100)+'%' : '—';
+      $('stCombo').textContent = '×' + s.bestCombo;
+      $('stTime').textContent = mins + LANG[currentLang].minutes_suffix;
+    }
+    $('statsEmptyNote').style.display = s.gamesPlayed===0 ? 'block' : 'none';
+    drawHistoryChart(s);
+  }
+
+  function drawHistoryChart(s){
+    var c = $('historyCanvas');
+    var w = c.clientWidth || 280, h = 90;
+    var localDpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    c.width = w*localDpr; c.height = h*localDpr;
+    var hc = c.getContext('2d'); hc.setTransform(localDpr,0,0,localDpr,0,0);
+    hc.clearRect(0,0,w,h);
+    var data = s.history.slice(-10);
+    if(data.length===0){
+      hc.fillStyle = '#c9c0e0'; hc.font = '12px -apple-system,sans-serif'; hc.textAlign='center';
+      hc.fillText(LANG[currentLang].no_history, w/2, h/2);
+      return;
+    }
+    var max = Math.max.apply(null, data.map(function(d){return d.score;})) || 1;
+    var bw = Math.min(28, (w-16)/data.length - 8);
+    var gap = (w - bw*data.length) / (data.length+1);
+    data.forEach(function(d,i){
+      var bh = Math.max(4, (d.score/max) * (h-22));
+      var x = gap + i*(bw+gap);
+      var y = h - 16 - bh;
+      var g = hc.createLinearGradient(0,y,0,y+bh);
+      g.addColorStop(0,'#c47ab0'); g.addColorStop(1,'#7c5cbf');
+      hc.fillStyle = g;
+      roundRect(hc, x, y, bw, bh, 4); hc.fill();
+      hc.fillStyle = '#7a6ea3'; hc.font = '9px -apple-system,sans-serif'; hc.textAlign='center';
+      hc.fillText(String(d.score), x+bw/2, h-4);
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     🏆 排行榜屏渲染
+     ══════════════════════════════════════════════════════════════ */
+  var lbViewMode = currentMode;
+  var lbRequestSeq = 0; // 🩹 防止"切模式切太快"时旧请求慢一步回来把新数据覆盖掉
+  var lbLastList = null, lbLastMode = null; // 🩹 缓存最近一次拉到的榜单，分享按钮找"我的排名"时直接用这个，不用再发一次请求
+
+  function renderLeaderboard(mode){
+    lbViewMode = mode;
+    document.querySelectorAll('#lbModeRow .mode-pick').forEach(function(b){
+      b.classList.toggle('sel', b.getAttribute('data-mode') === mode);
+    });
+    $('nickInput').value = nickname;
+
+    var seq = ++lbRequestSeq;
+    var listEl = $('lbList');
+    listEl.innerHTML = '';
+    $('lbEmptyNote').style.display = 'none';
+    $('lbErrorNote').style.display = 'none';
+    $('lbLoadingNote').style.display = 'block';
+
+    lbFetchTop(mode, 50).then(function(list){
+      if(seq !== lbRequestSeq) return; // 结果过期了，不管它
+      $('lbLoadingNote').style.display = 'none';
+      if(list === null){ $('lbErrorNote').style.display = 'block'; return; }
+      lbLastList = list; lbLastMode = mode;
+      if(list.length === 0){ $('lbEmptyNote').style.display = 'block'; return; }
+      list.forEach(function(entry, i){
+        var row = document.createElement('div');
+        row.className = 'lb-row' + (entry.uid === clientUid ? ' me' : '');
+        var rankCls = i===0 ? 'top1' : (i===1 ? 'top2' : (i===2 ? 'top3' : ''));
+        var rankEl = document.createElement('div');
+        rankEl.className = 'lb-rank ' + rankCls;
+        rankEl.textContent = i===0 ? '🥇' : (i===1 ? '🥈' : (i===2 ? '🥉' : String(i+1)));
+        var nameEl = document.createElement('div');
+        nameEl.className = 'lb-name';
+        nameEl.textContent = entry.name; // 🩹 这是别人传上来的数据，只能用 textContent，绝不能 innerHTML
+        var scoreEl = document.createElement('div');
+        scoreEl.className = 'lb-score';
+        scoreEl.textContent = entry.score;
+        row.appendChild(rankEl); row.appendChild(nameEl); row.appendChild(scoreEl);
+        listEl.appendChild(row);
+      });
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     📤 分享成绩：只带昵称 + 分数 + 排名，不带 player_id/邮箱/设备信息这些。
+     排名是"顺手"用的——只从最近一次拉取过的榜单缓存里找，找不到就不显示排名，
+     绝不为了分享单独再发一次网络请求：navigator.share() 在部分浏览器（尤其
+     Safari）必须在用户手势的同一个调用栈里同步触发，中间插一个 await 网络请求
+     很容易导致分享权限判定为"不是用户主动触发"而失败，所以宁可牺牲排名的实时性。
+     ══════════════════════════════════════════════════════════════ */
+  function findCachedRank(mode){
+    if(lbLastMode !== mode || !lbLastList) return null;
+    var idx = -1;
+    for(var i=0;i<lbLastList.length;i++){ if(lbLastList[i].uid === clientUid){ idx = i; break; } }
+    return idx >= 0 ? idx + 1 : null;
+  }
+
+  function buildShareText(mode, scoreVal){
+    var t = LANG[currentLang];
+    var rank = findCachedRank(mode);
+    var lines = [ t.app_title + ' · Block the Ball', t.share_score_line(scoreVal) ];
+    if(rank) lines.push(t.share_rank_line(rank));
+    lines.push('');
+    lines.push(t.share_challenge_line(nickname || t.anon_player_name));
+    return lines.join('\n');
+  }
+
+  function shareScore(mode, scoreVal, btnEl){
+    var text = buildShareText(mode, scoreVal);
+    if(navigator.share){
+      navigator.share({ text:text }).catch(function(){ /* 用户取消分享，不用管 */ });
+      return;
+    }
+    var t = LANG[currentLang];
+    var restoreLabel = btnEl ? btnEl.textContent : null;
+    function flash(msg){
+      if(!btnEl) return;
+      btnEl.textContent = msg;
+      setTimeout(function(){ btnEl.textContent = restoreLabel; }, 1600);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ flash(t.share_copied); })
+        .catch(function(){ window.prompt(t.share_manual_copy, text); });
+    } else {
+      window.prompt(t.share_manual_copy, text);
+    }
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  document.querySelectorAll('#modeRow .mode-pick').forEach(function(b){
+    b.addEventListener('click', function(){
+      currentMode = b.getAttribute('data-mode'); saveMode(currentMode); renderMenu();
+    });
+  });
+  document.querySelectorAll('#statsModeRow .mode-pick').forEach(function(b){
+    b.addEventListener('click', function(){ renderStatsScreen(b.getAttribute('data-mode')); });
+  });
+  document.querySelectorAll('#lbModeRow .mode-pick').forEach(function(b){
+    b.addEventListener('click', function(){ renderLeaderboard(b.getAttribute('data-mode')); });
+  });
+
+  $('btnStart').addEventListener('click', function(){ startGame(); });
+  $('btnGoStats').addEventListener('click', function(){ renderStatsScreen(currentMode); showScreen('stats'); });
+  $('btnStatsBack').addEventListener('click', function(){ renderMenu(); showScreen('menu'); });
+  $('btnGoLeaderboard').addEventListener('click', function(){ renderLeaderboard(currentMode); showScreen('leaderboard'); });
+  $('btnLbBack').addEventListener('click', function(){ renderMenu(); showScreen('menu'); });
+  $('btnMenuHome').addEventListener('click', function(){ renderHub(); showScreen('hub'); });
+  $('cardBlockBall').addEventListener('click', function(){ renderMenu(); showScreen('menu'); });
+  $('cardMario').addEventListener('click', function(){ showScreen('mario'); });
+  $('btnShareScore').addEventListener('click', function(){
+    shareScore(lbViewMode, stats[lbViewMode].highScore, $('btnShareScore'));
+  });
+  $('btnRetry').addEventListener('click', function(){
+    if(lastSession && lastSession.mode === 'mario'){
+      if(window.LunaGames && window.LunaGames.marioRetry) window.LunaGames.marioRetry();
+    } else {
+      startGame();
+    }
+  });
+  $('btnGoShare').addEventListener('click', function(){
+    if(lastSession) shareScore(lastSession.mode, lastSession.score, $('btnGoShare'));
+  });
+  $('btnBackHome').addEventListener('click', function(){
+    if(lastSession && lastSession.mode === 'mario'){
+      renderHub(); showScreen('hub');
+    } else {
+      renderMenu(); showScreen('menu');
+    }
+  });
+  $('btnQuit').addEventListener('click', function(){ if(running) endGame(); });
+  $('btnPause').addEventListener('click', function(){ if(running) setPaused(!paused); });
+
+  // 🔒 昵称内容校验：连续15位以上数字＝很可能是身份证号（15/18位格式都覆盖到），直接拒绝保存。
+  // "是不是本人真名"这种没法用代码判断，靠旁边常驻的提示文字+ 这里的同意勾选来兜底。
+  function validateNickname(v, consentEl){
+    if(!v) return 'nick_err_empty';
+    if(/\d{15,}/.test(v)) return 'nick_err_idnum';
+    if(consentEl && !consentEl.checked) return 'nick_err_consent';
+    return null;
+  }
+  function saveNickFrom(inputEl, consentEl, errEl){
+    var v = inputEl.value.trim();
+    var errKey = validateNickname(v, consentEl);
+    if(errKey){
+      if(errEl){ errEl.textContent = LANG[currentLang][errKey]; errEl.style.display = 'block'; }
+      return false;
+    }
+    if(errEl) errEl.style.display = 'none';
+    nickname = v.slice(0,14);
+    saveNickname(nickname);
+    return true;
+  }
+  $('btnSaveNick').addEventListener('click', function(){
+    if(saveNickFrom($('nickInput'), $('nickConsent'), $('nickError'))){
+      renderLeaderboard(lbViewMode); // 立刻刷新一下，万一之前已经有分数在等着同步
+    }
+  });
+  $('btnGoSaveNick').addEventListener('click', function(){
+    if(saveNickFrom($('goNickInput'), $('goNickConsent'), $('goNickError')) && lastSession){
+      $('goLbPrompt').style.display = 'none';
+      maybeSubmitScore(lastSession);
+    }
+  });
+  $('btnSound').addEventListener('click', function(){
+    soundOn = !soundOn; saveSound(soundOn); $('btnSound').textContent = soundOn ? '🔈' : '🔇';
+  });
+  $('btnClearStats').addEventListener('click', function(){
+    var label = modeName(statsViewMode);
+    if(confirm(LANG[currentLang].confirm_clear(label))){
+      stats[statsViewMode] = defaultModeStats();
+      saveStats(stats);
+      renderStatsScreen(statsViewMode);
+    }
+  });
+  window.addEventListener('resize', function(){ if(screens.game.classList.contains('active')) resizeCanvas(); });
+  // 🩹 双保险:有些浏览器/webview 在 display:none → flex 切换后,resize 事件不一定会触发,
+  // 用 ResizeObserver 直接盯着画布本身的真实盒子尺寸变化,永远拿到准确的宽高。
+  if(window.ResizeObserver){
+    new ResizeObserver(function(){ if(screens.game.classList.contains('active')) resizeCanvas(); }).observe(canvas);
+  }
+  bindLangBar('menuLangBar');
+  bindLangBar('statsLangBar');
+  bindLangBar('lbLangBar');
+  bindLangBar('hubLangBar');
+
+  /* ══════════════════════════════════════════════════════════════
+     🌉 暴露给马里奥模块（独立的另一个 IIFE）用的共享接口——
+     语言字典/切屏/统计存取/排行榜/音效全部复用这一套，不用重新做一遍。
+     ══════════════════════════════════════════════════════════════ */
+  window.LunaGames = {
+    LANG: LANG,
+    lang: function(){ return currentLang; },
+    onLangChange: function(fn){ langChangeListeners.push(fn); },
+    showScreen: showScreen,
+    showGameOverScreen: showGameOverScreen, // 马里奥结束一局时调用这个，自动记账+渲染+切屏+顺手同步排行榜
+    renderHub: renderHub, // 马里奥自己的🏠按钮回首页时也顺手刷新一下首页卡片上的最高分预览
+    marioRetry: null,   // 马里奥模块把自己的"重新开始"挂这里，结算屏的"再来一局"按钮才知道该调用谁
+    stats: stats,
+    saveStats: function(){ saveStats(stats); },
+    lbSubmitScore: lbSubmitScore,
+    nickname: function(){ return nickname; },
+    ensureAudio: ensureAudio,
+    beep: beep,
+    soundOn: function(){ return soundOn; },
+    toggleSound: function(){
+      soundOn = !soundOn; saveSound(soundOn);
+      $('btnSound').textContent = soundOn ? '🔈' : '🔇';
+      return soundOn;
+    }
+  };
+
+  /* ---------- 初始化 ---------- */
+  applyLang();
+  renderHub();
+  showScreen('hub');
+})();
+</script>
+
+<script>
+(function(){
+  'use strict';
+  var LG = window.LunaGames;
+  function t(){ return LG.LANG[LG.lang()]; } // 取当前语言的翻译字典，马里奥这块的动态文案都靠这个
+
+  // ---------- 禁止网页式的复制/选中/长按菜单等交互（页面级，两个游戏共用这层防护）----------
+  ['contextmenu','selectstart','copy','cut','dragstart'].forEach(function(evt){
+    document.addEventListener(evt, function(e){ e.preventDefault(); });
+  });
+  document.addEventListener('gesturestart', function(e){ e.preventDefault(); }); // 禁止 iOS 双指缩放手势
+
+  // ---------- 音效：不再自己搞一套，直接借用月光那边已经做好的 Web Audio 合成器 ----------
+  var sfx = {
+    jump: function(){ LG.beep(600, 0.12, 'square', 0.15); },
+    doubleJump: function(){ LG.beep(760, 0.1, 'square', 0.13); }, // 二段跳音调更高一点，跟第一跳区分开
+    coin: function(){ LG.beep(1200,0.08,'square',0.15); setTimeout(function(){ LG.beep(1600,0.08,'square',0.12); },60); },
+    stomp: function(){ LG.beep(180,0.1,'square',0.2); },
+    hurt: function(){ LG.beep(140,0.25,'sawtooth',0.2); },
+    click: function(){ LG.beep(500,0.05,'square',0.1); },
+    brickHit: function(){ LG.beep(260,0.08,'square',0.16); },   // 撞石台但还没撞完
+    brickBreak: function(){ LG.beep(220,0.1,'square',0.18); setTimeout(function(){ LG.beep(150,0.12,'square',0.14); },60); }, // 最后一截碎掉
+    powerup: function(){ LG.beep(700,0.1,'square',0.15); setTimeout(function(){ LG.beep(1000,0.12,'square',0.14); },70); }, // 吃到任意一种药丸
+    attack: function(){ LG.beep(500,0.06,'sawtooth',0.14); setTimeout(function(){ LG.beep(850,0.09,'sawtooth',0.13); },50); }, // Lumi 放技能
+    shoot: function(){ LG.beep(320,0.08,'sawtooth',0.1); }, // 妖怪放技能
+    finish: function(){ [660,880,1046,1318].forEach(function(f,i){ setTimeout(function(){ LG.beep(f,0.15,'square',0.15); }, i*120); }); },
+    gameover: function(){ [440,392,349,294].forEach(function(f,i){ setTimeout(function(){ LG.beep(f,0.25,'sawtooth',0.2); }, i*150); }); }
+  };
+
+  // 🩹 通关继续时的短暂文字提示，不用点掉，淡入然后自动淡出
+  var clearToastTimer = null;
+  function showClearToast(){
+    var el = document.getElementById('clearToast');
+    el.textContent = t().mario_clear_toast(runClears);
+    el.classList.add('show');
+    if(clearToastTimer) clearTimeout(clearToastTimer);
+    clearToastTimer = setTimeout(function(){ el.classList.remove('show'); }, 1400);
+  }
+
+  // ---------- 屏幕引用（尺寸计算已经交给 CSS 的 aspect-ratio 原生处理，不用 JS 算像素了）----------
+  var screenMario = document.getElementById('screen-mario');
+  var attackBtnEl = document.getElementById('zoneAttack').querySelector('.control-btn-attack');
+  var touchLayerEl = document.getElementById('touchLayer');
+  // 🩹 手把只在真正玩的时候（gameState==='playing'）显示——开始/暂停/结算这些菜单画面用不上移动/跳跃，
+  // 显示出来反而多余。用 visibility 而不是 display，是为了让它一直占着那 130px 的位置，
+  // 不然一显一隐游戏框会跟着抽动缩放，视觉上很跳
+  function setTouchLayerVisible(v){ touchLayerEl.style.visibility = v ? 'visible' : 'hidden'; }
+
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+
+  // 🎨 开局背景选色——引用 index 主题色系里的几款渐变，加上原本的夜幕紫一共 5 款。
+  // 背景其实是画在 canvas 这个 DOM 元素自己的 CSS background 上（不是 ctx 画出来的），
+  // 所以切换背景只需要改 canvas.style.background，不用碰任何绘制逻辑。
+  var BG_THEMES = {
+    default:   { gradient:'linear-gradient(#241a3d 0%, #4a3172 55%, #7c5cbf 100%)' },
+    aurora:    { gradient:'linear-gradient(#1f7a6e 0%, #6a3aa8 45%, #c968b8 100%)' },
+    moonlotus: { gradient:'linear-gradient(#12507a 0%, #1c6f94 55%, #2f93ab 100%)' },
+    duskmauve: { gradient:'linear-gradient(#4a2f42 0%, #8c5f7d 100%)' },
+    dream:     { gradient:'linear-gradient(#3a2a52 0%, #b49cdb 100%)' }
+  };
+  function setBgTheme(id){
+    var theme = BG_THEMES[id] || BG_THEMES.default;
+    canvas.style.background = theme.gradient;
+    try{ localStorage.setItem('luna_mario_bg', id); }catch(e){}
+  }
+  function markSelectedSwatch(id){
+    // 🩹 必须限定在 #screen-mario 范围内查找——现在接住月光的菜单页也有同名 .bg-swatch 色块，
+    // 不加限定的话两边的选色器会互相干扰（点这边的颜色，那边的高亮状态也会被误改）
+    document.querySelectorAll('#screen-mario .bg-swatch').forEach(function(sw){
+      sw.classList.toggle('selected', sw.getAttribute('data-bg')===id);
+    });
+  }
+  var currentBgId = 'default';
+  try{ currentBgId = localStorage.getItem('luna_mario_bg') || 'default'; }catch(e){}
+  setBgTheme(currentBgId); // 一进来就先把上次选过的（或默认）背景应用上，不用等选完才有背景
+  document.querySelectorAll('#screen-mario .bg-swatch').forEach(function(sw){
+    sw.addEventListener('click', function(){
+      // 🩹 之前点一下就直接收起选择区，导致想多比较几个颜色都做不到（点了A就看不到别的选项了）。
+      // 改成点哪个就实时预览哪个，选择区一直留着，可以随便点着比较，直到按"确定"才真正确定下来。
+      currentBgId = sw.getAttribute('data-bg');
+      setBgTheme(currentBgId);
+      markSelectedSwatch(currentBgId);
+    });
+  });
+
+  var GRAVITY = 0.55;
+  var JUMP_V = -10.5;                             // 第一跳的起跳速度，不变
+  var DOUBLE_JUMP_HEIGHT_RATIO = 0.65;             // 二段跳高度占第一跳的比例——从 0.5 调到 0.65，跳高一些
+  var DOUBLE_JUMP_V = JUMP_V * Math.sqrt(DOUBLE_JUMP_HEIGHT_RATIO); // 跳跃高度 h=v²/(2g) 是平方关系，
+                                                    // 要让 h2 是 h1 的 0.65 倍，速度得乘 √0.65，不是直接乘 0.65
+  var GROUND_Y = H - 40;
+
+  // 🌙 Lumi 精灵原身配色——直接照抄 lumi_1_.html 里角色本体用的那套 FUR 调色板，
+  // 保证跟她在陪伴主页里的样子是同一个"人"，不是另画了一个新造型。
+  // 陪伴页那边的角色系统有服装/换装/周期心情/动画状态好几千行，这里只画她"素颜无服装"站姿的
+  // 简化版本，够在这么小的一块精灵图里认出是她就行，不是要 1:1 搬那整套系统过来。
+  var LUMI_FUR = {
+    main:'#fdf6f3', shade:'#f1ddd9', inner:'#f6c3cc', blush:'rgba(243,150,178,.55)',
+    eye:'#5b4636', nose:'#d98aa6', crescent:'#f7d98a'
+  };
+  var LUMI_SCALE = 1.3;        // 视觉放大倍数，碰撞箱不受影响
+  var LUMI_FOOT_LOCAL_Y = 17;  // drawLumiSprite 本地坐标系里脚大概的 y 位置，放大时用来当锚点
+  function drawLumiSprite(facing){
+    // 🩹 之前画的是正对屏幕的对称脸（两只眼睛都朝前），左右翻转等于翻了个寂寞，
+    // 完全看不出朝向变化。改成侧脸：口鼻往面朝方向凸出来、只露面朝那一侧的眼睛，
+    // 参考 lumi_1_.html 里 drawSide() 的思路——下面坐标都按"面朝右"设计，
+    // ctx.scale(facing,1) 那一下翻转会自动把整张脸镜像过去，朝左的时候口鼻/眼睛就转到左边了。
+    ctx.save();
+    ctx.scale(facing, 1);
+
+    // 尾巴（背面那一侧，露一点出来）
+    ctx.fillStyle = LUMI_FUR.main;
+    ctx.beginPath();
+    ctx.moveTo(-8,7); ctx.quadraticCurveTo(-16,3,-15,-5);
+    ctx.quadraticCurveTo(-14,-9,-11,-7); ctx.quadraticCurveTo(-12,-1,-7,5);
+    ctx.closePath(); ctx.fill();
+
+    // 身体 + 小脚
+    ctx.fillStyle = LUMI_FUR.main;
+    ctx.beginPath(); ctx.ellipse(1,11,9,7,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-4,17,3.4,2.2,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(6,17,3.4,2.2,0,0,Math.PI*2); ctx.fill();
+
+    // 耳朵（侧面：后耳偏后、前耳偏向脸这一侧，不再是左右对称的）
+    ctx.fillStyle = LUMI_FUR.main;
+    ctx.beginPath(); // 后耳
+    ctx.moveTo(-7,-15); ctx.quadraticCurveTo(-14,-26,-9,-13); ctx.quadraticCurveTo(-10,-10,-6,-11);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath(); // 前耳
+    ctx.moveTo(3,-16); ctx.quadraticCurveTo(9,-26,7,-14); ctx.quadraticCurveTo(8,-11,3,-12);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = LUMI_FUR.inner;
+    ctx.beginPath(); ctx.ellipse(-8,-17,2.2,4.1,-0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(6,-18,1.9,3.6,0.25,0,Math.PI*2); ctx.fill();
+
+    // 头（略偏向面朝方向）+ 口鼻凸起
+    ctx.fillStyle = LUMI_FUR.main;
+    ctx.beginPath(); ctx.ellipse(2,-6,10,10,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(10,-3,4.4,3.6,0,0,Math.PI*2); ctx.fill();
+
+    // 呆毛
+    ctx.fillStyle = LUMI_FUR.main;
+    ctx.beginPath();
+    ctx.arc(2,-18,2.6,Math.PI*0.15,Math.PI*1.25);
+    ctx.arc(2.8,-19,2,Math.PI*1.25,Math.PI*0.15,true);
+    ctx.closePath(); ctx.fill();
+
+    // 腮红（面朝这一侧露一点）
+    ctx.fillStyle = LUMI_FUR.blush;
+    ctx.beginPath(); ctx.ellipse(5,-2,2,1.5,0,0,Math.PI*2); ctx.fill();
+
+    // 额头月牙——她的招牌标志
+    ctx.fillStyle = LUMI_FUR.crescent;
+    ctx.save(); ctx.translate(2,-11);
+    ctx.beginPath();
+    ctx.arc(0,0,2.4,Math.PI*0.25,Math.PI*1.05);
+    ctx.arc(0.9,-0.3,1.8,Math.PI*1.05,Math.PI*0.25,true);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // 侧脸只露面朝方向那一只眼睛 + 鼻头
+    ctx.fillStyle = LUMI_FUR.eye;
+    ctx.beginPath(); ctx.arc(6,-6,1.7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = LUMI_FUR.nose;
+    ctx.beginPath(); ctx.ellipse(12,-3,1.3,1,0,0,Math.PI*2); ctx.fill();
+
+    // 👕 小马甲：盖住身体上半部分，留出小脚和尾巴不挡住
+    ctx.fillStyle = '#9c7fe0';
+    ctx.beginPath(); ctx.ellipse(1, 9.3, 9.2, 6.2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(74,49,114,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(-7,14.8); ctx.lineTo(9,14.8); ctx.stroke(); // 下摆罗纹线
+    ctx.fillStyle = '#7c5cbf';
+    ctx.beginPath();
+    ctx.moveTo(-3,4.5); ctx.quadraticCurveTo(1,8.5,6,4.5); ctx.quadraticCurveTo(1,6.8,-3,4.5);
+    ctx.closePath(); ctx.fill(); // 领口
+    ctx.fillStyle = '#f7d98a';
+    ctx.beginPath(); ctx.arc(1,9.5,1,0,Math.PI*2); ctx.fill(); // 小纽扣
+
+    ctx.restore();
+  }
+  var TOTAL_SEGMENTS = 30; // 🩹 从 20 改成 30 关，通关全部 30 关才是真正打完游戏（不再无限续关）
+
+  // ---------- 伪随机数生成器（保证布局固定可复现） ----------
+  function mulberry32(seed){
+    return function(){
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      var tt = Math.imul(seed ^ seed>>>15, 1 | seed);
+      tt = tt + Math.imul(tt ^ tt>>>7, 61 | tt) ^ tt;
+      return ((tt ^ tt>>>14) >>> 0) / 4294967296;
+    };
+  }
+
+  function clampRangeFromPits(minX, maxX, pits){
+    for(var i=0;i<pits.length;i++){
+      var p = pits[i];
+      if(maxX > p.x && minX < p.x) maxX = Math.max(minX+30, p.x - 25);
+      if(minX < p.x+p.w && maxX > p.x+p.w) minX = Math.min(maxX-30, p.x+p.w + 25);
+    }
+    if(maxX <= minX) maxX = minX + 40;
+    return [minX, maxX];
+  }
+
+  // ---------- 单段关卡生成：难度随段号递增 ----------
+  function generateSegment(n, seedOffset){
+    var rand = mulberry32(1000 + n*37 + (seedOffset||0));
+    var width = 820 + n*95;
+    var groundY = GROUND_Y;
+    var platforms = [{x:0, y:groundY, w:width, h:40}];
+    var pits = [];
+    var coins = [];
+    var enemies = [];
+    var movingPlatforms = [];
+
+    // 🩹 坑的数量在"按第几段递增"的基准上加一点随机浮动（±1个），
+    // 不同赛道玩起来才会真的不一样，而不是只有像素位置抖一抖、数量却死板一致
+    // 🩹 上限从 8 提到 14——原来的 8 在第 18 段左右就封顶了，后面十几段坑数量完全不再增加，
+    // 这次关卡总数从 20 加到 30，上限太低会导致后半程难度曲线整个拍平，改成刚好卡在第 30 段才封顶
+    var pitCountBase = Math.max(0, Math.floor((n-2)/2));
+    var pitCount = Math.min(14, Math.max(0, pitCountBase + Math.floor(rand()*3) - 1));
+    var seg = width/(pitCount+1);
+    for(var i=1;i<=pitCount;i++){
+      var centerX = seg*i;
+      var wide = n>=14 && (i%2===0);
+      var pw = wide ? 150 : 65;
+      var px = Math.round(centerX - pw/2);
+      pits.push({x:px, w:pw});
+      if(wide){
+        var y = groundY - 40 - Math.floor(rand()*20);
+        movingPlatforms.push({x0:px-10, x1:px+pw-90, y:y, w:90, h:16,
+          period: 130+Math.floor(rand()*70), curX:px-10, prevX:px-10});
+      }
+    }
+
+    // 悬浮平台数量也加一点浮动，同理
+    var floatCount = Math.max(2, 3+Math.floor(n*0.9) + Math.floor(rand()*3) - 1);
+    for(var j=0;j<floatCount;j++){
+      var x = Math.round(200 + j*((width-420)/floatCount) + rand()*40);
+      var tier = Math.floor(rand()*3);
+      var fy = groundY - (85+tier*50);
+      var fw = 65+Math.floor(rand()*45);
+      // 🩹 真实 bug：悬浮平台之前完全没有避坑逻辑（敌人/石台/道具都有，唯独它没有）。
+      // 第0档高度(离地85px)比单跳最高点(约100px)还矮，如果平台刚好摆在坑正上方，
+      // 玩家起跳过坑时头会撞上平台底部被顶回来，跳跃弧线直接被打断，明明够得着的坑
+      // 变成跳不过去——这正是"跳不到台阶、下面也跳不了火坑"的真正原因。
+      // 🩹 第一版修复只检查了平台左边缘一个点，没考虑平台自己的宽度（右边缘仍可能伸进
+      // 坑的范围），而且只处理一次——如果推开一个坑后刚好撞上下一个坑（坑比较密的段落
+      // 很容易发生）就没再管了。改成用平台完整宽度检查、且反复处理直到真的完全避开。
+      // 🩹 二次排查发现循环上限(8次)太低——坑数量上限已经提到 14，密集段落里逐个坑
+      // 往后推可能要推 10 次以上才能全部躲开，8 次撞到上限就放弃了，改成 20 次，
+      // 稳稳超过最多 14 个坑的极端情况。
+      var guard = 0;
+      while(guard++ < 20){
+        var blockingPit = pits.filter(function(p){ return x < p.x+p.w+50 && x+fw > p.x-50; })[0];
+        if(!blockingPit) break;
+        x = blockingPit.x + blockingPit.w + 60;
+      }
+      x = Math.max(150, Math.min(width-150, x));
+      platforms.push({x:x, y:fy, w:fw, h:16});
+      coins.push({x:x+fw/2, y:fy-20});
+    }
+
+    // 🧱 可撞碎的石台：从第 3 段开始出现，每段 1~2 个，一块石台分 3 截、
+    // 从下方顶一下碎一截，顶三次整块消失。位置尽量避开坑，跳起来能碰到。
+    var breakables = [];
+    if(n >= 3){
+      var brickCount = 1 + Math.floor(rand()*2);
+      var SEG_W = 24, SEG_H = 16;
+      for(var bi=0; bi<brickCount; bi++){
+        var bx = Math.round(300 + bi*((width-500)/Math.max(1,brickCount)) + rand()*60);
+        var inPitB = pits.some(function(p){ return bx>p.x-50 && bx<p.x+p.w+50; });
+        if(inPitB) bx += 120;
+        bx = Math.max(150, Math.min(width-150, bx));
+        var by = groundY - (110 + Math.floor(rand()*2)*40);
+        for(var si=0; si<3; si++){
+          breakables.push({x:bx+si*SEG_W, y:by, w:SEG_W, h:SEG_H});
+        }
+      }
+    }
+
+    // 🌙 道具药丸：放大 / 无敌 / 缩小 / 能量，四选一随机出现，不是每段都有，
+    // 从第 2 段开始起（留给第一段一个没有道具干扰的纯新手引导）
+    var powerups = [];
+    if(n >= 2 && rand() < 0.35){
+      var PU_TYPES = ['grow','star','shrink','energy'];
+      var ptype = PU_TYPES[Math.floor(rand()*PU_TYPES.length)];
+      var pux = Math.round(250 + rand()*(width-500));
+      var inPitP = pits.some(function(p){ return pux>p.x-40 && pux<p.x+p.w+40; });
+      if(inPitP) pux += 100;
+      pux = Math.max(150, Math.min(width-150, pux));
+      var puy = groundY - (60 + Math.floor(rand()*3)*45);
+      powerups.push({x:pux, y:puy, type:ptype});
+    }
+
+    // 🔥 火坑：从第 5 段开始，把部分普通坑升级成一碰就立刻扣命的火坑
+    // （普通坑要掉出屏幕外才算死，火坑不用掉那么远，一沾火就算，更明确的"危险区"信号）
+    var firePits = [];
+    if(n >= 5){
+      pits.forEach(function(p){
+        if(rand() < 0.4){ firePits.push({x:p.x, y:groundY-14, w:p.w, h:14}); }
+      });
+    }
+
+    // 🪜 移动天梯：从第 4 段开始偶尔出现一条上下移动的平台，帮忙跨越较大的高低差，
+    // 复用跟左右移动平台同一套 movingPlatforms 数组，加个 vertical 标记区分
+    if(n >= 4 && rand() < 0.3){
+      var vx = Math.round(300 + rand()*(width-600));
+      var inPitV = pits.some(function(p){ return vx>p.x-50 && vx<p.x+p.w+50; });
+      if(inPitV) vx += 130;
+      vx = Math.max(150, Math.min(width-150, vx));
+      var vTop = groundY - (160 + Math.floor(rand()*60)), vBottom = groundY - 30;
+      movingPlatforms.push({x:vx, y0:vTop, y1:vBottom, w:70, h:16,
+        period:150+Math.floor(rand()*60), curY:vBottom, prevY:vBottom, vertical:true});
+    }
+
+    for(var k=0;k<Math.floor(width/250);k++){
+      var cx = 140+k*250+Math.floor(rand()*40);
+      var inPit0 = pits.some(function(p){ return cx>p.x-15 && cx<p.x+p.w+15; });
+      if(!inPit0) coins.push({x:cx, y:groundY-65});
+    }
+
+    // 🩹 敌人数量/速度同样在"按第几段递增"的基准上加浮动——大方向还是越往后段号越大、
+    // 敌人越多越快，只是同一段号在不同赛道之间不再是死板的同一个数字
+    // ⚔️ 参考真马里奥的关卡密度：原来的密度太稀（早期一路走 500~900px 才见一只），
+    // 提高基准数量 + 加一点"成对出现"的聚集感，而不是每只都孤零零地隔很远站一个。
+    // 🩹 上限从 16 提到 28——原来第 17~18 段左右就封顶了，后面十几段敌人数量完全不再增加，
+    // 这次关卡总数从 20 加到 30，上限太低会导致后半程难度曲线整个拍平，改成接近第 30 段才封顶
+    var enemyCountBase = 2 + Math.floor(n/1.1);
+    var enemyCount = Math.min(28, Math.max(2, enemyCountBase + Math.floor(rand()*3) - 1));
+    var enemySpeed = Math.max(0.6, 1.0 + n*0.07 + (rand()-0.5)*0.3);
+    for(var m=0;m<enemyCount;m++){
+      var baseX = Math.round(280 + m*((width-480)/Math.max(1,enemyCount)) + rand()*60);
+      var inPit = pits.some(function(p){ return baseX>p.x-40 && baseX<p.x+p.w+40; });
+      if(inPit) baseX += 110;
+      baseX = Math.max(200, Math.min(width-100, baseX));
+
+      // ⚔️ 敌人种类：普通巡逻怪 / 带刺不能踩的刺怪（第3段起）/ 上下浮动的飞行怪（第6段起）/
+      // 会放技能的射手怪（第8段起，站定不动，看到玩家靠近会朝你放一颗子弹），
+      // 参考真马里奥"不是所有怪都能一脚踩死、有些还会反击"的设计
+      var etype = 'walker';
+      if(n>=8 && rand()<0.16) etype = 'shooter';
+      else if(n>=6 && rand()<0.22) etype = 'flyer';
+      else if(n>=3 && rand()<0.28) etype = 'spiky';
+
+      if(etype === 'flyer'){
+        var bobBase = groundY - (90 + Math.floor(rand()*70));
+        enemies.push({x:baseX, y:bobBase, w:24, h:22, dir: rand()>0.5?1:-1,
+          minX:Math.max(60,baseX-90), maxX:Math.min(width-60,baseX+90), speed:enemySpeed*0.8,
+          etype:'flyer', bobBase:bobBase, bobAmp:26+Math.floor(rand()*22), bobSpeed:0.025+rand()*0.02, bobPhase:rand()*Math.PI*2});
+      } else if(etype === 'shooter'){
+        enemies.push({x:baseX, y:groundY-26, w:26, h:26, dir:1, minX:baseX, maxX:baseX, speed:0,
+          etype:'shooter', lastShotFrame:-999, shootCooldown:130+Math.floor(rand()*50)});
+      } else {
+        var range = 70+Math.floor(rand()*70);
+        var minX = Math.max(60, baseX-range);
+        var maxX = Math.min(width-60, baseX+range);
+        var clamped = clampRangeFromPits(minX, maxX, pits);
+        minX = clamped[0]; maxX = clamped[1];
+
+        enemies.push({x:baseX, y:groundY-24, w:26, h:24, dir: rand()>0.5?1:-1, minX:minX, maxX:maxX, speed:enemySpeed, etype:etype});
+
+        // 成对出现：有点几率在旁边再放一只普通怪，制造"一小群"的压迫感，不再总是形单影只
+        if(etype==='walker' && rand()<0.3 && m<enemyCount-1){
+          var buddyX = Math.max(60, Math.min(width-60, baseX + (rand()<0.5?-1:1)*(34+Math.floor(rand()*16))));
+          var bMinX = Math.max(60, buddyX-range), bMaxX = Math.min(width-60, buddyX+range);
+          var bClamped = clampRangeFromPits(bMinX, bMaxX, pits);
+          enemies.push({x:buddyX, y:groundY-24, w:26, h:24, dir: rand()>0.5?1:-1,
+            minX:bClamped[0], maxX:bClamped[1], speed:enemySpeed, etype:'walker'});
+        }
+      }
+    }
+
+    return {width:width, platforms:platforms, pits:pits, coins:coins, enemies:enemies, movingPlatforms:movingPlatforms,
+      breakables:breakables, powerups:powerups, firePits:firePits};
+  }
+
+  // ---------- 拼接 30 段为一条连续的超长赛道 ----------
+  // seedOffset 不传就是最初那条固定赛道
+  function buildWorld(seedOffset){
+    var offset = 0;
+    var world = {width:0, platforms:[], pits:[], coins:[], enemies:[], movingPlatforms:[], breakables:[], powerups:[], firePits:[], checkpoints:[], flagX:0};
+    for(var n=1;n<=TOTAL_SEGMENTS;n++){
+      var s = generateSegment(n, seedOffset);
+      world.checkpoints.push(offset);
+      s.platforms.forEach(function(p){ world.platforms.push({x:p.x+offset, y:p.y, w:p.w, h:p.h}); });
+      s.pits.forEach(function(p){ world.pits.push({x:p.x+offset, w:p.w}); });
+      s.coins.forEach(function(c){ world.coins.push({x:c.x+offset, y:c.y}); });
+      s.enemies.forEach(function(e){ world.enemies.push({x:e.x+offset, y:e.y, w:e.w, h:e.h, dir:e.dir,
+        minX:e.minX+offset, maxX:e.maxX+offset, speed:e.speed, etype:e.etype,
+        bobBase:e.bobBase, bobAmp:e.bobAmp, bobSpeed:e.bobSpeed, bobPhase:e.bobPhase, shootCooldown:e.shootCooldown}); });
+      s.movingPlatforms.forEach(function(mp){
+        if(mp.vertical){
+          world.movingPlatforms.push({x:mp.x+offset, y0:mp.y0, y1:mp.y1, w:mp.w, h:mp.h, period:mp.period, vertical:true});
+        } else {
+          world.movingPlatforms.push({x0:mp.x0+offset, x1:mp.x1+offset, y:mp.y, w:mp.w, h:mp.h, period:mp.period});
+        }
+      });
+      s.breakables.forEach(function(b){ world.breakables.push({x:b.x+offset, y:b.y, w:b.w, h:b.h}); });
+      s.powerups.forEach(function(p){ world.powerups.push({x:p.x+offset, y:p.y, type:p.type}); });
+      s.firePits.forEach(function(fp){ world.firePits.push({x:fp.x+offset, y:fp.y, w:fp.w, h:fp.h}); });
+      offset += s.width;
+    }
+    world.width = offset;
+    world.flagX = offset - 70;
+    return world;
+  }
+  // 🩹 不再在脚本一加载就固定生成一次——改成每次开局时重新生成
+  var WORLD;
+  var runSeedBase = 0;  // 🩹 这一局的随机基准种子——每次 startRun() 都随机换一个基准，不再固定用 0
+
+  // 从 WORLD 数据构造一份可变的 level 状态（金币能不能拿、敌人死没死、石台碎没碎这些运行时状态）
+  function levelFromWorld(w){
+    return {
+      width: w.width,
+      platforms: w.platforms.map(function(p){ return {x:p.x,y:p.y,w:p.w,h:p.h}; }),
+      pits: w.pits.map(function(p){ return {x:p.x,w:p.w}; }),
+      coins: w.coins.map(function(c){ return {x:c.x,y:c.y,taken:false}; }),
+      enemies: w.enemies.map(function(e){ return {x:e.x,y:e.y,w:e.w,h:e.h,dir:e.dir,minX:e.minX,maxX:e.maxX,speed:e.speed,alive:true,
+        etype:e.etype||'walker', bobBase:e.bobBase, bobAmp:e.bobAmp, bobSpeed:e.bobSpeed, bobPhase:e.bobPhase,
+        lastShotFrame:-999, shootCooldown:e.shootCooldown}; }),
+      enemyProjectiles: [], // ⚔️ 射手怪打出来的子弹，运行时动态增减，不属于 WORLD 预生成的数据
+      playerBoxes: [], // 📦 Lumi 扔出去的箱子，同理是运行时数据
+      movingPlatforms: w.movingPlatforms.map(function(m){
+        if(m.vertical) return {x:m.x,y0:m.y0,y1:m.y1,w:m.w,h:m.h,period:m.period,curY:m.y0,prevY:m.y0,vertical:true};
+        return {x0:m.x0,x1:m.x1,y:m.y,w:m.w,h:m.h,period:m.period,curX:m.x0,prevX:m.x0};
+      }),
+      breakables: w.breakables.map(function(b){ return {x:b.x,y:b.y,w:b.w,h:b.h,alive:true}; }),
+      powerups: w.powerups.map(function(p){ return {x:p.x,y:p.y,type:p.type,taken:false}; }),
+      firePits: w.firePits.map(function(fp){ return {x:fp.x,y:fp.y,w:fp.w,h:fp.h}; }),
+      checkpoints: w.checkpoints.slice(),
+      flagX: w.flagX
+    };
+  }
+
+  // ---------- 游戏状态 ----------
+  var player, camX, score, lives, gameState, keys, frameCount, level;
+  var runCoins = 0, runStomps = 0, runClears = 0; // 🩹 本局的金币/踩死数/通关次数，跟 score 分开记，方便结算屏单独显示
+
+  function startRun(){
+    LG.ensureAudio();
+    resetKeys(); // 🩹 每次开局前先把按键/触控状态清一次，不会带着上一局或菜单阶段的残留状态开始
+    runSeedBase = Math.floor(Math.random()*1000000); // 🩹 每次开局换一个随机基准种子，不再固定用 0
+    WORLD = buildWorld(runSeedBase);
+    level = levelFromWorld(WORLD);
+    frameCount = 0;
+    player = {
+      x:40, y:GROUND_Y-40, w:28, h:36, vx:0, vy:0, onGround:false, facing:1, ridingMP:null, usedDoubleJump:false,
+      big:false, shrinkT:0, invincibleT:0, energyT:0, hitInvulT:0, // 🌙 四种药丸相关的状态，都从 0/false 开始
+      attackCooldownUntil:0 // ⚔️ 扔箱子技能：冷却截止帧
+    };
+    camX = 0;
+    score = 0; runCoins = 0; runStomps = 0;
+    lives = 5;
+    gameState = 'playing';
+    setTouchLayerVisible(true);
+    document.getElementById('startOverlay').style.display = 'none';
+    document.getElementById('pauseOverlay').style.display = 'none';
+    document.getElementById('endOverlay').style.display = 'none';
+    document.getElementById('topBar').style.display = 'flex';
+    updateHUD();
+  }
+  LG.marioRetry = startRun; // 结算屏"再来一局"按钮认这个
+
+  // 🌙 四种药丸的效果——改 player.w/h 的同时要保持"脚底位置"不变，
+  // 不然放大缩小的瞬间角色会凭空往地里沉或者悬空飘起来
+  function setPlayerSize(w,h){
+    var bottom = player.y + player.h, centerX = player.x + player.w/2;
+    player.w = w; player.h = h;
+    player.x = centerX - w/2;
+    player.y = bottom - h;
+  }
+  function eatGrowPill(){
+    if(player.big){ score += 50; } // 已经是大的了，再吃一颗算加分，不重复叠加
+    else { player.shrinkT = 0; player.big = true; setPlayerSize(36,46); }
+    sfx.powerup();
+  }
+  function eatStarPill(){ player.invincibleT = 600; sfx.powerup(); } // 10 秒无敌 @60fps
+  function eatShrinkPill(){
+    if(player.big){ player.big = false; setPlayerSize(28,36); } // 先取消放大状态
+    player.shrinkT = 600; setPlayerSize(20,26);
+    sfx.powerup();
+  }
+  function eatEnergyPill(){ player.energyT = 600; sfx.powerup(); }
+  // 受伤统一走这里：无敌/受伤后短暂无敌时不掉血；放大状态被打一下只掉"大"变回普通，不扣命；
+  // 都没有的话才是真的扣一条命
+  function takeDamage(){
+    if(player.invincibleT>0 || player.hitInvulT>0) return;
+    if(player.big){
+      player.big = false; setPlayerSize(28,36);
+      player.hitInvulT = 90; // 变小之后给 1.5 秒左右的受伤后无敌，避免贴脸被连续扣
+      sfx.hurt(); updateHUD();
+    } else {
+      loseLife();
+    }
+  }
+
+  // ⚔️ Lumi 的攻击技能："扔箱子"——参考《松鼠大作战》里捡箱子砸敌人那套，
+  // 朝面朝方向扔一个箱子出去，飞行途中碰到的第一个敌人会受到伤害，冷却 2 秒。
+  var BOX_COOLDOWN = 120; // 120帧 = 2秒（按 60fps 算）
+  var BOX_SPEED = 6.5, BOX_SIZE = 20;
+  function throwBox(){
+    if(frameCount < player.attackCooldownUntil){
+      sfx.click(); // 冷却没好还按，给个"没反应但确实按到了"的提示音，不是没响应
+      return;
+    }
+    player.attackCooldownUntil = frameCount + BOX_COOLDOWN;
+    sfx.attack();
+    level.playerBoxes.push({
+      x: player.x + (player.facing>0 ? player.w : 0),
+      y: player.y + player.h/2 - BOX_SIZE/2,
+      vx: BOX_SPEED * player.facing,
+      size: BOX_SIZE, dmg: 1,
+      dead:false
+    });
+  }
+
+  // 🐉 统一处理"敌人挨了一下"：一下就死，命中给分。哪种命中方式（踩/扔箱子/
+  // 无敌或能量药丸触碰）都走这一个函数，行为保持一致，不用在每个触发点各写一遍逻辑。
+  function damageEnemy(e, hitScore, dmg){
+    e.alive=false; score+=hitScore; runStomps++;
+    return true;
+  }
+
+  function nearestCheckpoint(x){
+    var cp = 0;
+    for(var i=0;i<level.checkpoints.length;i++){
+      if(level.checkpoints[i]<=x) cp=level.checkpoints[i]; else break;
+    }
+    return cp;
+  }
+
+  function respawnAtCheckpoint(){
+    var cp = nearestCheckpoint(Math.max(player.x, camX));
+    // 复活是传送到检查点重新开始这条命，药丸效果和身形都清空重置，不用保持"脚底位置连续"那一套
+    player.big = false; player.shrinkT = 0; player.invincibleT = 0; player.energyT = 0; player.hitInvulT = 0;
+    player.attackCooldownUntil = 0;
+    player.w = 28; player.h = 36;
+    player.x = cp+20; player.y = GROUND_Y-40;
+    player.vx=0; player.vy=0; player.ridingMP=null;
+  }
+
+  keys = {left:false, right:false, up:false, attack:false};
+  var jumpEdge = false;   // 🩹 双跳要区分"刚按下"和"一直按住"，光靠 keys.up 这个常态量分不出来
+  var attackEdge = false; // 攻击技能同理，也要边缘检测，不然按住不放会一直连续放技能
+
+  document.addEventListener('keydown', function(e){
+    if(!screenMario.classList.contains('active') || gameState!=='playing') return;
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=true;
+    if(e.key==='ArrowUp'||e.key===' '||e.key==='w'){
+      if(!keys.up) jumpEdge = true; // 按住不放会不停触发 keydown，只有从"没按"变"按下"那一下才算
+      keys.up=true; e.preventDefault();
+    }
+    if(e.key==='x'||e.key==='X'||e.key==='Shift'||e.key==='j'){
+      if(!keys.attack) attackEdge = true;
+      keys.attack = true;
+    }
+  });
+  document.addEventListener('keyup', function(e){
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=false;
+    if(e.key==='ArrowUp'||e.key===' '||e.key==='w') keys.up=false;
+    if(e.key==='x'||e.key==='X'||e.key==='Shift'||e.key==='j') keys.attack=false;
+  });
+
+  // ---------- 全屏隐形触控分区（Pointer Events + 指针捕获，防止手指滑出丢失控制） ----------
+  // 🩹 之前用 Set 记录"同时按住这个区的所有手指"，但如果浏览器偶尔没送达 pointerup/pointercancel
+  // （切后台、系统手势打断等场景很常见），Set 里会卡着一个再也清不掉的"幽灵手指"，导致这个区后面
+  // 要么松手不生效（一直卡在移动状态），要么再按一次不触发（跳跃判断不到"新按下"）——这就是
+  // "偶尔不灵敏，尤其是刚开始玩的时候"很可能的真正原因。改成只认"当前这一根手指"，逻辑更简单也更不容易出这种问题，
+  // 并且把每个区的重置逻辑登记出去，切后台/切标签页的时候统一清空，不会再留幽灵状态。
+  var zoneResetters = [];
+  function setupTouchZone(el, prop, onPress){
+    var activeId = null;
+    function activate(e){
+      e.preventDefault();
+      activeId = e.pointerId;
+      try { el.setPointerCapture(e.pointerId); } catch(err){}
+      el.classList.add('pressed'); // 🩹 按下时按钮变亮+缩小一点，给个"确实按到了"的视觉反馈
+      if(onPress) onPress();
+      keys[prop] = true;
+    }
+    function deactivate(e){
+      if(e.pointerId !== activeId) return; // 不是当前记录的这根手指，不用管
+      activeId = null;
+      try { el.releasePointerCapture(e.pointerId); } catch(err){}
+      el.classList.remove('pressed');
+      keys[prop] = false;
+    }
+    el.addEventListener('pointerdown', activate);
+    el.addEventListener('pointerup', deactivate);
+    el.addEventListener('pointercancel', deactivate);
+    el.addEventListener('pointerleave', function(e){
+      if(el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) return;
+      deactivate(e);
+    });
+    zoneResetters.push(function(){ activeId = null; keys[prop] = false; el.classList.remove('pressed'); });
+  }
+  setupTouchZone(document.getElementById('zoneMoveLeft'), 'left');
+  setupTouchZone(document.getElementById('zoneMoveRight'), 'right');
+  setupTouchZone(document.getElementById('zoneAttack'), 'attack', function(){ attackEdge = true; });
+  setupTouchZone(document.getElementById('zoneJump'), 'up', function(){ jumpEdge = true; });
+
+  function resetKeys(){
+    keys.left=false; keys.right=false; keys.up=false; keys.attack=false;
+    zoneResetters.forEach(function(fn){ fn(); }); // 顺手把每个触控区自己记的"当前手指"也清空
+  }
+  window.addEventListener('blur', resetKeys);
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) resetKeys(); });
+
+  document.getElementById('startBtn').addEventListener('click', function(){ sfx.click(); startRun(); });
+  document.getElementById('retryBtn').addEventListener('click', function(){ sfx.click(); startRun(); });
+  document.getElementById('pauseRestartBtn').addEventListener('click', function(){ sfx.click(); startRun(); });
+
+  document.getElementById('pauseBtn').addEventListener('click', function(){
+    if(gameState!=='playing') return;
+    sfx.click();
+    gameState = 'paused';
+    setTouchLayerVisible(false);
+    document.getElementById('pauseOverlay').style.display = 'flex';
+  });
+  document.getElementById('resumeBtn').addEventListener('click', function(){
+    sfx.click();
+    gameState = 'playing';
+    setTouchLayerVisible(true);
+    document.getElementById('pauseOverlay').style.display = 'none';
+  });
+  document.getElementById('soundBtn').addEventListener('click', function(){
+    var on = LG.toggleSound();
+    document.getElementById('soundBtn').textContent = on ? '🔊' : '🔇';
+    if(on) sfx.click();
+  });
+
+  // 🗺️ 关卡地图：30 个格子，已经到过的（按历史最远进度算）标绿，当前最远那一格特别高亮，
+  // 还没到的淡出显示——纯展示用，这游戏是一条路打到底，不能点格子直接跳关
+  function renderLevelMap(){
+    var bestPct = LG.stats.mario.bestProgress || 0;
+    var bestLevel = Math.max(bestPct>0 ? 1 : 0, Math.min(TOTAL_SEGMENTS, Math.ceil(bestPct/100*TOTAL_SEGMENTS)));
+    document.getElementById('levelMapBest').textContent = bestLevel>0 ? t().mario_level_map_best(bestLevel) : '';
+    var grid = document.getElementById('levelMapGrid');
+    grid.innerHTML = '';
+    for(var lv=1; lv<=TOTAL_SEGMENTS; lv++){
+      var cell = document.createElement('div');
+      cell.className = 'level-cell ' + (lv < bestLevel ? 'cleared' : lv === bestLevel ? 'current' : 'locked');
+      cell.textContent = lv;
+      grid.appendChild(cell);
+    }
+  }
+  document.getElementById('levelMapBtn').addEventListener('click', function(){
+    sfx.click();
+    renderLevelMap();
+    document.getElementById('levelMapOverlay').style.display = 'flex';
+  });
+  document.getElementById('levelMapCloseBtn').addEventListener('click', function(){
+    sfx.click();
+    document.getElementById('levelMapOverlay').style.display = 'none';
+  });
+
+  function resetToStart(){
+    gameState = 'start';
+    setTouchLayerVisible(false);
+    document.getElementById('pauseOverlay').style.display = 'none';
+    document.getElementById('endOverlay').style.display = 'none';
+    document.getElementById('topBar').style.display = 'none';
+    document.getElementById('bestScoreText').textContent = t().mario_best_label(LG.stats.mario.highScore);
+    // 每次回到开始界面，选色区都重新露出来（不是只有第一次能选），并把当前选的那个高亮出来
+    document.getElementById('bgPicker').style.display = 'block';
+    markSelectedSwatch(currentBgId);
+    document.getElementById('startOverlay').style.display = 'flex';
+  }
+  function goHome(){
+    sfx.click();
+    resetToStart();
+    LG.renderHub();
+    LG.showScreen('hub');
+  }
+  document.getElementById('homeBtn').addEventListener('click', goHome);
+  document.getElementById('pauseHomeBtn').addEventListener('click', goHome);
+  document.getElementById('endHomeBtn').addEventListener('click', goHome);
+
+  function updateHUD(){
+    document.getElementById('scoreText').textContent = t().mario_coins_label(runCoins);
+    var pct = Math.min(100, Math.floor((player.x/level.width)*100));
+    document.getElementById('progressText').textContent = t().mario_progress_label(pct);
+    document.getElementById('livesText').textContent = t().mario_lives_label(lives);
+  }
+
+  // 🩹 语言切换时，刷新眼下正显示着的动态文字（HUD/最高分/结算文案），
+  // 静态文字（按钮/标题/说明）已经被 [data-i18n] 的通用扫描处理掉了，这里只管动态拼出来的那部分
+  LG.onLangChange(function(){
+    if(gameState==='playing' || gameState==='paused') updateHUD();
+    if(gameState==='start') document.getElementById('bestScoreText').textContent = t().mario_best_label(LG.stats.mario.highScore);
+    document.getElementById('soundBtn').textContent = LG.soundOn() ? '🔊' : '🔇';
+  });
+
+  function endRun(won){
+    gameState = 'over';
+    setTouchLayerVisible(false);
+    if(won) score += 500; // 通关奖励分
+    document.getElementById('topBar').style.display = 'none';
+    document.getElementById('endTitle').textContent = won ? t().mario_win_title : t().mario_lose_title;
+    var mbucket = LG.stats.mario;
+    var wasHighScore = score > mbucket.highScore;
+    var durationSec = Math.round(frameCount/60);
+    var progressPct = won ? 100 : Math.min(100, Math.floor((player.x/level.width)*100));
+
+    mbucket.gamesPlayed++;
+    mbucket.totalCoins += runCoins;
+    mbucket.totalStomps += runStomps;
+    if(!won) mbucket.totalDeaths++;
+    if(won) mbucket.wins++;
+    if(progressPct > mbucket.bestProgress) mbucket.bestProgress = progressPct;
+    mbucket.totalPlaySeconds += durationSec;
+    if(score > mbucket.highScore) mbucket.highScore = score;
+    mbucket.history.push({ score:score, coins:runCoins, stomps:runStomps, progress:progressPct, won:won, t:Date.now() });
+    if(mbucket.history.length > 30) mbucket.history = mbucket.history.slice(-30);
+    LG.saveStats();
+
+    document.getElementById('endScoreText').innerHTML = t().mario_result_line(score, mbucket.highScore, 0);
+    document.getElementById('endOverlay').style.display = 'flex';
+    if(won) sfx.finish(); else sfx.gameover();
+
+    var session = {
+      mode:'mario', score:score, coins:runCoins, stomps:runStomps, progress:progressPct,
+      won:won, durationSec:durationSec, isNewRecord:wasHighScore
+    };
+    LG.showGameOverScreen(session);
+  }
+
+  function rectsOverlap(a,b){
+    return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+  }
+  function isOverPit(x){
+    return level.pits.some(function(p){ return x > p.x && x < p.x+p.w; });
+  }
+  function mpXAt(mp, frame){
+    var range = mp.x1-mp.x0;
+    var tt = (frame % mp.period)/mp.period;
+    var tri = tt<0.5 ? tt*2 : 2-2*tt;
+    return mp.x0 + range*tri;
+  }
+  function mpYAt(mp, frame){
+    var range = mp.y1-mp.y0;
+    var tt = (frame % mp.period)/mp.period;
+    var tri = tt<0.5 ? tt*2 : 2-2*tt;
+    return mp.y0 + range*tri;
+  }
+  // 取一块移动平台（横向/纵向通用）此刻的实际矩形
+  function mpRect(mp){
+    return mp.vertical ? {x:mp.x,y:mp.curY,w:mp.w,h:mp.h} : {x:mp.curX,y:mp.y,w:mp.w,h:mp.h};
+  }
+
+  function update(){
+    if(gameState!=='playing') return;
+    frameCount++;
+
+    // 🌙 药丸计时类效果统一在这倒数，归零自动失效
+    if(player.invincibleT>0) player.invincibleT--;
+    if(player.energyT>0) player.energyT--;
+    if(player.hitInvulT>0) player.hitInvulT--;
+    if(player.shrinkT>0){
+      player.shrinkT--;
+      if(player.shrinkT<=0 && !player.big) setPlayerSize(28,36);
+    }
+
+    var wantAttack = attackEdge;
+    attackEdge = false;
+    if(wantAttack) throwBox();
+
+    level.movingPlatforms.forEach(function(mp){
+      if(mp.vertical){
+        mp.prevY = mp.curY; mp.curY = mpYAt(mp, frameCount);
+        if(player.ridingMP===mp) player.y += (mp.curY - mp.prevY);
+      } else {
+        mp.prevX = mp.curX; mp.curX = mpXAt(mp, frameCount);
+        if(player.ridingMP===mp) player.x += (mp.curX - mp.prevX);
+      }
+    });
+
+    var speed = 3.2 * (player.shrinkT>0 ? 1.25 : 1.0); // 🩹 缩小药丸顺手给个加速，突出"身轻如燕"的正向体验，不只是变小
+    if(keys.left){ player.vx=-speed; player.facing=-1; }
+    else if(keys.right){ player.vx=speed; player.facing=1; }
+    else { player.vx=0; }
+
+    var wantJump = jumpEdge;
+    jumpEdge = false; // 这一帧处理完立刻清空，不会被下一帧重复消费
+
+    if(wantJump && player.onGround){
+      player.vy = JUMP_V;
+      player.onGround = false;
+      player.ridingMP = null;
+      player.usedDoubleJump = false; // 起跳时重新获得一次二段跳资格
+      sfx.jump();
+    } else if(wantJump && !player.onGround && !player.usedDoubleJump){
+      player.vy = DOUBLE_JUMP_V; // 空中再按一次：二段跳，高度正好是第一跳的一半
+      player.usedDoubleJump = true;
+      sfx.doubleJump();
+    }
+
+    player.vy += GRAVITY;
+    if(player.vy>14) player.vy=14;
+
+    player.x += player.vx;
+    if(player.x<0) player.x=0;
+    if(player.x>level.width) player.x=level.width;
+
+    var aliveBreakables = level.breakables.filter(function(b){ return b.alive; });
+    var solidsForX = level.platforms.filter(function(p){ return p.h!==40; }).concat(level.movingPlatforms.map(mpRect));
+    solidsForX.forEach(function(p){
+      if(rectsOverlap(player,p)){
+        if(player.vx>0) player.x = p.x - player.w;
+        else if(player.vx<0) player.x = p.x + p.w;
+      }
+    });
+    // ⚔️ 放大状态横向撞石台直接撞碎冲过去（参考大马里奥能撞碎砖块的手感），
+    // 普通大小还是照常被挡住，得从下面顶才能碎
+    aliveBreakables.forEach(function(b){
+      if(rectsOverlap(player,b)){
+        if(player.big){
+          b.alive = false;
+          var stillAliveX = level.breakables.some(function(other){
+            return other.alive && Math.abs(other.y-b.y)<1 && Math.abs(other.x-b.x)<80;
+          });
+          if(stillAliveX) sfx.brickHit(); else sfx.brickBreak();
+        } else {
+          if(player.vx>0) player.x = b.x - player.w;
+          else if(player.vx<0) player.x = b.x + b.w;
+        }
+      }
+    });
+
+    player.y += player.vy;
+    player.onGround = false;
+    player.ridingMP = null;
+
+    level.platforms.forEach(function(p){
+      if(p.h===40){
+        if(isOverPit(player.x+player.w/2)) return;
+      }
+      if(rectsOverlap(player,p)){
+        if(player.vy>0){ player.y=p.y-player.h; player.vy=0; player.onGround=true; }
+        else if(player.vy<0){ player.y=p.y+p.h; player.vy=0; }
+      }
+    });
+    level.movingPlatforms.forEach(function(mp){
+      var p = mpRect(mp);
+      if(rectsOverlap(player,p)){
+        if(player.vy>0){ player.y=p.y-player.h; player.vy=0; player.onGround=true; player.ridingMP=mp; }
+        else if(player.vy<0){ player.y=p.y+p.h; player.vy=0; }
+      }
+    });
+    // 🧱 可撞碎的石台：跟普通平台判定一样能站上去；区别在于从下面顶到（vy<0）
+    // 时不是单纯弹一下，而是把这一截标记为碎掉，播放音效，碎完三截整块消失
+    level.breakables.forEach(function(b){
+      if(!b.alive) return;
+      if(rectsOverlap(player,b)){
+        if(player.vy>0){ player.y=b.y-player.h; player.vy=0; player.onGround=true; }
+        else if(player.vy<0){
+          b.alive = false;
+          player.y = b.y+b.h; player.vy = 0;
+          var stillAlive = level.breakables.some(function(other){
+            return other.alive && Math.abs(other.y-b.y)<1 && Math.abs(other.x-b.x)<80;
+          });
+          if(stillAlive) sfx.brickHit(); else sfx.brickBreak();
+        }
+      }
+    });
+
+    // 🔥 火坑：一沾就立刻扣命，不用等掉出屏幕外；无敌药丸也救不了（跟落坑摔死一样，属于场景硬伤害）
+    for(var fi=0; fi<level.firePits.length; fi++){
+      if(rectsOverlap(player, level.firePits[fi])){ loseLife(); return; }
+    }
+
+    if(player.y > H+60){ loseLife(); return; }
+
+    level.coins.forEach(function(c){
+      if(!c.taken && Math.abs(c.x-(player.x+player.w/2))<20 && Math.abs(c.y-(player.y+player.h/2))<20){
+        c.taken = true; score += 10; runCoins++; sfx.coin();
+      }
+    });
+
+    // 🌙 药丸拾取：放大 / 无敌 / 缩小 / 能量
+    level.powerups.forEach(function(p){
+      if(p.taken) return;
+      if(Math.abs(p.x-(player.x+player.w/2))<18 && Math.abs(p.y-(player.y+player.h/2))<18){
+        p.taken = true; score += 30;
+        if(p.type==='grow') eatGrowPill();
+        else if(p.type==='star') eatStarPill();
+        else if(p.type==='shrink') eatShrinkPill();
+        else if(p.type==='energy') eatEnergyPill();
+      }
+    });
+
+    for(var i=0;i<level.enemies.length;i++){
+      var e = level.enemies[i];
+      if(!e.alive) continue;
+      e.x += e.dir*e.speed;
+      if(e.x<e.minX || e.x>e.maxX) e.dir*=-1;
+      if(e.etype==='flyer'){ e.y = e.bobBase + Math.sin(frameCount*e.bobSpeed + e.bobPhase)*e.bobAmp; } // 上下浮动
+      if(e.etype==='shooter'){
+        // ⚔️ 射手怪：站定不动，玩家进入射程且冷却好了就朝玩家所在方向打一颗子弹
+        if(frameCount - e.lastShotFrame >= e.shootCooldown){
+          var distX = Math.abs((player.x+player.w/2) - (e.x+e.w/2));
+          if(distX < 340){
+            e.lastShotFrame = frameCount;
+            var shotDir = (player.x > e.x) ? 1 : -1;
+            level.enemyProjectiles.push({x:e.x+e.w/2, y:e.y+e.h/2, vx:shotDir*2.6, dead:false});
+            sfx.shoot();
+          }
+        }
+      }
+      if(rectsOverlap(player,e)){
+        var stompHit = player.vy>0 && (player.y+player.h)-e.y<16;
+        // ⚔️ 刺怪不能靠踩头顶消灭——不管什么角度碰到都算受伤，除非无敌/能量药丸生效中
+        var canStomp = stompHit && e.etype!=='spiky';
+        if(canStomp || player.invincibleT>0 || player.energyT>0){
+          damageEnemy(e, 20);
+          if(canStomp) player.vy=-7;
+          sfx.stomp();
+        } else {
+          takeDamage(); return;
+        }
+      }
+    }
+
+    // ⚔️ 妖怪打出来的子弹：往前飞，出画面就清掉，碰到玩家按受伤处理
+    for(var pi=level.enemyProjectiles.length-1; pi>=0; pi--){
+      var proj = level.enemyProjectiles[pi];
+      if(proj.dead){ level.enemyProjectiles.splice(pi,1); continue; }
+      proj.x += proj.vx;
+      if(proj.x < camX-60 || proj.x > camX+W+60){ level.enemyProjectiles.splice(pi,1); continue; }
+      if(rectsOverlap(player, {x:proj.x-4, y:proj.y-4, w:8, h:8})){
+        level.enemyProjectiles.splice(pi,1);
+        takeDamage();
+        return;
+      }
+    }
+
+    // 📦 Lumi 扔出去的箱子：飞行途中碰到第一个活着的敌人就命中它，然后箱子消失；
+    // 出画面也会自动清掉，不会无限累积
+    for(var boxi=level.playerBoxes.length-1; boxi>=0; boxi--){
+      var box = level.playerBoxes[boxi];
+      if(box.dead){ level.playerBoxes.splice(boxi,1); continue; }
+      box.x += box.vx;
+      if(box.x < camX-40 || box.x > camX+W+40){ level.playerBoxes.splice(boxi,1); continue; }
+      var bs = box.size || BOX_SIZE;
+      var boxRect = {x:box.x-bs/2, y:box.y, w:bs, h:bs};
+      for(var bei=0; bei<level.enemies.length; bei++){
+        var be = level.enemies[bei];
+        if(!be.alive) continue;
+        if(rectsOverlap(boxRect, be)){
+          damageEnemy(be, 20, box.dmg);
+          sfx.stomp();
+          level.playerBoxes.splice(boxi,1);
+          break;
+        }
+      }
+    }
+
+    if(player.x+player.w > level.flagX){
+      endRun(true); // 🩹 30 关全部走完，这才是真正的通关——不再生成新赛道无限续关
+      return;
+    }
+
+    updateHUD();
+
+    camX = player.x - W/2 + player.w/2;
+    if(camX<0) camX=0;
+    if(camX>level.width-W) camX=Math.max(0, level.width-W);
+  }
+
+  function loseLife(){
+    lives -= 1;
+    sfx.hurt();
+    if(lives<=0){
+      updateHUD();
+      endRun(false);
+    } else {
+      respawnAtCheckpoint();
+      updateHUD();
+    }
+  }
+
+  function drawCloud(x,y,scale){
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(x,y,16*scale,0,Math.PI*2);
+    ctx.arc(x+18*scale,y-8*scale,14*scale,0,Math.PI*2);
+    ctx.arc(x+34*scale,y,16*scale,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    if(gameState==='start') return;
+    if(!level) return;
+    attackBtnEl.classList.toggle('cooling', frameCount < player.attackCooldownUntil); // 冷却没好就把技能按钮调暗
+    ctx.save();
+    var parallax = camX*0.3;
+    for(var i=0;i<8;i++) drawCloud(120+i*300-parallax%2400, 50+((i%3)*20), 1);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(-camX,0);
+
+    level.platforms.forEach(function(p){
+      if(p.h===40){
+        var segStart = p.x;
+        var relevantPits = level.pits.filter(function(pt){ return pt.x>=p.x && pt.x<p.x+p.w; }).sort(function(a,b){ return a.x-b.x; });
+        relevantPits.forEach(function(pit){
+          ctx.fillStyle='#8b5a2b'; ctx.fillRect(segStart,p.y,pit.x-segStart,p.h);
+          ctx.fillStyle='#5fbf3f'; ctx.fillRect(segStart,p.y,pit.x-segStart,8);
+          segStart = pit.x+pit.w;
+        });
+        ctx.fillStyle='#8b5a2b'; ctx.fillRect(segStart,p.y,p.x+p.w-segStart,p.h);
+        ctx.fillStyle='#5fbf3f'; ctx.fillRect(segStart,p.y,p.x+p.w-segStart,8);
+      } else {
+        ctx.fillStyle='#c9772f'; ctx.fillRect(p.x,p.y,p.w,p.h);
+        ctx.fillStyle='#5fbf3f'; ctx.fillRect(p.x,p.y,p.w,6);
+      }
+    });
+
+    level.movingPlatforms.forEach(function(mp){
+      var r = mpRect(mp);
+      if(mp.vertical){
+        ctx.fillStyle='#5ac97a'; ctx.fillRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle='rgba(36,26,61,0.35)';
+        for(var lx=6; lx<r.w-4; lx+=10){ ctx.fillRect(r.x+lx, r.y+2, 3, r.h-4); } // 竖条纹，画出"天梯"的感觉
+        ctx.fillStyle='#c8ffdd'; ctx.fillRect(r.x, r.y, r.w, 3);
+      } else {
+        ctx.fillStyle='#7a5ac9'; ctx.fillRect(r.x, r.y, r.w, r.h);
+        ctx.fillStyle='#c9b6ff'; ctx.fillRect(r.x, r.y, r.w, 4);
+      }
+    });
+
+    // 🔥 火坑：坐在坑底，带一点火苗跳动的动画，远远就能看出这里不能踩
+    level.firePits.forEach(function(fp){
+      if(fp.x+fp.w < camX-20 || fp.x > camX+W+20) return;
+      var flick = 0.7+0.3*Math.sin(frameCount*0.3 + fp.x*0.01);
+      ctx.fillStyle = 'rgba(224,38,27,'+(0.85*flick).toFixed(2)+')';
+      ctx.fillRect(fp.x, fp.y, fp.w, fp.h);
+      ctx.fillStyle = 'rgba(255,180,60,'+(0.9*flick).toFixed(2)+')';
+      for(var fx=fp.x+4; fx<fp.x+fp.w-4; fx+=10){
+        var fh = 6+4*Math.sin(frameCount*0.4+fx);
+        ctx.beginPath();
+        ctx.moveTo(fx,fp.y); ctx.quadraticCurveTo(fx+3,fp.y-fh,fx+6,fp.y);
+        ctx.closePath(); ctx.fill();
+      }
+    });
+
+    // 🧱 可撞碎的石台：每一截独立画，碎掉的那截直接不画，露出空隙
+    level.breakables.forEach(function(b){
+      if(!b.alive) return;
+      ctx.fillStyle='#8a8a92';
+      ctx.fillRect(b.x+1, b.y+1, b.w-2, b.h-2);
+      ctx.strokeStyle='#5c5c63'; ctx.lineWidth=1.5;
+      ctx.strokeRect(b.x+1, b.y+1, b.w-2, b.h-2);
+      ctx.fillStyle='#b5b5bd';
+      ctx.fillRect(b.x+3, b.y+3, b.w-6, 3);
+    });
+
+    level.coins.forEach(function(c){
+      if(c.taken) return;
+      if(c.x < camX-30 || c.x > camX+W+30) return;
+      ctx.fillStyle='#ffd23f';
+      ctx.beginPath(); ctx.arc(c.x,c.y,8,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#c99a1a'; ctx.lineWidth=2; ctx.stroke();
+    });
+
+    // 🌙 道具药丸：四种颜色 + 简单符号区分，胶囊形状
+    level.powerups.forEach(function(p){
+      if(p.taken) return;
+      if(p.x < camX-30 || p.x > camX+W+30) return;
+      var PU_COLOR = {grow:'#5fbf3f', star:'#ffd23f', shrink:'#4fb8e8', energy:'#e0263b'};
+      var PU_ICON = {grow:'↑', star:'★', shrink:'↓', energy:'⚡'};
+      ctx.fillStyle = PU_COLOR[p.type] || '#fff';
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, 9, 11, 0, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(36,26,61,0.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(PU_ICON[p.type] || '?', p.x, p.y+4);
+    });
+
+    level.enemies.forEach(function(e){
+      if(!e.alive) return;
+      if(e.x < camX-40 || e.x > camX+W+40) return;
+      var cx = e.x+e.w/2, cy = e.y+e.h/2;
+      if(e.etype==='spiky'){
+        // ⚔️ 刺怪：紫红色 + 头顶几根尖刺，一眼看出"这个不能踩"
+        ctx.fillStyle='#8b3a62';
+        ctx.beginPath(); ctx.ellipse(cx,cy,e.w/2,e.h/2,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#d94f8f';
+        for(var si=-2; si<=2; si++){
+          ctx.beginPath();
+          ctx.moveTo(cx+si*6-3, cy-e.h/2+3);
+          ctx.lineTo(cx+si*6, cy-e.h/2-7);
+          ctx.lineTo(cx+si*6+3, cy-e.h/2+3);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle='#fff';
+        ctx.beginPath(); ctx.arc(cx-6,cy+2,3,0,Math.PI*2); ctx.arc(cx+6,cy+2,3,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#000';
+        ctx.beginPath(); ctx.arc(cx-6,cy+2,1.5,0,Math.PI*2); ctx.arc(cx+6,cy+2,1.5,0,Math.PI*2); ctx.fill();
+      } else if(e.etype==='flyer'){
+        // ⚔️ 飞行怪：浅蓝色，带一对小翅膀，上下浮动，踩它得算好时机
+        ctx.fillStyle='rgba(180,220,255,0.55)';
+        var wingFlap = Math.sin(frameCount*0.3)*4;
+        ctx.beginPath(); ctx.ellipse(cx-e.w/2-2, cy-wingFlap, 7, 4, -0.3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx+e.w/2+2, cy-wingFlap, 7, 4, 0.3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='#5ab0e8';
+        ctx.beginPath(); ctx.ellipse(cx,cy,e.w/2,e.h/2,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff';
+        ctx.beginPath(); ctx.arc(cx-5,cy-2,2.6,0,Math.PI*2); ctx.arc(cx+5,cy-2,2.6,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#000';
+        ctx.beginPath(); ctx.arc(cx-5,cy-2,1.3,0,Math.PI*2); ctx.arc(cx+5,cy-2,1.3,0,Math.PI*2); ctx.fill();
+      } else if(e.etype==='shooter'){
+        // ⚔️ 射手怪：站定放技能，画成带发光"眼睛"的小炮台，一看就不像能一脚踩死的普通怪
+        ctx.fillStyle='#c9772f';
+        ctx.beginPath(); ctx.ellipse(cx,cy+4,e.w/2,e.h/2-3,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#e8a552';
+        ctx.beginPath(); ctx.arc(cx,cy-4,9,0,Math.PI*2); ctx.fill();
+        var glow = 0.5+0.5*Math.sin(frameCount*0.15);
+        ctx.fillStyle='rgba(255,120,80,'+(0.6+0.4*glow).toFixed(2)+')';
+        ctx.beginPath(); ctx.arc(cx,cy-4,4,0,Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillStyle='#8b4513';
+        ctx.beginPath(); ctx.ellipse(cx,cy,e.w/2,e.h/2,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff';
+        ctx.beginPath(); ctx.arc(cx-6,e.y+10,3,0,Math.PI*2); ctx.arc(cx+6,e.y+10,3,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#000';
+        ctx.beginPath(); ctx.arc(cx-6,e.y+10,1.5,0,Math.PI*2); ctx.arc(cx+6,e.y+10,1.5,0,Math.PI*2); ctx.fill();
+      }
+    });
+
+    // ⚔️ 妖怪打出来的子弹：强弹（一击掉命）明显更大更红，弱弹（要中两次才掉命）偏小偏橙，
+    // 让玩家能一眼分辨该硬扛哪种、该躲哪种
+    level.enemyProjectiles.forEach(function(proj){
+      if(proj.x < camX-20 || proj.x > camX+W+20) return;
+      var strong = proj.power === 'strong';
+      ctx.fillStyle = strong ? '#e0261b' : '#ff7a4d';
+      ctx.beginPath(); ctx.arc(proj.x, proj.y, strong ? 6 : 4, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = strong ? 'rgba(255,200,120,0.95)' : 'rgba(255,220,180,0.8)';
+      ctx.lineWidth = strong ? 2 : 1.5;
+      ctx.stroke();
+    });
+
+    ctx.fillStyle='#888';
+    ctx.fillRect(level.flagX, GROUND_Y-160, 6, 160);
+    ctx.fillStyle='#e0263b';
+    ctx.beginPath();
+    ctx.moveTo(level.flagX+6, GROUND_Y-160);
+    ctx.lineTo(level.flagX+40, GROUND_Y-146);
+    ctx.lineTo(level.flagX+6, GROUND_Y-132);
+    ctx.fill();
+
+    ctx.save();
+    // 🩹 视觉放大一点，但碰撞箱（player.w/h）完全不变，不影响手感/难度——
+    // 用"脚底锚点"缩放而不是正中心缩放，这样放大之后脚还是踩在原来的地面位置上，
+    // 不会因为放大导致脚陷进地里或悬空。放大/缩小药丸生效时视觉倍数也跟着变，
+    // 不然吃了药丸只有碰撞箱变了、看着却没变化，玩家根本感觉不出来。
+    var vscale = player.big ? 1.7 : (player.shrinkT>0 ? 0.95 : LUMI_SCALE);
+    ctx.translate(player.x+player.w/2, player.y+player.h/2 + LUMI_FOOT_LOCAL_Y*(1-vscale));
+    ctx.scale(vscale, vscale);
+    if(player.invincibleT>0){
+      var hue = (frameCount*8)%360;
+      ctx.shadowColor = 'hsl('+hue+',85%,65%)'; ctx.shadowBlur = 12;
+    } else if(player.energyT>0){
+      ctx.shadowColor = 'rgba(224,38,27,0.85)'; ctx.shadowBlur = 9;
+    }
+    if(player.hitInvulT>0 && Math.floor(frameCount/4)%2===0){ ctx.globalAlpha = 0.35; } // 受伤后短暂无敌，闪烁提示
+    drawLumiSprite(player.facing);
+    ctx.restore();
+
+    // 📦 Lumi 扔出去的箱子
+    level.playerBoxes.forEach(function(box){
+      var bs = box.size || BOX_SIZE;
+      ctx.save();
+      ctx.translate(box.x, box.y+bs/2);
+      ctx.rotate((frameCount*0.25*(box.vx>0?1:-1)) % (Math.PI*2)); // 飞行中滚动一下，看着有速度感
+      ctx.fillStyle = '#c9772f';
+      ctx.fillRect(-bs/2, -bs/2, bs, bs);
+      ctx.strokeStyle = '#7a4a1a'; ctx.lineWidth=1.5;
+      ctx.strokeRect(-bs/2, -bs/2, bs, bs);
+      ctx.beginPath();
+      ctx.moveTo(-bs/2,-bs/2); ctx.lineTo(bs/2,bs/2);
+      ctx.moveTo(bs/2,-bs/2); ctx.lineTo(-bs/2,bs/2);
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    ctx.restore();
+  }
+
+  function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  gameState = 'start';
+  resetToStart();
+  loop();
+})();
+</script>
+
+</body>
+</html>

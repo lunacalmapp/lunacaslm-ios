@@ -1302,6 +1302,7 @@ const TEXT_MAP = {
 "星空山景":"ภูเขาใต้ดาว",
 "黄昏湖景":"ทะเลสาบยามเย็น",
 "银河观景台":"จุดชมทางช้างเผือก",
+"月光游戏中心":"ศูนย์เกมแสงจันทร์",
 "背景音乐":"เพลงพื้นหลัง",
 "音乐音量":"ระดับเสียงเพลง",
 "互动音效":"เสียงเอฟเฟกต์โต้ตอบ",
@@ -10474,7 +10475,7 @@ const OUTDOOR_SCENES=[
   { id:'lakeview',  emoji:'🌇', name:'黄昏湖景', bg:'linear-gradient(135deg,#5c3470,#f2ae9e)' },
   { id:'skydeck',   emoji:'🔭', name:'银河观景台', bg:'linear-gradient(135deg,#1a1440,#6a5acd)' }
 ];
-const OUTDOOR_COMING_SOON_COUNT=1;
+const OUTDOOR_COMING_SOON_COUNT=0; // 🎮 原来空出来的那个"敬请期待"占位格子，现在被"月光游戏中心"入口占用了
 function buildOutdoorPickerGrid(){
   const grid=$('outdoorPickerGrid'); if(!grid) return; grid.innerHTML='';
   OUTDOOR_SCENES.forEach(sc=>{
@@ -10495,7 +10496,18 @@ function buildOutdoorPickerGrid(){
       <div style="font-size:12.5px;font-weight:600;color:var(--muted);">${T('敬请期待')}</div>`;
     grid.appendChild(cell);
   }
+  // 🎮 新增：月光游戏中心入口——占用原来"敬请期待"占位格子的位置，点"进入"在新标签页打开
+  // luna-games.html（两个文件要放在同一个目录下才能正常跳转），不会切换 Lumi 这边的室内/户外场景状态
+  {
+    const cell=document.createElement('div');
+    cell.style.cssText='border-radius:16px;padding:12px;text-align:center;background:#f7f5fb;';
+    cell.innerHTML=`<div style="width:100%;height:70px;border-radius:12px;margin-bottom:8px;background:linear-gradient(135deg,#241a3d,#7c5cbf);display:flex;align-items:center;justify-content:center;font-size:30px;">🎮</div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--text);">${T('月光游戏中心')}</div>
+      <button class="op-game-btn" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;">${T('进入')}</button>`;
+    grid.appendChild(cell);
+  }
   grid.querySelectorAll('.op-enter-btn').forEach(b=>b.onclick=()=>enterOutdoorScene(b.dataset.id));
+  grid.querySelectorAll('.op-game-btn').forEach(b=>b.onclick=()=>window.open('luna-games.html','_blank'));
 }
 function enterOutdoorScene(id){
   $('outdoorPickerSheet').classList.remove('show');

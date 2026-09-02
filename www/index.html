@@ -35,7 +35,8 @@
     themeUnlockCost: { lotus:200, rose:200, orange:200, sky:200, mint:200, lavender:200 },
     banner: null,      // {enabled, title:{zh,th}, body:{zh,th}, icon, link, startAt, endAt}
     featureFlags: {},  // 例如 {aiAssistant:false} 就能远程关掉首页AI小助手悬浮球，不用发版
-    images: {}         // 例如 {cycleGirlPose0:'https://...'} 就能远程换掉首页那几张卡通女孩插画，不用发版
+    images: {},        // 例如 {cycleGirlPose0:'https://...'} 就能远程换掉首页那几张卡通女孩插画，不用发版
+    popupNotice: null  // {enabled, id, message:{zh,th}} —— 独立于铃铛通知的强提醒弹窗，见下方 _showSystemPopupNotice
   };
   // 功能灾度开关读取小助手：不在表里 / 值不是 false，一律当"开启"处理，只有明确写 false 才关闭
   window._isFeatureEnabled = function(name){
@@ -65,6 +66,18 @@
       return uid ? (base + '_' + uid) : base; // 游客/拿不到uid时退回原始key，行为跟老版本一致
     }catch(e){ return base; }
   };
+  // 🩹 判断"是否正版会员"这件事，权威实现是后面那个 <script> 标签里的 isPro()（会挂到
+  // window.isPro）——但这里所在的这个标签是全文件最早执行的，那时候 window.isPro 还没定义好。
+  // 给一个安全包装：优先用 window.isPro()，它还没就绪时退回一份跟它逻辑完全一致的本地计算
+  // （只是 Play 版全开 + 判断 luna_activated 这两行，不是重新发明一套判断标准）。
+  // 文件里凡是在 window.isPro 定义之前就需要判断"是不是会员"的地方，统一调用这个，
+  // 不再各自单独写一遍同样的两行逻辑。
+  window._isProSafe = function(){
+    try{
+      if(typeof window.isPro === 'function') return window.isPro();
+      return window.IS_PLAY_BUILD === true || localStorage.getItem('luna_activated') === '1';
+    }catch(e){ return false; }
+  };
   // 🩹 一次性数据迁移：把老版本存在"不分账号"的 key 下的数据，搬到新的"按账号"key 下。
   // 必须在下面所有 let periodDays=.../let logs=... 这些模块级初始化之前跑完，这里所在的
   // 这个 <script> 标签是全文件最早执行的，正好能保证这一点。只有第一次升级到这个新版本时
@@ -85,6 +98,48 @@
       });
     }catch(e){}
   })();
+  // ══ 📢 系统公告弹窗：跟"铃铛通知"是完全独立的两套东西，不共用数据/不共用已读状态 ══
+  // 铃铛通知是"放在那里、用户自己点进去看"的列表；这个是"直接怼到用户脸上"的强提醒，
+  // 只有一个"好的/ตกลง"按钮，点了以后这一条永远不会再弹（换一条新内容才会再弹一次）。
+  // 典型用途：有新版本了、维护公告这类"希望所有人都看到一次"的消息。
+  // 定义在这个全文件最早执行的<script>标签里，纯粹是为了保证上面 fetch 回来时能立刻调用，
+  // 不用等其他脚本标签加载完——这个函数本身也不依赖任何其他函数，只用到 document/localStorage，
+  // 挂在这里没有任何副作用。
+  window._showSystemPopupNotice = function(){
+    try{
+      var notice = window._remoteConfig && window._remoteConfig.popupNotice;
+      if(!notice || notice.enabled !== true) return;
+      var isZh = (window._appLang || window._gateLang || localStorage.getItem('luna_lang')) === 'zh';
+      var msg = (notice.message && (isZh ? notice.message.zh : notice.message.th)) || '';
+      if(!msg) return; // 文案是空的就不硬弹一个空框
+      var sig = String(notice.id || ''); // 后台每次"发送"都会换一个新id，旧id对应的弹窗不会再弹第二次
+      if(!sig) return;
+      if(localStorage.getItem('luna_popup_notice_seen') === sig) return; // 这一条已经点过"好的"了
+      if(document.getElementById('sysPopupNotice')) return; // 已经在显示了，不重复弹
+      if(!document.body) { setTimeout(window._showSystemPopupNotice, 200); return; } // body还没就绪，稍后重试一次
+
+      var ov = document.createElement('div');
+      ov.id = 'sysPopupNotice';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(30,20,45,0.6);display:flex;align-items:center;justify-content:center;padding:24px;';
+      ov.innerHTML =
+        '<div style="max-width:340px;width:100%;text-align:center;background:#fff;border-radius:24px;padding:32px 24px;box-shadow:0 12px 40px rgba(80,40,120,0.3);">' +
+          '<div style="font-size:44px;margin-bottom:14px;">📢</div>' +
+          '<div style="font-size:15px;color:#3a3450;line-height:1.8;white-space:pre-wrap;">' + msg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
+          '<button id="sysPopupNoticeOkBtn" style="margin-top:22px;width:100%;padding:14px;background:linear-gradient(135deg,#8a6fd8,#6b52c4);border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">' +
+            (isZh ? '好的' : 'ตกลง') +
+          '</button>' +
+        '</div>';
+      document.body.appendChild(ov);
+      var okBtn = document.getElementById('sysPopupNoticeOkBtn');
+      if(okBtn) okBtn.addEventListener('click', function(){
+        try{ localStorage.setItem('luna_popup_notice_seen', sig); }catch(e){}
+        ov.remove();
+      });
+      // 🩹 特意不做"点背景空白处也能关"——这个弹窗是希望用户确实点了"好的"、确认看到了这条内容，
+      // 不是可有可无的顺手提示，跟公告横幅/推荐更新弹窗那种"手滑碰到也能关掉"的定位不一样
+    }catch(e){}
+  };
+
   (function _loadRemoteConfigEarly(){
     try{
       var dbBase = 'https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app';
@@ -105,12 +160,16 @@
         if(rc.banner && typeof rc.banner === 'object') window._remoteConfig.banner = rc.banner;
         if(rc.featureFlags && typeof rc.featureFlags === 'object') window._remoteConfig.featureFlags = rc.featureFlags;
         if(rc.images && typeof rc.images === 'object') window._remoteConfig.images = rc.images;
+        if(rc.popupNotice && typeof rc.popupNotice === 'object') window._remoteConfig.popupNotice = rc.popupNotice;
         // 首页公告横幅 / 卡通女孩插画 这时候DOM/函数不一定已经就绪，两个函数内部自己会做存在性检查；
         // 横幅真正的显示时机主要靠 updateOrbVisibility() 里那个钩子（每次进首页都会重新判断一次），
         // 女孩插画则是靠 calUpdateStats() 首次调用时的 renderCycleGirlPose()，这里额外补调一次，
         // 防止那次调用发生得比这个远程请求还早，导致外链图片配置晚到没生效。
         try{ if(typeof window._applyRemoteBanner === 'function') window._applyRemoteBanner(); }catch(e){}
         try{ if(typeof window.renderCycleGirlPose === 'function') window.renderCycleGirlPose(); }catch(e){}
+        // 🩹 系统公告弹窗：这个函数就定义在这同一个早期<script>标签里（往下看），不存在"函数还没
+        // 定义好"这种时序问题，可以直接调用，不用像上面两个一样做 typeof 存在性检查再委托后面兜底
+        try{ window._showSystemPopupNotice(); }catch(e){}
       }).catch(function(){ /* 请求失败就用上面的默认值，不影响app正常使用 */ });
     }catch(e){}
   })();
@@ -5416,7 +5475,7 @@ onAuthStateChanged(auth, async (user) => {
       setTimeout(() => {
         try { if(typeof initProFeatures === 'function') initProFeatures(); } catch(e){ console.log('initProFeatures 出错:', e); }
         if(typeof checkConsent === 'function') checkConsent();
-        if(typeof showTrialBanner === 'function' && localStorage.getItem('luna_activated') !== '1') showTrialBanner();
+        if(typeof showTrialBanner === 'function' && !window._isProSafe()) showTrialBanner();
       }, 300);
     }
   }
@@ -5600,7 +5659,7 @@ async function handleAuthUser(user) {
     try {
       if(!window._fb) {
         // 无网络，根据本地缓存决定
-        if(localStorage.getItem('luna_activated') !== '1') {
+        if(!window._isProSafe()) {
           if(typeof showTrialBanner === 'function') showTrialBanner();
         }
         return;
@@ -5690,7 +5749,7 @@ async function handleAuthUser(user) {
     } catch(e) {
       console.error('Firebase sync error:', e);
       // 出错时用本地缓存
-      if(localStorage.getItem('luna_activated') !== '1') {
+      if(!window._isProSafe()) {
         if(typeof showTrialBanner === 'function') showTrialBanner();
       }
     }
@@ -5908,7 +5967,7 @@ function getDeletedIds() {
 function addDeletedId(id) {
   const ids = getDeletedIds();
   if(!ids.includes(String(id))) ids.push(String(id));
-  localStorage.setItem('luna_notifs_deleted', JSON.stringify(ids.slice(-100)));
+  localStorage.setItem('luna_notifs_deleted', JSON.stringify(ids.slice(-1000)));
   // 根治"删了又回来"：同时从 Firebase 删掉本体，避免下次拉取又出现
   try {
     if(window._fb && typeof window._fb.remove === 'function' && id) {
@@ -5924,8 +5983,8 @@ window.translateNotif = translateNotif;
 // 没设置过（老通知，或者选的"全部"）都当作发给所有人，行为跟以前完全一样，不会漏掉任何人。
 function _matchesNotifTarget(n){
   const tp = n.targetPremium || 'all';
-  if(tp === 'premium' && localStorage.getItem('luna_activated') !== '1') return false;
-  if(tp === 'trial' && localStorage.getItem('luna_activated') === '1') return false;
+  if(tp === 'premium' && !window._isProSafe()) return false;
+  if(tp === 'trial' && window._isProSafe()) return false;
   const tf = n.targetPlatform || 'all';
   if(tf !== 'all'){
     const rawPlatform = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || 'web';
@@ -7152,6 +7211,12 @@ window.setLang = setLang;
 
   // ══ 激活状态系统 ══
   function isActivated() {
+    // 🩹 这里以前自己单独重写了一遍 isPro() 的逻辑（Play版全开 + 判断 luna_activated），
+    // 两份逻辑当时完全一样，只是分别定义在文件两个不同的 <script> 标签里——万一以后有人
+    // 只更新了其中一份（比如给 isPro() 加过期时间判断的那次），这两个判断"能不能用会员功能"
+    // 的函数就会悄悄算出不同答案而不自知。改成优先调用 window.isPro()（那边是唯一权威实现），
+    // 只有它还没定义好（脚本加载顺序问题）时才退回这份跟它逻辑一致的本地兜底
+    if(typeof window.isPro === 'function') return window.isPro();
     if(IS_PLAY_BUILD) return true; // Play 版：功能全开（第一版纯净免费）
     return localStorage.getItem('luna_activated') === '1';
   }
@@ -8052,13 +8117,36 @@ window.setLang = setLang;
   // 状态转场"，比检查DOM当前display字符串可靠（元素刚渲染出来时display是空字符串，不是'none'，
   // 用它判断"之前是不是隐藏的"会在首次调用时误判）
   let _prevOnboardStarted = null;
+  // ══ 🩹 唯一权威判断："是否存在有效的经期记录" ══
+  // 只算"今天或之前"的日期，未来日期不算数——这是跟 calUpdateStats() 里那段 sorted 过滤
+  // 完全相同的口径（设备时钟偶尔抽风，把记录打成未来日期的情况不该被当成"已经有数据"）。
+  // calUpdateStats() 和 updateOnboard() 之前各自单独判断"有没有数据"，标准还不完全一样
+  // （一个按日期过滤、一个不过滤），这是两张卡片内容自相矛盾这一整类问题反复出现的真正根子。
+  // 现在统一成这一个函数，谁要判断"有没有经期数据"都从这里拿答案，physically 不可能
+  // 再出现两处算出不同结果的情况。
+  function _hasValidPeriodData(){
+    try{
+      if(typeof periodSet === 'undefined' || !periodSet || !periodSet.size) return false;
+      const _today = (typeof getTodayTH === 'function') ? getTodayTH() : new Date();
+      const _todayMid = new Date(_today.getFullYear(), _today.getMonth(), _today.getDate());
+      for(const k of periodSet){
+        const parts = String(k).split('-').map(Number);
+        if(parts.length !== 3 || parts.some(isNaN)) continue;
+        const d = new Date(parts[0], parts[1]-1, parts[2]);
+        if(d <= _todayMid) return true;
+      }
+      return false;
+    }catch(e){ return false; }
+  }
+  window._hasValidPeriodData = _hasValidPeriodData;
+
   function updateOnboard() {
     let hasPeriod = false;
     let hasAnyRecord = false;
     try {
-      const pd = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]');
-      const lg = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
-      hasPeriod = (pd && pd.length > 0);
+      // 🩹 不再自己判断"有没有数据"，直接问唯一权威来源——保证跟 calUpdateStats() 永远口径一致
+      hasPeriod = _hasValidPeriodData();
+      const lg = (typeof logs !== 'undefined') ? logs : JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
       hasAnyRecord = hasPeriod || (lg && lg.length > 0);  // 记过经期 或 心情/备注
     } catch(e) {}
     // 🩹 首页三态：
@@ -8299,6 +8387,10 @@ window.setLang = setLang;
 
   // 判断是否正版
   function isPro() { if(window.IS_PLAY_BUILD) return true; return localStorage.getItem('luna_activated') === '1'; }
+  window.isPro = isPro; // 🩹 挂到 window 上：判断"是否正版会员"这件事，之前在文件好几个更早的
+  // <script> 标签里各自重复写了一遍同样的逻辑（因为普通函数声明跨不出当前这个标签），
+  // 现在把这一份挂到 window，那几处改成调用 window.isPro()，不再各自维护一份小副本，
+  // 避免以后只更新了其中一份（比如给 isPro() 加过期时间判断的那次）导致互相打架。
   // 主题权限：正式会员 或 试用期内 都可用全部主题（试用到期后回退）
   // ── 主题三档（这次调整过一轮，下面是最新的） ──
   // 免费：peach（新默认） / aurora / moonlotus / mistteal / duskmauve / default / dream（永久免费，不在下面两个表里）
@@ -13293,7 +13385,7 @@ window.setLang = setLang;
     try {
       const deleted = JSON.parse(localStorage.getItem('luna_notifs_deleted') || '[]');
       [1,2,3,4,5].forEach(id => { if(!deleted.includes(String(id))) deleted.push(String(id)); });
-      localStorage.setItem('luna_notifs_deleted', JSON.stringify(deleted.slice(-100)));
+      localStorage.setItem('luna_notifs_deleted', JSON.stringify(deleted.slice(-1000)));
       if(notifList) {
         const before = notifList.length;
         notifList = notifList.filter(n => ![1,2,3,4,5].includes(Number(n.id)));
@@ -13424,7 +13516,7 @@ window.setLang = setLang;
           window._fb.remove('notifications/' + n.id).catch(()=>{});
         }
       });
-      localStorage.setItem('luna_notifs_deleted', JSON.stringify(deleted.slice(-100)));
+      localStorage.setItem('luna_notifs_deleted', JSON.stringify(deleted.slice(-1000)));
     } catch(e) {}
     notifList = [];
     // 清空通知缓存，但保留删除黑名单（luna_notifs_deleted 不能删，否则下次又被拉回）
@@ -14469,7 +14561,7 @@ window.setLang = setLang;
       })
       .sort();
 
-    if (sorted.length === 0) {
+    if (!_hasValidPeriodData()) {
       document.getElementById('calLastPeriod').textContent = (_appLang==='zh'?'尚未记录':'ยังไม่มีข้อมูล');
       document.getElementById('calNextPeriod').textContent = '--';
       document.getElementById('calCycleLen').textContent  = '--';
@@ -16825,11 +16917,11 @@ window.setLang = setLang;
           // uid 还没就绪（登录恢复是异步的）→ 最多重试约5秒，期间不急着显示试用横幅
           if(_decideTries++ < 50){ setTimeout(decide, 100); return; }
           // 实在等不到 → 按本地缓存
-          if(localStorage.getItem('luna_activated') !== '1') showTrialBanner();
+          if(!isPro()) showTrialBanner();
           return;
         }
         if(!window._fb){
-          if(localStorage.getItem('luna_activated') !== '1') showTrialBanner();
+          if(!isPro()) showTrialBanner();
           return;
         }
         window._fb.get('users/'+uid).then(async ud=>{
@@ -16855,7 +16947,7 @@ window.setLang = setLang;
             localStorage.setItem('luna_activated','0');
             showTrialBanner();
           }
-        }).catch(()=>{ if(localStorage.getItem('luna_activated') !== '1') showTrialBanner(); });
+        }).catch(()=>{ if(!isPro()) showTrialBanner(); });
       }
       if(window._fbReady) decide();
       else window.addEventListener('fbReady', decide, {once:true});
@@ -16991,7 +17083,7 @@ window.setLang = setLang;
     try {
       const uid = localStorage.getItem('luna_uid');
       if(!uid || uid.startsWith('trial_')) return;
-      if(localStorage.getItem('luna_activated') !== '1') return; // 不是会员，不用提醒
+      if(!isPro()) return; // 不是会员，不用提醒
 
       const Purchases = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases;
       if(!Purchases || typeof Purchases.getCustomerInfo !== 'function') return;
@@ -19848,7 +19940,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
   try {
     const deleted=JSON.parse(localStorage.getItem('luna_notifs_deleted')||'[]');
     [1,2,3,4,5].forEach(id=>{ if(!deleted.includes(String(id))) deleted.push(String(id)); });
-    localStorage.setItem('luna_notifs_deleted',JSON.stringify(deleted.slice(-100)));
+    localStorage.setItem('luna_notifs_deleted',JSON.stringify(deleted.slice(-1000)));
   } catch(e){}
 })();
 

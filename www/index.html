@@ -50,6 +50,41 @@
   window._openLineContact = function(){
     try{ window.open(window._remoteConfig.lineUrl || 'https://lin.ee/STIfOtU', '_blank'); }catch(e){}
   };
+  // 🩹 账号数据隔离重构：period_days/logs/usedays 这三个原来是全局共用的localStorage key，
+  // 不区分账号——同一台设备哪怕只登录同一个账号，App每次冷启动都要靠一个只存内存的标记去判断
+  // "这份缓存是不是这个账号的"，那个标记必然每次都清零，导致每次开App都要先清空本地数据、
+  // 完全指望网络请求能重新拉回来（这是之前反复出现"首页一直没数据、退出重进还是一样"的真正根源）。
+  // 现在把这几个 key 按账号拆开存（key 名后面拼上 uid），从根子上解决——不同账号本来就是不同的
+  // key，压根不存在"这份缓存到底是不是这个账号的"这个问题，也就不需要每次冷启动靠猜/清空来兜底了。
+  // 挂在 window 上是因为下面用到它的代码分散在好几个不同的 <script> 标签里，普通函数声明的作用域
+  // 出不了当前这一个标签，只有挂 window 才能全局都调用到（裸调用 _acctKey(...) 会通过全局对象
+  // 自动找到 window._acctKey，不用每处都写成 window._acctKey(...)，这点跟 correctedNow() 是同一个道理）。
+  window._acctKey = function(base){
+    try{
+      var uid = localStorage.getItem('luna_uid');
+      return uid ? (base + '_' + uid) : base; // 游客/拿不到uid时退回原始key，行为跟老版本一致
+    }catch(e){ return base; }
+  };
+  // 🩹 一次性数据迁移：把老版本存在"不分账号"的 key 下的数据，搬到新的"按账号"key 下。
+  // 必须在下面所有 let periodDays=.../let logs=... 这些模块级初始化之前跑完，这里所在的
+  // 这个 <script> 标签是全文件最早执行的，正好能保证这一点。只有第一次升级到这个新版本时
+  // 会真正执行搬家动作，之后新key已经有数据了，直接跳过，不会每次启动都重复搬。
+  // "老数据是不是当前这个账号的"，靠 luna_data_owner_uid 这个持久标记确认（doLoad()里维护的），
+  // 标记对不上就不迁移——交给后面的云端合并逻辑去处理，更安全，不会把不确定归属的数据错搬过去。
+  (function _migrateAccountScopedKeys(){
+    try{
+      var uid = localStorage.getItem('luna_uid');
+      if(!uid) return; // 没登录（游客），不涉及"按账号"这件事，不用迁移
+      var owner = localStorage.getItem('luna_data_owner_uid');
+      if(owner !== uid) return;
+      ['luna_period_days','luna_logs','luna_usedays'].forEach(function(base){
+        var newKey = base + '_' + uid;
+        if(localStorage.getItem(newKey) !== null) return; // 新key已经有数据，说明迁移过了，跳过
+        var old = localStorage.getItem(base);
+        if(old !== null){ localStorage.setItem(newKey, old); }
+      });
+    }catch(e){}
+  })();
   (function _loadRemoteConfigEarly(){
     try{
       var dbBase = 'https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app';
@@ -79,6 +114,21 @@
       }).catch(function(){ /* 请求失败就用上面的默认值，不影响app正常使用 */ });
     }catch(e){}
   })();
+
+  // 🆕 Capgo 热更新：告诉原生层"这个网页包加载成功了，不用回滚到上一个版本"。
+  // Capgo 有个安全机制——如果一个新推送的网页包迟迟没收到这个"我加载成功了"的确认，
+  // 就会认为这个包是坏的，下次启动自动回滚到上一个能用的版本。所以这个调用必须在
+  // App 真正能正常使用后才发，不能扔在最顶上——用 window.onload（整页资源都加载完）
+  // 作为触发时机，比较稳妥；只在真机原生环境（window.Capacitor 存在）才会真的执行，
+  // 网页版/预览环境里 Capacitor.Plugins.CapacitorUpdater 不存在，直接跳过不报错。
+  window.addEventListener('load', function(){
+    try{
+      if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater
+         && typeof window.Capacitor.Plugins.CapacitorUpdater.notifyAppReady === 'function'){
+        window.Capacitor.Plugins.CapacitorUpdater.notifyAppReady();
+      }
+    }catch(e){}
+  });
 
   // ══ 全局错误监控（静默上报到 Firebase errorReports，便于远程排查"某页打不开/白屏"类问题）══
   // 设计：① 不打扰用户（纯后台）② 同一错误每会话只报一次（防循环报错刷爆数据库）
@@ -2823,7 +2873,7 @@ window.installPWA = function() {
 
   <!-- Next Period Card -->
   <!-- Card 1: 经期第几天 — 默认浅色跟随主题；选中"莲夜水"主题时才切换为深蓝+莲花丝带装饰 -->
-  <div class="card next-card" id="cycleCard" style="padding:22px 22px 0;">
+  <div class="card next-card" id="cycleCard" style="display:none; padding:22px 22px 0;">
     <!-- 铃铛：悬浮在卡片右上角，默认20%透明度，按压时100%可见；红点独立不受透明度影响 -->
     <div class="bell-float-pos">
       <div class="bell-wrap" onclick="openNotif()">
@@ -5776,19 +5826,26 @@ async function initiateSelfAccountDeletion(){
       }
       try{
         showToast(isTh ? '🗑 กำลังลบบัญชี...' : '🗑 正在删除账号...');
-        const old = await window._fb.get('users/'+uid).catch(()=>null);
         await window._fb.remove('userdata/'+uid);
-        await window._fb.set('users/'+uid, {
-          uid: uid, evicted: true, evictedAt: Date.now(),
-          displayName: (old && old.displayName) || '', email: (old && old.email) || ''
-        });
-        // 回读校验：确保真的删干净了才提示成功，跟后台管理员那边同一套标准，不写完就假装成功
+        // 🩹 修复："正在删除...卡住不动"的真正原因：这里原来用 window._fb.set('users/'+uid, {...})
+        // 整个替换掉 users/{uid} 节点，但 activated / expiry 这两个子字段单独设了安全规则——只有
+        // 管理员能写。用户自己整节点覆盖，等于隐式"删掉"了这两个受保护字段，会被规则直接拒绝，
+        // set() 静默失败在这一步，后面的成功提示永远走不到，表现出来就是卡在"正在删除..."不动。
+        // 改成只单独写 evicted / evictedAt 这两个字段，不碰 activated/expiry，绕开权限冲突——
+        // 反正判断"账号是否已被删除"的地方（_lunaCheckAccountAlive等）本来就只认 evicted 这一个字段，
+        // activated/expiry 留着不改也不影响。
+        await window._fb.set('users/'+uid+'/evicted', true);
+        await window._fb.set('users/'+uid+'/evictedAt', Date.now());
+        // 回读校验：确保真的标记成功了才提示成功，跟后台管理员那边同一套标准，不写完就假装成功
         const c1 = await window._fb.get('users/' + uid);
         const c2 = await window._fb.get('userdata/' + uid);
         if(!(c1 && c1.evicted === true) || c2 !== null) throw new Error('回读校验未通过，可能没删干净');
         // 自己删的，不用等 _lunaCheckAccountAlive 轮询发现，直接本地清理+登出
         try { if(typeof window._lunaClearAccountData === 'function') window._lunaClearAccountData(); } catch(e){}
-        try { if(uid) window._fb.remove('users/' + uid).catch(()=>{}); } catch(e){} // 消费掉自己刚打的墓碑，方便以后想重新注册
+        // 🩹 这一步"消费掉墓碑方便重新注册"，用户自己也没权限整节点删除（同样卡在 activated/expiry），
+        // 大概率会静默失败——但不影响上面已经成功的删除结果，加了 catch 不让它挡住成功提示；
+        // 真要重新注册，走正常登录流程时 activated 等字段本来就会被覆盖成新值，不会有后遗症
+        try { if(uid) window._fb.remove('users/' + uid).catch(()=>{}); } catch(e){}
         const msg = isTh ? 'ลบบัญชีเรียบร้อยแล้ว ขอบคุณที่เคยใช้ Luna Calm นะคะ 🌙' : '账号已删除，谢谢你曾经使用过 Luna Calm 🌙';
         _lunaSimpleAlert(msg, isTh ? 'ตกลง' : '好的', function(){
           if(typeof window.signOutGoogle === 'function') window.signOutGoogle();
@@ -6703,7 +6760,7 @@ onValue(ref(db,'notifications'), snap => {
     // 入口：只有这台设备从没看过引导，才显示；已经看过（或已经是老用户/已有本地数据）就直接跳过，露出登录页
     try {
       const seen = localStorage.getItem('luna_onboard_seen');
-      const hasExistingData = !!localStorage.getItem('luna_uid') || !!localStorage.getItem('luna_period_days');
+      const hasExistingData = !!localStorage.getItem('luna_uid') || !!localStorage.getItem(_acctKey('luna_period_days'));
       if(OB_FORCE_SHOW_FOR_TESTING || (!seen && !hasExistingData)){
         document.getElementById('onboardGate').style.display = 'flex';
         document.body.style.overflow = 'hidden'; // 锁住背后页面的滚动，避免滑到底漏出下面的内容
@@ -7999,8 +8056,8 @@ window.setLang = setLang;
     let hasPeriod = false;
     let hasAnyRecord = false;
     try {
-      const pd = JSON.parse(localStorage.getItem('luna_period_days') || '[]');
-      const lg = JSON.parse(localStorage.getItem('luna_logs') || '[]');
+      const pd = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]');
+      const lg = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
       hasPeriod = (pd && pd.length > 0);
       hasAnyRecord = hasPeriod || (lg && lg.length > 0);  // 记过经期 或 心情/备注
     } catch(e) {}
@@ -8130,7 +8187,7 @@ window.setLang = setLang;
 
   // 首页倒计时初始化 — 有经期数据才推算，否则显示 --
   function updatePrediction() {
-    const periodDays = JSON.parse(localStorage.getItem('luna_period_days') || '[]');
+    const periodDays = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]');
     if(periodDays.length === 0) return; // 没数据不推算，等 calUpdateStats
     // 有数据 → 交给 calUpdateStats 处理，这里不重复计算
   }
@@ -11042,7 +11099,7 @@ window.setLang = setLang;
       // 读取最近一天的记录，生成"记得你"的问候语；没有合适数据时返回 null
       function getRecentLogNote(zh){
         try {
-          const logs = JSON.parse(localStorage.getItem('luna_logs')||'[]');
+          const logs = JSON.parse(localStorage.getItem(_acctKey('luna_logs'))||'[]');
           if(!logs.length) return null;
           const todayKey = _dkey(getTodayTH());
           const yest = getTodayTH(); yest.setDate(yest.getDate()-1);
@@ -11062,8 +11119,8 @@ window.setLang = setLang;
       // 连续记录天数（症状日志或经期日，任一算"有记录"；今天还没记就从昨天开始算，避免一打开就是 0）
       function getStreakDays(){
         try {
-          const logs = JSON.parse(localStorage.getItem('luna_logs')||'[]').map(l=>l&&l.date).filter(Boolean);
-          const pdays = JSON.parse(localStorage.getItem('luna_period_days')||'[]');
+          const logs = JSON.parse(localStorage.getItem(_acctKey('luna_logs'))||'[]').map(l=>l&&l.date).filter(Boolean);
+          const pdays = JSON.parse(localStorage.getItem(_acctKey('luna_period_days'))||'[]');
           const daySet = new Set([...logs, ...pdays]);
           let streak = 0, d = getTodayTH();
           if(!daySet.has(_dkey(d))) d.setDate(d.getDate()-1);
@@ -11089,7 +11146,7 @@ window.setLang = setLang;
       function getTodayMoodCareInfo(){
         // ① 优先看今天有没有记录疼痛/不适类症状——最具体、最该被回应
         try{
-          const logs = JSON.parse(localStorage.getItem('luna_logs')||'[]');
+          const logs = JSON.parse(localStorage.getItem(_acctKey('luna_logs'))||'[]');
           const todayKey = _dkey(getTodayTH());
           const todayLog = logs.find(l=>l && l.date===todayKey && l.symptoms && l.symptoms.length);
           if(todayLog && typeof PAIN_KEYWORD_RE!=='undefined'){
@@ -11684,8 +11741,8 @@ window.setLang = setLang;
   async function exportData() {
     const code     = localStorage.getItem('luna_uid') || 'unknown';
     const nickname = localStorage.getItem('luna_nickname') || '';
-    const periodDays = JSON.parse(localStorage.getItem('luna_period_days') || '[]');
-    const logsData   = JSON.parse(localStorage.getItem('luna_logs') || '[]');
+    const periodDays = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]');
+    const logsData   = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
     const thDate = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Bangkok'});
     const payload = { exportAt:thDate, version:'1.0.0', code, nickname, periodDays, logs:logsData };
     const jsonStr = JSON.stringify(payload, null, 2);
@@ -11791,19 +11848,19 @@ window.setLang = setLang;
           : `确定导入备份？\n来自：${data.code||'未知'}\n日期：${data.exportAt||'未知'}\n\n将与现有数据合并（不会删除已有记录）`;
         _lunaConfirm(confirmMsg, {okText: isTh?'นำเข้า':'导入'}, function(){
           // ── 合并 periodDays（按日期去重）──
-          const curPeriod = JSON.parse(localStorage.getItem('luna_period_days') || '[]');
+          const curPeriod = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]');
           const mergedPeriod = Array.from(new Set([...curPeriod, ...data.periodDays])).sort();
 
           // ── 合并 logs（按 date 去重，导入的同日记录覆盖旧的）──
-          const curLogs = JSON.parse(localStorage.getItem('luna_logs') || '[]');
+          const curLogs = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
           const logMap = {};
           curLogs.forEach(l => { if(l && l.date) logMap[l.date] = l; });
           data.logs.forEach(l => { if(l && l.date) logMap[l.date] = l; });
           const mergedLogs = Object.values(logMap).sort((a,b) => (b.date>a.date?1:-1));
 
           try {
-            localStorage.setItem('luna_period_days', JSON.stringify(mergedPeriod));
-            localStorage.setItem('luna_logs', JSON.stringify(mergedLogs));
+            localStorage.setItem(_acctKey('luna_period_days'), JSON.stringify(mergedPeriod));
+            localStorage.setItem(_acctKey('luna_logs'), JSON.stringify(mergedLogs));
             if(data.nickname && !localStorage.getItem('luna_nickname')) localStorage.setItem('luna_nickname', data.nickname);
           } catch(e) { console.log('import data local cache write failed:', e); }
           periodSet = new Set(mergedPeriod);
@@ -11835,13 +11892,17 @@ window.setLang = setLang;
         // 删除所有个人数据（保留会员身份：uid/activated/expiry/first_login/consent）
         const code = localStorage.getItem('luna_uid');
         const removeKeys = [
-          'luna_period_days', 'luna_logs', 'luna_achievements',
+          // 🩹 period_days/logs/usedays 这三个已经改成按账号拆分存储了（key名后面拼uid），
+          // 新老两种key名都加进删除列表——新版本本来就该用namespaced那份，旧版本的bare key
+          // 名字留着是为了兼容"还没跑过一次迁移就直接点了清除数据"这种边界情况，删了也无妨
+          'luna_period_days', _acctKey('luna_period_days'),
+          'luna_logs', _acctKey('luna_logs'), 'luna_achievements',
           'luna_moon_points', 'luna_cycle_len', 'luna_period_len',
           'luna_notifs_' + (code || 'default'), 'luna_notifs_deleted',
           'lumi_save_v1', 'luna_lumi_last_visit',
           // 🩹 补全：这几个之前漏删，会导致"删除所有记录"这句承诺不完整
           // （打卡天数/奖励领取标记属于使用记录；Lumi 关心提示里带着症状分类，退出登录换人用时可能串到下一个账号）
-          'luna_usedays', 'luna_reward_claimed', 'luna_ck_collapsed',
+          'luna_usedays', _acctKey('luna_usedays'), 'luna_reward_claimed', 'luna_ck_collapsed',
           'luna_lumi_pending_care', 'luna_lumi_met_date'
         ];
         removeKeys.forEach(k => localStorage.removeItem(k));
@@ -12350,24 +12411,24 @@ window.setLang = setLang;
   }
 
   // ═══ 症状记录存储 ═══
-  let logs = JSON.parse(localStorage.getItem('luna_logs') || '[]');
+  let logs = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
 
   // 启动时从 Firebase 加载用户数据（优先 Firebase，回退 localStorage）
   (function loadFromFirebase(){
     function doLoad(){
       const code = localStorage.getItem('luna_uid');
       if(!code || !window._fb) return;
-      // 🛡️ 防串号核心防线：periodSet/logs 是页面加载时就初始化好、之后一直在内存里的缓存变量，
-      // 正常换号会靠"登出时清空+整页reload"和"登录时检测换号清空"这两道保险来清干净它们，
-      // 但只要任何一道保险因为时序/环境差异失效一次，这里的合并逻辑就会把上一个账号残留在内存里的
-      // periodSet/logs 当成"本地数据"跟新账号的云端数据合并，导致新账号看到上一个账号的经期记录——
-      // 这正是之前排查到的串号问题。所以在合并之前，先核对内存缓存到底是不是这个账号的，
-      // 对不上就强制清空重来，不管前面两道保险有没有生效，这里都能兜底拦住。
-      if(window._lunaLoadedDataFor !== code){
-        periodSet = new Set();
-        logs = [];
-        window._lunaLoadedDataFor = code;
-      }
+      // 🛡️ 防串号：以前 periodSet/logs 是全局共用变量，靠这里"对不上就清空"来兜底防止
+      // 把上一个账号的数据错合并进新账号。🩹 现在已经改成按账号拆分存储（_acctKey()，见文件
+      // 最前面的说明），periodSet/logs 从"同步加载到内存"那一步开始，读的就是这个账号专属的
+      // key——物理上就不存在"内存里是上一个账号残留数据"这种可能，防串号这件事已经在更早的
+      // 源头解决了，这里不再需要清空兜底。之前这里加过一层"本地记一个归属标记，标记对得上才
+      // 信任本地数据"的补丁，但补丁本身还有个漏洞：全新账号第一次存档后关App重开，这个标记
+      // 还没来得及在上一次会话里成功写入，一样会被判定"对不上"触发清空——刚存的数据自己都能
+      // 把自己清没。与其继续在这个判断上打补丁，不如直接把清空这个动作整个去掉：改成只做归属
+      // 标记的记录（留着给其他地方可能用得上），不再用它来决定清不清空 periodSet/logs。
+      window._lunaLoadedDataFor = code;
+      try{ localStorage.setItem('luna_data_owner_uid', code); }catch(e){}
       window._fb.get('userdata/'+code+'/periodDays').then(data=>{
         if(data && Array.isArray(data)){
           // 合并本地与云端经期日（去重），避免云端旧数据覆盖本地新记录
@@ -12379,7 +12440,7 @@ window.setLang = setLang;
           // 长度没变就说明这次云端数据没带来任何新东西，用长度对比就够了。
           const hasNewData = merged.length !== local.length;
           periodSet = new Set(merged);
-          try { localStorage.setItem('luna_period_days', JSON.stringify(merged)); }
+          try { localStorage.setItem(_acctKey('luna_period_days'), JSON.stringify(merged)); }
           catch(e) { console.log('luna_period_days local cache write failed:', e); }
           // 合并结果回写云端，保持两端一致
           if(merged.length !== data.length) window._fb.set('userdata/'+code+'/periodDays', merged).catch(()=>{});
@@ -12411,7 +12472,7 @@ window.setLang = setLang;
           });
           const merged = Object.values(map).sort((a,b)=> a.date>b.date?-1:1);
           logs = merged;
-          try { localStorage.setItem('luna_logs', JSON.stringify(merged)); }
+          try { localStorage.setItem(_acctKey('luna_logs'), JSON.stringify(merged)); }
           catch(e) { console.log('luna_logs local cache write failed:', e); }
           if(merged.length !== data.length) window._fb.set('userdata/'+code+'/logs', merged).catch(()=>{});
           if(typeof renderLogList==='function') renderLogList();  // 合并后重渲染，消除闪烁
@@ -12449,9 +12510,9 @@ window.setLang = setLang;
       // 使用天数（云端和本地合并去重，取并集，避免换设备丢天数）
       window._fb.get('userdata/'+code+'/usedays').then(data=>{
         if(Array.isArray(data)){
-          let local=[]; try{ local=JSON.parse(localStorage.getItem('luna_usedays')||'[]'); }catch(e){}
+          let local=[]; try{ local=JSON.parse(localStorage.getItem(_acctKey('luna_usedays'))||'[]'); }catch(e){}
           const merged=Array.from(new Set([...local, ...data]));
-          localStorage.setItem('luna_usedays', JSON.stringify(merged));
+          localStorage.setItem(_acctKey('luna_usedays'), JSON.stringify(merged));
           if(typeof renderCheckin==='function') renderCheckin();
         }
       }).catch(()=>{});
@@ -12535,9 +12596,15 @@ window.setLang = setLang;
   // ── 换账号时清掉上一个账号的本地残留（修复"同机多账号记录串号"）──
   // localStorage 是整个浏览器共用、不分账号的；换号登录若不清，旧账号数据会被合并进新账号、并被写回云端污染
   window._lunaClearAccountData = function(){
-    ['luna_period_days','luna_logs','luna_achievements','luna_moon_points',
+    // 🩹 在清空任何东西之前，先把当前（即将退出登录的）这个账号的 uid 记下来，
+    // 用来算出 period_days/logs/usedays 对应的 namespaced key 名——这几个已经改成按账号
+    // 拆分存储了，不能只删旧的 bare key 名，不然新版本实际在用的那份数据反而留在本地没清掉
+    const _prevUid = (function(){ try{ return localStorage.getItem('luna_uid'); }catch(e){ return null; } })();
+    const _scoped = _prevUid ? function(base){ return base + '_' + _prevUid; } : function(base){ return base; };
+    ['luna_period_days', _scoped('luna_period_days'),
+     'luna_logs', _scoped('luna_logs'), 'luna_achievements','luna_moon_points',
      'luna_period_len','luna_cycle_len','luna_nickname','luna_avatar','luna_avatar_frame',
-     'luna_usedays','luna_reward_claimed','luna_ck_collapsed',
+     'luna_usedays', _scoped('luna_usedays'), 'luna_reward_claimed','luna_ck_collapsed',
      'luna_reminders','luna_first_login','luna_expiry','luna_activated',
      'luna_consent','luna_consent_at','luna_banner_closed',
      'lumi_save_v1','luna_lumi_last_visit',
@@ -12555,6 +12622,7 @@ window.setLang = setLang;
     try { logs = []; } catch(e) {}
     try { periodSet = new Set(); } catch(e) {}
     try { window._lunaLoadedDataFor = null; } catch(e) {} // 归属标记也一并清掉，确保下次doLoad无论加载哪个账号都会先核对
+    try { localStorage.removeItem('luna_data_owner_uid'); } catch(e) {} // 持久归属标记同样要清，不然下次登录（哪怕换了账号）会被误判成"本地数据可信"
     try { if(typeof renderLogList==='function') renderLogList(); } catch(e) {}
     try { if(typeof calUpdateStats==='function') calUpdateStats(); } catch(e) {}
   };
@@ -12672,7 +12740,7 @@ window.setLang = setLang;
     let _isNewPeriodStart = false;
     if (periodToggle) {
       let pdArr = [];
-      try { pdArr = JSON.parse(localStorage.getItem('luna_period_days') || '[]'); if(!Array.isArray(pdArr)) pdArr = []; } catch(e) { pdArr = []; }
+      try { pdArr = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]'); if(!Array.isArray(pdArr)) pdArr = []; } catch(e) { pdArr = []; }
       const pdSet = new Set(pdArr);
       // 🌙 记录前先判断：今天是不是"新一次经期的第一天"，如果是就用旧数据估算一下"当初预测的开始日"，等下和今天比对
       if (periodToggle.checked) {
@@ -12699,7 +12767,7 @@ window.setLang = setLang;
       const newArr = [...pdSet];
       // 🩹 本地缓存写入单独try/catch：万一本地存储写满了，也不能因此连累下面的云端同步一起失败——
       // 本地写失败只是快取失效（下次可能需要重新从云端拉取），数据本身还是能正常保存到 Firebase，不会真的丢
-      try { localStorage.setItem('luna_period_days', JSON.stringify(newArr)); }
+      try { localStorage.setItem(_acctKey('luna_period_days'), JSON.stringify(newArr)); }
       catch(e) { console.log('luna_period_days local cache write failed:', e); }
       // 同步内存变量（若当前作用域可见）与 Firebase
       try { if(typeof periodSet !== 'undefined') periodSet = new Set(newArr); } catch(e) {}
@@ -12714,12 +12782,12 @@ window.setLang = setLang;
     if (symptoms.length > 0) {
       _didSave = true;
       let logArr = [];
-      try { logArr = JSON.parse(localStorage.getItem('luna_logs') || '[]'); if(!Array.isArray(logArr)) logArr = []; } catch(e) { logArr = []; }
+      try { logArr = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]'); if(!Array.isArray(logArr)) logArr = []; } catch(e) { logArr = []; }
       const existing = logArr.findIndex(l => l && l.date === key);
       const entry = { date: key, symptoms: symptoms.map(s=>s.name), emojis: symptoms.map(s=>s.emoji) };
       if (existing >= 0) logArr[existing] = entry; else logArr.unshift(entry);
       // 🩹 同样单独try/catch，本地写失败不影响云端同步照常尝试
-      try { localStorage.setItem('luna_logs', JSON.stringify(logArr)); }
+      try { localStorage.setItem(_acctKey('luna_logs'), JSON.stringify(logArr)); }
       catch(e) { console.log('luna_logs local cache write failed:', e); }
       try { if(typeof logs !== 'undefined') logs = logArr; } catch(e) {}
       try {
@@ -12764,7 +12832,7 @@ window.setLang = setLang;
 
     if (symptoms.length > 0 || note) {
       let logArr = [];
-      try { logArr = JSON.parse(localStorage.getItem('luna_logs') || '[]'); if(!Array.isArray(logArr)) logArr = []; } catch(e) { logArr = []; }
+      try { logArr = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]'); if(!Array.isArray(logArr)) logArr = []; } catch(e) { logArr = []; }
       const existing = logArr.findIndex(l => l && l.date === key);
       if (existing >= 0) {
         // merge 症状
@@ -12779,7 +12847,7 @@ window.setLang = setLang;
         logArr.unshift({ date: key, symptoms: symptoms.map(s=>s.name), emojis: symptoms.map(s=>s.emoji), note: note });
       }
       // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试（跟 saveLog 同一套修法）
-      try { localStorage.setItem('luna_logs', JSON.stringify(logArr)); }
+      try { localStorage.setItem(_acctKey('luna_logs'), JSON.stringify(logArr)); }
       catch(e) { console.log('luna_logs local cache write failed:', e); }
       try { if(typeof logs !== 'undefined') logs = logArr; } catch(e) {}
       try { if(typeof checkAchievements==='function') checkAchievements(); } catch(e) {}
@@ -12867,7 +12935,7 @@ window.setLang = setLang;
 
     // 始终以 localStorage 为准读取最新记录，避免内存变量过时导致"时有时无"
     try {
-      const stored = JSON.parse(localStorage.getItem('luna_logs') || '[]');
+      const stored = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
       if (Array.isArray(stored)) logs = stored;
     } catch(e) {}
     // 强制按日期倒序（新在前）
@@ -12893,7 +12961,7 @@ window.setLang = setLang;
 
     // 读取经期日，用于给经期当天的记录加标记
     let _periodSet = new Set();
-    try { _periodSet = new Set(JSON.parse(localStorage.getItem('luna_period_days') || '[]')); } catch(e) {}
+    try { _periodSet = new Set(JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]')); } catch(e) {}
 
     let html = shown.map((l) => {
       const origIdx = logs.indexOf(l);
@@ -13405,7 +13473,7 @@ window.setLang = setLang;
 
   // ═══ CALENDAR DATA ═══
   // periodDays: Set of 'YYYY-MM-DD' strings marked as period days
-  let periodDays = JSON.parse(localStorage.getItem('luna_period_days') || '[]');
+  let periodDays = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]');
   let periodSet  = new Set(periodDays);
 
   // ══ 🩹 补上失败重试：之前 logs / periodDays 的云端写入都是 fire-and-forget
@@ -13456,7 +13524,7 @@ window.setLang = setLang;
 
   function savePeriodDays() {
     // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试
-    try { localStorage.setItem('luna_period_days', JSON.stringify([...periodSet])); }
+    try { localStorage.setItem(_acctKey('luna_period_days'), JSON.stringify([...periodSet])); }
     catch(e) { console.log('luna_period_days local cache write failed:', e); }
     // 同步到 Firebase（带失败重试，见上面 _fbSetWithRetry）
     const code = localStorage.getItem('luna_uid');
@@ -13471,7 +13539,7 @@ window.setLang = setLang;
 
   function saveLogs() {
     // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试（跟 saveLog/saveMoreLog 同一套修法）
-    try { localStorage.setItem('luna_logs', JSON.stringify(logs)); }
+    try { localStorage.setItem(_acctKey('luna_logs'), JSON.stringify(logs)); }
     catch(e) { console.log('luna_logs local cache write failed:', e); }
     if(typeof checkAchievements==='function') checkAchievements();
     // 同步到 Firebase（带失败重试，见上面 _fbSetWithRetry）
@@ -14035,7 +14103,7 @@ window.setLang = setLang;
       const target = dateInput ? new Date(dateInput) : (typeof getTodayTH==='function' ? getTodayTH() : new Date());
       target.setHours(0,0,0,0);
       let periodDays=[];
-      try{ periodDays=JSON.parse(localStorage.getItem('luna_period_days')||'[]'); }catch(e){}
+      try{ periodDays=JSON.parse(localStorage.getItem(_acctKey('luna_period_days'))||'[]'); }catch(e){}
       const periodLen = parseInt(localStorage.getItem('luna_period_len')||'5');
       if(!periodDays.length) return { phase:'normal', cycleDay:null, daysToNext:null, hasData:false };
       const cycleLen = getCycleLen(periodDays);
@@ -15480,7 +15548,7 @@ window.setLang = setLang;
     // ── 概览：本周记录 / 本月记录 / 本周心情与症状明细（点开看日期；无论用中文还是泰语记录，都按当前语言显示，互相同步）──
     let summaryHtml='';
     try{
-      const logs=JSON.parse(localStorage.getItem('luna_logs')||'[]');
+      const logs=JSON.parse(localStorage.getItem(_acctKey('luna_logs'))||'[]');
       // 本周（含今天，共7天）
       const weekKeys=new Set(); for(let i=0;i<7;i++){ const d=new Date(todayMidnight); d.setDate(d.getDate()-i); weekKeys.add(keyOf(d)); }
       // 本月（本月1号 → 今天）
@@ -15928,8 +15996,8 @@ window.setLang = setLang;
   function getWeekSummary(){
     const isTh=(localStorage.getItem('luna_lang')||'th')!=='zh';
     const pad=n=>String(n).padStart(2,'0');
-    const logs=JSON.parse(localStorage.getItem('luna_logs')||'[]');
-    const pdays=JSON.parse(localStorage.getItem('luna_period_days')||'[]');
+    const logs=JSON.parse(localStorage.getItem(_acctKey('luna_logs'))||'[]');
+    const pdays=JSON.parse(localStorage.getItem(_acctKey('luna_period_days'))||'[]');
     const pset=new Set(pdays);
     // 过去7天的日期key（含今天）
     const todayStr=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
@@ -15961,7 +16029,7 @@ window.setLang = setLang;
     const topSym=Object.entries(symCount).sort((a,b)=>b[1]-a[1])[0];
     // 本周使用天数
     let usedThisWeek=0;
-    try{ const ud=JSON.parse(localStorage.getItem('luna_usedays')||'[]'); ud.forEach(k=>{ if(weekSet.has(k)) usedThisWeek++; }); }catch(e){}
+    try{ const ud=JSON.parse(localStorage.getItem(_acctKey('luna_usedays'))||'[]'); ud.forEach(k=>{ if(weekSet.has(k)) usedThisWeek++; }); }catch(e){}
     // 经期预测：还有几天来
     let daysToPeriod=null;
     try{ const dl=document.getElementById('daysLeft'); if(dl){ const n=parseInt(dl.textContent); if(!isNaN(n)) daysToPeriod=n; } }catch(e){}
@@ -16418,7 +16486,7 @@ window.setLang = setLang;
     const confidence = Math.max(60, Math.min(98, Math.round(98 - sd*6)));
 
     // 2) 症状高发期（基于真实症状记录）
-    const logsData = JSON.parse(localStorage.getItem('luna_logs') || '[]').filter(l=>l.symptoms&&l.symptoms.length>0);
+    const logsData = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]').filter(l=>l.symptoms&&l.symptoms.length>0);
     const lastStart = parseLocal(runs[runs.length-1][0]);
     let phaseHint = zh ? '数据积累中' : 'กำลังเก็บข้อมูล';
     if(logsData.length>=3){
@@ -16518,7 +16586,7 @@ window.setLang = setLang;
     const cycleCount = runs.length;
     let coverage = 0;
     try {
-      const allLogs = JSON.parse(localStorage.getItem('luna_logs') || '[]');
+      const allLogs = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
       const firstStart = parseLocal(runs[0][0]);
       const today = new Date(); today.setHours(0,0,0,0);
       const totalDays = Math.max(1, Math.round((today - firstStart)/86400000) + 1);
@@ -17308,7 +17376,7 @@ window.setLang = setLang;
   // ══════════════════════════════════════════════════════════════
   function scGetRecentCycleLengths(n){
     let pdArr = [];
-    try { pdArr = JSON.parse(localStorage.getItem('luna_period_days') || '[]'); } catch(e){}
+    try { pdArr = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]'); } catch(e){}
     if(!Array.isArray(pdArr) || !pdArr.length) return [];
     const parseLocal = k => { const parts = String(k).split('-').map(Number); return new Date(parts[0], parts[1]-1, parts[2]); };
     const today = new Date(); today.setHours(0,0,0,0);
@@ -19061,8 +19129,8 @@ function addMoonPoints(pts) {
 }
 
 function calcStreak() {
-  const logs = JSON.parse(localStorage.getItem('luna_logs') || '[]');
-  const periodDays = JSON.parse(localStorage.getItem('luna_period_days') || '[]');
+  const logs = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
+  const periodDays = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]');
   const allDates = new Set();
   logs.forEach(l => { if(l.date) allDates.add(l.date); });
   periodDays.forEach(d => allDates.add(d));
@@ -19078,10 +19146,10 @@ function calcStreak() {
   return streak;
 }
 function calcSymptomCount() {
-  return JSON.parse(localStorage.getItem('luna_logs') || '[]').filter(l => l.symptoms && l.symptoms.length > 0).length;
+  return JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]').filter(l => l.symptoms && l.symptoms.length > 0).length;
 }
 function calcLogCount() {
-  const logs = JSON.parse(localStorage.getItem('luna_logs') || '[]');
+  const logs = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]');
   return logs.length > 0 ? logs.length : 0;
 }
 function getProgress(ach) {
@@ -19250,7 +19318,7 @@ window.updateAchieveCard=updateAchieveCard;
 // 日期基准 = 泰国时间日历日（与经期/记录存储的 YYYY-MM-DD 完全一致），纯日历日加减算连续，不跨时区漂移、不与经期预测逻辑掺合。
 // ══ 📅 持续使用天数 + 月光值奖励（累计7天领20，可补领，不记录也算）══
 // 数据：luna_usedays = 用过App的日期数组；luna_reward_claimed = 已领取的档位数
-function _useGetDays(){ try{ return JSON.parse(localStorage.getItem('luna_usedays')||'[]'); }catch(e){ return []; } }
+function _useGetDays(){ try{ return JSON.parse(localStorage.getItem(_acctKey('luna_usedays'))||'[]'); }catch(e){ return []; } }
 // 🩹 修复：之前直接用 new Date()（裸设备时间）算"今天"，手机时钟被意外调错（或者干脆调到几个月后）
 // 就会把一个未来日期写进 usedays，出现过 "2026-10-10" 夹在一堆当月日期中间这种情况。
 // 改成跟 firstLogin/trialDaysLeft 那几处一样，用 correctedNow()（用 Firebase 服务器时间校正过的时间戳），
@@ -19265,7 +19333,7 @@ function markUsedToday(){
   const today=_useTodayKey();
   if(!days.includes(today)){
     days.push(today);
-    localStorage.setItem('luna_usedays', JSON.stringify(days));
+    localStorage.setItem(_acctKey('luna_usedays'), JSON.stringify(days));
     // 云端同步
     const code=localStorage.getItem('luna_uid');
     if(code && window._fb) window._fb.set('userdata/'+code+'/usedays', days).catch(()=>{});

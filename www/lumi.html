@@ -31,19 +31,20 @@
   .topbar{ position:fixed; top:calc(env(safe-area-inset-top,0px) + 66px); left:12px; right:12px;
     display:flex; align-items:center; gap:8px; pointer-events:none; z-index:10; }
   /* ✨✨ 新增：进入星空山景等独立户外场景时，隐藏平时房间里的HUD和按钮，只留场景专属的"回家"按钮 */
-  body.hide-hud .lv-card, body.hide-hud .topbar-right, body.hide-hud .topbar,
+  body.hide-hud .lv-card, body.hide-hud .topbar-right, body.hide-hud #bagWrap, body.hide-hud .topbar,
   body.hide-hud #btnRoom, body.hide-hud #btnOutdoor, body.hide-hud #btnLuna,
   body.hide-hud #btnChar, body.hide-hud .controls { display:none !important; }
 
+  /* Luna Games B 版统一：chips 去渐变，扁平玻璃 + 16px 线形 SVG，跟游戏 HUD 同一套 */
   .chip{ pointer-events:auto; display:inline-flex; align-items:center; gap:7px;
-    background:linear-gradient(135deg, rgba(255,255,255,.82), rgba(240,225,252,.72));
+    background:rgba(255,255,255,.72);
     backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.75); border-radius:999px; padding:7px 13px;
-    font-size:13px; color:var(--text); box-shadow:0 6px 18px rgba(124,92,191,.2), inset 0 1px 1px rgba(255,255,255,.7); cursor:pointer;
-    transition:transform .15s ease, opacity .25s ease; }
-  .chip:active{ transform:scale(.96); }
-  .chip .dot{ width:16px; height:16px; line-height:16px; font-size:13px; text-align:center; }
-  .chip .emoji{ font-size:15px; line-height:1; }
+    border:1px solid rgba(255,255,255,.7); border-radius:999px; padding:7px 13px;
+    font-size:13px; font-weight:600; color:var(--text); box-shadow:0 4px 14px rgba(124,92,191,.14); cursor:pointer;
+    transition:transform .12s ease, opacity .25s ease, background .12s ease; }
+  .chip:active{ transform:scale(.92); }
+  .chip svg{ width:14px; height:14px; display:block; flex:none; }
+  .chip .dot{ width:8px; height:8px; border-radius:50%; background:var(--purple); flex:none; }
   .chip-sub{ color:var(--muted); font-size:11.5px; }
   /* ✨✨ 新增：顶部信息条(等级卡/专注/星星/周期/任务)平时淡化一半，点开其中任意一个功能时全部恢复清晰 */
   .hud-dim{ opacity:.5; }
@@ -53,12 +54,13 @@
   #lvCard, #focusChip, #starChip, #phaseChip, #taskChip, #btnMenu, #btnRoom, #btnLuna, #btnOutdoor{ opacity:.7; }
   #btnRoom, #btnLuna, #btnOutdoor, #btnMenu{ transition:opacity .25s ease; }
 
-  /* ✨ 左上角等级卡片：头像 + 名字 + Lv. + 经验条 */
+  /* Luna Games B 版统一：等级卡扁平化，圆角 16px，数字 tabular-nums */
   .lv-card{ position:fixed; top:calc(env(safe-area-inset-top,0px) + 12px); left:12px; z-index:10;
     display:flex; align-items:center; gap:8px; pointer-events:auto;
-    background:rgba(255,255,255,.62); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.7); border-radius:18px; padding:6px 13px 6px 6px;
-    box-shadow:0 6px 20px rgba(80,60,130,.14); transition:opacity .25s ease; }
+    background:rgba(255,255,255,.72); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.7); border-radius:16px; padding:6px 13px 6px 6px;
+    box-shadow:0 4px 14px rgba(80,60,130,.12); transition:opacity .25s ease, transform .12s ease; }
+  .lv-card:active{ transform:scale(.97); }
   .lv-avatar{ width:34px; height:34px; border-radius:50%; flex:0 0 auto;
     background:linear-gradient(145deg,var(--purple-light),var(--pink-light));
     display:flex; align-items:center; justify-content:center; font-size:17px;
@@ -67,29 +69,37 @@
   .lv-info{ display:flex; flex-direction:column; gap:3px; min-width:88px; }
   .lv-toprow{ display:flex; align-items:baseline; gap:6px; }
   .lv-name{ font-size:12.5px; font-weight:700; color:var(--text); }
-  .lv-badge{ font-size:11px; color:var(--purple); font-weight:700; }
+  .lv-badge{ font-size:11px; color:var(--purple); font-weight:800; font-variant-numeric:tabular-nums; }
   .lv-bar-track{ width:100%; height:5px; border-radius:999px; background:rgba(124,92,191,.16); overflow:hidden; }
   .lv-bar-fill{ height:100%; border-radius:999px; width:0%;
     background:linear-gradient(90deg,var(--purple-light),var(--pink)); transition:width .4s ease; }
   /* ✨ 专注 / 月光值：固定在右上角，和左上角Lv卡片同一高度 */
   .topbar-right{ position:fixed; top:calc(env(safe-area-inset-top,0px) + 12px); right:12px; z-index:10;
     display:flex; align-items:center; gap:8px; }
+  /* ✨ 玩具布袋：固定在专注按钮正下方，只有室内房间显示 */
+  #bagWrap{ position:fixed; top:calc(env(safe-area-inset-top,0px) + 58px); right:12px; z-index:10;
+    display:flex; flex-direction:column; align-items:flex-end; gap:8px; justify-content:flex-start; pointer-events:none; }
+  #bagCount, #bagCount2{ display:none; font-size:11px; font-weight:800; color:#fff; background:var(--purple);
+    border-radius:999px; padding:1px 7px; margin-left:2px; }
   .spacer{ flex:1; }
 
   /* 右下控制簇：收纳为悬浮菜单（点 FAB 展开/收回） */
   .controls{ position:fixed; right:14px; bottom:calc(env(safe-area-inset-bottom,0px) + 56px); z-index:10; }
   /* ✨ 秘密空间打开时，房间的顶部状态栏/等级卡/悬浮菜单先隐藏，保持沉浸感，退出后自动恢复 */
-  body.secret-open .controls, body.secret-open .topbar-right, body.secret-open .lv-card, body.secret-open #btnRoom, body.secret-open #btnLuna, body.secret-open #btnOutdoor{ display:none !important; }
+  body.secret-open .controls, body.secret-open .topbar-right, body.secret-open #bagWrap, body.secret-open .lv-card, body.secret-open #btnRoom, body.secret-open #btnLuna, body.secret-open #btnOutdoor{ display:none !important; }
   /* ✨ 秘密空间打开时：0/3 今日任务胶囊先隐藏（出了树洞照常显示）；舒适期胶囊挪到左上角返回按钮旁边，不再卡在问候语位置 */
   body.secret-open #taskChip{ display:none !important; }
   body.secret-open #phaseChip{ position:fixed !important; top:calc(env(safe-area-inset-top,0px) + 16px) !important; left:64px !important; right:auto !important; z-index:61; }
   body.secret-open .topbar{ pointer-events:none; }
   .ctrl-stack{ position:absolute; right:0; bottom:56px; display:flex; flex-direction:column-reverse;
     gap:10px; align-items:center; }
-  .ctrl{ width:46px; height:46px; border-radius:16px; border:1px solid rgba(255,255,255,.75);
-    background:linear-gradient(135deg, rgba(255,255,255,.9), rgba(240,225,252,.78)); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    box-shadow:0 6px 20px rgba(124,92,191,.22), inset 0 1px 1px rgba(255,255,255,.8); display:flex; align-items:center; justify-content:center;
-    font-size:20px; cursor:pointer; color:var(--purple); transition:transform .15s ease; }
+  /* Luna Games B 版统一：悬浮按钮 40px/12px 扁平玻璃 + 18px SVG，跟游戏 iconbtn 同一套 */
+  .ctrl{ width:40px; height:40px; border-radius:12px; border:1px solid rgba(255,255,255,.7);
+    background:rgba(255,255,255,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 4px 14px rgba(124,92,191,.16); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--purple); transition:transform .12s ease, background .12s ease; padding:0; }
+  .ctrl svg{ width:18px; height:18px; display:block; }
+  .ctrl .lang-tag{ font-size:12px; font-weight:800; letter-spacing:.5px; }
   .ctrl:active{ transform:scale(.92); }
   .ctrl:focus-visible{ outline:3px solid var(--purple-light); outline-offset:2px; }
   .ctrl-stack .ctrl{ opacity:0; transform:translateY(22px) scale(.45); pointer-events:none;
@@ -99,18 +109,22 @@
   .controls.open .ctrl-stack .ctrl:nth-child(2){ transition-delay:.12s; }
   .controls.open .ctrl-stack .ctrl:nth-child(3){ transition-delay:.08s; }
   .controls.open .ctrl-stack .ctrl:nth-child(4){ transition-delay:.04s; }
-  .ctrl-fab{ color:var(--purple); transition:transform .25s cubic-bezier(.2,.8,.2,1), background .2s ease, color .2s ease; }
-  .controls.open .ctrl-fab{ background:var(--purple); color:#fff; border-color:rgba(124,92,191,.5); transform:rotate(90deg); }
+  .ctrl-fab{ color:var(--purple); transition:transform .12s ease, background .12s ease, color .12s ease; }
+  .controls.open .ctrl-fab{ background:var(--purple); color:#fff; border-color:rgba(124,92,191,.5); }
+  .controls.open .ctrl-fab:active{ transform:scale(.92); }
 
-  /* 左下方向键 */
+  /* 左下方向键（预留样式：当前版本走路是点按+拖拽，这组 DOM 暂未挂载；样式已按 Luna Games B 版统一为 12px 圆角扁平玻璃 + 18px chevron SVG，随时可启用）
+     chevron 方向：上 <path d="M-8 5L0-3l8 8"/>，下/左/右依次旋转 90°/180°/270° */
   .dpad{ position:fixed; left:16px; bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
-    width:140px; height:140px; z-index:10; touch-action:none; }
-  .dbtn{ position:absolute; width:46px; height:46px; border-radius:14px;
+    width:140px; height:140px; z-index:10; touch-action:none; display:none; }
+  /* Luna Games B 版统一：方向键扁平 + SVG chevron，按压缩放 .92 */
+  .dbtn{ position:absolute; width:46px; height:46px; border-radius:12px;
     background:rgba(255,255,255,.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.7); box-shadow:0 5px 16px rgba(80,60,130,.16);
-    display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--purple);
-    cursor:pointer; transition:transform .1s ease, background .1s ease; }
-  .dbtn:active,.dbtn.on{ transform:scale(.9); background:var(--purple-pale); }
+    border:1px solid rgba(255,255,255,.7); box-shadow:0 4px 14px rgba(80,60,130,.12);
+    display:flex; align-items:center; justify-content:center; color:var(--purple);
+    cursor:pointer; transition:transform .12s ease, background .12s ease; padding:0; }
+  .dbtn svg{ width:18px; height:18px; display:block; }
+  .dbtn:active,.dbtn.on{ transform:scale(.92); background:var(--purple-pale); }
   .dup{ left:47px; top:0; } .ddown{ left:47px; bottom:0; }
   .dleft{ left:0; top:47px; } .dright{ right:0; top:47px; }
 
@@ -173,6 +187,11 @@
   .switch input:checked + .switch-track:before{ transform:translateX(18px); }
   .sound-row input[type=range]{ width:150px; accent-color:var(--purple); }
   .sound-row input[type=range]:disabled{ opacity:.4; }
+  /* 🌙 睡眠模式：呼吸感的月亮按钮 + 定时器芯片 + 倒计时最后阶段的画面轻微变暗蒙版 */
+  @keyframes sleepBreathe{ 0%,100%{ transform:scale(1); opacity:.85; } 50%{ transform:scale(1.08); opacity:1; } }
+  .sleep-chip{ padding:9px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.28);
+    background:rgba(255,255,255,.08); color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+  .sleep-chip.active{ background:var(--purple); border-color:var(--purple); }
   /* ✨✨ 新增：本房间背景乐配对选择——一行可换行的小圆角按钮，当前选中的高亮成紫色 */
   .rmp-row{ padding:12px 6px 8px; }
   .rmp-label{ font-size:14px; color:var(--text); margin-bottom:9px; display:block; }
@@ -344,7 +363,7 @@
 
   <!-- ✨ 房间切换：真正的 HTML 按钮（原来是画在 canvas 上的假按钮，会跟画布点击打架，改成真按钮后彻底解决点不动的问题） -->
   <button id="btnRoom" data-zh-aria="选择房间" aria-label="选择房间"
-    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:12;width:66px;height:48px;border-radius:18px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:21px;line-height:1;cursor:pointer;">🏠</button>
+    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:12;width:52px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(124,92,191,.16);color:#7c5cbf;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;"><svg viewBox="0 0 16 16" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7L8 2.5 13.5 7"/><path d="M4 6.5V13.5h8V6.5"/></svg></button>
 
   <!-- ✨ 秘密空间确认气泡：原来这句话（含按钮）是画在 canvas 上，泰语文字量宽跟实际渲染宽度
        在部分 iOS 设备上对不上，试了两轮"多留缓冲空间"都没能根治，索性改成真正的 HTML 文字层——
@@ -362,16 +381,25 @@
   <!-- 🌙 返回 Luna 首页：点左下角小房子上方这个按钮，先弹确认框，点确定才真的回 index 首页 -->
   <button id="btnLuna" aria-label="返回 Luna"
     onclick="var s=document.getElementById('lunaExitSheet'); if(s) s.classList.add('show');"
-    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 112px);z-index:12;width:66px;height:44px;border-radius:18px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:13px;font-weight:700;color:#7c5cbf;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
-    <span style="font-size:15px;">🌙</span>luna</button>
+    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 112px);z-index:12;width:52px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(124,92,191,.16);font-size:12px;font-weight:800;color:#7c5cbf;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M13 10.5A5.5 5.5 0 1 1 5.5 3 4.5 4.5 0 0 0 13 10.5z"/></svg>luna</button>
 
   <!-- ✨✨ 新增：户外场景选择器入口——真 DOM 按钮，放在 luna 上方，点开选择面板可以挑不同的户外场景(以后会陆续加更多) -->
   <button id="btnOutdoor" data-zh-aria="户外场景" aria-label="户外场景"
-    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 164px);z-index:12;width:66px;height:44px;border-radius:18px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.92), rgba(240,225,252,.82));box-shadow:0 6px 16px rgba(124,92,191,.25), inset 0 1px 1px rgba(255,255,255,.8);font-size:21px;line-height:1;cursor:pointer;">🌌</button>
+    style="position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 164px);z-index:12;width:52px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(124,92,191,.16);color:#7c5cbf;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;"><svg viewBox="0 0 16 16" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11.5" cy="4" r="1.6"/><path d="M1.5 12.5l4-5 3 3 2.5-4 3.5 6z"/></svg></button>
 
   <!-- ✨✨ 新增：星空山景场景专属的"回家"按钮，只在这个场景下才显示(平时display:none) -->
   <button id="btnNightViewExit" data-zh-aria="回到室内" aria-label="回到室内"
-    style="display:none;position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:13;width:56px;height:40px;border-radius:16px;border:1px solid rgba(255,255,255,.75);background:linear-gradient(135deg, rgba(255,255,255,.94), rgba(240,225,252,.86));box-shadow:0 6px 16px rgba(0,0,0,.3), inset 0 1px 1px rgba(255,255,255,.8);font-size:18px;line-height:1;cursor:pointer;">🏠</button>
+    style="display:none;position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:13;width:52px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.7);background:rgba(255,255,255,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(0,0,0,.25);color:#7c5cbf;align-items:center;justify-content:center;cursor:pointer;padding:0;"><svg viewBox="0 0 16 16" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7L8 2.5 13.5 7"/><path d="M4 6.5V13.5h8V6.5"/></svg></button>
+
+  <!-- 🌙 睡眠模式入口——只在三个户外场景(星空山景/黄昏湖景/银河观景台)显示，平时display:none，
+       跟 btnNightViewExit 共用同一套显示/隐藏时机(见 completeSwitchToOutdoor / startPortalToIndoor) -->
+  <button id="btnSleepMode" data-zh-aria="睡眠模式" aria-label="睡眠模式"
+    onclick="openSleepSheet()"
+    style="display:none;position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:13;width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.32);background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.28), rgba(124,92,191,.4));box-shadow:0 6px 20px rgba(0,0,0,.35);color:#fff;align-items:center;justify-content:center;cursor:pointer;padding:0;animation:sleepBreathe 3.6s ease-in-out infinite;"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M13 10.5A5.5 5.5 0 1 1 5.5 3 4.5 4.5 0 0 0 13 10.5z"/></svg></button>
+
+  <!-- 🌙 睡眠倒计时最后阶段的画面变暗蒙版——盖在场景上但不挡按钮点击(pointer-events:none) -->
+  <div id="sleepDimOverlay" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:11;transition:opacity 1.5s linear;"></div>
 
   <div class="lv-card" id="lvCard" role="button" tabindex="0" data-zh-aria="陪伴等级" aria-label="陪伴等级">
     <div class="lv-avatar"><canvas id="lvAvatarCanvas" width="68" height="68"></canvas></div>
@@ -385,8 +413,14 @@
   </div>
 
   <div class="topbar-right">
-    <div class="chip" id="focusChip" role="button" tabindex="0"><span class="emoji">🎯</span><span id="focusLabel" data-zh="专注">专注</span></div>
-    <div class="chip" id="starChip" role="button" tabindex="0"><span class="emoji">⭐</span><span id="starCount">0</span></div>
+    <div class="chip" id="focusChip" role="button" tabindex="0"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="5"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke-linecap="round"/></svg><span id="focusLabel" data-zh="专注">专注</span></div>
+    <div class="chip" id="starChip" role="button" tabindex="0"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.6l2.1 4.4 4.8.6-3.6 3.3.9 4.7L8 12.2l-4.2 2.4.9-4.7L1.1 6.6l4.8-.6z"/></svg><span id="starCount">0</span></div>
+  </div>
+
+  <!-- ✨ 玩具布袋：专注按钮正下方，点一下收回全场玩具，再点一下放出到随机位置（仅室内房间） -->
+  <div id="bagWrap">
+    <div class="chip" id="bagChip" role="button" tabindex="0" data-zh-aria="玩具布袋" aria-label="玩具布袋"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.2 1.8h3.6"/><path d="M6.4 2.4c-.4 1.8-3.9 3.2-3.9 6.8a5.5 5.5 0 0 0 11 0c0-3.6-3.5-5-3.9-6.8"/><path d="M6.2 4.4h3.6"/></svg><span id="bagLabel" data-zh="收回">收回</span><span id="bagCount">×0</span></div>
+    <div class="chip" id="bagChip2" role="button" tabindex="0" data-zh-aria="杂物布袋" aria-label="杂物布袋"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5h10v7a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 3 12.5v-7z"/><path d="M3 5.5c0-2 2.2-3.5 5-3.5s5 1.5 5 3.5"/><path d="M8 2v3.5"/></svg><span id="bagLabel2" data-zh="收纳">收纳</span><span id="bagCount2">×0</span></div>
   </div>
 
   <div class="topbar">
@@ -395,7 +429,7 @@
       <span id="phaseName">舒适期</span>
       <span class="chip-sub" id="phaseEmotion">· 平静</span>
     </div>
-    <div class="chip" id="taskChip" role="button" tabindex="0"><span class="emoji">📋</span><span id="taskChipText">0/3</span></div>
+    <div class="chip" id="taskChip" role="button" tabindex="0"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5.5 4h8M5.5 8h8M5.5 12h8"/><circle cx="2.8" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="2.8" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="2.8" cy="12" r="1" fill="currentColor" stroke="none"/></svg><span id="taskChipText">0/3</span></div>
   </div>
 
   <!-- 今日任务面板 -->
@@ -414,11 +448,11 @@
       <h3 data-zh="宝物阁">宝物阁</h3>
       <p class="hint" data-zh="攒星星、开宝箱、抽挂饰，还有机会抽到解锁新场景的钥匙 ✨">攒星星、开宝箱、抽挂饰，还有机会抽到解锁新场景的钥匙 ✨</p>
       <div id="keyStatusRow" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;background:#fff7e6;margin:10px 0;">
-        <div style="font-size:12.5px;font-weight:600;color:#a67a1e;">🗝️ <span data-zh="场景钥匙">场景钥匙</span> ×<span id="keysOwnedText">0</span></div>
+        <div style="font-size:12.5px;font-weight:600;color:#a67a1e;display:flex;align-items:center;gap:6px;"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="5.5" cy="8" r="3"/><path d="M8.5 8H14M12 8v2.5"/></svg><span><span data-zh="场景钥匙">场景钥匙</span> ×<span id="keysOwnedText">0</span></span></div>
         <div id="keyHintText" style="font-size:11px;color:#a67a1e;opacity:.85;"></div>
       </div>
       <div id="dailyBoxBtn" class="treasure-box" role="button" tabindex="0">
-        <div class="tb-icon">🎁</div>
+        <div class="tb-icon"><svg viewBox="0 0 16 16" width="34" height="34" fill="none" stroke="#c98a1e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="11" height="7.5" rx="1.5"/><path d="M2.5 9h11M8 6v7.5M8 6S5.5 6 4.5 4.8C3.7 3.9 4.3 2.5 5.5 2.5c1.5 0 2.5 3.5 2.5 3.5zm0 0s2.5-3.5 4-3.5c1.2 0 1.8 1.4 1 2.3C12 4.8 8 6 8 6z"/></svg></div>
         <div class="tb-text">
           <div class="tb-title" id="dailyBoxTitle" data-zh="今日宝箱">今日宝箱</div>
           <div class="tb-sub" id="dailyBoxSub" data-zh="点开看看今天有什么～">点开看看今天有什么～</div>
@@ -463,6 +497,37 @@
     </div>
   </div>
 
+  <!-- 🌙 睡眠模式面板——深色调，跟三个户外场景本身的夜色气质统一，不用另外做新皮肤 -->
+  <div class="sheet-mask" id="sleepSheet" style="background:rgba(8,6,20,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);">
+    <div class="sheet" role="dialog" data-zh-aria="睡眠模式" aria-label="睡眠模式" style="background:rgba(30,22,50,.92);">
+      <h3 style="color:#fff;" data-zh="🌙 睡眠模式">🌙 睡眠模式</h3>
+      <p class="hint" style="color:rgba(255,255,255,.62);" data-zh="播放这个场景的助眠音乐，定时结束前会慢慢淡出，不会突然中断。">播放这个场景的助眠音乐，定时结束前会慢慢淡出，不会突然中断。</p>
+      <div class="sound-row" style="border-bottom-color:rgba(255,255,255,.14);">
+        <span style="color:#fff;" data-zh="播放助眠音乐">播放助眠音乐</span>
+        <label class="switch"><input type="checkbox" id="sleepPlayToggle"><span class="switch-track"></span></label>
+      </div>
+      <!-- 🎵 当前曲目：平时只显示一行(当前选中的那首)，点一下展开成竖排列表选别的，选完自动收起 -->
+      <div class="sound-row" id="sleepTrackRow" style="border-bottom-color:rgba(255,255,255,.14);cursor:pointer;">
+        <span style="color:#fff;" data-zh="当前曲目">当前曲目</span>
+        <span id="sleepTrackCurrent" style="color:rgba(255,255,255,.85);font-size:13px;"></span>
+      </div>
+      <div id="sleepTrackList" style="display:none;max-height:220px;overflow-y:auto;margin:2px 0 6px;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:6px;"></div>
+      <div class="rmp-row">
+        <span class="rmp-label" style="color:#fff;" data-zh="定时关闭">定时关闭</span>
+        <div id="sleepTimerChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+      <div class="sound-row" style="border-bottom-color:rgba(255,255,255,.14);">
+        <span style="color:#fff;" data-zh="音量">音量</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <input type="range" id="sleepVolSlider" min="0" max="100" value="10">
+          <span id="sleepVolValue" style="font-size:12px;color:rgba(255,255,255,.7);min-width:32px;text-align:right;">10%</span>
+        </span>
+      </div>
+      <div id="sleepCountdownDisplay" style="text-align:center;color:rgba(255,255,255,.5);font-size:12px;margin-top:8px;"></div>
+      <button class="close" data-close style="background:rgba(255,255,255,.16);color:#fff;" data-zh="完成">完成</button>
+    </div>
+  </div>
+
   <!-- 开箱/抽卡揭晓 -->
   <div id="revealMask">
     <div class="reveal-card">
@@ -476,15 +541,15 @@
 
   <div class="controls" id="controls">
     <div class="ctrl-stack">
-      <button class="ctrl" id="btnChar"  data-zh-aria="角色栏" aria-label="角色栏">🐱</button>
-      <button class="ctrl" id="btnDiary" data-zh-aria="小日记" aria-label="小日记">📔</button>
-      <button class="ctrl" id="btnTime"  data-zh-aria="昼夜" aria-label="昼夜">🕐</button>
-      <button class="ctrl" id="btnRain"  data-zh-aria="天气" aria-label="天气">🌤️</button>
-      <button class="ctrl" id="btnWindow" data-zh-aria="大窗" aria-label="大窗">🪟</button>
-      <button class="ctrl" id="btnSound" data-zh-aria="环境音" aria-label="环境音">🔇</button>
-      <button class="ctrl" id="btnLang" aria-label="Language / ภาษา">🌐</button>
+      <button class="ctrl" id="btnChar"  data-zh-aria="角色栏" aria-label="角色栏"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="5" r="2.6"/><path d="M3 13.5c0-3 2.2-5 5-5s5 2 5 5"/></svg></button>
+      <button class="ctrl" id="btnDiary" data-zh-aria="小日记" aria-label="小日记"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="2.5" width="9" height="11" rx="2"/><path d="M6.2 6h3.6M6.2 8.5h3.6M6.2 11h2.4"/></svg></button>
+      <button class="ctrl" id="btnTime"  data-zh-aria="昼夜" aria-label="昼夜"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2.5 1.5"/></svg></button>
+      <button class="ctrl" id="btnRain"  data-zh-aria="天气" aria-label="天气"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11a2.8 2.8 0 1 1 .6-5.5A3.2 3.2 0 0 1 11.5 6.5 2.5 2.5 0 0 1 11 11.5h-6.5z"/></svg></button>
+      <button class="ctrl" id="btnWindow" data-zh-aria="大窗" aria-label="大窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/><path d="M8 3v10M3 8h10"/></svg></button>
+      <button class="ctrl" id="btnSound" data-zh-aria="环境音" aria-label="环境音"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6v4h2.5L8 13V3L4.5 6H2z" fill="currentColor" stroke="none"/><path d="M11 6.5l4 4M15 6.5l-4 4"/></svg></button>
+      <button class="ctrl" id="btnLang" aria-label="Language / ภาษา"><span class="lang-tag">中</span></button>
     </div>
-    <button class="ctrl ctrl-fab" id="btnMenu" data-zh-aria="菜单" aria-label="菜单">☰</button>
+    <button class="ctrl ctrl-fab" id="btnMenu" data-zh-aria="菜单" aria-label="菜单"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>
   </div>
 
   <!-- 小日记面板 -->
@@ -500,10 +565,10 @@
   <!-- ✨ 秘密空间（水晶洞穴）覆盖层：不遮暗背景，浮在 canvas 场景上方，只有内部按钮/输入框可点 -->
   <div id="secretSpaceOverlay" style="display:none;position:fixed;inset:0;z-index:60;pointer-events:none;">
     <button id="secretBackBtn" aria-label="返回" style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);left:16px;width:40px;height:40px;border-radius:14px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:18px;box-shadow:0 4px 14px rgba(0,0,0,.2);">←</button>
-    <button id="secretHistoryBtn" aria-label="记录统计" style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:40px;height:40px;border-radius:14px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.2);">📊</button>
+    <button id="secretHistoryBtn" aria-label="记录统计" style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;width:40px;height:40px;border-radius:12px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;"><svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2.5 13.5V8M6.5 13.5V4.5M10.5 13.5V6.5M14 13.5V2.5"/></svg></button>
     <!-- ✨ 秘密空间专属：复制房间里的"专注"按钮进来，只要按钮+计时器，不复制专注开始/结束的音效(秘密空间已经有自己的背景音乐了) -->
     <button id="secretFocusBtn" aria-label="专注" data-zh-aria="专注" style="pointer-events:auto;position:absolute;top:calc(env(safe-area-inset-top,0px) + 18px);right:66px;height:36px;min-width:40px;padding:0 12px;border-radius:18px;border:none;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);color:#fff;font-size:12.5px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2);display:flex;align-items:center;gap:5px;white-space:nowrap;">
-      <span style="font-size:14px;">🎯</span><span id="secretFocusLabel" data-zh="专注">专注</span>
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="5"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/><path d="M8 1v2.5M8 12.5V15M1 8h2.5M12.5 8H15" stroke-linecap="round"/></svg><span id="secretFocusLabel" data-zh="专注">专注</span>
     </button>
     <div id="secretGreeting" style="pointer-events:none;position:absolute;left:50%;top:24%;transform:translateX(-50%);max-width:78vw;text-align:center;color:#ffe9f5;font-size:14px;font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.35);opacity:.92;"></div>
     <!-- ✨ 写记录时，点这块上方空白区域可以重新弹出「记录秘密/心事/节日心得」三个按钮，换一个类型再写 -->
@@ -813,7 +878,7 @@ const CHAT_TEXT=[
 // ✨ 密境入口提示气泡：改成按当前房间"实际的入口物件"动态生成文案，
 //    不再不管房间是什么都写死"树洞"——音乐盒房间该提示音乐盒，弯月窗房间该提示弯月窗
 const SECRET_ENTRANCE_NAME={
-  treehole:'树洞', musicbox:'音乐盒', moonwindow:'弯月窗', clockdoor:'老座钟', pearlshell:'贝壳', vinearch:'藤蔓拱门'
+  treehole:'树洞', musicbox:'音乐盒', moonwindow:'弯月窗', clockdoor:'老座钟', pearlshell:'贝壳', vinearch:'藤蔓拱门', crystalarch:'水晶门'
 };
 function currentSecretEntranceInfo(){
   const f=room.furniture&&room.furniture.find(x=>SECRET_ENTRANCE_TYPES.has(x.type));
@@ -1102,6 +1167,8 @@ const TEXT_MAP = {
 "轻踢":"เตะเบาๆ",
 "重踢":"เตะแรงๆ",
 "Lumi 助跑几步，准备重重踢一脚…":"Lumi วิ่งนำสองสามก้าว เตรียมเตะแรงๆ สักที…",
+"Lumi 助跑几步，来一脚旋风踢！":"Lumi วิ่งนำสองสามก้าว หมุนตัวเตะสักที!",
+"Lumi 把玩具旋了出去！":"Lumi หมุนตัวเหวี่ยงของเล่นออกไปแล้ว!",
 "Lumi 把它抱起来啦，点哪就拖到哪 ✋":"Lumi อุ้มมันขึ้นมาแล้ว แตะตรงไหนก็ลากไปตรงนั้น ✋",
 "Lumi 用小脚丫拖着它走 🦶":"Lumi ใช้เท้าน้อยๆ ลากมันไป 🦶",
 "谢谢你摸摸我，今天真的很需要 🥺":"ขอบคุณที่ลูบหัวให้นะ วันนี้ต้องการแบบนี้จริงๆ 🥺",
@@ -1266,7 +1333,7 @@ const TEXT_MAP = {
 "在这里，你可以做最真实的自己…":"ที่นี่ คุณเป็นตัวเองได้อย่างแท้จริง…",
 "🔮 刮一刮，看看写了什么…":"🔮 ขูดดูสิ ว่าคุณเขียนอะไรไว้…",
 "还没解锁这个房间，去房间选择里解锁吧":"ห้องนี้ยังไม่ได้ปลดล็อก ไปปลดล็อกที่หน้าเลือกห้องนะ",
-"树洞":"โพรงต้นไม้", "音乐盒":"กล่องดนตรี", "弯月窗":"หน้าต่างเสี้ยวจันทร์", "老座钟":"นาฬิกาโบราณ", "贝壳":"เปลือกหอย", "藤蔓拱门":"ซุ้มเถาวัลย์",
+"树洞":"โพรงต้นไม้", "音乐盒":"กล่องดนตรี", "弯月窗":"หน้าต่างเสี้ยวจันทร์", "老座钟":"นาฬิกาโบราณ", "贝壳":"เปลือกหอย", "藤蔓拱门":"ซุ้มเถาวัลย์", "水晶门":"ประตูคริสตัล",
 
 // 🌙 补充翻译：新增的窗台/看鱼/理毛/蹭家具/深夜偷吃 几个自主行为
 "Lumi 好像盯上了窗户…":"Lumi ดูเหมือนจะสนใจหน้าต่าง…",
@@ -1293,6 +1360,18 @@ const TEXT_MAP = {
 "展开查看全部 ▾":"ดูทั้งหมด ▾",
 "收起 ▴":"ย่อกลับ ▴",
 "今日已抽":"วันนี้สุ่มแล้ว",
+"收回":"เก็บเข้าถุง",
+"放出":"ปล่อยออกมา",
+"玩具布袋":"ถุงผ้าใส่ของเล่น",
+"玩具一个一个飞回布袋啦～":"ของเล่นบินกลับเข้าถุงผ้าทีละชิ้นแล้ว～",
+"玩具从布袋里飞出来啦～":"ของเล่นบินออกจากถุงผ้าแล้ว～",
+"布袋是空的，先去玩玩具吧～":"ถุงผ้าว่างเปล่า ไปเล่นของเล่นก่อนนะ～",
+"收纳":"เก็บเข้าถุง",
+"放回":"เอาออกมา",
+"杂物布袋":"ถุงผ้าเก็บของ",
+"家具收进布袋啦～":"เก็บเฟอร์นิเจอร์เข้าถุงแล้ว～",
+"家具放回原处啦～":"เอาเฟอร์นิเจอร์กลับไปวางที่เดิมแล้ว～",
+"这个布袋是空的～":"ถุงใบนี้ว่างเปล่า～",
 "🎉 Lumi 长大了一圈！达到 Lv.10 啦～":"🎉 Lumi โตขึ้นอีกไซส์แล้ว! ถึง Lv.10 แล้วนะ～",
 "👀 预览(临时)":"👀 ดูตัวอย่าง (ชั่วคราว)",
 "预览模式：":"โหมดดูตัวอย่าง: ",
@@ -1303,6 +1382,27 @@ const TEXT_MAP = {
 "黄昏湖景":"ทะเลสาบยามเย็น",
 "银河观景台":"จุดชมทางช้างเผือก",
 "月光游戏中心":"ศูนย์เกมแสงจันทร์",
+"正在开发":"กำลังพัฒนา",
+"当前曲目":"เพลงปัจจุบัน",
+"山间夜风":"ลมค่ำในหุบเขา",
+"溪流低语":"เสียงกระซิบธารน้ำ",
+"松林私语":"เสียงกระซิบป่าสน",
+"远山钟声":"เสียงระฆังไกล",
+"篝火低吟":"เสียงไฟหึ่มเบา",
+"夜枭轻鸣":"เสียงร้องนกฮูก",
+"雨落青苔":"ฝนโปรยมอส",
+"星尘微光":"แสงฝุ่นดาวริบหรี่",
+"月下虫鸣":"เสียงแมลงใต้แสงจันทร์",
+"深谷回声":"เสียงก้องหุบเหว",
+"🌙 睡眠模式":"🌙 โหมดหลับ",
+"睡眠模式":"โหมดหลับ",
+"播放这个场景的助眠音乐，定时结束前会慢慢淡出，不会突然中断。":"เล่นเพลงกล่อมนอนของฉากนี้ เสียงจะค่อยๆ เบาลงก่อนหมดเวลา ไม่หยุดกะทันหัน",
+"播放助眠音乐":"เล่นเพลงกล่อมนอน",
+"定时关闭":"ตั้งเวลาปิด",
+"不限时":"ไม่จำกัดเวลา",
+"还剩":"เหลืออีก",
+"分":"นาที",
+"秒":"วินาที",
 "背景音乐":"เพลงพื้นหลัง",
 "音乐音量":"ระดับเสียงเพลง",
 "互动音效":"เสียงเอฟเฟกต์โต้ตอบ",
@@ -1394,12 +1494,12 @@ function tKnock(n){
 function applyLangToDOM(){
   document.documentElement.lang = (LANG==='th') ? 'th' : 'zh-CN';
   document.body.classList.toggle('lang-th', LANG==='th');
-  document.querySelectorAll('[data-zh]').forEach(el=>{ el.textContent = T(el.getAttribute('data-zh')); });
+  document.querySelectorAll('[data-zh]').forEach(el=>{ el.textContent = stripEdgeEmoji(T(el.getAttribute('data-zh'))); });
   document.querySelectorAll('[data-zh-html]').forEach(el=>{ el.innerHTML = T(el.getAttribute('data-zh-html')); });
   document.querySelectorAll('[data-zh-aria]').forEach(el=>{ el.setAttribute('aria-label', T(el.getAttribute('data-zh-aria'))); });
-  document.querySelectorAll('[data-zh-placeholder]').forEach(el=>{ el.setAttribute('placeholder', T(el.getAttribute('data-zh-placeholder'))); });
+  document.querySelectorAll('[data-zh-placeholder]').forEach(el=>{ el.setAttribute('placeholder', stripEdgeEmoji(T(el.getAttribute('data-zh-placeholder')))); });
   const pt=document.getElementById('pageTitle'); if(pt) pt.textContent=T('Lumi · 月之谷');
-  const btnLang=document.getElementById('btnLang'); if(btnLang) btnLang.textContent = (LANG==='th') ? '🇹🇭' : '🌐';
+  const btnLang=document.getElementById('btnLang'); if(btnLang) btnLang.innerHTML = (LANG==='th') ? '<span class="lang-tag">TH</span>' : '<span class="lang-tag">中</span>';
 }
 function setLang(l){
   LANG = (l==='th') ? 'th' : 'zh';
@@ -1630,6 +1730,8 @@ function completeSwitchToOutdoor(){
   sitScenes[scene].phase='idle';   // 先不显示，等烟雾显形阶段结束才真正进入 sitting
   document.body.classList.add('hide-hud');
   if($('btnNightViewExit')) $('btnNightViewExit').style.display='flex';
+  // 🌙 睡眠模式入口只在这三个场景显示，其它户外场景(比如樱花林/松林)不显示
+  if($('btnSleepMode')) $('btnSleepMode').style.display=isSleepScene()?'flex':'none';
 }
 // ✨✨ 点"回房间"：同样先在当前户外场景里播"瞬间消失"，特效结束后才真正切回室内(通用，不管当前是哪个户外场景)
 function startPortalToIndoor(){
@@ -1640,6 +1742,8 @@ function startPortalToIndoor(){
   portalFx={ active:true, stage:'vanish', t:0, screenX:sx2, screenY:H*0.83, dir:'toIndoor', targetScene:null };
   st.phase='idle';
   if($('btnNightViewExit')) $('btnNightViewExit').style.display='none';
+  if($('btnSleepMode')) $('btnSleepMode').style.display='none';
+  resetSleepModeOnLeave();
   playPortalVanishSound();
 }
 // ✨✨ 每帧推进传送特效的四个阶段，两个方向(去户外/回房间)、任意户外场景都共用同一套时间轴
@@ -1664,7 +1768,10 @@ function updatePortalFx(dt){
   } else if(portalFx.stage==='smokeIn' && portalFx.t>=PORTAL_SMOKEIN_DUR){
     // 显形：Lumi 出现——去户外的话先站在落地点，紧接着自己走几步去座位找位置坐(随机)；回房间的话恢复成正常待机
     lumi._hiddenByPortal=false;
-    playPortalAppearSound();
+    // 🩹 按需求去掉"去户外"这个方向到达那一刻的显形音——跟之前去掉"去户外"专属的出发音效
+    // (playOutdoorGoSound)是同一个思路，让"去户外"这一路从头到尾都安安静静的；回房间/进出秘密空间
+    // 这些其它方向的显形音不受影响，还是照常播放。
+    if(portalFx.dir!=='toOutdoor') playPortalAppearSound();
     if(portalFx.dir==='toOutdoor'){
       const st=sitScenes[scene], meta=SIT_SCENE_META[scene];
       st.phase='walking';
@@ -2020,6 +2127,8 @@ function buildRoom(){
   }
   
   room.furniture=[];
+  // ✨ 换房间/重建房间时杂物布袋清空（旧家具对象作废，不能再放回来）
+  try{ furnBag=[]; furnBagBusy=false; }catch(e){}
   room.minX=-700; room.maxX=580;
   // ✨ 视觉墙体边界比走动边界更宽一圈：房间看起来更宽敞、镜头能多带出一些空间感，
   //    但 Lumi 实际走动范围(room.minX/maxX)完全不变，不影响她原本的活动范围
@@ -2068,8 +2177,8 @@ function buildRoom(){
     }
   }
   if(TH.pinkTheme){
-    // ✨ 少女粉色房间专属：巨大首饰音乐盒，掀盖钻进去是"水晶洞穴"
-    F.push({type:'musicbox', x:-430, dy:0.20, w:110, label:'🎀', theme:TH});
+    // ✨ 少女粉色房间专属：天然水晶晶簇拱门，穿过去是"水晶洞穴"
+    F.push({type:'crystalarch', x:-430, dy:0.20, w:110, label:'💎', theme:TH});
   }
   if(TH.leafDecals){
     // 森系绿植风：墙上挂小叶片/藤蔓
@@ -2259,11 +2368,17 @@ function drawRoomWindow(win){
   g2.addColorStop(0,rgbaOf('#ffe9b0',pulse2));g2.addColorStop(1,rgbaOf('#ffe9b0',0));
   ctx.fillStyle=g2;ctx.beginPath();ctx.arc(wx,wy,ww*0.7,0,7);ctx.fill();
   ctx.restore();
-  // 窗框
+  // 窗框（现代窄边：细框 + 大玻璃面，颜色跟随房间 skirt 不变）
   ctx.fillStyle=nightMix(mix(TH.skirt,'#000',0.1),0.4);
-  rrPath(wx-ww/2-12,wy-wh/2-12,ww+24,wh+24,12);ctx.fill();
+  rrPath(wx-ww/2-7,wy-wh/2-7,ww+14,wh+14,10);ctx.fill();
   ctx.save();rrPath(wx-ww/2,wy-wh/2,ww,wh,6);ctx.clip();
-  if(useMoonWindowNightPhoto() && !TH.moonTheme){
+  if(TH.moonTheme){
+    // 星际宇宙房：小窗外也是深空（星云+星星+远处小虫洞），不再画白天天空
+    drawSpaceWindowSmall(wx-ww/2,wy-wh/2,ww,wh);
+  } else if(TH.pinkTheme){
+    // 粉色风：小窗外白天/黄昏/夜晚三段景
+    drawPinkWindowView(wx-ww/2,wy-wh/2,ww,wh,'small');
+  } else if(useMoonWindowNightPhoto() && !TH.moonTheme){
     // ✨✨ 小窗户同款星空照片：跟大窗户同一个开关(泰国时间18点后+梦幻月亮风)，
     //    但不做拉远缩小处理，直接铺满，避免月亮在这个更小的窗洞比例里被意外放大
     //    ✨ 梦幻月亮风的小窗户不再用这张带月亮的照片，改走下面手绘的夜空(不含月亮)
@@ -2317,11 +2432,11 @@ function drawRoomWindow(win){
         ctx.moveTo(rx,ry);ctx.lineTo(rx-3,ry+11);}ctx.stroke();}
   }
   ctx.restore();
-  // 窗格十字
-  ctx.strokeStyle=nightMix(TH.skirt,0.4);ctx.lineWidth=5;
+  // 窗格十字（细线，现代感）
+  ctx.strokeStyle=nightMix(TH.skirt,0.4);ctx.lineWidth=3;
   ctx.beginPath();ctx.moveTo(wx,wy-wh/2);ctx.lineTo(wx,wy+wh/2);ctx.moveTo(wx-ww/2,wy);ctx.lineTo(wx+ww/2,wy);ctx.stroke();
-  // 窗台
-  ctx.fillStyle=nightMix(mix(TH.skirt,'#fff',0.2),0.4);ctx.fillRect(wx-ww/2-14,wy+wh/2+6,ww+28,8);
+  // 窗台（收窄 + 柔边）
+  ctx.fillStyle=nightMix(mix(TH.skirt,'#fff',0.2),0.4);ctx.fillRect(wx-ww/2-7,wy+wh/2+5,ww+14,6);
   // —— 布艺窗帘（两侧垂下，柔和褶皱）——
   const curCol1=nightMix('#e8b8c4',0.4), curCol2=nightMix('#d094a6',0.44);
   const cTop=wy-wh/2-14, cBot=wy+wh/2+2, cW=ww*0.22;
@@ -2628,9 +2743,9 @@ function realDayT(){
     return (0.72 + (hh-18)/12*(1.25-0.72)) % 1;
   }catch(e){ return dayT; }   // 万一时区API出问题，保底不动当前值，不会让画面跳变
 }
-// 只有"梦幻月亮风"(房间主题0)、且泰国时间已经到晚上18点，才换成星空照片
+// 星际宇宙房（主题0）窗外直接手绘深空，不再需要夜晚贴照片；其它主题本来也用不上这个函数
 function useMoonWindowNightPhoto(){
-  return (room.theme||0)===0 && moonWindowNightImgReady && thailandHour()>=18;
+  return false;
 }
 // 一颗确定性的"伪随机数"，同一个 seed 永远给同一个结果——用来给流星这种"每隔几秒出现一次"的效果
 // 定位置，不需要额外维护一个跨帧的状态变量
@@ -2702,6 +2817,333 @@ function drawMoonWindowNightPhoto(gL,gT,ww,wh){
     ctx.restore();
   }
 }
+// ══════════════════════════════════════════════════════════════
+// 星际宇宙房（梦幻月亮风专属）窗外深空绘制：大窗/小窗共用；其它房间外壳/床/地毯/氛围已撤回通用版。
+// ══════════════════════════════════════════════════════════════
+// 远处虫洞（柔和、不刺眼）：暗盘 + 缓慢旋臂 + 淡亮边 + 小光晕
+function drawDistantWormhole(x,y,R,alphaMul){
+  const a=alphaMul==null?1:alphaMul;
+  const anim=!reduceMotion;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const hg=ctx.createRadialGradient(x,y,R*0.2,x,y,R*2.6);
+  hg.addColorStop(0,'rgba(150,160,255,'+(0.30*a).toFixed(2)+')');
+  hg.addColorStop(1,'rgba(150,160,255,0)');
+  ctx.fillStyle=hg;ctx.beginPath();ctx.arc(x,y,R*2.6,0,7);ctx.fill();
+  ctx.restore();
+  const dg=ctx.createRadialGradient(x,y,1,x,y,R);
+  dg.addColorStop(0,'#04030e');dg.addColorStop(0.55,'#100b32');dg.addColorStop(1,'#2c2068');
+  ctx.fillStyle=dg;ctx.beginPath();ctx.arc(x,y,R,0,7);ctx.fill();
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let k=0;k<2;k++){
+    const base=(anim?time*0.06*(k?-1:1):0)+k*2.4;
+    ctx.strokeStyle=k?'rgba(190,150,255,'+(0.35*a).toFixed(2)+')':'rgba(150,180,255,'+(0.40*a).toFixed(2)+')';
+    ctx.lineWidth=Math.max(1,R*0.10);ctx.lineCap='round';
+    ctx.beginPath();
+    for(let st=0;st<=1.001;st+=0.08){
+      const ang=base+st*2.4, rr=R*(0.12+0.86*st);
+      const wx2=x+Math.cos(ang)*rr, wy2=y+Math.sin(ang)*rr;
+      ctx.globalAlpha=(Math.sin(st*Math.PI)*0.9+0.1)*a;
+      if(st===0)ctx.moveTo(wx2,wy2);else ctx.lineTo(wx2,wy2);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  const cg=ctx.createRadialGradient(x,y,0,x,y,R*0.4);
+  cg.addColorStop(0,'rgba(235,242,255,'+(0.65*a).toFixed(2)+')');
+  cg.addColorStop(1,'rgba(235,242,255,0)');
+  ctx.fillStyle=cg;ctx.beginPath();ctx.arc(x,y,R*0.4,0,7);ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle='rgba(170,205,255,'+(0.55*a).toFixed(2)+')';
+  ctx.lineWidth=Math.max(1,R*0.06);
+  ctx.beginPath();ctx.arc(x,y,R,0,7);ctx.stroke();
+}
+// 大窗深空（调用方已裁切到窗洞内）：星云 + 银河带 + 星野 + 远处虫洞 + 尘埃 + 偶尔流星
+function drawSpaceWindowBig(gL,gT,ww,wh){
+  const cx=gL+ww/2, cy=gT+wh/2;
+  const anim=!reduceMotion;
+  const g=ctx.createLinearGradient(0,gT,0,gT+wh);
+  g.addColorStop(0,'#05030f');g.addColorStop(0.55,'#0e0a38');g.addColorStop(1,'#241a5e');
+  ctx.fillStyle=g;ctx.fillRect(gL,gT,ww,wh);
+  // 三团大星云（蓝紫/深蓝/柔粉，极慢漂移，低饱和不抢戏）
+  const nebs=[[0.30,0.34,'138,111,216',0.30,0.050],[0.66,0.55,'90,127,224',0.26,0.037],[0.48,0.78,'216,138,200',0.18,0.043]];
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<nebs.length;i++){
+    const nb=nebs[i];
+    const nx=gL+ww*nb[0]+(anim?Math.sin(time*nb[4]+i*2)*ww*0.02:0);
+    const ny=gT+wh*nb[1]+(anim?Math.cos(time*nb[4]*0.8+i)*wh*0.02:0);
+    const ng=ctx.createRadialGradient(nx,ny,4,nx,ny,ww*0.42);
+    ng.addColorStop(0,'rgba('+nb[2]+','+nb[3].toFixed(2)+')');
+    ng.addColorStop(1,'rgba('+nb[2]+',0)');
+    ctx.fillStyle=ng;ctx.beginPath();ctx.arc(nx,ny,ww*0.42,0,7);ctx.fill();
+  }
+  ctx.restore();
+  // 银河带：斜向淡带 + 密集星点
+  ctx.save();
+  ctx.translate(cx,cy);ctx.rotate(-0.5);
+  const bandG=ctx.createLinearGradient(0,-wh*0.16,0,wh*0.16);
+  bandG.addColorStop(0,'rgba(200,190,255,0)');
+  bandG.addColorStop(0.5,'rgba(200,190,255,0.16)');
+  bandG.addColorStop(1,'rgba(200,190,255,0)');
+  ctx.fillStyle=bandG;ctx.fillRect(-ww*0.7,-wh*0.16,ww*1.4,wh*0.32);
+  for(let i=0;i<90;i++){
+    const bx=(seededRand(i*1.7+3)-0.5)*ww*1.3;
+    const byy=(seededRand(i*2.3+9)-0.5)*wh*0.26;
+    const tw=0.35+0.65*Math.abs(Math.sin(time*1.1+i*1.3));
+    ctx.globalAlpha=tw*0.8;
+    ctx.fillStyle=i%5?'#e8eeff':'#ffd9ec';
+    ctx.beginPath();ctx.arc(bx,byy,0.6+seededRand(i*0.9)*1.1,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  // 星野
+  for(let i=0;i<70;i++){
+    const sx2=gL+seededRand(i*3.1+21)*ww, sy2=gT+seededRand(i*4.7+33)*wh;
+    const tw=0.3+0.7*Math.abs(Math.sin(time*(0.7+seededRand(i)*0.9)+i));
+    ctx.globalAlpha=tw;
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(sx2,sy2,0.6+seededRand(i*1.3)*1.2,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  // 远处巨大虫洞（柔和、不刺眼，像宇宙深处的一扇门）
+  drawDistantWormhole(gL+ww*0.66,gT+wh*0.40,Math.min(ww,wh)*0.17,0.9);
+  // 漂浮宇宙尘埃
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<14;i++){
+    const dx=gL+seededRand(i*5.3+51)*ww+(anim?Math.sin(time*0.25+i*1.7)*6:0);
+    const dy=gT+seededRand(i*6.1+77)*wh+(anim?Math.cos(time*0.2+i)*5:0);
+    const ta=0.15+0.15*Math.abs(Math.sin(time*0.8+i));
+    ctx.globalAlpha=ta;
+    ctx.fillStyle='#cfd8ff';
+    ctx.beginPath();ctx.arc(dx,dy,1.5+seededRand(i)*1.5,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  // 偶尔一颗流星
+  const shootCycle=13, ct=time%shootCycle;
+  if(ct<0.5){
+    const idx=Math.floor(time/shootCycle);
+    const rx=seededRand(idx), ry=seededRand(idx+0.37);
+    const sx0=gL+ww*(0.08+rx*0.6), sy0=gT+wh*(0.05+ry*0.3);
+    const p=ct/0.5, len=30, ang=0.5;
+    const hx=sx0+Math.cos(ang)*len*p, hy=sy0+Math.sin(ang)*len*p;
+    const tx2=hx-Math.cos(ang)*len*0.55, ty2=hy-Math.sin(ang)*len*0.55;
+    ctx.save();ctx.globalAlpha=Math.sin(Math.PI*p);
+    const grad=ctx.createLinearGradient(tx2,ty2,hx,hy);
+    grad.addColorStop(0,'rgba(200,210,255,0)');grad.addColorStop(1,'rgba(230,238,255,1)');
+    ctx.strokeStyle=grad;ctx.lineWidth=1.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(tx2,ty2);ctx.lineTo(hx,hy);ctx.stroke();
+    ctx.restore();
+  }
+  // 玻璃内侧柔光 + 顶部弧形高光（呼应弧形落地窗）
+  ctx.save();
+  const vg=ctx.createRadialGradient(cx,cy,Math.min(ww,wh)*0.3,cx,cy,Math.max(ww,wh)*0.72);
+  vg.addColorStop(0,'rgba(4,2,12,0)');vg.addColorStop(1,'rgba(4,2,12,.30)');
+  ctx.fillStyle=vg;ctx.fillRect(gL,gT,ww,wh);
+  ctx.strokeStyle='rgba(220,228,255,.45)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(gL+8,gT+22);ctx.quadraticCurveTo(cx,gT-10,gL+ww-8,gT+22);ctx.stroke();
+  ctx.restore();
+}
+// 小窗深空（轻量版）
+function drawSpaceWindowSmall(gL,gT,ww,wh){
+  const cx=gL+ww/2, cy=gT+wh/2;
+  const g=ctx.createLinearGradient(0,gT,0,gT+wh);
+  g.addColorStop(0,'#070518');g.addColorStop(1,'#1c144e');
+  ctx.fillStyle=g;ctx.fillRect(gL,gT,ww,wh);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const n1=ctx.createRadialGradient(gL+ww*0.3,gT+wh*0.4,2,gL+ww*0.3,gT+wh*0.4,ww*0.5);
+  n1.addColorStop(0,'rgba(138,111,216,.30)');n1.addColorStop(1,'rgba(138,111,216,0)');
+  ctx.fillStyle=n1;ctx.fillRect(gL,gT,ww,wh);
+  const n2=ctx.createRadialGradient(gL+ww*0.7,gT+wh*0.65,2,gL+ww*0.7,gT+wh*0.65,ww*0.4);
+  n2.addColorStop(0,'rgba(90,127,224,.26)');n2.addColorStop(1,'rgba(90,127,224,0)');
+  ctx.fillStyle=n2;ctx.fillRect(gL,gT,ww,wh);
+  ctx.restore();
+  for(let i=0;i<26;i++){
+    const sx2=gL+seededRand(i*2.9+5)*ww, sy2=gT+seededRand(i*3.7+13)*wh;
+    const tw=0.3+0.7*Math.abs(Math.sin(time*1.2+i*1.1));
+    ctx.globalAlpha=tw;ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(sx2,sy2,0.6+seededRand(i)*1,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  drawDistantWormhole(gL+ww*0.68,gT+wh*0.42,Math.min(ww,wh)*0.13,0.8);
+}
+// 粉色风两扇窗外景（调用方已裁切到窗洞内）：白天淡蓝+白云+阳光 → 黄昏粉橙+薰衣草紫 →
+// 夜晚粉紫深空（星→星云→极小虫洞按夜色渐进出现），detail: 'big' 大窗 / 'small' 小窗
+function pinkCloudBlobs(x,y,s,rgb,a,seed){
+  const ps=[[-1.1,0.12,0.62],[0,-0.12,0.78],[1.05,0.10,0.58],[0.25,0.30,0.66],[-0.35,0.32,0.55]];
+  for(let i=0;i<ps.length;i++){
+    const p=ps[i];
+    const px2=x+p[0]*38*s+seededRand(seed*3.1+i)*8, py2=y+p[1]*22*s;
+    const r=30*s*p[2];
+    const g=ctx.createRadialGradient(px2,py2,r*0.1,px2,py2,r);
+    g.addColorStop(0,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+a.toFixed(2)+')');
+    g.addColorStop(0.7,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+','+(a*0.55).toFixed(2)+')');
+    g.addColorStop(1,'rgba('+rgb[0]+','+rgb[1]+','+rgb[2]+',0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px2,py2,r,0,7);ctx.fill();
+  }
+}
+function drawPinkWindowView(gL,gT,ww,wh,detail){
+  const small=detail!=='big';
+  const cx=gL+ww/2;
+  const nA=nightAmt(dayT);
+  const anim=!reduceMotion;
+  const nightK=smoothstep(clamp((nA-0.35)/0.5,0,1));
+  const duskK=smoothstep(clamp((dayT-0.55)/0.17,0,1))*(1-nightK);
+  const starA=smoothstep(clamp((nA-0.12)/0.35,0,1));
+  const nebA=smoothstep(clamp((nA-0.45)/0.35,0,1));
+  const wormA=smoothstep(clamp((nA-0.72)/0.26,0,1));
+  // —— 白天：淡蓝天空 ——
+  const dg=ctx.createLinearGradient(0,gT,0,gT+wh);
+  dg.addColorStop(0,'#a9c8f2');dg.addColorStop(0.6,'#cfddf5');dg.addColorStop(1,'#ffe9d6');
+  ctx.fillStyle=dg;ctx.fillRect(gL,gT,ww,wh);
+  // 白天太阳（黄昏压低、夜晚淡出）
+  const sunA=(1-duskK)*(1-nightK);
+  if(sunA>0.02){
+    const sX=gL+ww*0.30, sY=gT+wh*0.26;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    const gl=ctx.createRadialGradient(sX,sY,4,sX,sY,52);
+    gl.addColorStop(0,'rgba(255,248,220,'+(0.85*sunA).toFixed(2)+')');
+    gl.addColorStop(1,'rgba(255,248,220,0)');
+    ctx.fillStyle=gl;ctx.beginPath();ctx.arc(sX,sY,52,0,7);ctx.fill();
+    ctx.restore();
+    const sdr=Math.min(ww,wh)*0.11;
+    const sgg=ctx.createRadialGradient(sX-5,sY-5,1,sX,sY,sdr);
+    sgg.addColorStop(0,'rgba(255,253,242,'+sunA.toFixed(2)+')');
+    sgg.addColorStop(0.6,'rgba(255,244,216,'+sunA.toFixed(2)+')');
+    sgg.addColorStop(1,'rgba(255,233,176,'+(0.9*sunA).toFixed(2)+')');
+    ctx.fillStyle=sgg;ctx.beginPath();ctx.arc(sX,sY,sdr,0,7);ctx.fill();
+  }
+  // 大窗近景：柔粉草坡（会被黄昏/夜晚罩色，自然过渡）
+  if(!small){
+    const gy=gT+wh*0.84;
+    const gg=ctx.createLinearGradient(0,gy,0,gT+wh);
+    gg.addColorStop(0,'#f3c6dc');gg.addColorStop(1,'#e8a8c8');
+    ctx.fillStyle=gg;
+    ctx.beginPath();ctx.moveTo(gL,gT+wh);ctx.lineTo(gL,gy);
+    ctx.quadraticCurveTo(cx,gy-wh*0.06,gL+ww,gy);ctx.lineTo(gL+ww,gT+wh);ctx.closePath();ctx.fill();
+    for(let i=0;i<12;i++){
+      const fx=gL+seededRand(i*1.9+71)*ww, fy=gy+seededRand(i*2.7+83)*wh*0.14;
+      ctx.fillStyle=i%3?'rgba(255,255,255,.8)':'rgba(255,214,232,.9)';
+      ctx.beginPath();ctx.arc(fx,fy,1.3,0,7);ctx.fill();
+    }
+  }
+  // —— 黄昏：粉橙 + 薰衣草紫 + 低位暖阳 ——
+  if(duskK>0.02){
+    const kg=ctx.createLinearGradient(0,gT,0,gT+wh);
+    kg.addColorStop(0,'rgba(138,95,174,'+(0.85*duskK).toFixed(2)+')');
+    kg.addColorStop(0.55,'rgba(224,138,184,'+(0.85*duskK).toFixed(2)+')');
+    kg.addColorStop(1,'rgba(255,179,126,'+(0.9*duskK).toFixed(2)+')');
+    ctx.fillStyle=kg;ctx.fillRect(gL,gT,ww,wh);
+    const dx=gL+ww*0.5, dy=gT+wh*0.82;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    const dg2=ctx.createRadialGradient(dx,dy,2,dx,dy,Math.min(ww,wh)*0.4);
+    dg2.addColorStop(0,'rgba(255,236,200,'+(0.8*duskK).toFixed(2)+')');
+    dg2.addColorStop(1,'rgba(255,236,200,0)');
+    ctx.fillStyle=dg2;ctx.beginPath();ctx.arc(dx,dy,Math.min(ww,wh)*0.4,0,7);ctx.fill();
+    ctx.restore();
+  }
+  // 云（白天纯白 → 黄昏染粉，夜晚隐去）
+  const cloudA=0.92*(1-nightK);
+  if(cloudA>0.02){
+    const cd=duskK;
+    const cr2=255, cg2=Math.round(255-62*cd), cb2=Math.round(255-28*cd);
+    const cloudN=small?2:3;
+    for(let i=0;i<cloudN;i++){
+      const bx=gL+ww*(0.22+0.28*i)+(anim?Math.sin(time*0.08+i*2.1)*ww*0.03:0);
+      const byy=gT+wh*(0.30+0.07*((i*37)%3));
+      const sc2=Math.min(ww,wh)/130*(0.9+0.25*((i*53)%3)/2);
+      pinkCloudBlobs(bx,byy,sc2,[cr2,cg2,cb2],cloudA,i+1);
+    }
+  }
+  // —— 夜晚：粉紫深空罩色 ——
+  if(nightK>0.02){
+    const ng=ctx.createLinearGradient(0,gT,0,gT+wh);
+    ng.addColorStop(0,'rgba(28,20,64,'+(0.96*nightK).toFixed(2)+')');
+    ng.addColorStop(0.6,'rgba(74,42,120,'+(0.94*nightK).toFixed(2)+')');
+    ng.addColorStop(1,'rgba(138,74,140,'+(0.92*nightK).toFixed(2)+')');
+    ctx.fillStyle=ng;ctx.fillRect(gL,gT,ww,wh);
+  }
+  // 夜晚月亮（粉白）
+  if(nightK>0.02){
+    const mx=gL+ww*0.72, my=gT+wh*0.24, mr=Math.min(ww,wh)*0.085;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    const mg=ctx.createRadialGradient(mx,my,2,mx,my,mr*3.2);
+    mg.addColorStop(0,'rgba(255,238,245,'+(0.7*nightK).toFixed(2)+')');
+    mg.addColorStop(1,'rgba(255,238,245,0)');
+    ctx.fillStyle=mg;ctx.beginPath();ctx.arc(mx,my,mr*3.2,0,7);ctx.fill();
+    ctx.restore();
+    const md=ctx.createRadialGradient(mx-3,my-3,1,mx,my,mr);
+    md.addColorStop(0,'rgba(255,240,248,'+nightK.toFixed(2)+')');
+    md.addColorStop(1,'rgba(240,214,232,'+(0.95*nightK).toFixed(2)+')');
+    ctx.fillStyle=md;ctx.beginPath();ctx.arc(mx,my,mr,0,7);ctx.fill();
+  }
+  // 银河带（夜渐显）
+  if(nebA>0.02){
+    ctx.save();
+    ctx.translate(cx,gT+wh*0.5);ctx.rotate(-0.45);
+    const bandG=ctx.createLinearGradient(0,-wh*0.13,0,wh*0.13);
+    bandG.addColorStop(0,'rgba(220,190,255,0)');
+    bandG.addColorStop(0.5,'rgba(220,190,255,'+(0.20*nebA).toFixed(2)+')');
+    bandG.addColorStop(1,'rgba(220,190,255,0)');
+    ctx.fillStyle=bandG;ctx.fillRect(-ww*0.7,-wh*0.13,ww*1.4,wh*0.26);
+    const gn=small?26:70;
+    for(let i=0;i<gn;i++){
+      const bx=(seededRand(i*1.7+201)-0.5)*ww*1.25;
+      const byy=(seededRand(i*2.3+209)-0.5)*wh*0.2;
+      const tw=0.3+0.7*Math.abs(Math.sin(time*1.2+i*1.4));
+      ctx.globalAlpha=tw*nebA;
+      ctx.fillStyle=i%6?'#f0e8ff':'#ffd9ec';
+      ctx.beginPath();ctx.arc(bx,byy,0.6+seededRand(i)*1.1,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;ctx.restore();
+  }
+  // 星野（夜先出现）
+  if(starA>0.02){
+    const sn=small?22:60;
+    for(let i=0;i<sn;i++){
+      const sx2=gL+seededRand(i*3.3+301)*ww, sy2=gT+seededRand(i*4.1+313)*wh*0.9;
+      const tw=0.25+0.75*Math.abs(Math.sin(time*(0.8+seededRand(i)*0.8)+i));
+      ctx.globalAlpha=tw*starA;
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.arc(sx2,sy2,0.6+seededRand(i*1.3)*1.2,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  // 远处星云（夜渐显）
+  if(nebA>0.02){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    const nbs=[[0.32,0.36,'168,130,235',0.30],[0.62,0.60,'225,150,200',0.22]];
+    for(let i=0;i<nbs.length;i++){
+      const nb=nbs[i];
+      const nx=gL+ww*nb[0]+(anim?Math.sin(time*0.05+i*2)*ww*0.015:0);
+      const ny=gT+wh*nb[1];
+      const ng2=ctx.createRadialGradient(nx,ny,4,nx,ny,ww*0.35);
+      ng2.addColorStop(0,'rgba('+nb[2]+','+(nb[3]*nebA).toFixed(2)+')');
+      ng2.addColorStop(1,'rgba('+nb[2]+',0)');
+      ctx.fillStyle=ng2;ctx.beginPath();ctx.arc(nx,ny,ww*0.35,0,7);ctx.fill();
+    }
+    ctx.restore();
+  }
+  // 非常小的虫洞（深夜最后出现）
+  if(wormA>0.02){
+    drawDistantWormhole(gL+ww*0.60,gT+wh*0.40,Math.min(ww,wh)*(small?0.075:0.09),wormA);
+  }
+  // 大窗夜晚偶尔流星
+  if(!small && nightK>0.5){
+    const shootCycle=13, ct=time%shootCycle;
+    if(ct<0.5){
+      const idx=Math.floor(time/shootCycle);
+      const rx=seededRand(idx), ry=seededRand(idx+0.37);
+      const sx0=gL+ww*(0.08+rx*0.6), sy0=gT+wh*(0.05+ry*0.3);
+      const p=ct/0.5, len=30, ang=0.5;
+      const hx=sx0+Math.cos(ang)*len*p, hy=sy0+Math.sin(ang)*len*p;
+      const tx2=hx-Math.cos(ang)*len*0.55, ty2=hy-Math.sin(ang)*len*0.55;
+      ctx.save();ctx.globalAlpha=Math.sin(Math.PI*p);
+      const grad=ctx.createLinearGradient(tx2,ty2,hx,hy);
+      grad.addColorStop(0,'rgba(200,210,255,0)');grad.addColorStop(1,'rgba(230,238,255,1)');
+      ctx.strokeStyle=grad;ctx.lineWidth=1.5;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(tx2,ty2);ctx.lineTo(hx,hy);ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
 function drawBigWindow(){
   const bw=room.bigWindow; if(!bw) return;
   const TH=ROOM_THEMES[room.theme||0], nA=nightAmt(dayT);
@@ -2712,9 +3154,10 @@ function drawBigWindow(){
   // ✨✨ 新增：吸引注意力的柔光+星点——这是唯一能爬上去看风景的窗户，得让人一眼看出跟普通装饰窗不一样
   ctx.save();ctx.globalCompositeOperation='lighter';
   const pulse=0.22+0.14*Math.sin(time*1.1);
+  const attractCol=TH.moonTheme?'#b9c8ff':'#ffe9b0';
   const attractG=ctx.createRadialGradient(cx,cy,10,cx,cy,ww*0.85);
-  attractG.addColorStop(0,rgbaOf('#ffe9b0',pulse*(1-ease*0.5)));
-  attractG.addColorStop(1,rgbaOf('#ffe9b0',0));
+  attractG.addColorStop(0,rgbaOf(attractCol,pulse*(1-ease*0.5)));
+  attractG.addColorStop(1,rgbaOf(attractCol,0));
   ctx.fillStyle=attractG;ctx.beginPath();ctx.arc(cx,cy,ww*0.85,0,7);ctx.fill();
   for(let i=0;i<4;i++){
     const a=time*0.4+i*(Math.PI*2/4);
@@ -2724,12 +3167,18 @@ function drawBigWindow(){
     drawTinyStar(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr*0.65,1.8+0.7*tw);
   }
   ctx.globalAlpha=1; ctx.restore();
-  // 外框
+  // 外框（现代窄边：细框 + 大玻璃面，颜色跟随房间 skirt 不变）
   ctx.fillStyle=nightMix(mix(TH.skirt,'#000',0.12),0.4);
-  rrPath(gL-14,gT-14,ww+28,wh+28,14);ctx.fill();
+  rrPath(gL-8,gT-8,ww+16,wh+16,10);ctx.fill();
   // —— 玻璃内（裁剪到窗洞）——
   ctx.save();rrPath(gL,gT,ww,wh,8);ctx.clip();
-  if(useMoonWindowNightPhoto()){
+  if(TH.moonTheme){
+    // 星际宇宙房：窗外永远是深空（房间漂浮在宇宙中），星云+银河+远处虫洞
+    drawSpaceWindowBig(gL,gT,ww,wh);
+  } else if(TH.pinkTheme){
+    // 粉色风：大窗外白天/黄昏/夜晚三段景
+    drawPinkWindowView(gL,gT,ww,wh,'big');
+  } else if(useMoonWindowNightPhoto()){
     // ✨✨ 梦幻月亮风的窗外，泰国时间到了晚上，直接铺这张星空银河照片
     drawMoonWindowNightPhoto(gL,gT,ww,wh);
   } else if(useForestWindowPhoto()){
@@ -2796,12 +3245,12 @@ function drawBigWindow(){
     ctx.globalAlpha=0.10*ease;ctx.fillStyle='#ffffff';
     ctx.beginPath();ctx.moveTo(gL,gT);ctx.lineTo(gL+ww*0.34,gT);ctx.lineTo(gL+ww*0.12,gB);ctx.lineTo(gL,gB);ctx.closePath();ctx.fill();
     ctx.globalAlpha=1;ctx.restore();}
-  // 窗框十字 + 窗台
-  ctx.strokeStyle=nightMix(TH.skirt,0.4);ctx.lineWidth=6;
+  // 窗框十字 + 窗台（细线窄边，现代感）
+  ctx.strokeStyle=nightMix(TH.skirt,0.4);ctx.lineWidth=3.5;
   ctx.beginPath();ctx.moveTo(cx,gT);ctx.lineTo(cx,gB);ctx.moveTo(gL,cy);ctx.lineTo(gR,cy);ctx.stroke();
-  ctx.lineWidth=5;ctx.strokeStyle=nightMix(mix(TH.skirt,'#000',0.1),0.4);
+  ctx.lineWidth=3;ctx.strokeStyle=nightMix(mix(TH.skirt,'#000',0.1),0.4);
   rrPath(gL,gT,ww,wh,8);ctx.stroke();
-  ctx.fillStyle=nightMix(mix(TH.skirt,'#fff',0.2),0.4);ctx.fillRect(gL-16,gB+6,ww+32,9);
+  ctx.fillStyle=nightMix(mix(TH.skirt,'#fff',0.2),0.4);ctx.fillRect(gL-8,gB+5,ww+16,7);
 
   // 阳光照进地板（开启 + 白天/黄昏）
   if(ease>0.05&&nA<0.6){ctx.save();ctx.globalCompositeOperation='lighter';
@@ -2918,16 +3367,18 @@ function drawPigeon(){
 }
 // 单个家具绘制（屏幕坐标 px = sx(world.x)）
 // ✨ 秘密空间入口类型集合：森系是树洞，其它五个房间各自专属物件——凡是判断"这是不是密境入口"的地方都用这个集合
-const SECRET_ENTRANCE_TYPES=new Set(['treehole','musicbox','moonwindow','clockdoor','pearlshell','vinearch']);
+const SECRET_ENTRANCE_TYPES=new Set(['treehole','musicbox','moonwindow','clockdoor','pearlshell','vinearch','crystalarch']);
 function drawFurniture(f){
-  const px=sx(f.x); if(px<-260||px>W+260) return;
   const TH=f.theme || ROOM_THEMES[room.theme||0];
+  let px=sx(f.x), by=roomY(f.dy), s=roomScale(f.dy);
+  // ✨ 杂物布袋飞行途中：位置/大小按飞行插值覆盖，直接画出来
+  if(f.bagFly2){ const fp=furnFlyPos(f); px=fp.x; by=fp.y; s*=fp.shrink; }
+  if(px<-260||px>W+260) return;
   if(f.onWall){
     const wy=lerp(H*0.12,wallBottomY()-20,f.dy*4);
     drawWallItem(f,px,wy,TH);
     return;
   }
-  const by=roomY(f.dy), s=roomScale(f.dy);
   switch(f.type){
     case 'rug': drawRug(px,by,s,f.w,TH); break;
     case 'bed': drawBed(px,by,s,TH); break;
@@ -2938,7 +3389,8 @@ function drawFurniture(f){
     case 'toybox': drawToyBox(px,by,s,TH); break;
     case 'treehole': drawTreeHole(f,px,by,s,TH); break;
     case 'musicbox': drawMusicBoxEntrance(f,px,by,s,TH); break;
-    case 'moonwindow': drawMoonWindowEntrance(f,px,by,s,TH); break;
+    case 'crystalarch': drawCrystalArchEntrance(f,px,by,s,TH); break;
+    case 'moonwindow': drawMoonWindowWormhole(f,px,by,s,TH); break;
     case 'clockdoor': drawClockEntrance(f,px,by,s,TH); break;
     case 'pearlshell': drawPearlShellEntrance(f,px,by,s,TH); break;
     case 'vinearch': drawVineArchEntrance(f,px,by,s,TH); break;
@@ -2952,7 +3404,45 @@ function drawFurniture(f){
   }
 }
 // 毛线球玩具：球面渐变 + 缠绕线 + 接触影
-function drawBall(px,by,s,TH){
+// ✨✨ 玩具惊吓脸：被踢/被抛时随机露出的表情（1瞪眼+o嘴 / 2更大更惊 / 3大小眼搞怪版），
+//    鱼和老鼠沿用自带的害怕表情，其他圆滚滚玩具都走这一套 overlay
+function scareOf(t){ return (t.scaredT>0)?(t.scareFace||1):0; }
+function drawToyScareFace(x,y,r,variant){
+  const u=r/10;
+  ctx.fillStyle='#fff';
+  if(variant===3){
+    // 搞怪版：一大一小，瞳孔往反方向斜
+    ctx.beginPath();ctx.arc(x-3.2*u,y-1.2*u,3*u,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(x+3.4*u,y-1*u,2.1*u,0,7);ctx.fill();
+    ctx.fillStyle='#33302e';
+    ctx.beginPath();ctx.arc(x-2.4*u,y-0.4*u,1.2*u,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(x+3.8*u,y-1.6*u,0.9*u,0,7);ctx.fill();
+    ctx.fillStyle='#7a3a44';
+    ctx.beginPath();ctx.arc(x+0.8*u,y+3.2*u,1.4*u,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(60,40,40,.6)';ctx.lineWidth=0.9*u;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x-5.6*u,y-5.2*u);ctx.lineTo(x-1.4*u,y-6*u);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+1.6*u,y-4.4*u);ctx.lineTo(x+5.4*u,y-4.6*u);ctx.stroke();
+  } else {
+    const big=(variant===2);
+    const er=big?3.2*u:2.6*u, eh=big?3.6*u:2.6*u, pr=big?0.9*u:1.2*u;
+    for(const s of[-1,1]){
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.ellipse(x+s*3.3*u,y-1.2*u,er,eh,0,0,7);ctx.fill();
+      ctx.fillStyle='#33302e';
+      ctx.beginPath();ctx.arc(x+s*3.3*u,y-(big?2*u:1.4*u),pr,0,7);ctx.fill();
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.arc(x+s*3.3*u-pr*0.3,y-(big?2.4*u:1.8*u),pr*0.4,0,7);ctx.fill();
+    }
+    ctx.fillStyle='#7a3a44';
+    ctx.beginPath();ctx.ellipse(x,y+(big?3.8*u:3.2*u),big?2*u:1.5*u,big?2.8*u:2*u,0,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(60,40,40,.6)';ctx.lineWidth=0.9*u;ctx.lineCap='round';
+    for(const s of[-1,1]){
+      ctx.beginPath();ctx.moveTo(x+s*1.4*u,y-(big?5.6*u:4.8*u));ctx.lineTo(x+s*4.8*u,y-(big?6.4*u:5.6*u));ctx.stroke();
+    }
+  }
+  ctx.lineCap='butt';
+}
+function drawBall(px,by,s,TH,scare){
   const r=17*s;
   ctx.fillStyle='rgba(60,40,30,.16)';ctx.beginPath();ctx.ellipse(px,by+2*s,r*1.05,r*0.34,0,0,7);ctx.fill();
   const cy=by-r*0.4;
@@ -3034,11 +3524,12 @@ function drawBall(px,by,s,TH){
     ctx.beginPath();ctx.ellipse(px,cy,r*0.5,r*0.9,0.6,0,7);ctx.stroke();
     ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.ellipse(px-r*0.45,cy-r*0.35,r*0.22,r*0.14,-0.5,0,7);ctx.fill();
   }
+  if(scare) drawToyScareFace(px,cy-r*0.05,r,scare);
 }
 // ✨✨ 流星/彗星玩具：追逐玩法专属，跟星空球是两个独立的玩具，互不影响——
 //    拖着一条随速度伸缩发光的尾迹，速度越快尾越长越亮，"先快后慢"的减速过程直接体现在尾巴一点点收短上；
 //    完全停下来时也留一小截静止的余光，不会看起来像光秃秃的圆点
-function drawComet(px,by,s,vx,lit){
+function drawComet(px,by,s,vx,lit,scare){
   const r=17*s;
   ctx.fillStyle='rgba(60,40,30,.16)';ctx.beginPath();ctx.ellipse(px,by+2*s,r*1.05,r*0.34,0,0,7);ctx.fill();
   const cy=by-r*0.4;
@@ -3084,9 +3575,10 @@ function drawComet(px,by,s,vx,lit){
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,cy,r*0.78,0,7);ctx.fill();
   ctx.fillStyle=lit?'rgba(255,255,255,.7)':'rgba(255,255,255,.35)';
   ctx.beginPath();ctx.ellipse(px-r*0.26,cy-r*0.28,r*0.15,r*0.1,-0.5,0,7);ctx.fill();
+  if(scare) drawToyScareFace(px,cy,r*0.8,scare);
 }
 // ✨✨ 海星玩具：追逐玩法专属(海洋风)，跟沙滩球是两个独立玩具——五角身体随滚动速度旋转，表面点缀珊瑚色小凸点
-function drawStarfish(px,by,s,rot){
+function drawStarfish(px,by,s,rot,scare){
   const r=15*s;
   ctx.fillStyle='rgba(60,40,30,.16)';ctx.beginPath();ctx.ellipse(px,by+2*s,r*1.05,r*0.34,0,0,7);ctx.fill();
   const cy=by-r*0.35;
@@ -3104,11 +3596,12 @@ function drawStarfish(px,by,s,rot){
   ctx.strokeStyle='rgba(255,255,255,.4)';ctx.lineWidth=1*s;ctx.stroke();
   ctx.fillStyle='rgba(255,230,210,.55)';
   for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5; ctx.beginPath();ctx.arc(Math.cos(a)*r*0.55,Math.sin(a)*r*0.55,r*0.09,0,7);ctx.fill();}
+  if(scare) drawToyScareFace(0,0,r*0.85,scare);   // 跟着海星一起转，滚起来更搞笑
   ctx.restore();
   ctx.fillStyle='rgba(255,255,255,.45)';ctx.beginPath();ctx.ellipse(px-r*0.3,cy-r*0.35,r*0.16,r*0.1,-0.5,0,7);ctx.fill();
 }
 // ✨✨ 蝴蝶结绒球：追逐玩法专属(少女粉色风)，跟糖果旋涡球是两个独立玩具——粉白绒球+一条随速度飘动的缎带尾巴
-function drawRibbonBall(px,by,s,vx){
+function drawRibbonBall(px,by,s,vx,scare){
   const r=15*s;
   ctx.fillStyle='rgba(60,40,30,.16)';ctx.beginPath();ctx.ellipse(px,by+2*s,r*1.05,r*0.34,0,0,7);ctx.fill();
   const cy=by-r*0.4;
@@ -3128,10 +3621,11 @@ function drawRibbonBall(px,by,s,vx){
   ctx.beginPath();ctx.ellipse(px-r*0.35,cy,r*0.28,r*0.18,-0.4,0,7);ctx.fill();
   ctx.beginPath();ctx.ellipse(px+r*0.35,cy,r*0.28,r*0.18,0.4,0,7);ctx.fill();
   ctx.fillStyle='#e0608c';ctx.beginPath();ctx.arc(px,cy,r*0.14,0,7);ctx.fill();
+  if(scare) drawToyScareFace(px,cy+r*0.42,r*0.72,scare);   // 脸长在蝴蝶结下面，不挡结
   ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.ellipse(px-r*0.4,cy-r*0.45,r*0.16,r*0.1,-0.5,0,7);ctx.fill();
 }
 // ✨✨ 小刺猬玩具：追逐玩法专属(森系绿植风)，跟橡果玩具是两个独立玩具——缩成一团滚走，刺随滚动速度旋转
-function drawHedgehog(px,by,s,rot){
+function drawHedgehog(px,by,s,rot,scare){
   const r=15*s;
   ctx.fillStyle='rgba(60,40,30,.16)';ctx.beginPath();ctx.ellipse(px,by+2*s,r*1.05,r*0.34,0,0,7);ctx.fill();
   const cy=by-r*0.4;
@@ -3139,6 +3633,7 @@ function drawHedgehog(px,by,s,rot){
   const g=ctx.createRadialGradient(-r*0.3,-r*0.3,r*0.1,0,0,r);
   g.addColorStop(0,'#c9a878');g.addColorStop(1,'#8a6a45');
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r*0.82,0,7);ctx.fill();
+  if(scare) drawToyScareFace(-r*0.08,-r*0.02,r*0.68,scare);   // 跟着刺球一起转
   ctx.strokeStyle='#5c4630';ctx.lineWidth=1.4*s;ctx.lineCap='round';
   for(let i=0;i<14;i++){
     const a=i*2*Math.PI/14;
@@ -3149,7 +3644,7 @@ function drawHedgehog(px,by,s,rot){
   ctx.fillStyle='rgba(255,255,255,.4)';ctx.beginPath();ctx.ellipse(px-r*0.3,cy-r*0.35,r*0.14,r*0.09,-0.5,0,7);ctx.fill();
 }
 // ✨✨ 怀表玩具：追逐玩法专属(复古书房风)，跟小地球仪是两个独立玩具——金色表壳+甩在后面的表链
-function drawPocketWatch(px,by,s,vx){
+function drawPocketWatch(px,by,s,vx,scare){
   const r=15*s;
   ctx.fillStyle='rgba(60,40,30,.16)';ctx.beginPath();ctx.ellipse(px,by+2*s,r*1.05,r*0.34,0,0,7);ctx.fill();
   const cy=by-r*0.4;
@@ -3171,11 +3666,12 @@ function drawPocketWatch(px,by,s,vx){
   ctx.strokeStyle='#6b4a35';ctx.lineWidth=1*s;
   ctx.beginPath();ctx.moveTo(px,cy);ctx.lineTo(px+Math.cos(time*3)*r*0.4,cy+Math.sin(time*3)*r*0.4);ctx.stroke();
   ctx.beginPath();ctx.moveTo(px,cy);ctx.lineTo(px+Math.cos(time*0.5)*r*0.25,cy+Math.sin(time*0.5)*r*0.25);ctx.stroke();
+  if(scare) drawToyScareFace(px,cy,r*0.6,scare);   // 表盘直接变成一张惊脸，指针先靠边站
   ctx.fillStyle='#b8923f';ctx.fillRect(px-r*0.08,cy-r*0.98,r*0.16,r*0.16);
   ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.ellipse(px-r*0.28,cy-r*0.3,r*0.13,r*0.08,-0.5,0,7);ctx.fill();
 }
 // ✨✨ 瓢虫玩具：追逐玩法专属(阳台庭院风)，跟小花苞球是两个独立玩具——缩壳滚走，随滚动速度旋转
-function drawLadybug(px,by,s,rot){
+function drawLadybug(px,by,s,rot,scare){
   const r=14*s;
   ctx.fillStyle='rgba(60,40,30,.16)';ctx.beginPath();ctx.ellipse(px,by+2*s,r*1.05,r*0.34,0,0,7);ctx.fill();
   const cy=by-r*0.4;
@@ -3188,6 +3684,7 @@ function drawLadybug(px,by,s,rot){
   [[-0.4,-0.3],[0.4,-0.3],[-0.35,0.35],[0.35,0.35],[0,0]].forEach(p=>{
     ctx.beginPath();ctx.arc(p[0]*r,p[1]*r,r*0.14,0,7);ctx.fill();
   });
+  if(scare) drawToyScareFace(0,r*0.08,r*0.66,scare);   // 跟着瓢虫一起转
   ctx.fillStyle='#2a1a14';ctx.beginPath();ctx.arc(0,-r*0.95,r*0.3,0,7);ctx.fill();
   ctx.restore();
   ctx.fillStyle='rgba(255,255,255,.45)';ctx.beginPath();ctx.ellipse(px-r*0.3,cy-r*0.35,r*0.14,r*0.09,-0.5,0,7);ctx.fill();
@@ -3352,6 +3849,7 @@ function drawMouseToy(px,by,s,facing,TH,scared){
 const TOY_SCALE=2;  // ✨ 玩具整体放大倍数（球/鱼/羽毛棒/老鼠玩具）
 function drawToy(t){
   if(t.stored) return;   // 已收进箱子的玩具不在地上/怀里渲染
+  if(t.inBag && !t.bagFly) return;   // ✨ 布袋里的玩具不渲染（飞入/飞出途中除外）
   const TH=ROOM_THEMES[room.theme||0];
   let px, by, s, stretch=1, arcLift=0;
   if(t.held){
@@ -3368,9 +3866,15 @@ function drawToy(t){
     // ✨ 抛向天空：在起落点之间水平插值，同时叠加一段抛物线弧高，弧顶明显扬起
     px = sx(t.x); by = roomY(t.dy); s = roomScale(t.dy);
     const p=clamp(t.tossT/t.tossDur,0,1);
-    arcLift = Math.sin(p*Math.PI)*260*s;   // ✨ 弧高翻倍(130→260)，抛得更明显；随景深比例缩放，越靠前(s大)抛得越高
+    arcLift = Math.sin(p*Math.PI)*(t.tossArc||260)*s;   // ✨ 弧高默认260（随景深缩放）；旋抛按随机力度走200~335
     by -= arcLift;
     stretch = 1-Math.sin(p*Math.PI)*0.12;  // 顶点附近略微收窄，像被抛起时的观感
+  } else if(t.bagFly){
+    // ✨ 布袋飞行：收回时越飞越小钻进布袋，放出时由小变大落到随机位置
+    const bfp=bagFlyPos(t);
+    px=bfp.x; by=bfp.y; s=roomScale(clamp(t.bagFly.mode==='in'?t.bagFly.fromDy:t.bagFly.toDy,0,1));
+    s*= t.bagFly.mode==='in' ? (1-bfp.e*0.8) : (0.25+bfp.e*0.75);
+    stretch=1;
   } else {
     px=sx(t.x); if(px<-260||px>W+260) return;
     by = roomY(t.dy); s = roomScale(t.dy);
@@ -3383,21 +3887,25 @@ function drawToy(t){
     if(bh>1) stretch=clamp(stretch*(1-Math.min(bh,22)*0.01),0.68,1.45);   // 弹起的瞬间稍微拉长变窄，落地又自然回正，多一点"弹性"的感觉
   }
   s*=TOY_SCALE;
+  // 现代呼吸感：静置时全体玩具轻微呼吸（鱼/老鼠已有各自呼吸，这里覆盖其余类型；被举/抛/滚动/弹跳时不呼吸）
+  if(!t.held&&!t.tossing&&!t.bagFly&&Math.abs(t.vx)<4&&!(t.bounceH>0)&&t.type!=='fish'&&t.type!=='mouse'){
+    s*=1+Math.sin(time*2+(t.breathPhase||0))*0.035;
+  }
   ctx.save();
-  if(t.tossing){
-    // 抛起时的小旋转，增加"飞在空中"的动感
+  if(t.tossing||t.bagFly){
+    // 抛起/布袋飞行时的小旋转，增加"飞在空中"的动感
     ctx.translate(px,by);ctx.rotate(Math.sin(time*10)*0.25);ctx.translate(-px,-by);
   } else if(stretch>1.01||stretch<0.99){
     ctx.translate(px,by); ctx.scale(stretch,1/Math.sqrt(Math.max(stretch,0.4))); ctx.translate(-px,-by);
   }
   switch(t.type){
-    case 'ball': drawBall(px,by,s,TH); break;
-    case 'comet': drawComet(px,by,s,t.vx,t.lit); break;
-    case 'starfish': drawStarfish(px,by,s,t.rot); break;
-    case 'ribbonball': drawRibbonBall(px,by,s,t.vx); break;
-    case 'hedgehog': drawHedgehog(px,by,s,t.rot); break;
-    case 'pocketwatch': drawPocketWatch(px,by,s,t.vx); break;
-    case 'ladybug': drawLadybug(px,by,s,t.rot); break;
+    case 'ball': drawBall(px,by,s,TH,scareOf(t)); break;
+    case 'comet': drawComet(px,by,s,t.vx,t.lit,scareOf(t)); break;
+    case 'starfish': drawStarfish(px,by,s,t.rot,scareOf(t)); break;
+    case 'ribbonball': drawRibbonBall(px,by,s,t.vx,scareOf(t)); break;
+    case 'hedgehog': drawHedgehog(px,by,s,t.rot,scareOf(t)); break;
+    case 'pocketwatch': drawPocketWatch(px,by,s,t.vx,scareOf(t)); break;
+    case 'ladybug': drawLadybug(px,by,s,t.rot,scareOf(t)); break;
     case 'fish': {
       // ✨✨ 新增：呼吸感——只在没被举着/没被抛/没在滚动时才呼吸，滚动起来说明正在飞/被踢，不应该还慢悠悠喘气
       const breatheF=(!t.held&&!t.tossing&&Math.abs(t.vx)<4) ? 1+Math.sin(time*2+(t.breathPhase||0))*0.045 : 1;
@@ -3411,7 +3919,7 @@ function drawToy(t){
       break;
     }
     case 'blanket': case 'tissue': case 'hotwater': case 'plushie': drawMoodToy(t,px,by,s); break;
-    case 'straydoll': drawStrayDoll(px,by,s,t.skin); break;
+    case 'straydoll': drawStrayDoll(px,by,s,t.skin,scareOf(t)); break;
   }
   ctx.restore();
 }
@@ -3732,7 +4240,8 @@ function drawWallItem(f,px,wy,TH){
     drawStarDecal(px,wy,1,f,TH);
   }
 }
-function wallLabel(x,y,t){if(!t)return;ctx.fillStyle='rgba(90,70,50,.85)';ctx.font='600 11px "Noto Sans Thai",-apple-system,sans-serif';ctx.textAlign='center';ctx.fillText(t,x,y);}
+/* 家具可交互标记：现代呼吸圆点（代替原来的 Emoji 字，13 处调用共用；t 参数保留兼容调用方，实际不再绘制文字） */
+function wallLabel(x,y,t){if(!t)return;ctx.save();var pulse=0.72+0.28*Math.sin(time*2+x*0.02);ctx.shadowColor='rgba(40,30,70,.16)';ctx.shadowBlur=6;rRect(x-15,y-13,30,18,9);ctx.fillStyle='rgba(255,255,255,.88)';ctx.fill();ctx.shadowColor='transparent';ctx.save();ctx.globalCompositeOperation='lighter';var g=ctx.createRadialGradient(x,y-4,0,x,y-4,9);g.addColorStop(0,'rgba(138,111,196,'+(0.55*pulse+0.25).toFixed(2)+')');g.addColorStop(1,'rgba(138,111,196,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-4,9,0,7);ctx.fill();ctx.restore();ctx.fillStyle='rgba(138,111,196,'+pulse.toFixed(2)+')';ctx.beginPath();ctx.arc(x,y-4,4.5,0,7);ctx.fill();ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(x-1.4,y-5.4,1.4,0,7);ctx.fill();ctx.restore();}
 function drawTinyStar(x,y,s){ctx.save();ctx.translate(x,y);ctx.beginPath();
   for(let i=0;i<5;i++){const a=-Math.PI/2+i*2*Math.PI/5;ctx.lineTo(Math.cos(a)*s,Math.sin(a)*s);
     const a2=a+Math.PI/5;ctx.lineTo(Math.cos(a2)*s*0.45,Math.sin(a2)*s*0.45);}ctx.closePath();ctx.fill();ctx.restore();}
@@ -4058,7 +4567,8 @@ function drawPlant(px,by,s,TH){
     ctx.strokeStyle='rgba(60,130,80,.35)';ctx.lineWidth=1*s;ctx.beginPath();ctx.moveTo(0,r*0.8);ctx.lineTo(0,-r*0.8);ctx.stroke();
     ctx.restore();}
 }
-function furnLabel(x,y,t){ctx.fillStyle='rgba(90,70,50,.85)';ctx.font='600 11px "Noto Sans Thai",-apple-system,sans-serif';ctx.textAlign='center';ctx.fillText(t,x,y);}
+/* 家具可交互标记：现代呼吸圆点（代替原来的 Emoji 字，13 处调用共用；t 参数保留兼容调用方，实际不再绘制文字） */
+function furnLabel(x,y,t){ctx.save();var pulse=0.72+0.28*Math.sin(time*2+x*0.02);ctx.shadowColor='rgba(40,30,70,.16)';ctx.shadowBlur=6;rRect(x-15,y-13,30,18,9);ctx.fillStyle='rgba(255,255,255,.88)';ctx.fill();ctx.shadowColor='transparent';ctx.save();ctx.globalCompositeOperation='lighter';var g=ctx.createRadialGradient(x,y-4,0,x,y-4,9);g.addColorStop(0,'rgba(138,111,196,'+(0.55*pulse+0.25).toFixed(2)+')');g.addColorStop(1,'rgba(138,111,196,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-4,9,0,7);ctx.fill();ctx.restore();ctx.fillStyle='rgba(138,111,196,'+pulse.toFixed(2)+')';ctx.beginPath();ctx.arc(x,y-4,4.5,0,7);ctx.fill();ctx.fillStyle='rgba(255,255,255,.9)';ctx.beginPath();ctx.arc(x-1.4,y-5.4,1.4,0,7);ctx.fill();ctx.restore();}
 // ✨✨ 高级树洞：站在地上的一整棵树（粗树干+树冠+根部），洞口开在贴近地面的高度，
 //    Lumi 可以真的"走进树干里"，森系房间专属，参考"熊出没"树洞小屋的既视感
 function drawTreeHole(f,px,by,s,TH){
@@ -4392,6 +4902,234 @@ function drawEntranceChargeRing(hx,hy,hw,glow,glowCol,ambientScale=1){
   ctx.restore();
 }
 // ✨ 少女粉色风：巨大音乐盒——蓄力时盖缝先透光+飘音符，开启时盖子真的绕后铰链掀起来
+// 少女粉色风专属：天然水晶晶簇拱门——水晶从地面向上生长，围成完整拱形门框；
+// 门洞里是一片微型宇宙（星云/星尘/星星/远月），中央一层像水面般波动的能量膜；
+// 底部圆形水晶平台，周围少量漂浮碎片。只用柔和紫蓝光，不霓虹不压抑。
+function drawCrystalArchEntrance(f,px,by,s,TH){
+  const pr=secretEntranceProgress(f), glow=pr.glow, open=pr.open;
+  const act=Math.max(glow,open);
+  const breath=0.5+0.5*Math.sin(time*1.1);
+  const anim=!reduceMotion;
+  const shake=(glow>0.02&&open<0.05&&anim)?Math.sin(time*11)*glow*1.6:0;
+  const cx=px+shake;
+  const pcx=cx, pcy=by-100*s;            // 门洞中心
+  const aw=42*s, topY=by-142*s;          // 门洞半宽 / 拱顶
+  // 落地投影 + 门下光池
+  ctx.fillStyle='rgba(60,40,90,.22)';ctx.beginPath();ctx.ellipse(cx,by+7*s,86*s,13*s,0,0,7);ctx.fill();
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const poolG=ctx.createRadialGradient(cx,by,2,cx,by,110*s);
+  poolG.addColorStop(0,'rgba(190,175,255,'+(0.30+0.14*breath+0.20*act).toFixed(3)+')');
+  poolG.addColorStop(1,'rgba(190,175,255,0)');
+  ctx.fillStyle=poolG;ctx.beginPath();ctx.ellipse(cx,by,110*s,22*s,0,0,7);ctx.fill();
+  // 水晶光照进房间：一大团柔和紫蓝洗光（地板/墙面/家具都吃到一点）
+  const wash=ctx.createRadialGradient(cx,by-80*s,10,cx,by-80*s,300*s);
+  wash.addColorStop(0,'rgba(175,185,255,'+(0.14+0.06*breath+0.14*act).toFixed(3)+')');
+  wash.addColorStop(1,'rgba(175,185,255,0)');
+  ctx.fillStyle=wash;ctx.beginPath();ctx.arc(cx,by-80*s,300*s,0,7);ctx.fill();
+  ctx.restore();
+  // —— 门洞里的微型宇宙（裁切到拱形门洞内）——
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pcx-aw,by);ctx.lineTo(pcx-aw,pcy);
+  ctx.arc(pcx,pcy,aw,Math.PI,0);
+  ctx.lineTo(pcx+aw,by);ctx.closePath();ctx.clip();
+  const ug=ctx.createLinearGradient(0,topY,0,by);
+  ug.addColorStop(0,'#0d0a30');ug.addColorStop(0.55,'#2a1c66');ug.addColorStop(1,'#4a2f86');
+  ctx.fillStyle=ug;ctx.fillRect(pcx-aw-4,topY,aw*2+8,by-topY+4);
+  // 柔软蓝紫星云
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const unbs=[[0.36,0.34,'140,150,255',0.30],[0.62,0.58,'215,150,205',0.22]];
+  for(let i=0;i<unbs.length;i++){
+    const nb=unbs[i];
+    const nx=pcx-aw+aw*2*nb[0]+(anim?Math.sin(time*0.12+i*2.2)*5*s:0);
+    const ny=topY+(by-topY)*nb[1];
+    const ng=ctx.createRadialGradient(nx,ny,2,nx,ny,aw*1.1);
+    ng.addColorStop(0,'rgba('+nb[2]+','+(nb[3]+0.12*act).toFixed(2)+')');
+    ng.addColorStop(1,'rgba('+nb[2]+',0)');
+    ctx.fillStyle=ng;ctx.beginPath();ctx.arc(nx,ny,aw*1.1,0,7);ctx.fill();
+  }
+  ctx.restore();
+  // 细小星星
+  for(let i=0;i<24;i++){
+    const sx2=pcx-aw+seededRand(i*1.93+401)*aw*2;
+    const sy2=topY+seededRand(i*2.71+413)*(by-topY);
+    if(Math.abs(sx2-pcx)>aw-3*s) continue;
+    const tw=0.3+0.7*Math.abs(Math.sin(time*(0.9+seededRand(i)*0.8)+i*1.3));
+    ctx.globalAlpha=tw*(0.4+0.45*act+0.2);
+    ctx.fillStyle='#eef0ff';
+    ctx.beginPath();ctx.arc(sx2,sy2,0.7+seededRand(i*1.1)*1.1,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  // 遥远的月亮
+  const mx=pcx+15*s, my=topY+36*s, mr=8.5*s;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const mg=ctx.createRadialGradient(mx,my,1,mx,my,mr*3);
+  mg.addColorStop(0,'rgba(255,240,248,'+(0.55+0.2*act).toFixed(2)+')');
+  mg.addColorStop(1,'rgba(255,240,248,0)');
+  ctx.fillStyle=mg;ctx.beginPath();ctx.arc(mx,my,mr*3,0,7);ctx.fill();
+  ctx.restore();
+  ctx.fillStyle='#fdf2f8';ctx.beginPath();ctx.arc(mx,my,mr,0,7);ctx.fill();
+  ctx.fillStyle='rgba(215,190,225,.6)';
+  ctx.beginPath();ctx.arc(mx-mr*0.3,my-mr*0.2,mr*0.22,0,7);ctx.fill();
+  // 漂浮星尘（门洞内缓缓上升，极少）
+  if(anim){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<6;i++){
+      const cyc=((time*0.07)+i*0.17)%1;
+      const dx=pcx-aw+((i*37)%80)/80*aw*2;
+      const dy=by-cyc*(by-topY);
+      ctx.globalAlpha=Math.sin(cyc*Math.PI)*0.5;
+      ctx.fillStyle='#dfe6ff';
+      ctx.beginPath();ctx.arc(dx,dy,1.3,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;ctx.restore();
+  }
+  // 中央能量膜：半透明，像水面一样缓慢波动
+  const mmG=ctx.createRadialGradient(pcx,by-70*s,4,pcx,by-70*s,44*s);
+  mmG.addColorStop(0,'rgba(240,244,255,'+(0.16+0.22*act).toFixed(2)+')');
+  mmG.addColorStop(0.6,'rgba(200,190,255,'+(0.12+0.16*act).toFixed(2)+')');
+  mmG.addColorStop(1,'rgba(200,190,255,0)');
+  ctx.fillStyle=mmG;
+  ctx.beginPath();ctx.ellipse(pcx,by-70*s,30*s,52*s,0,0,7);ctx.fill();
+  // 膜面波纹：三道随时间起伏的高光弧线
+  ctx.strokeStyle='rgba(240,245,255,'+(0.22+0.25*act).toFixed(2)+')';
+  ctx.lineWidth=1.3*s;ctx.lineCap='round';
+  for(let i=0;i<3;i++){
+    const wy=by-96*s+i*26*s;
+    ctx.beginPath();
+    for(let k=0;k<=1.001;k+=0.1){
+      const wx2=pcx-24*s+k*48*s;
+      const wob=Math.sin(k*6.28+time*1.2+i*2.1)*(3+2*act)*s;
+      if(k===0)ctx.moveTo(wx2,wy+wob);else ctx.lineTo(wx2,wy+wob);
+    }
+    ctx.stroke();
+  }
+  ctx.lineCap='butt';
+  // 膜内偶尔流动的光粒子
+  if(anim){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<5;i++){
+      const cyc=((time*0.11)+i*0.23)%1;
+      const dx=pcx-20*s+((i*53)%40)*s;
+      const dy=by-24*s-cyc*88*s;
+      ctx.globalAlpha=Math.sin(cyc*Math.PI)*(0.35+0.35*act);
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.arc(dx,dy,1.4,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;ctx.restore();
+  }
+  ctx.restore(); // end 门洞裁切
+  // —— 水晶拱框：从地面向上生长的晶簇，两侧向内倾、顶部交汇成完整拱形 ——
+  const shardCols=[
+    ['#e9defc','#c9b8f0','#a58fe0'],   // 淡紫
+    ['#dcebfb','#bcd8f5','#8fb8e8'],   // 冰蓝
+    ['#fbf6ff','#e8ddf8','#c4aee8'],   // 珍珠白
+    ['#fdeaf3','#f7c9de','#e89ec2']    // 淡粉
+  ];
+  function shard(bx,hh,ww2,lean,ci,seed){
+    const col=shardCols[ci%shardCols.length];
+    const tipX=lean*hh, tipY=-hh;   // 本地坐标（已 translate 到基座，不要再加 bx）
+    ctx.save();ctx.translate(bx,by);
+    const g=ctx.createLinearGradient(-ww2,0,ww2,-hh);
+    g.addColorStop(0,col[2]);g.addColorStop(0.55,col[1]);g.addColorStop(1,col[0]);
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.moveTo(-ww2/2,0);
+    ctx.lineTo(-ww2*0.30+lean*hh*0.3,-hh*0.62);
+    ctx.lineTo(tipX,tipY);
+    ctx.lineTo(ww2*0.30+lean*hh*0.3,-hh*0.62);
+    ctx.lineTo(ww2/2,0);
+    ctx.closePath();ctx.fill();
+    // 刻面：左暗右亮，玻璃质感
+    ctx.fillStyle='rgba(90,70,140,.20)';
+    ctx.beginPath();
+    ctx.moveTo(-ww2/2,0);
+    ctx.lineTo(-ww2*0.30+lean*hh*0.3,-hh*0.62);
+    ctx.lineTo(tipX,tipY);
+    ctx.lineTo(tipX*0.3,-hh*0.4);ctx.lineTo(-ww2*0.1,0);
+    ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.26)';
+    ctx.beginPath();
+    ctx.moveTo(tipX,tipY);
+    ctx.lineTo(ww2*0.30+lean*hh*0.3,-hh*0.62);
+    ctx.lineTo(ww2/2,0);ctx.lineTo(ww2*0.1,0);ctx.lineTo(tipX*0.3,-hh*0.4);
+    ctx.closePath();ctx.fill();
+    // 锋利但圆润的边缘高光
+    ctx.strokeStyle='rgba(255,255,255,.60)';ctx.lineWidth=1.2*s;ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(-ww2/2,0);
+    ctx.lineTo(-ww2*0.30+lean*hh*0.3,-hh*0.62);
+    ctx.lineTo(tipX,tipY);ctx.stroke();
+    // 内部封存的星光：细微发光纹理
+    for(let i=0;i<2;i++){
+      const ix=(seededRand(seed*7.7+i*3.3)-0.5)*ww2*0.5+tipX*0.25;
+      const iy=-hh*(0.30+seededRand(seed*3.1+i)*0.35);
+      const tw=0.35+0.65*Math.abs(Math.sin(time*1.4+seed+i*2.2));
+      ctx.save();ctx.globalCompositeOperation='lighter';
+      ctx.globalAlpha=tw*(0.5+0.4*act);
+      ctx.fillStyle='#fff';
+      ctx.beginPath();ctx.arc(ix,iy,1.5,0,7);ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalAlpha=1;
+    // 中央晶脉
+    ctx.strokeStyle='rgba(255,255,255,.30)';ctx.lineWidth=1*s;
+    ctx.beginPath();ctx.moveTo(bx-bx, -hh*0.06);ctx.lineTo(tipX*0.3,-hh*0.55);ctx.stroke();
+    ctx.restore();
+  }
+  // 两侧晶柱（由外向内、由矮到高，顶部向中心交汇）
+  for(const side of[-1,1]){
+    shard(cx+side*90*s, 95*s, 18*s, -side*0.10, side<0?1:3, side<0?11:12);
+    shard(cx+side*76*s, 150*s, 24*s, -side*0.18, side<0?0:1, side<0?21:22);
+    shard(cx+side*60*s, 185*s, 30*s, -side*0.32, side<0?2:0, side<0?31:32);
+  }
+  // 根部小碎晶（贴地一圈，造型自然）
+  shard(cx-38*s, 52*s, 15*s, 0.10, 3, 41);
+  shard(cx+36*s, 44*s, 13*s, -0.12, 1, 42);
+  shard(cx-102*s, 60*s, 16*s, 0.08, 0, 43);
+  shard(cx+100*s, 54*s, 15*s, -0.08, 2, 44);
+  // —— 底部圆形水晶平台（同心圆微光纹理）——
+  const platG=ctx.createLinearGradient(cx-52*s,0,cx+52*s,0);
+  platG.addColorStop(0,nightMix('#b9a8e0',0.4));platG.addColorStop(0.5,nightMix('#e6dcfa',0.35));platG.addColorStop(1,nightMix('#b9a8e0',0.4));
+  ctx.fillStyle=platG;
+  ctx.beginPath();ctx.ellipse(cx,by+4*s,52*s,13*s,0,0,7);ctx.fill();
+  ctx.fillStyle=nightMix('#f4edff',0.3);
+  ctx.beginPath();ctx.ellipse(cx,by+1*s,40*s,9*s,0,0,7);ctx.fill();
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<2;i++){
+    const rr=30*s-i*9*s;
+    ctx.globalAlpha=(0.22+0.14*Math.sin(time*1.6+i*2.4))*(0.6+0.6*act);
+    ctx.strokeStyle='#efe8ff';ctx.lineWidth=1.4*s;
+    ctx.beginPath();ctx.ellipse(cx,by+1*s,rr,rr*0.24,0,0,7);ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  // 周围漂浮的水晶碎片 + 星尘（少量，画面保持干净）
+  if(anim){
+    ctx.save();
+    const floats=[[-1,88,120],[1,96,150],[-1,70,60],[1,74,90],[-1,104,180]];
+    for(let i=0;i<floats.length;i++){
+      const fl=floats[i];
+      const fx=cx+fl[0]*fl[1]*s+Math.sin(time*0.5+i*1.9)*4*s;
+      const fy=by-fl[2]*s+Math.cos(time*0.4+i)*5*s;
+      ctx.save();ctx.translate(fx,fy);ctx.rotate(fl[0]*0.35+Math.sin(time*0.3+i)*0.08);
+      ctx.fillStyle=i%2?'rgba(220,228,255,.75)':'rgba(240,220,240,.75)';
+      ctx.beginPath();ctx.moveTo(0,-6*s);ctx.lineTo(3.4*s,0);ctx.lineTo(0,6*s);ctx.lineTo(-3.4*s,0);ctx.closePath();ctx.fill();
+      ctx.restore();
+    }
+    ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<8;i++){
+      const dx=cx+(seededRand(i*5.9+501)-0.5)*260*s;
+      const dy=by-40*s-seededRand(i*6.7+517)*150*s+Math.sin(time*0.4+i)*4*s;
+      ctx.globalAlpha=0.2+0.3*Math.abs(Math.sin(time*1.1+i*1.7));
+      ctx.fillStyle='#e6ecff';
+      ctx.beginPath();ctx.arc(dx,dy,1.2,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;ctx.restore();
+  }
+  // 和其它入口同一套"同一种魔法"信号，只是换成水晶的粉紫调
+  drawEntranceChargeRing(pcx,pcy,30*s,glow,'#d8c8ff',0.9);
+  furnLabel(px,by+26*s,f.label||'💎');
+}
 function drawMusicBoxEntrance(f,px,by,s,TH){
   const {glow,open}=secretEntranceProgress(f);
   const shake=glow>0.02&&open<0.05?Math.sin(time*11)*glow*2.2:0;
@@ -4938,7 +5676,7 @@ function updateCamera(dt){
   if(camFollowT>0 && camFollowObj){
     camFollowT-=dt;
     const settled = Math.abs(camFollowObj.vx||0)<12 && Math.abs(camFollowObj.vdy||0)<0.03;
-    if(camFollowT<=0 || settled || camFollowObj.held || camFollowObj.stored){ camFollowObj=null; camFollowT=0; }
+    if(camFollowT<=0 || settled || camFollowObj.held || camFollowObj.stored || camFollowObj.inBag){ camFollowObj=null; camFollowT=0; }
   }
   if(camFollowObj){
     target = camFollowObj.x - W*0.5;   // 跟拍飞出去的玩具，而不是 Lumi
@@ -5262,7 +6000,7 @@ function drawFurniturePicker(f){
 // ✨ 命中检测：点到的是不是某个玩具（球/鱼/羽毛棒/老鼠），屏幕坐标
 function toyAt(px,py){
   for(const t of toys){
-    if(t.held||t.stored) continue;   // 被举着/已收进箱子的玩具不响应点击
+    if(t.held||t.stored||t.inBag||t.bagFly) continue;   // 被举着/已收进箱子/已在布袋/正在飞的不响应点击
     const fx=sx(t.x), by=roomY(t.dy), s=roomScale(t.dy)*TOY_SCALE;
     // ✨✨ 加强点击灵敏度：整体判定区放大一圈，并且加了最小尺寸下限——
     //    不然离得比较远、画面上缩得比较小的玩具，命中区跟着一起缩小，很难点中
@@ -5416,6 +6154,15 @@ function beginSecretEntrance(f){
     (f.theme && f.theme.gardenDecals) ? 'garden' : 'crystal';
   // ✨ 提前初始化好漫游状态，等特效播到"显形"那一刻，drawSecretLumi 就已经有正确的姿势可以画，不会先出现错误兜底姿势
   secretSpace.inner=initSecretInner(secretSpace.kind);
+  // ✨✨ 星际虫洞：梦幻月亮风专属（进入→高速穿梭→减速→抵达），其它五个房间继续走通用传送特效
+  if(secretSpace.kind==='moon' && !reduceMotion && typeof initWormTravel==='function'){
+    secretSpace.dir='enter';
+    initWormTravel(f);
+    lumi._hiddenByPortal=true;
+    lumi.anchor={action:'secretPause'};
+    enter('idle'); lumi.dur=1e9;
+    return;
+  }
   // ✨✨ 进秘密空间，改用跟"去户外"完全一样的传送特效：消失→空白→烟雾聚起显形→淡出，只是时间更短
   secretSpace.dir='enter';
   secretSpace.phase='svanish'; secretSpace.t=0;
@@ -5428,6 +6175,11 @@ function beginSecretEntrance(f){
 //    dir='enter'时终点是'inside'，dir='exit'时终点是'idle'——跟户外传送(portalFx)是同一套节奏，只是时间短很多
 function updateSecretSpace(dt){
   if(secretSpace.phase==='idle'||secretSpace.phase==='inside') return;
+  // ✨✨ 星际虫洞穿越时间轴（仅梦幻月亮风进入方向），其它房间/退出方向继续走通用四段式
+  if(typeof wormIsTravel==='function' && wormIsTravel()){
+    if(typeof updateWormhole==='function') updateWormhole(dt);
+    return;
+  }
   secretSpace.t+=dt;
   if(secretSpace.phase==='svanish' && secretSpace.t>=SECRET_PORTAL_VANISH_DUR){
     secretSpace.phase='sblank'; secretSpace.t=0;
@@ -5448,6 +6200,501 @@ function updateSecretSpace(dt){
       lumi.anchor=null; enter('idle');
     }
   }
+}
+// ══════════════════════════════════════════════════════════════
+// ✨✨ 星际虫洞穿越（梦幻月亮风专属入口 + 进入动画）
+//    其它五个房间完全不动：只改 moonwindow 的入口绘制，以及 kind==='moon'
+//    进入方向的时间轴（靠近→拉扯→进入→高速穿梭→减速→抵达）。
+//    设计原则：缓慢、柔和、连续——艺廊式穿越，不要爆炸、不要猛吸、人物不突然消失。
+// ══════════════════════════════════════════════════════════════
+const WORM_APPROACH_DUR=2.2, WORM_ENTER_DUR=2.6, WORM_TUNNEL_DUR=4.6, WORM_ARRIVE_DUR=2.0;
+function wormIsTravel(){
+  const p=secretSpace.phase;
+  return p==='w_approach'||p==='w_enter'||p==='w_tunnel'||p==='w_arrive';
+}
+// —— 虫洞房门：蓝紫宇宙烟雾圆盘 + 缓慢旋转的旋臂 + 事件视界亮边 ——
+//    几何（cx/frameY/rx/ry/门台/furnLabel 位置）沿用原来镜门的同一套，
+//    所以点击判定、传送锚点都不用改，只有"长相"从镜门换成虫洞。
+function drawMoonWindowWormhole(f,px,by,s,TH){
+  const pr=secretEntranceProgress(f), glow=pr.glow, open=pr.open;
+  const cx=px, frameY=by-98*s;
+  const rx=47*s, ry=56*s;
+  const act=Math.max(glow,open);
+  const breath=0.5+0.5*Math.sin(time*0.9);
+  const anim=!reduceMotion;
+  // 落地投影 + 门下呼吸光池
+  ctx.fillStyle='rgba(10,10,35,.30)';ctx.beginPath();ctx.ellipse(cx,by+6*s,rx*0.95,11*s,0,0,7);ctx.fill();
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const poolG=ctx.createRadialGradient(cx,by,2,cx,by,rx*2.6);
+  poolG.addColorStop(0,'rgba(120,150,255,'+(0.20+0.12*breath+0.18*act).toFixed(3)+')');
+  poolG.addColorStop(0.6,'rgba(110,120,255,'+(0.09+0.06*breath+0.09*act).toFixed(3)+')');
+  poolG.addColorStop(1,'rgba(110,120,255,0)');
+  ctx.fillStyle=poolG;ctx.beginPath();ctx.ellipse(cx,by,rx*2.6,15*s,0,0,7);ctx.fill();
+  ctx.restore();
+  // 外层深空晕（呼吸，蓝紫）
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const R1=ry*4.0;
+  const hg=ctx.createRadialGradient(cx,frameY,ry*0.3,cx,frameY,R1);
+  hg.addColorStop(0,'rgba(140,160,255,'+(0.26+0.14*breath+0.22*act).toFixed(3)+')');
+  hg.addColorStop(0.35,'rgba(120,110,255,'+(0.16+0.10*breath+0.16*act).toFixed(3)+')');
+  hg.addColorStop(0.65,'rgba(90,80,220,'+(0.08+0.06*breath+0.09*act).toFixed(3)+')');
+  hg.addColorStop(1,'rgba(90,80,220,0)');
+  ctx.fillStyle=hg;ctx.beginPath();ctx.arc(cx,frameY,R1,0,7);ctx.fill();
+  ctx.restore();
+  // —— 虫洞本体（裁切到椭圆内）——
+  ctx.save();
+  ctx.beginPath();ctx.ellipse(cx,frameY,rx,ry,0,0,7);ctx.clip();
+  const deepG=ctx.createRadialGradient(cx,frameY,2,cx,frameY,rx*1.15);
+  deepG.addColorStop(0,'#04030e');deepG.addColorStop(0.45,'#0d0a2e');
+  deepG.addColorStop(0.75,'#241a5e');deepG.addColorStop(1,'#3d2a86');
+  ctx.fillStyle=deepG;ctx.fillRect(cx-rx,frameY-ry,rx*2,ry*2);
+  // 旋臂星雾：三条缓慢旋转的柔光带（lighter 叠加，越转越有"活的宇宙"感）
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let k=0;k<3;k++){
+    const dir=k===1?-1:1;
+    const base=(anim?dir*time*(0.22+0.18*act):0)+k*2.094;
+    ctx.strokeStyle='rgba('+(k===0?'150,170,255':k===1?'190,150,255':'120,200,255')+','+(0.20+0.16*act).toFixed(2)+')';
+    ctx.lineWidth=(5.5-0.8*k)*s;ctx.lineCap='round';
+    ctx.beginPath();
+    for(let st=0;st<=1.001;st+=0.05){
+      const ang=base+st*2.7, rr=rx*(0.10+0.88*st);
+      const wx2=cx+Math.cos(ang)*rr, wy2=frameY+Math.sin(ang)*rr*(ry/rx);
+      ctx.globalAlpha=Math.sin(st*Math.PI)*0.9+0.1;
+      if(st===0)ctx.moveTo(wx2,wy2);else ctx.lineTo(wx2,wy2);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  // 中心吸积柔光
+  const coreG=ctx.createRadialGradient(cx,frameY,0,cx,frameY,rx*0.55);
+  coreG.addColorStop(0,'rgba(235,242,255,'+(0.55+0.25*act).toFixed(2)+')');
+  coreG.addColorStop(0.4,'rgba(170,180,255,'+(0.30+0.18*act).toFixed(2)+')');
+  coreG.addColorStop(1,'rgba(170,180,255,0)');
+  ctx.fillStyle=coreG;ctx.beginPath();ctx.arc(cx,frameY,rx*0.55,0,7);ctx.fill();
+  ctx.restore();
+  // 盘内星尘：位置确定性随机，缓慢内流 + 闪烁
+  for(let i=0;i<42;i++){
+    const sx1=seededRand(i*1.31+7), sy1=seededRand(i*2.17+3), tw1=seededRand(i*0.71+11);
+    let nx=(sx1-0.5)*2, ny=(sy1-0.5)*2;
+    if(nx*nx+ny*ny>1) continue;
+    const inX=cx+nx*(rx-5*s), inY=frameY+ny*(ry-5*s);
+    const drift=anim?Math.sin(time*0.7+i)*1.6:0;
+    const tw=0.3+0.7*Math.abs(Math.sin(time*(0.8+tw1)+i*1.7));
+    ctx.globalAlpha=tw*(0.35+0.45*act+0.25);
+    ctx.fillStyle='#e8eeff';
+    ctx.beginPath();ctx.arc(inX+drift,inY,Math.max(0.7,(1.7-tw1)*s*0.9),0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  // 内流细丝：短弧从边缘向中心缓缓收拢
+  if(anim){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<8;i++){
+      const cyc=((time*0.30)+i*0.125)%1;
+      const rr=rx*(1-cyc*0.8), aa=i*0.785+time*0.35;
+      const fx2=cx+Math.cos(aa)*rr, fy2=frameY+Math.sin(aa)*rr*(ry/rx);
+      ctx.globalAlpha=Math.sin(cyc*Math.PI)*(0.25+0.3*act);
+      ctx.strokeStyle='#bdc8ff';ctx.lineWidth=1.2*s;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(fx2,fy2);
+      ctx.lineTo(fx2-Math.sin(aa)*7*s,fy2+Math.cos(aa)*7*s*(ry/rx));ctx.stroke();
+    }
+    ctx.globalAlpha=1;ctx.restore();
+  }
+  ctx.restore(); // end 盘内裁切
+  // 事件视界：深色金属环 + 蓝白亮边（呼吸）
+  ctx.lineWidth=8*s;ctx.strokeStyle='#0b1030';
+  ctx.beginPath();ctx.ellipse(cx,frameY,rx,ry,0,0,7);ctx.stroke();
+  ctx.lineWidth=3.4*s;ctx.strokeStyle='#2a3a6e';
+  ctx.beginPath();ctx.ellipse(cx,frameY,rx-2*s,ry-2*s,0,0,7);ctx.stroke();
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  ctx.lineWidth=(1.6+1.1*breath+1.2*act)*s;
+  ctx.strokeStyle='rgba(170,205,255,'+(0.55+0.25*breath+0.25*act).toFixed(2)+')';
+  ctx.beginPath();ctx.ellipse(cx,frameY,rx-2*s,ry-2*s,0,0,7);ctx.stroke();
+  ctx.restore();
+  // 光子环游走高光
+  const hpa=time*1.1;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  ctx.fillStyle='rgba(255,255,255,'+(0.55+0.35*act).toFixed(2)+')';
+  ctx.beginPath();ctx.arc(cx+Math.cos(hpa)*rx,frameY+Math.sin(hpa)*ry,(1.8+1.3*act)*s,0,7);ctx.fill();
+  ctx.restore();
+  // 门前缭绕雾气（蓝调，叠在门前营造纵深）
+  if(anim){
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<5;i++){
+      const cyc=((time*0.09)+i*0.2)%1;
+      const wx3=cx+Math.sin(time*0.4+i*1.7)*rx*0.5;
+      const wy3=frameY+ry*0.7-cyc*ry*1.2;
+      const al=Math.sin(cyc*Math.PI)*(0.10+0.10*act);
+      if(al<=0.003) continue;
+      const wg=ctx.createRadialGradient(wx3,wy3,0,wx3,wy3,rx*0.55);
+      wg.addColorStop(0,'rgba(150,175,255,'+al.toFixed(3)+')');wg.addColorStop(1,'rgba(150,175,255,0)');
+      ctx.fillStyle=wg;ctx.beginPath();ctx.ellipse(wx3,wy3,rx*0.55,rx*0.3,0,0,7);ctx.fill();
+    }
+    ctx.restore();
+  }
+  // 常驻星尘光环（沿用全房统一的"同一种魔法"信号，只是换成虫洞的蓝调）
+  drawEntranceChargeRing(cx,frameY,rx*0.6,glow,'#8fb8ff');
+  // 门台
+  ctx.fillStyle=nightMix('#3a2a5a',0.42);ctx.beginPath();ctx.ellipse(cx,by-3*s,rx*1.02,7*s,0,0,7);ctx.fill();
+  furnLabel(px,by+26*s,f.label||'🌙');
+}
+// —— 虫洞穿越状态（只在 kind==='moon' 进入方向存在）——
+function initWormTravel(f){
+  const sc=lumiScreen();
+  const portal=secretEntrancePortalScreen(f);
+  const by=roomY(f.dy), s=roomScale(f.dy);
+  const px2=sx(f.x);
+  const cx=portal?portal.x:px2, cy=portal?portal.y:(by-98*s);
+  const worm={
+    portalX:cx, portalY:cy, portalR:Math.max(47*s,40),
+    floorX:cx-8, floorY:by+6*s,
+    sx0:sc.x, sy0:sc.y, s0:Math.max(0.5,lumiScale()),
+    legPh:0, dust:[], stars:[], flash:{active:false,t:0,dur:0.55,col:'255,255,255'},
+    nextFlash:1.2, seed:(Math.random()*100)|0
+  };
+  for(let i=0;i<46;i++){
+    const a=rand(0,Math.PI*2), rr=worm.portalR*rand(1.4,2.6);
+    worm.dust.push({x:cx+Math.cos(a)*rr, y:cy+Math.sin(a)*rr*0.7, r:rand(1,2.4)});
+  }
+  for(let i=0;i<110;i++){
+    worm.stars.push({ang:rand(0,Math.PI*2), dist:Math.random(), spd:rand(0.6,1.4), bright:Math.random()<0.12});
+  }
+  secretSpace.worm=worm;
+  // ✨ 进门烟雾和膨胀吸入两段都不要：确认进入后直接进隧道，落下时钉在停留点
+  secretSpace.phase='w_tunnel'; secretSpace.t=0;
+}
+function updateWormhole(dt){
+  const w=secretSpace.worm;
+  if(!w){
+    secretSpace.phase='inside'; secretSpace.t=0; enterSecretSpaceUI();
+    return;
+  }
+  secretSpace.t+=dt;
+  w.legPh+=dt*9;
+  const pullTo=(p,spd)=>{ // 尘埃被虫洞牵引：越近越快
+    for(const d of w.dust){
+      const dx=w.portalX-d.x, dy=w.portalY-d.y, dist=Math.hypot(dx,dy)||1;
+      const v=(50+170*spd)*(0.4+0.6*Math.min(1,90/Math.max(20,dist)));
+      d.x+=dx/dist*v*dt; d.y+=dy/dist*v*dt;
+      if(dist<14){
+        const a=rand(0,Math.PI*2), rr=w.portalR*rand(1.6,2.8);
+        d.x=w.portalX+Math.cos(a)*rr; d.y=w.portalY+Math.sin(a)*rr*0.7;
+      }
+    }
+  };
+  if(secretSpace.phase==='w_approach'){
+    pullTo(0,clamp(secretSpace.t/WORM_APPROACH_DUR,0,1)*0.7);
+    if(secretSpace.t>=WORM_APPROACH_DUR){ secretSpace.phase='w_enter'; secretSpace.t=0; }
+  } else if(secretSpace.phase==='w_enter'){
+    pullTo(0,1);
+    if(secretSpace.t>=WORM_ENTER_DUR){ secretSpace.phase='w_tunnel'; secretSpace.t=0; w.nextFlash=0.8; }
+  } else if(secretSpace.phase==='w_tunnel'){
+    const p=clamp(secretSpace.t/WORM_TUNNEL_DUR,0,1);
+    const up=smoothstep(clamp(secretSpace.t/1.0,0,1)), down=1-smoothstep(clamp((secretSpace.t-(WORM_TUNNEL_DUR-1.2))/1.2,0,1));
+    const speed=0.25+0.75*up*(0.35+0.65*down);
+    for(const st of w.stars){
+      st.dist+=dt*(0.16+speed*1.5)*st.spd;
+      if(st.dist>1){ st.dist-=1; st.ang=rand(0,Math.PI*2); }
+    }
+    w.nextFlash-=dt;
+    if(w.nextFlash<=0){
+      const cols=['255,255,255','150,200,255','200,150,255'];
+      w.flash={active:true,t:0,dur:0.55,col:cols[(Math.random()*cols.length)|0]};
+      w.nextFlash=rand(1.1,2.2);
+    }
+    if(w.flash.active){ w.flash.t+=dt; if(w.flash.t>=w.flash.dur) w.flash.active=false; }
+    // ✨ 落点必须和停留点完全一致：进落下段之前，先把 inner 直接放到终点，
+    //    落下动画和 inside 续播都从同一个点开始，中间不跳变
+    if(p>=1){
+      if(secretSpace.inner){
+        if(secretSpace.inner.tx!=null) secretSpace.inner.x=secretSpace.inner.tx;
+        if(secretSpace.inner.ty!=null) secretSpace.inner.y=secretSpace.inner.ty;
+        secretSpace.inner.mode='settle'; secretSpace.inner.settleT=0;
+      }
+      secretSpace.phase='w_arrive'; secretSpace.t=0;
+    }
+  } else if(secretSpace.phase==='w_arrive'){
+    if(secretSpace.t>=WORM_ARRIVE_DUR){
+      lumi._hiddenByPortal=false;
+      secretSpace.worm=null;
+      secretSpace.phase='inside'; secretSpace.t=0;
+      enterSecretSpaceUI();
+    }
+  }
+}
+// —— 穿越中的 Lumi（统一背影：镜头位于人物身后）——
+function drawWormLumiBack(cx,cy,s,o){
+  o=o||{};
+  const save={costume:lumi.costume,face:lumi.face,state:lumi.state,vx:lumi.vx,vy:lumi.vy,
+    wave:lumi.wave,reach:lumi.reach,hop:lumi.hop,blink:lumi.blink,tail:lumi.tail,glowCur:lumi.glowCur,
+    eyeCloseAmt:lumi.eyeCloseAmt,sleepAmt:lumi.sleepAmt,legPh:lumi.legPh,crying:lumi.crying,look:lumi.look,earWiggle:lumi.earWiggle};
+  const cos=COSTUMES[lumi.costume]||COSTUMES.none;
+  lumi.face='front'; lumi.wave=0; lumi.reach=0; lumi.hop=0; lumi.blink=0; lumi.glowCur=0.55;
+  lumi.sleepAmt=0; lumi.crying=false; lumi.look=0; lumi.eyeCloseAmt=0;
+  lumi.state='walk'; lumi.vx=(o.floating?0:30); lumi.vy=0; lumi.legPh=(o.legPh||0);
+  lumi.tail=Math.sin(time*(o.floating?1.3:6))*0.5;
+  lumi.earWiggle=Math.sin(time*0.8)*0.05;
+  ctx.save();
+  if(o.alpha!=null) ctx.globalAlpha=clamp(o.alpha,0,1);
+  ctx.translate(cx,cy+(o.bob||0));
+  ctx.scale(s*(o.stretchX||1),s*(o.stretchY||1));
+  if(o.lean) ctx.rotate(o.lean);
+  drawBack(cos,false);
+  ctx.restore();
+  Object.assign(lumi,save);
+  ctx.globalAlpha=1;
+}
+function drawWormDust(w,alpha){
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const d of w.dust){
+    const dx=w.portalX-d.x, dy=w.portalY-d.y, dist=Math.hypot(dx,dy)||1;
+    ctx.globalAlpha=0.55*(alpha==null?1:alpha);
+    ctx.strokeStyle='#cdd8ff';ctx.lineWidth=1.2;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(d.x,d.y);
+    ctx.lineTo(d.x-dx/dist*9,d.y-dy/dist*9);ctx.stroke();
+    ctx.globalAlpha=0.8*(alpha==null?1:alpha);
+    ctx.fillStyle='#eef2ff';
+    ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+}
+function drawWormVignette(alpha){
+  if(alpha<=0.01) return;
+  ctx.save();
+  const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.30,W/2,H/2,Math.max(W,H)*0.72);
+  vg.addColorStop(0,'rgba(3,2,10,0)');vg.addColorStop(1,'rgba(3,2,10,'+(0.55*clamp(alpha,0,1)).toFixed(2)+')');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+}
+// —— 第1幕：靠近虫洞（房间实景 + 她从身后视角缓慢走过去）——
+function drawWormApproach(){
+  const w=secretSpace.worm;
+  drawNormalScene();
+  const p=smoothstep(clamp(secretSpace.t/WORM_APPROACH_DUR,0,1));
+  const cx=w.portalX, cy=w.portalY;
+  // 空间扭曲环：越靠近越明显
+  ctx.save();
+  for(let i=0;i<3;i++){
+    const cyc=((time*0.45)+i/3)%1;
+    const rr=w.portalR*(0.9+cyc*1.7)*(0.9+0.3*p);
+    ctx.globalAlpha=(1-cyc)*(0.10+0.28*p);
+    ctx.strokeStyle='#aebfff';ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.ellipse(cx,cy,rr,rr*0.82,0,0,7);ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  drawWormDust(w,0.4+0.6*p);
+  // 她：从入场站位缓慢走向虫洞正下方法台（全程背影）
+  const lx=lerp(w.sx0,w.floorX,p), ly=lerp(w.sy0,w.floorY,p);
+  const ls=w.s0*(1+0.06*p);
+  drawWormLumiBack(lx,ly,ls,{legPh:w.legPh,stretchX:1+0.10*p,lean:0.03*p,
+    bob:Math.sin(time*2)*1.2});
+  // 衣角被引力带起：几笔向前的柔光细丝
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  ctx.globalAlpha=0.25+0.45*p;
+  ctx.strokeStyle='#dfe7ff';ctx.lineWidth=1.3;ctx.lineCap='round';
+  for(let i=0;i<4;i++){
+    const yy=ly-ls*(30+i*16)+Math.sin(time*3+i)*3;
+    ctx.beginPath();ctx.moveTo(lx-ls*20,yy);
+    ctx.quadraticCurveTo(lx+ls*10,yy-4, lx+ls*(34+i*6),yy-8-Math.sin(time*2+i)*4);ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  drawWormVignette(0.25+0.35*p);
+}
+// —— 第2幕：进入虫洞（脚先入，身体像被前方空间逐渐吸入，不突然消失）——
+function drawWormEnter(){
+  const w=secretSpace.worm;
+  const k=smoothstep(clamp(secretSpace.t/WORM_ENTER_DUR,0,1));
+  drawNormalScene();
+  ctx.fillStyle='rgba(5,3,15,'+(0.15+0.60*k).toFixed(2)+')';ctx.fillRect(0,0,W,H);
+  const cx=w.portalX, cy=w.portalY;
+  // 虫洞膨胀吞满视野
+  const R=w.portalR*(1+3.4*k);
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const eg=ctx.createRadialGradient(cx,cy,2,cx,cy,R*2.2);
+  eg.addColorStop(0,'rgba(200,212,255,'+(0.35+0.4*k).toFixed(2)+')');
+  eg.addColorStop(0.5,'rgba(140,140,255,'+(0.18+0.25*k).toFixed(2)+')');
+  eg.addColorStop(1,'rgba(140,140,255,0)');
+  ctx.fillStyle=eg;ctx.beginPath();ctx.arc(cx,cy,R*2.2,0,7);ctx.fill();
+  ctx.restore();
+  const dg=ctx.createRadialGradient(cx,cy,2,cx,cy,R);
+  dg.addColorStop(0,'#04030e');dg.addColorStop(0.5,'#0d0a2e');dg.addColorStop(1,'#2c2068');
+  ctx.fillStyle=dg;ctx.beginPath();ctx.ellipse(cx,cy,R,R*0.82,0,0,7);ctx.fill();
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<40;i++){
+    const a2=i*2.4+time*0.6, rr2=R*(0.2+((i*37)%70)/100);
+    ctx.globalAlpha=0.3+0.4*Math.abs(Math.sin(time*1.5+i));
+    ctx.fillStyle='#e8eeff';
+    ctx.beginPath();ctx.arc(cx+Math.cos(a2)*rr2,cy+Math.sin(a2)*rr2*0.8,1.4,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  ctx.lineWidth=2.4;ctx.strokeStyle='rgba(170,205,255,'+(0.5+0.4*k).toFixed(2)+')';
+  ctx.beginPath();ctx.ellipse(cx,cy,R,R*0.82,0,0,7);ctx.stroke();
+  drawWormDust(w,1);
+  // 她：从法台升入洞心，脚→腿→躯干→头逐渐被雾气包围（下半身先淡出）
+  const lx=cx, ly=lerp(w.floorY,cy,k);
+  const ls=w.s0*(1+0.10*k);
+  const stretchY=1+0.38*k, stretchX=1-0.12*k;
+  for(let gi=2;gi>=1;gi--){ // 拖影：被空间拉扯的残像留在身后下方
+    drawWormLumiBack(lx,ly+gi*(16+26*k),ls,{legPh:w.legPh,stretchX:stretchX,stretchY:stretchY,
+      alpha:Math.max(0,0.20-0.07*gi)*(1-k*0.6)});
+  }
+  const bodyH=175*ls, hideBtm=k*bodyH*0.96;
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,0,W,ly+8*ls-hideBtm);ctx.clip();
+  drawWormLumiBack(lx,ly,ls,{legPh:w.legPh,stretchX:stretchX,stretchY:stretchY,alpha:1-0.55*k});
+  ctx.restore();
+  // 包裹的宇宙雾气（下半身先浓）
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const mg=ctx.createRadialGradient(lx,ly,4,lx,ly,90*ls);
+  mg.addColorStop(0,'rgba(170,180,255,'+(0.25+0.55*k).toFixed(2)+')');
+  mg.addColorStop(1,'rgba(170,180,255,0)');
+  ctx.fillStyle=mg;ctx.beginPath();ctx.arc(lx,ly,90*ls,0,7);ctx.fill();
+  ctx.restore();
+  drawWormVignette(0.5+0.3*k);
+}
+// —— 第3/4幕：星际旅行（无限宇宙隧道 + 高速穿梭 + 她悬浮在中央）——
+function drawWormTunnelFrame(prog,speed,arriveMix){
+  const w=secretSpace.worm;
+  const cx=W*0.5, cy=H*0.46;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#05030f');g.addColorStop(0.5,'#0d0730');g.addColorStop(1,'#1a0f45');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const wob=Math.sin(time*0.8)*6;
+  // 远处星云：巨大、缓慢，像要掠过身边
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const nebs=[[150,110,255,0.16,0.28,1],[90,140,255,0.14,0.42,-1],[220,130,255,0.12,0.55,1]];
+  for(let i=0;i<nebs.length;i++){
+    const nb=nebs[i];
+    const aa=time*0.05*nb[5]+i*2.1;
+    const nx=cx+Math.cos(aa)*W*nb[4]+wob, ny=cy+Math.sin(aa*0.8)*H*0.2;
+    const ng=ctx.createRadialGradient(nx,ny,10,nx,ny,W*0.34);
+    ng.addColorStop(0,'rgba('+nb[0]+','+nb[1]+','+nb[2]+','+nb[3].toFixed(2)+')');
+    ng.addColorStop(1,'rgba('+nb[0]+','+nb[1]+','+nb[2]+',0)');
+    ctx.fillStyle=ng;ctx.beginPath();ctx.arc(nx,ny,W*0.34,0,7);ctx.fill();
+  }
+  ctx.restore();
+  const maxR=Math.hypot(W,H)*0.62;
+  // 环形旋涡：向外扩散 = 向前穿梭
+  ctx.save();
+  for(let i=0;i<6;i++){
+    const cyc=((time*(0.25+0.55*speed))+i/6)%1;
+    const rr=20+cyc*maxR;
+    ctx.globalAlpha=(1-cyc)*(0.10+0.35*speed);
+    ctx.strokeStyle=i%2?'#9db4ff':'#c9a8ff';ctx.lineWidth=1+3*cyc*speed;
+    ctx.beginPath();ctx.ellipse(cx+wob,cy,rr,rr*0.78,0,0,7);ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  // 星星：从前方快速向后飞过，拉成长线
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const st of w.stars){
+    const rr=24+st.dist*maxR;
+    const x=cx+Math.cos(st.ang)*rr*1.05+wob, y=cy+Math.sin(st.ang)*rr*0.78;
+    if(x<-40||x>W+40||y<-40||y>H+40) continue;
+    const len=(3+34*speed*st.dist)*st.spd;
+    const dx=Math.cos(st.ang), dy=Math.sin(st.ang)*0.78, dl=Math.hypot(dx,dy)||1;
+    const al=(0.25+0.65*st.dist)*(0.35+0.65*speed);
+    const sg=ctx.createLinearGradient(x-dx/dl*len,y-dy/dl*len,x,y);
+    sg.addColorStop(0,'rgba(230,238,255,0)');sg.addColorStop(1,'rgba(230,238,255,'+clamp(al,0,1).toFixed(2)+')');
+    ctx.strokeStyle=sg;ctx.lineWidth=st.bright?2.2:1.3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(x-dx/dl*len,y-dy/dl*len);ctx.lineTo(x,y);ctx.stroke();
+    if(st.bright){ ctx.fillStyle='rgba(255,255,255,'+clamp(al+0.2,0,1).toFixed(2)+')';ctx.beginPath();ctx.arc(x,y,1.8,0,7);ctx.fill(); }
+  }
+  ctx.restore();
+  // 偶尔穿过的白/蓝/紫光芒
+  if(w.flash.active){
+    const fp=clamp(w.flash.t/w.flash.dur,0,1), fa=Math.sin(fp*Math.PI);
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    ctx.fillStyle='rgba('+w.flash.col+','+(0.10*fa).toFixed(3)+')';ctx.fillRect(0,0,W,H);
+    const bx0=W*(0.2+0.6*((w.seed%10)/10));
+    const bg2=ctx.createLinearGradient(bx0-90,0,bx0+90,H);
+    bg2.addColorStop(0,'rgba('+w.flash.col+',0)');
+    bg2.addColorStop(0.5,'rgba('+w.flash.col+','+(0.22*fa).toFixed(3)+')');
+    bg2.addColorStop(1,'rgba('+w.flash.col+',0)');
+    ctx.fillStyle=bg2;ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
+  // 她：悬浮在画面中央，身旁是高速粒子流
+  const ls=w.s0*0.55;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const hg=ctx.createRadialGradient(cx,cy-30*ls,4,cx,cy-30*ls,110*ls);
+  hg.addColorStop(0,'rgba(190,175,255,0.30)');hg.addColorStop(1,'rgba(190,175,255,0)');
+  ctx.fillStyle=hg;ctx.beginPath();ctx.arc(cx,cy-30*ls,110*ls,0,7);ctx.fill();
+  ctx.restore();
+  drawWormLumiBack(cx,cy,ls,{legPh:w.legPh*0.4,floating:true,bob:Math.sin(time*1.4)*5,
+    alpha:arriveMix==null?1:arriveMix});
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<12;i++){ // 贴身掠过的粒子
+    const cyc=((time*(0.9+1.3*speed))+i/12)%1;
+    const aa=i*2.6+0.4, rr=50+cyc*130;
+    ctx.globalAlpha=(1-cyc)*0.5*speed;
+    ctx.fillStyle='#eef2ff';
+    ctx.beginPath();ctx.arc(cx+Math.cos(aa)*rr,cy-20+Math.sin(aa)*rr*0.6,1.6,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+  drawWormVignette(0.55);
+}
+// —— 第5幕：到达（减速→隧道打开→浓雾向两侧散开→她走出）——
+function drawWormArrive(){
+  const w=secretSpace.worm;
+  const k=smoothstep(clamp(secretSpace.t/WORM_ARRIVE_DUR,0,1));
+  const up=1-k;
+  const speed=0.25+0.75*(1-k);
+  // 底层：目的地（云端星轨）渐显
+  drawSecretSpaceSceneMoon(k);
+  // 上层：隧道残影加速隐去，不跟落点的光打架
+  ctx.save();ctx.globalAlpha=up*up;
+  drawWormTunnelFrame(1,speed,0);
+  ctx.restore();
+  const cx=W*0.5, cy=H*0.46;
+  // 落点（随机终点，和停留点同一个；先算出来，光打在这里）
+  // 她：从出口光中走出（落点取 inner 终点，和 inside 停留点是同一个，不跳变）
+  let ax=cx, ay=cy+80, as=0.5;
+  if(secretSpace.inner){ ax=(secretSpace.inner.tx!=null?secretSpace.inner.tx:secretSpace.inner.x); ay=(secretSpace.inner.ty!=null?secretSpace.inner.ty:secretSpace.inner.y); }
+  else { const an=secretSceneAnchor('moon'); ax=an.x; ay=an.y+SECRET_LUMI_DOWN_OFFSET; }
+  let sitS=0.66;
+  try{
+    const spots=SECRET_SIT_SPOTS['moon'];
+    if(secretSpace.inner&&spots&&spots[secretSpace.inner.sitIdx]) sitS=(spots[secretSpace.inner.sitIdx].s||0.9)*SECRET_CHAR_SCALE;
+  }catch(e){}
+  const gp=smoothstep(clamp(secretSpace.t/WORM_ARRIVE_DUR,0,1));
+  // ✨ 落下只有一道光：聚在落点上，她滑近才亮起，不再另起光团
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const bg=ctx.createRadialGradient(ax,ay,4,ax,ay,240);
+  bg.addColorStop(0,'rgba(240,244,255,'+(0.60*Math.sin(k*Math.PI)*gp+0.12*gp).toFixed(2)+')');
+  bg.addColorStop(0.45,'rgba(190,190,255,'+(0.22*gp).toFixed(2)+')');
+  bg.addColorStop(1,'rgba(190,190,255,0)');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(ax,ay,240,0,7);ctx.fill();
+  // 浓雾向两侧散开（贴着落点，很薄）
+  for(const dir of[-1,1]){
+    const fx=ax+dir*(30+k*W*0.30);
+    const fg=ctx.createRadialGradient(fx,ay,10,fx,ay,W*0.30);
+    fg.addColorStop(0,'rgba(170,170,255,'+(0.12*(1-k)).toFixed(2)+')');
+    fg.addColorStop(1,'rgba(170,170,255,0)');
+    ctx.fillStyle=fg;ctx.beginPath();ctx.arc(fx,ay,W*0.30,0,7);ctx.fill();
+  }
+  ctx.restore();
+  // ✨ 落下只有一只：她从隧道中央滑向落点（位置/尺寸全程连续），底下不再另画一只；
+  //    落到终点正好是停留点，和 inside 首帧无缝衔接
+  const gx=lerp(cx,ax,gp), gy=lerp(cy,ay,gp), gs=lerp(w.s0*0.55,sitS,gp);
+  let cushS=0.9;
+  try{
+    const spots2=SECRET_SIT_SPOTS['moon'];
+    if(secretSpace.inner&&spots2&&spots2[secretSpace.inner.sitIdx]) cushS=(spots2[secretSpace.inner.sitIdx].s||0.9);
+  }catch(e){}
+  if(gp>0.02){ ctx.save(); ctx.globalAlpha=gp; drawSecretCushion(ax,ay,cushS); ctx.restore(); }
+  drawWormLumiBack(gx,gy,gs,{legPh:w.legPh,floating:gp<0.6,
+    bob:Math.sin(time*1.4)*5*(1-gp),alpha:1});
+  drawWormVignette(0.3*(1-k));
+}
+function drawWormholeFrame(){
+  if(secretSpace.phase==='w_approach') drawWormApproach();
+  else if(secretSpace.phase==='w_enter') drawWormEnter();
+  else if(secretSpace.phase==='w_tunnel'){
+    const p=clamp(secretSpace.t/WORM_TUNNEL_DUR,0,1);
+    const up=smoothstep(clamp(secretSpace.t/1.0,0,1)), down=1-smoothstep(clamp((secretSpace.t-(WORM_TUNNEL_DUR-1.2))/1.2,0,1));
+    drawWormTunnelFrame(p,0.25+0.75*up*(0.35+0.65*down),1);
+  }
+  else if(secretSpace.phase==='w_arrive') drawWormArrive();
+  else drawNormalScene();
 }
 // ✨ 举着玩具时点玩具箱：先走过去，到了再真正收纳
 function goToToyBoxToStore(box){
@@ -5489,14 +6736,15 @@ function arriveTrash(){
   if(t){
     lumi.toyHolding=null;
     toys=toys.filter(o=>o!==t);   // 真正丢弃：从玩具列表里彻底移除
+    if(t===strayDoll){ strayDoll=null; strayDollNextT=time+600; }   // ✨ 丢掉的是随机玩偶：引用清掉，10分钟后才会再出现
     playPutDownSound();
     toast(T('丢进垃圾桶啦 🗑️'));
   }
   enter('idle');
 }
-// ✨✨ 新增：随机出现的玩偶——点一下不弹气泡，直接走过去捡起来，再自动抱去玩具箱收纳，全程一次点击到底
+// ✨✨ 随机玩偶自动送走流程已下线（玩偶现在和其他玩具一样走踢/捡气泡），下面两个函数保留不再被调用，避免误接回来
 function startStrayDollPickup(doll){
-  if(!doll || doll.held || doll.stored) return;
+  if(!doll || doll.held || doll.stored || doll.inBag || doll.bagFly) return;
   lumi.goal=null; lumi.dragGoal=null; lumi.toyGoal=null; lumi.strayDollGoal=null; lumi.anchor=null; lumi.windowGoal=false; lumi.toyKicking=null;
   lumi.strayDollGoal=doll;
   lumi.tx=doll.x; lumi.tdy=clamp(doll.dy+0.01,0,1);
@@ -5522,7 +6770,7 @@ const STRAY_DOLL_SKIN = {
   duck:  { body:['#ffe793','#f0c34a'], accent:'#e0972a', earType:'none'  }
 };
 // ✨✨ 手绘毛绒玩偶：渐变身体+按皮肤区分的耳朵+纽扣眼+缝线笑嘴，跟鱼/老鼠等其它玩具的精致度对齐，不再是emoji贴纸
-function drawStrayDoll(px,by,s,skin){
+function drawStrayDoll(px,by,s,skin,scare){
   const r=17*s;
   const meta=STRAY_DOLL_SKIN[skin]||STRAY_DOLL_SKIN.bear;
   ctx.save(); ctx.translate(px,by-r*0.35);
@@ -5555,16 +6803,29 @@ function drawStrayDoll(px,by,s,skin){
     ctx.fillStyle=nightMix(meta.accent,0.4);
     ctx.beginPath();ctx.ellipse(0,r*0.2,r*0.32,r*0.15,0,0,7);ctx.fill();
   }
-  // 缝线笑嘴(手工玩偶感)
-  ctx.strokeStyle='rgba(90,65,45,.4)';ctx.lineWidth=1*s;
-  ctx.beginPath();ctx.arc(0,r*0.04,r*0.26,0.15*Math.PI,0.85*Math.PI);ctx.stroke();
-  // 纽扣眼+高光
+  // 缝线笑嘴(平时) / 受惊o嘴(被踢飞时盖住笑嘴)
+  if(scare){
+    ctx.fillStyle='#5c2a30';ctx.beginPath();ctx.arc(0,r*0.14,r*0.1,0,7);ctx.fill();
+  } else {
+    ctx.strokeStyle='rgba(90,65,45,.4)';ctx.lineWidth=1*s;
+    ctx.beginPath();ctx.arc(0,r*0.04,r*0.26,0.15*Math.PI,0.85*Math.PI);ctx.stroke();
+  }
+  // 纽扣眼(平时) / 瞪大白眼(受惊时)
+  if(scare){
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(-r*0.26,-r*0.12,r*0.16,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(r*0.26,-r*0.12,r*0.16,0,7);ctx.fill();
+    ctx.fillStyle='#3a2a20';
+    ctx.beginPath();ctx.arc(-r*0.24,-r*0.1,r*0.06,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(r*0.28,-r*0.1,r*0.06,0,7);ctx.fill();
+  } else {
   ctx.fillStyle='#3a2a20';
   ctx.beginPath();ctx.arc(-r*0.26,-r*0.12,r*0.09,0,7);ctx.fill();
   ctx.beginPath();ctx.arc(r*0.26,-r*0.12,r*0.09,0,7);ctx.fill();
   ctx.fillStyle='rgba(255,255,255,.75)';
   ctx.beginPath();ctx.arc(-r*0.23,-r*0.15,r*0.03,0,7);ctx.fill();
   ctx.beginPath();ctx.arc(r*0.29,-r*0.15,r*0.03,0,7);ctx.fill();
+  }
   if(skin!=='duck'){
     ctx.fillStyle=nightMix(meta.accent,0.4);
     ctx.beginPath();ctx.arc(0,r*0.05,r*0.07,0,7);ctx.fill();
@@ -5586,6 +6847,7 @@ function tossToySky(){
   t.held=false; t.holdBy=null; t.vx=0;
   t.tossing=true; t.tossT=0; t.tossDur=0.9;
   if(t.type==='fish'||t.type==='mouse') t.scaredT=0.9;   // ✨✨ 新增：被丢出去的这一下露出害怕表情
+  t.scareFace=1+((Math.random()*3)|0);   // ✨ 随机挑一款惊吓脸，鱼/老鼠沿用自带款
   t.tossFromX=lumi.x; t.tossFromDy=lumi.dy;
   t.tossToX=lumi.x+(lumi.face==='left'?-1:1)*rand(20,55);
   t.tossToDy=clamp(lumi.dy+rand(-0.02,0.05),0.15,0.5);
@@ -5596,10 +6858,33 @@ function tossToySky(){
   enter('idle'); lumi.dur=1.4;
   toast(T('抛向天空啦～ 🎉'));
 }
+// 🌪️ 旋抛技能：左右随机方向 + 随机力度（距离/弧高/落地滚动都跟着力度走），跟上抛共用同一套抛物线物理
+function tossToyWild(){
+  const t=lumi.toyHolding; if(!t) return;
+  const dir = Math.random()<0.5?-1:1;
+  const dist = rand(60,170);
+  const pw = 0.7+Math.random()*0.8;   // 0.7~1.5 力度系数
+  t.held=false; t.holdBy=null; t.vx=0;
+  t.tossing=true; t.tossT=0; t.tossDur=0.9+dist/500;
+  t.tossArc=200+pw*90;
+  if(t.type==='fish'||t.type==='mouse') t.scaredT=0.9;
+  t.scareFace=1+((Math.random()*3)|0);
+  t.tossFromX=lumi.x; t.tossFromDy=lumi.dy;
+  t.tossToX=lumi.x+dir*dist;
+  t.tossToDy=clamp(lumi.dy+rand(-0.02,0.05),0.15,0.5);
+  t.tossLandVx=dir*rand(80,150)*(0.7+pw*0.4);
+  t.tossLandBounce=rand(120,170)*(0.7+pw*0.4);
+  lumi.toyHolding=null;
+  lumi.hop=0.35+pw*0.1; lumi.hopBig=pw>1.1;
+  spawnHeart();
+  playTossSound();
+  enter('idle'); lumi.dur=1.4;
+  toast(T('Lumi 把玩具旋了出去！'));
+}
 // ✨ 踢玩具：原地（或附近）给玩具一个滑动速度，沿水平方向滑出去一段距离后摩擦减速停下
 // ✨ 踢/捡玩具：两种互动都要求 Lumi 先走到玩具旁边，到达后才真正执行动作（不再有"人没到玩具就动了"的问题）
 function kickToy(t,power){
-  if(t.held||t.stored) return;
+  if(t.held||t.stored||t.inBag||t.bagFly) return;
   ensureAudioCtx();   // ✨ 提前确保音频上下文是醒着的，真正踢中要等走过去+抬脚动作完成，间隔可能有几秒
   lumi.toyGoal={ toy:t, action:'kick', power:power||1 };
   lumi.anchor=null; lumi.goal=null;
@@ -5608,8 +6893,21 @@ function kickToy(t,power){
   enter('goto');
   toast(power===2?T('Lumi 助跑几步，准备重重踢一脚…'):T('Lumi 朝玩具走去，准备踢一下…'));
 }
+// 🌀 乱踢技能：力度 1~2 连续随机，方向完全随机（不偏向空旷一侧），走到才踢，跟轻踢/重踢同一套流程
+function kickToyWild(t){
+  if(t.held||t.stored||t.inBag||t.bagFly) return;
+  ensureAudioCtx();
+  const power = 1+Math.random();
+  const wildDir = Math.random()<0.5?-1:1;
+  lumi.toyGoal={ toy:t, action:'kick', power:power, wild:true, wildDir:wildDir };
+  lumi.anchor=null; lumi.goal=null;
+  lumi.tx=t.x + (t.x>=lumi.x?-26:26);
+  lumi.tdy=clamp(t.dy+0.01,0,1);
+  enter('goto');
+  toast(T('Lumi 助跑几步，来一脚旋风踢！'));
+}
 function pickUpToy(t){
-  if(t.held||t.stored) return;
+  if(t.held||t.stored||t.inBag||t.bagFly) return;
   t.picker=false;   // ✨ 保险起见：捡起来的这只玩具，选择气泡(踢/捡)必须跟着关掉，不然会跟"放下/抛向天空"按钮叠在一起显示
   lumi.toyGoal={ toy:t, action:'pick' };
   lumi.anchor=null; lumi.goal=null;
@@ -5619,22 +6917,26 @@ function pickUpToy(t){
 }
 // ✨✨ 沙滩排球玩法专用：给玩具一个"踢出去"的初速度，跟原本踢玩具用的物理模型完全一致(方向偏好空间大的一侧+两档力度+摩擦减速)
 //    从 updateToys() 里的踢动作结算段抽出来，方便追球循环里的"自动再踢一脚"复用，不会影响原来点按钮踢玩具的效果
-function launchToy(t, power, refX){
+function launchToy(t, power, refX, dirOverride){
+  const pw = power||1;
   let dir;
-  const preferRight = room.minX!=null ? ((room.maxX-20)-t.x >= t.x-(room.minX+20)) : (t.x<refX);
-  const goPreferred = Math.random()<0.72;
-  dir = goPreferred ? (preferRight?1:-1) : (preferRight?-1:1);
-  let v0 = (power===2) ? rand(480,570) : rand(340,400);
+  if(dirOverride){ dir = dirOverride; }   // 乱踢：外部已随机好的方向，直接用
+  else {
+    const preferRight = room.minX!=null ? ((room.maxX-20)-t.x >= t.x-(room.minX+20)) : (t.x<refX);
+    const goPreferred = Math.random()<0.72;
+    dir = goPreferred ? (preferRight?1:-1) : (preferRight?-1:1);
+  }
+  let v0 = rand(340,400) + (pw-1)*rand(140,170);   // 力度连续插值：1→340~400，2→480~570，跟原来两档一致
   if(room.minX!=null){
     const avail = dir>0 ? (room.maxX-20)-t.x : t.x-(room.minX+20);
     const maxV0ForAvail = Math.sqrt(Math.max(avail,40)*2*320);
     v0 = Math.min(v0, maxV0ForAvail);
   }
   t.vx = dir*v0;
-  t.vdy = rand(-0.55,0.55) * (power===2?1.3:1);
-  if(t.type==='fish'||t.type==='mouse') t.scaredT=0.9;   // ✨✨ 新增：被踢的这一下露出害怕表情，一小段时间后自动恢复正常
+  t.vdy = rand(-0.55,0.55) * (1+(pw-1)*0.3);
+  t.scaredT=0.9; t.scareFace=1+((Math.random()*3)|0);   // ✨✨ 被踢飞的这一下随机露出惊吓表情，一小段时间后自动恢复正常
   // ✨✨ 踢出去的一瞬间给个小小的起跳速度，配合下面 updateToys 里的弹跳物理，边滚边小弹跳，慢慢停下
-  t.bounceH=0; t.bounceVY = power===2 ? rand(100,130) : rand(70,95); t.bounceCount=0;
+  t.bounceH=0; t.bounceVY = rand(70,95)+(pw-1)*rand(30,35); t.bounceCount=0;
 }
 // ✨✨ 追逐玩法专属文案表：每种追逐玩物(6个房间各一个)对应的"走过去"/"踢飞了"/"玩累收场"三句提示
 //    存的是未翻译的中文原文，用的时候统一套 T() 转译，跟其它 toast 保持一致，不会因为存成静态表就漏翻译
@@ -5650,7 +6952,7 @@ const FETCH_TOY_MSG = {
 //    玩具飞出去后 Lumi 自动追上去；追到了(玩具已经停/很慢)就自动再用力踢一脚，循环几回合后玩累了自然收场——
 //    不影响原来点房间那颗球弹"踢/捡"气泡那套逻辑(那套逻辑只在非追逐玩具时才会触发，见 pointerdown 里点玩具的判断)
 function startBeachFetch(t){
-  if(t.held||t.stored) return;
+  if(t.held||t.stored||t.inBag||t.bagFly) return;
   ensureAudioCtx();
   lumi.goal=null; lumi.dragGoal=null; lumi.anchor=null; lumi.windowGoal=false; lumi.toyKicking=null;
   lumi.toyGoal={ toy:t, action:'kick', power:2, fetchLoop:true };   // 重踢起步，玩具能滚远一点，追逐过程更明显
@@ -5674,9 +6976,226 @@ function unboxRandomToy(box){
   playPickSound();
   toast(T('从箱子里拿出了一个玩具～ 🧸'));
 }
+// ══════════════════════════════════════════════════════════════════
+// ✨ 玩具布袋（仅室内房间）：点一下，全场玩具一个一个飞进布袋；再点一下，
+//    全从布袋飞出来落到随机位置。跟玩具箱的 stored 完全独立（inBag 旗），
+//    秘密空间/户外场景不显示按钮、不参与，Lumi 本人全程不受打扰。
+// ══════════════════════════════════════════════════════════════════
+let bagBusy=false;   // 有玩具正在飞入/飞出途中，按钮暂时锁住防连点
+function bagScreen(){
+  const el=$('bagChip');
+  if(!el) return {x:W-40,y:80};
+  const r=el.getBoundingClientRect();
+  if(!r.width) return {x:W-40,y:80};
+  return {x:r.left+r.width/2, y:r.top+r.height/2};
+}
+// 布袋飞行的屏幕坐标（绘制和拖尾共用同一份计算，不会错位）
+function bagFlyPos(t){
+  const bf=t.bagFly;
+  const raw=clamp((bf.t-bf.delay)/bf.dur,0,1), e=raw*raw*(3-2*raw);
+  let tx2, ty2;
+  if(bf.mode==='in'){ const bp=bagScreen(); tx2=bp.x; ty2=bp.y; }
+  else { tx2=sx(bf.toX); ty2=roomY(bf.toDy); }
+  return {x:lerp(bf.fromSX,tx2,e), y:lerp(bf.fromSY,ty2,e)-Math.sin(raw*Math.PI)*(bf.arc||240), e:e, raw:raw};
+}
+function bagCollectible(){
+  return toys.filter(t=>!t.stored&&!t.inBag&&!t.bagFly&&!t.held);
+}
+function bagCount(){ let n=0; for(const t of toys) if(t.inBag) n++; return n; }
+function onBagChip(){
+  if(scene!=='indoor'||bagBusy||portalFx.active||secretSpace.phase!=='idle') return;
+  ensureAudioCtx();
+  const floor=bagCollectible();
+  if(floor.length){ collectToBag(floor); }
+  else if(bagCount()>0){ releaseFromBag(); }
+  else { toast(T('布袋是空的，先去玩玩具吧～')); }
+}
+function collectToBag(list){
+  // 手里正举着的也一并收走：先松手再飞出去，不经过放置
+  if(lumi.toyHolding && !lumi.toyHolding.stored){
+    const h=lumi.toyHolding; h.held=false; h.holdBy=null; lumi.toyHolding=null;
+    if(!list.includes(h)&&!h.inBag&&!h.bagFly) list.push(h);
+  }
+  if(lumi.toyKicking){ lumi.toyKicking=null; }   // 正在抬脚的那一下取消，避免踢中隐身玩具
+  if(lumi.toyGoal&&list.includes(lumi.toyGoal.toy)){ lumi.toyGoal=null; enter('idle'); }
+  if(camFollowObj&&list.includes(camFollowObj)){ camFollowObj=null; camFollowT=0; }
+  lumi.bagGlanceT=1.2;   // ✨ 收回这一下，Lumi 扭头往布袋方向望1.2秒（只改朝向，不碰状态机）
+  bagBusy=true;
+  list.forEach((t,i)=>{
+    t.picker=false; t.tossing=false; t.vx=0; t.vdy=0; t.bounceH=0; t.bounceVY=0;
+    t.bagFly={mode:'in', t:0, delay:i*0.18, dur:0.7,
+      fromSX:sx(t.x), fromSY:roomY(t.dy), fromDy:t.dy, arc:rand(120,220)};
+  });
+  playPickSound();
+  toast(T('玩具一个一个飞回布袋啦～'));
+  syncBagUI();
+}
+function releaseFromBag(){
+  const list=toys.filter(t=>t.inBag&&!t.bagFly);
+  if(!list.length) return;
+  bagBusy=true;
+  const lo=room.minX!=null?room.minX+60:-400, hi=room.maxX!=null?room.maxX-60:400;
+  const bp=bagScreen();
+  list.forEach((t,i)=>{
+    t.bagFly={mode:'out', t:0, delay:i*0.15, dur:0.8,
+      fromSX:bp.x, fromSY:bp.y, fromDy:0.4, toX:rand(lo,hi), toDy:rand(0.30,0.46), arc:rand(200,300)};
+  });
+  playTossSound();
+  toast(T('玩具从布袋里飞出来啦～'));
+  syncBagUI();
+}
+function onBagFlightDone(){
+  bagBusy=false;
+  if(bagCount()>0){ for(let i=0;i<Math.min(bagCount(),5);i++) setTimeout(spawnStarMote,i*90); }
+  syncBagUI();
+}
+function bagBounce(){
+  const el=$('bagChip');
+  if(el&&el.animate){ try{el.animate([{transform:'scale(1)'},{transform:'scale(1.22)'},{transform:'scale(1)'}],{duration:280});}catch(e){} }
+}
+function syncBagUI(){
+  // ✨ 自愈：飞行全部结束后 bagBusy 一定解开（比如中途换房间导致玩具数组被重建）
+  if(bagBusy && !toys.some(o=>o.bagFly)) bagBusy=false;
+  const chip=$('bagChip'), wrap=$('bagWrap'); if(!chip||!wrap) return;
+  wrap.style.display = (scene==='indoor') ? 'flex' : 'none';
+  const floor=bagCollectible().length, n=bagCount();
+  const label=$('bagLabel');
+  if(label) label.textContent = T(floor>0 ? '收回' : (n>0 ? '放出' : '收回'));
+  const cnt=$('bagCount');
+  if(cnt){ cnt.style.display = n>0 ? 'inline-block' : 'none'; cnt.textContent='×'+n; }
+  chip.style.opacity = (bagBusy||(floor===0&&n===0)) ? '.55' : '';
+  syncFurnBagUI();   // ✨ 杂物布袋跟着一起刷新（显隐/文案/数量/置灰）
+}
+// ✨ $ 在文件靠后位置才定义，这里不能在脚本求值时直接碰 DOM，先挂到 load 事件里绑
+addEventListener('load',()=>{ const bc=$('bagChip'); if(!bc) return;
+  bc.onclick=onBagChip; bc.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')onBagChip();};
+  const bc2=$('bagChip2'); if(bc2){
+    bc2.onclick=onFurnBagChip; bc2.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')onFurnBagChip();};
+  } });
+// ══════════════════════════════════════════════════════════════════
+// ✨ 杂物布袋（玩具布袋下方第二个）：收地上的家具（玩具箱/床/地毯/蒲团/台灯/植物）。
+//    垃圾桶/入口是玩法必需品，不参与。收走=移出 room.furniture，所以绘制、点击、
+//    碰撞、灯光自动全部跳过，不用逐处加判断；Lumi 本人全程不受打扰。
+// ══════════════════════════════════════════════════════════════════
+let furnBag=[], furnBagBusy=false;   // 已收进布袋的家具 / 飞行中锁按钮
+function furnBagEligible(f){
+  // 玩具箱/床/地毯/蒲团 + 台灯/植物；垃圾桶/入口是玩法必需品，不参与
+  return (f.type==='lamp'||f.type==='plant'||f.type==='toybox'||f.type==='bed'||f.type==='rug'||f.type==='cushion') && !f.bagFly2;
+}
+function furnBagScreen(){
+  const el=$('bagChip2');
+  if(!el) return {x:W-40,y:130};
+  const r=el.getBoundingClientRect();
+  if(!r.width) return {x:W-40,y:130};
+  return {x:r.left+r.width/2, y:r.top+r.height/2};
+}
+// 杂物飞行的屏幕坐标（绘制和拖尾共用同一份计算，不会错位）
+function furnFlyPos(f){
+  const bf=f.bagFly2;
+  const raw=clamp((bf.t-bf.delay)/bf.dur,0,1), e=raw*raw*(3-2*raw);
+  let tx2, ty2;
+  if(bf.mode==='in'){ const bp=furnBagScreen(); tx2=bp.x; ty2=bp.y; }
+  else { tx2=sx(bf.toX); ty2=roomY(bf.toDy); }
+  return {x:lerp(bf.fromSX,tx2,e), y:lerp(bf.fromSY,ty2,e)-Math.sin(raw*Math.PI)*(bf.arc||200),
+    shrink: bf.mode==='in' ? (1-e*0.85) : (0.15+e*0.85)};
+}
+function furnBagFloor(){ return room.furniture.filter(furnBagEligible); }
+function onFurnBagChip(){
+  if(scene!=='indoor'||furnBagBusy||bagBusy||portalFx.active||secretSpace.phase!=='idle') return;
+  ensureAudioCtx();
+  const floor=furnBagFloor();
+  if(floor.length){ collectFurnBag(floor); }
+  else if(furnBag.length){ releaseFurnBag(); }
+  else { toast(T('这个布袋是空的～')); }
+}
+function collectFurnBag(list){
+  // 正在拖的先静默放下（不清音效不弹提示），正在走向它的目标作废，避免引用被收走的家具
+  let disturbed=false, wake=false;
+  for(const f of list){
+    if(lumi.draggingFurniture===f){ f.dragging=false; f.dragBy=null; lumi.draggingFurniture=null; disturbed=true; }
+    if(lumi.goal&&lumi.goal.f===f){ lumi.goal=null; disturbed=true; }
+    if(lumi.dragGoal&&lumi.dragGoal.f===f){ lumi.dragGoal=null; disturbed=true; }
+    // 抱着玩具正走向箱子：箱子没了就别去了，手里的玩具留着
+    if(f.type==='toybox'&&lumi.toyBoxGoal&&lumi.toyBoxGoal.box===f){ lumi.toyBoxGoal=null; disturbed=true; }
+    // 正睡在床上 / 坐在蒲团上打坐：叫醒，回到待机（不然会睡在没收走的床上醒不过来）
+    if(f.type==='bed'&&lumi.anchor&&lumi.anchor.action==='sleep'){ lumi.anchor=null; disturbed=true; wake=true; }
+    if(f.type==='cushion'&&lumi.anchor&&lumi.anchor.action==='meditate'){ lumi.anchor=null; disturbed=true; wake=true; }
+    f.picker=false; f.dragPicker=false;
+    f.homeX=f.x; f.homeDy=f.dy;
+  }
+  if(disturbed){ lumi.tx=null; lumi.tdy=null; if(wake||lumi.state==='goto') enter('idle'); }
+  lumi.bagGlanceT=1.2;   // ✨ 跟玩具布袋一样，收走这一下扭头望一眼
+  furnBagBusy=true;
+  list.forEach((f,i)=>{
+    f.bagFly2={mode:'in', t:0, delay:i*0.2, dur:0.7,
+      fromSX:sx(f.x), fromSY:roomY(f.dy), arc:rand(120,200)};
+  });
+  playPickSound();
+  toast(T('家具收进布袋啦～'));
+  syncFurnBagUI();
+}
+function releaseFurnBag(){
+  if(!furnBag.length) return;
+  furnBagBusy=true;
+  const bp=furnBagScreen();
+  for(const f of furnBag){
+    const hx=clamp(f.homeX!=null?f.homeX:f.x, room.minX!=null?room.minX+20:-500, room.maxX!=null?room.maxX-20:500);
+    const hy=clamp(f.homeDy!=null?f.homeDy:f.dy, 0.12, 0.55);
+    f.x=hx; f.dy=hy;
+    f.bagFly2={mode:'out', t:0, delay:0, dur:0.8,
+      fromSX:bp.x, fromSY:bp.y, toX:hx, toDy:hy, arc:rand(200,300)};
+    room.furniture.push(f);
+  }
+  furnBag=[];
+  playTossSound();
+  toast(T('家具放回原处啦～'));
+  syncFurnBagUI();
+}
+function updateFurnBag(dt){
+  const flying=room.furniture.filter(f=>f.bagFly2);
+  if(!flying.length) return;
+  for(const f of flying){
+    const bf=f.bagFly2; bf.t+=dt;
+    if(bf.t>=bf.delay && Math.random()<0.6){
+      const fp=furnFlyPos(f);
+      motes.push({x:fp.x+rand(-6,6),y:fp.y+rand(-6,6),vy:rand(-.4,.1),vx:rand(-.4,.4),
+        life:.7,star:false,col:'#ffe8a3'});
+    }
+    if(bf.t>=bf.delay+bf.dur){
+      if(bf.mode==='in'){
+        f.bagFly2=null;
+        const ix=room.furniture.indexOf(f); if(ix>=0) room.furniture.splice(ix,1);
+        furnBag.push(f);
+        furnBagBounce(); playPutDownSound();
+      } else {
+        f.bagFly2=null;
+        spawnKickDust(f.x,f.dy,0.7);
+      }
+      syncFurnBagUI();
+      if(!room.furniture.some(o=>o.bagFly2)) furnFlightDone();
+    }
+  }
+}
+function furnFlightDone(){ furnBagBusy=false; syncFurnBagUI(); }
+function furnBagBounce(){
+  const el=$('bagChip2');
+  if(el&&el.animate){ try{el.animate([{transform:'scale(1)'},{transform:'scale(1.22)'},{transform:'scale(1)'}],{duration:280});}catch(e){} }
+}
+function syncFurnBagUI(){
+  // ✨ 自愈：飞行全部结束后 busy 一定解开（比如中途换房间导致家具数组被重建）
+  if(furnBagBusy && !room.furniture.some(o=>o.bagFly2)) furnBagBusy=false;
+  const chip=$('bagChip2'); if(!chip) return;
+  const floor=furnBagFloor().length, n=furnBag.length;
+  const label=$('bagLabel2');
+  if(label) label.textContent = T(floor>0 ? '收纳' : (n>0 ? '放回' : '收纳'));
+  const cnt=$('bagCount2');
+  if(cnt){ cnt.style.display = n>0 ? 'inline-block' : 'none'; cnt.textContent='×'+n; }
+  chip.style.opacity = (furnBagBusy||(floor===0&&n===0)) ? '.55' : '';
+}
 function arriveToy(){
   const g=lumi.toyGoal; if(!g){ enter('idle'); return; }
   const t=g.toy;
+  if(t.inBag||t.bagFly){ lumi.toyGoal=null; enter('idle'); return; }   // ✨ 布袋里的玩具：之前点的指令作废
   lumi.vx=0; lumi.vy=0;
   lumi.face = (t.x>=lumi.x) ? 'right' : 'left';
   lumi.toyGoal=null; lumi.strayDollGoal=null;
@@ -5685,7 +7204,9 @@ function arriveToy(){
     // ✨ 踢：先播放一个短暂的"抬脚踢"小动作状态，动作末尾那一刻才真正让球飞出去（时机对上，不再是人没到就飞）
     lumi.toyKicking=t;
     lumi.toyKickPower=g.power||1;
-    lumi.toyKickT=g.power===2?0.5:0.42;      // 重踢助跑感稍微久一点点
+    lumi.toyKickDir = g.wild ? g.wildDir : null;   // 乱踢才带随机方向，轻踢/重踢/追逐沿用原来的选向
+    lumi.toyKickT = g.wild ? 0.46 : (lumi.toyKickPower>=1.5?0.5:0.42);      // 乱踢助跑居中，力度越大抬脚越久
+    lumi.toyKickDur = lumi.toyKickT;   // 给绘制侧的进度条用（抬脚前摇/力线都按这个归一化）
     enter('idle'); lumi.dur=0.6;   // 保持站立，靠 toyKickT 单独驱动这段小动作
     if(g.fetchLoop){
       // ✨✨ 追逐玩法：这一脚是真的走过去、贴到玩具旁边才踢的(不再是隔空自己飞)，
@@ -5715,19 +7236,47 @@ function updateToys(dt){
     lumi.toyKickT-=dt;
     if(lumi.toyKickT<=0){
       const t=lumi.toyKicking;
-      launchToy(t, lumi.toyKickPower, lumi.x);
-      lumi.toyKicking=null;
+      const pw = lumi.toyKickPower||1;
+      const norm = clamp(pw-1,0,1);   // 0=轻，1=重，乱踢落在这之间
+      launchToy(t, pw, lumi.x, lumi.toyKickDir);
+      lumi.toyKicking=null; lumi.toyKickDir=null;
       ensureAudioCtx();   // ✨ 真正踢中这一刻再确认一次，避免中途音频上下文被系统重新挂起
-      playKickSound();
-      lumi.hop=lumi.toyKickPower===2?0.42:0.3; lumi.hopBig=(lumi.toyKickPower===2);   // 重踢时Lumi自己也蹦得更明显，强化"用力"感
-      // ✨ 镜头跟拍：短暂跟着飞出去的玩具走，玩具停下/超时后自动交还给 Lumi
-      camFollowObj=t; camFollowT=1.3;
+      playKickSound(norm);
+      spawnKickDust(t.x, t.dy, pw);
+      lumi.hop=0.3+norm*0.12; lumi.hopBig=(pw>=1.5);   // 力度越大Lumi自己也蹦得越明显
+      // ✨ 镜头跟拍：短暂跟着飞出去的玩具走，玩具停下/超时后自动交还给 Lumi（越重跟拍越久一点）
+      camFollowObj=t; camFollowT=1.3+norm*0.5;
       markTaskDone('kick');
     }
   }
   for(const t of toys){
     if(t.stored) continue;   // 已收进箱子的玩具不参与任何物理/动画
+    if(t.inBag && !t.bagFly) continue;   // ✨ 布袋里的玩具跳过（飞行途中除外）
     if(t.scaredT>0) t.scaredT=Math.max(0,t.scaredT-dt);   // ✨✨ 新增：害怕表情倒计时，跟其它状态无关，一直往下走
+    if(t.bagFly){
+      // ✨ 布袋飞行：按延迟+时长推进，拖尾星尘，落点结算
+      const bf=t.bagFly; bf.t+=dt;
+      if(bf.t>=bf.delay && Math.random()<0.6){
+        const fp=bagFlyPos(t);
+        motes.push({x:fp.x+rand(-6,6),y:fp.y+rand(-6,6),vy:rand(-.4,.1),vx:rand(-.4,.4),
+          life:.7,star:false,col:bf.mode==='in'?'#ffe8a3':'#ffffff'});
+      }
+      if(bf.t>=bf.delay+bf.dur){
+        if(bf.mode==='in'){
+          t.inBag=true; t.bagFly=null; t.vx=0; t.vdy=0; t.bounceH=0; t.bounceVY=0;
+          bagBounce(); playPutDownSound();
+        } else {
+          t.inBag=false; t.bagFly=null;
+          t.x=clamp(bf.toX, room.minX!=null?room.minX+20:-500, room.maxX!=null?room.maxX-20:500);
+          t.dy=clamp(bf.toDy,0.15,0.5);
+          t.vx=0; t.vdy=0; t.bounceH=0; t.bounceVY=rand(90,130); t.bounceCount=0;
+          spawnKickDust(t.x,t.dy,0.7);
+        }
+        syncBagUI();
+        if(!toys.some(o=>o.bagFly)) onBagFlightDone();
+      }
+      continue;
+    }
     if(t.held){
       t.holdT+=dt;   // 只用于举着时的小幅呼吸/晃动动画，不再倒计时自动丢出
       continue;
@@ -5740,10 +7289,12 @@ function updateToys(dt){
       t.dy = lerp(t.tossFromDy, t.tossToDy, p);
       if(p>=1){
         // ✨✨ 落地：给一个比踢的时候更明显的起跳速度(掉下来的冲击更大)，再顺着抛的方向留一点点滚动，
-        //    之后交给下面统一的弹跳物理+滚动摩擦，自然弹几下慢慢停下来
+        //    之后交给下面统一的弹跳物理+滚动摩擦，自然弹几下慢慢停下来（旋抛自带落地速度/小扬尘）
         t.tossing=false;
-        t.bounceH=0; t.bounceVY=rand(150,190); t.bounceCount=0;
-        t.vx=Math.sign(t.tossToX-t.tossFromX)*rand(60,110);
+        t.bounceH=0; t.bounceVY = t.tossLandBounce||rand(150,190); t.bounceCount=0;
+        t.vx = (t.tossLandVx!=null)?t.tossLandVx : Math.sign(t.tossToX-t.tossFromX)*rand(60,110);
+        t.tossLandVx=null; t.tossLandBounce=null; t.tossArc=null;
+        spawnKickDust(t.x, t.dy, 0.8);
       }
       continue;
     }
@@ -5888,6 +7439,8 @@ function setFace(){
   // ✨✨ 修复：锚定在窗边/鱼缸/家具时朝向是特意设定的（比如看窗外要侧身），
   //    这里如果不排除，每一帧都会因为"站着不动=速度接近0"被强行掰回正面，之前"看窗户却还是正对屏幕"就是这个bug
   if(lumi.anchor && ['windowWait','windowsill','windowClimb','watchFish','feedFish','rub','snack'].includes(lumi.anchor.action)) return;
+  // ✨ 布袋回收时扭头看一眼（1.2秒，布袋在右上方所以朝右+眼往上）：只改朝向不改状态，走路/待机逻辑完全不受影响
+  if(lumi.bagGlanceT>0){ lumi.face='right'; return; }
   if(Math.abs(lumi.vx)<2&&Math.abs(lumi.vy)<2){ lumi.face='front'; return; }
   if(Math.abs(lumi.vx)>=Math.abs(lumi.vy)) lumi.face=lumi.vx>0?'right':'left';
   else lumi.face=lumi.vy>0?'front':'back';
@@ -5965,7 +7518,7 @@ function updateLumi(dt){
   const moteChance = ph.key==='ovulation' ? 0.012 : ph.key==='stable' ? 0.006 : 0.0015;
   if(!reduceMotion && Math.random()<dt*moteChance*60) spawnAmbientMote();
 
-  const wantLook=lumi.state==='watchClouds'?1:0; lumi.look+=(wantLook-lumi.look)*Math.min(1,dt*3);
+  const wantLook=(lumi.state==='watchClouds'||lumi.bagGlanceT>0)?1:0; lumi.look+=(wantLook-lumi.look)*Math.min(1,dt*3);
   const isWindowsill=(lumi.anchor&&lumi.anchor.action==='windowsill');
   const wantReach=lumi.state==='collect'?(0.5+0.5*Math.sin(lumi.stateT*2))
                  :lumi.state==='groom'?(0.4+0.6*Math.abs(Math.sin(lumi.stateT*3.4)))         // ✨✨ 理毛：比collect更快的来回摆动，像在擦脸
@@ -5982,6 +7535,7 @@ function updateLumi(dt){
   // 淋雨没伞 → 委屈想哭；有伞或没下雨 → 表情正常
   lumi.crying=(weather==='rain'&&overcast>0.45&&!umbrella.held&&lumi.state!=='sleep');
   if(lumi.hop>0)lumi.hop-=dt;
+  if(lumi.bagGlanceT>0) lumi.bagGlanceT-=dt;   // ✨ 布袋扭头计时
   if(lumi.growPopT>0) lumi.growPopT-=dt;
   if(levelUpFX.active){ levelUpFX.t+=dt; if(levelUpFX.t>=levelUpFX.dur) levelUpFX.active=false; }
   // ✨✨ 真实爬窗高度：平滑过渡到目标高度，中途再补几下小跳，做出"一阶一阶蹬上去/蹬下来"的感觉
@@ -6065,7 +7619,7 @@ function updateLumi(dt){
   } else if(lumi.state==='fetchBall'&&lumi.anchor&&lumi.anchor.toy&&!lumi.toyKicking){
     // ✨✨ 沙滩排球玩法：朝球当前位置追（球在滚就追着跑，球停了就走过去），追球时不玩心心特效，保持"跑"的感觉
     const t=lumi.anchor.toy;
-    if(t.stored||t.held){ lumi.anchor=null; enter('idle'); }
+    if(t.stored||t.held||t.inBag){ lumi.anchor=null; enter('idle'); }
     else { const dx=t.x-lumi.x; vx=Math.sign(dx)*Math.min(Math.abs(dx),spd*1.3); }
   } else if(lumi.state==='walk'){ enter('idle'); }
   }
@@ -6091,6 +7645,7 @@ function updateLumi(dt){
 
   if(lumi.state==='collect'&&!(lumi.anchor&&lumi.anchor.action==='snack')&&lumi.reach>0.85&&Math.random()<dt*0.8){ addStar(); spawnStarMote(); markTaskDone('collect'); }
   updateToys(dt);
+  updateFurnBag(dt);   // ✨ 杂物布袋飞行（台灯/植物飞进飞出）
   updatePigeon(dt);
   maybeSpawnStrayDoll();
   updateClockFreeze(dt);
@@ -6099,7 +7654,7 @@ function updateLumi(dt){
   //    循环够回合数就玩累了，自然收场坐下来，不会没完没了停不下来
   if(lumi.anchor && lumi.anchor.action==='fetchBall' && !lumi.toyKicking){
     const g=lumi.anchor, t=g.toy;
-    if(t.stored || t.held){ lumi.anchor=null; enter('idle'); }
+    if(t.stored || t.held || t.inBag){ lumi.anchor=null; enter('idle'); }
     else if(Math.abs(t.x-lumi.x)<26 && Math.abs(t.vx)<40){
       g.rounds++;
       if(g.rounds>=g.maxRounds){
@@ -6123,7 +7678,7 @@ function updateLumi(dt){
   //    避免"蹲下来看，结果球已经滚到背后去了"这种朝向对不上的情况
   if(lumi.watchToy){
     const wt=lumi.watchToy;
-    if(wt.stored||wt.held||lumi.state!=='sit'){ lumi.watchToy=null; }
+    if(wt.stored||wt.held||wt.inBag||lumi.state!=='sit'){ lumi.watchToy=null; }
     else {
       lumi.face = (wt.x>=lumi.x) ? 'right' : 'left';
       if(Math.abs(wt.vx)<1 && Math.abs(wt.bounceVY||0)<1 && (wt.bounceH||0)<=0) lumi.watchToy=null;
@@ -6168,6 +7723,7 @@ function secretEntrancePortalScreen(f){
     case 'clockdoor': offY=-114*s; break;    // 座钟钟面中心
     case 'pearlshell': offY=-30*s; break;    // 珍珠贝中心
     case 'vinearch': offY=-63*s; break;      // 藤蔓拱门洞口中心
+    case 'crystalarch': offY=-70*s; break;  // 水晶拱门门洞中心
     default: offY=-60*s;
   }
   return {x:px, y:by+offY};
@@ -6178,6 +7734,12 @@ function drawNormalScene(){
 }
 function draw(){
   if(secretSpace.phase==='inside'){ drawSecretSpaceScene(1); return; }
+  // ✨✨ 星际虫洞穿越画面（仅梦幻月亮风进入方向），整段全屏接管，不走通用烟雾
+  if(typeof wormIsTravel==='function' && wormIsTravel()){
+    if(typeof drawWormholeFrame==='function') drawWormholeFrame();
+    else drawNormalScene();
+    return;
+  }
   // ✨✨ 进出秘密空间：跟"去户外/回房间"完全同一套传送特效(消失→空白→烟雾聚起显形→淡出)，只是时间短很多。
   //    dir='enter'时，svanish/sblank 还留在房间画面，ssmokein/sfadeout 已经切到秘密空间内部；
   //    dir='exit'时正好反过来。
@@ -7110,6 +8672,8 @@ function secretLumiPos(kind){
 }
 function drawSecretLumi(kind){
   if(lumi._hiddenByPortal) return;   // ✨ 传送特效的消失/空白阶段，秘密空间内部先不画她，等烟雾聚起来显形那一刻才出现
+  // ✨✨ 虫洞落下段：穿越落下的那一只拥有唯一绘制权，场景自己的那只强制让开，避免落点出现两个 Lumi
+  if(secretSpace.worm && (secretSpace.phase==='w_tunnel'||secretSpace.phase==='w_arrive')) return;
   const inner=secretSpace.inner;
   const spots=SECRET_SIT_SPOTS[kind]||SECRET_SIT_SPOTS.crystal;
   if(!inner){
@@ -8052,17 +9616,18 @@ function drawWardrobePicker(){
   ctx.fillText(costumeName, L.cx, L.nameY);
   ctx.restore();
 
-  // ◀ ▶ 箭头按钮（点击可单步切换，等同滑动）
-  for(const item of [[L.prevBtn,'‹'],[L.nextBtn,'›']]){
-    const btn=item[0], glyph=item[1];
+  // 左右切换按钮：canvas 手绘 chevron（跟 HUD 那套 16px 线形图标统一，不再用 ‹ › 文字符）
+  for(const item of [[L.prevBtn,-1],[L.nextBtn,1]]){
+    const btn=item[0], dir=item[1];
     ctx.save(); ctx.globalAlpha=appear;
     ctx.shadowColor='rgba(40,30,70,.16)'; ctx.shadowBlur=7;
     ctx.beginPath(); ctx.arc(btn.x,btn.y,22,0,7);
     ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fill();
     ctx.shadowColor='transparent';
-    ctx.fillStyle='#8a6fc4'; ctx.font='700 22px system-ui,sans-serif';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(glyph,btn.x,btn.y-1);
+    ctx.strokeStyle='#8a6fc4'; ctx.lineWidth=2.6; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(btn.x+dir*6,btn.y-8); ctx.lineTo(btn.x-dir*6,btn.y); ctx.lineTo(btn.x+dir*6,btn.y+8);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -8153,9 +9718,10 @@ function toyPickerPositions(t){
   const px=sx(t.x), by=roomY(t.dy), s=roomScale(t.dy);
   const cy=by-(50+40*(TOY_SCALE-1))*s;  // 玩具放大后，气泡跟着往上让出空间
   return [
-    {act:'kick1', icon:'🦶', label:'轻踢', x:px-54, y:cy},
-    {act:'kick2', icon:'💥', label:'重踢', x:px,    y:cy},
-    {act:'pick',  icon:'✋', label:'捡',   x:px+54, y:cy}
+    {act:'kick1', icon:'🦶', label:'轻踢', x:px-81, y:cy},
+    {act:'kick2', icon:'💥', label:'重踢', x:px-27, y:cy},
+    {act:'kickWild', icon:'🌀', label:'乱踢', x:px+27, y:cy},
+    {act:'pick',  icon:'✋', label:'捡',   x:px+81, y:cy}
   ];
 }
 function drawToyPicker(t){
@@ -8205,13 +9771,14 @@ function drawDropButton(){
   ctx.fillText(T('放下'),x,y+14);
   ctx.restore();
 }
-// ✨ 举着玩具时头顶的两个按钮：放下 / 抛向天空
+// ✨ 举着玩具时头顶的三个按钮：放下 / 上抛 / 旋抛（左右随机方向+随机力度）
 function heldToyButtonPositions(){
   const sc=lumiScreen();
   const y=sc.y-150*sc.s;
   return [
-    {act:'putdown', icon:'🤲', label:'放下',    x:sc.x-38, y},
-    {act:'toss',    icon:'⬆️', label:'抛向天空', x:sc.x+38, y}
+    {act:'putdown', icon:'🤲', label:'放下',    x:sc.x-70, y},
+    {act:'toss',    icon:'⬆️', label:'抛向天空', x:sc.x, y},
+    {act:'tossWild', icon:'🌪️', label:'旋抛',   x:sc.x+70, y}
   ];
 }
 function drawHeldToyButtons(){
@@ -8938,6 +10505,15 @@ function drawMotes(){const nA=nightAmt(dayT);
       ctx.fillStyle=gg;ctx.beginPath();ctx.arc(m.x,m.y,4,0,7);ctx.fill();}
     if(m.life<=0)motes.splice(i,1);}ctx.globalAlpha=1;}
 function spawnHeart(){const sc=lumiScreen();hearts.push({x:sc.x,y:sc.y-sc.s*120,life:1,vx:rand(-.4,.4)});}
+// 🌀 踢中扬尘：复用 motes 粒子层（室内/户外都会画），尘土色，数量和初速随力度走
+function spawnKickDust(wx, dy, power){
+  const pw=power||1, n=Math.round(4+pw*3);
+  for(let i=0;i<n;i++){
+    motes.push({x:sx(wx)+rand(-8,8), y:roomY(dy)-rand(0,10),
+      vy:rand(-1.6,-0.4), vx:rand(-1.8,1.8)*(0.6+pw*0.3),
+      life:1, star:false, col:pick(['#e8d8b8','#fff4e0','#c9b896'])});
+  }
+}
 function drawHearts(){for(let i=hearts.length-1;i>=0;i--){const h=hearts[i];h.life-=.012;h.y-=.8;h.x+=h.vx;
   ctx.globalAlpha=clamp(h.life,0,1);ctx.fillStyle='#f07fa0';ctx.font='18px serif';ctx.fillText('♡',h.x,h.y);
   if(h.life<=0)hearts.splice(i,1);}ctx.globalAlpha=1;}
@@ -9212,7 +10788,7 @@ function drawLumi(){
   }
   // ✨ 抬脚踢的瞬间姿态：身体朝踢的方向轻微前倾+一点侧摆，强化"用力踢了一下"的感觉
   else if(lumi.toyKicking){
-    const kt=1-clamp(lumi.toyKickT/0.42,0,1);    // 0→1 动作进度
+    const kt=1-clamp(lumi.toyKickT/(lumi.toyKickDur||0.42),0,1);    // 0→1 动作进度（前摇时长随力度走）
     const fc=lumi.face==='right'?1:-1;
     const lean=Math.sin(kt*Math.PI)*0.18*fc;
     ctx.save(); ctx.rotate(lean); ctx.translate(Math.sin(kt*Math.PI)*6*fc,0);
@@ -9232,15 +10808,16 @@ function drawLumi(){
   else if(lumi.costume==='music') updateAndDrawNoteFX();
   else if(lumi.costume==='travel') updateAndDrawWindFX();
   if(lumi.state==='egg'||lumi.toyKicking||lumi.toyHolding) ctx.restore();
-  // ✨ 踢中瞬间的小特效：一道短促的力线 + 尘土感
+  // 🌀 踢中瞬间的力线：数量和长度随力度走（轻踢3短线，重踢/乱踢大力5长线）
   if(lumi.toyKicking){
-    const kt=1-clamp(lumi.toyKickT/0.42,0,1);
+    const kt=1-clamp(lumi.toyKickT/(lumi.toyKickDur||0.42),0,1);
     if(kt>0.55){
       const fc=lumi.face==='right'?1:-1;
+      const pwk=lumi.toyKickPower||1, nn=clamp(pwk-1,0,1), nL=pwk>=1.5?5:3;
       ctx.save();ctx.globalAlpha=clamp((kt-0.55)/0.3,0,1)*0.8;
       ctx.strokeStyle='#fff0d8';ctx.lineWidth=2;ctx.lineCap='round';
-      for(let i=0;i<3;i++){ const yy=-8+i*8;
-        ctx.beginPath();ctx.moveTo(fc*30,yy);ctx.lineTo(fc*(30+14),yy);ctx.stroke(); }
+      for(let i=0;i<nL;i++){ const yy=(i-(nL-1)/2)*8, len=14+nn*10;
+        ctx.beginPath();ctx.moveTo(fc*30,yy);ctx.lineTo(fc*(30+len),yy);ctx.stroke(); }
       ctx.restore();
     }
   }
@@ -9744,6 +11321,7 @@ function frame(now){
   if(sitScenes[scene]){ updateNightView(dt); draw(); }
   else { updateLumi(dt); updateSecretSpace(dt); updateSecretInner(dt); updateCamera(dt); updateRain(dt); updateBigWindow(dt); recycleWorld(); draw(); }
   refreshMusic();   // ✨ 房间背景乐/秘密空间音乐/专注音乐：每帧检查一次该播哪首，变了才切歌，没变直接跳过
+  updateSleepTimer(dt);   // 🌙 睡眠定时器：只在三个夜色场景+音乐开着+选了定时时长的时候才会真的推进
   // ✨ 确认气泡只在"正站在树洞前等待确认"这个锚定状态下才允许存在：
   //    一旦她因为别的操作被带走（拖家具/摸摸/走向别处…），气泡立刻收起，必须重新走近树洞才会再弹出
   if(secretConfirm.show && !(lumi.anchor && lumi.anchor.action==='secretApproach')){
@@ -9864,7 +11442,7 @@ canvas.addEventListener('pointerdown',e=>{
   if(lumi.toyHolding){
     for(const p of heldToyButtonPositions()){
       if(Math.hypot(px-p.x,py-p.y)<34){
-        if(p.act==='putdown') putDownToy(); else tossToySky();
+        if(p.act==='putdown') putDownToy(); else if(p.act==='tossWild') tossToyWild(); else tossToySky();
         return;
       }
     }
@@ -9899,6 +11477,7 @@ canvas.addEventListener('pointerdown',e=>{
         activePicker.picker=false;
         if(p.act==='kick1') kickToy(activePicker,1);
         else if(p.act==='kick2') kickToy(activePicker,2);
+        else if(p.act==='kickWild') kickToyWild(activePicker);
         else pickUpToy(activePicker);
         return;
       }
@@ -9933,8 +11512,7 @@ canvas.addEventListener('pointerdown',e=>{
       // ✨✨ 追逐玩法：6 个房间主题各自专属加的那颗玩物(FETCH_TOY_MSG 里登记的类型)才触发自动追逐，
       //    不再弹踢/捡气泡；房间原来就有的那颗球(ball)不受影响，还是老样子的踢/捡气泡，两者是独立玩具
       if(FETCH_TOY_MSG[toyTap.type]){ startBeachFetch(toyTap); return; }
-      // ✨✨ 随机出现的玩偶：点一下不弹气泡，直接走过去捡起来+自动送去垃圾桶丢掉
-      if(toyTap.type==='straydoll'){ startStrayDollPickup(toyTap); return; }
+      // ✨ 随机玩偶（含兔子）：和其他玩具一样弹踢/捡气泡，可踢可捡可抛，可收进布袋（不再一点就自动送走）
       toyTap.picker=true; toyTap.pickerT=0; return;
     }
   }
@@ -10176,8 +11754,9 @@ function syncLv(){
   }
 }
 function syncTop(){const ph=PHASES[currentPhase];$('phaseName').textContent=T(ph.name);
-  $('phaseEmotion').textContent='· '+T(emoWord());$('phaseDot').textContent=ph.emoji;syncLv();
+  $('phaseEmotion').textContent='· '+T(emoWord());$('phaseDot').style.background=ph.dot;syncLv();
   visitedCostumesSet.add(lumi.costume); visitedThemesSet.add(room.theme||0);   // ✨ 图鉴：不管怎么换的，穿过/去过就记一笔
+  syncBagUI();   // ✨ 玩具布袋按钮：显隐/收回放出文案/数量，跟着场景走（仅室内房间显示）
 }
 function emoWord(){
   if(lumi.anchor){
@@ -10421,7 +12000,7 @@ function buildCharmGrid(){
     cell.className='charm-cell '+(owned?'owned '+c.rarity:'locked');
     cell.innerHTML = owned
       ? `<div class="cc-icon">${c.icon}</div><div class="cc-name">${T(c.name)}</div>${owned>1?`<div class="cc-count">×${owned}</div>`:''}`
-      : `<div class="cc-icon">❓</div><div class="cc-name">${T('未收集')}</div>`;
+      : `<div class="cc-icon"><svg viewBox="0 0 16 16" width="22" height="22" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.6" stroke="#c9bde4" stroke-width="1.6" stroke-dasharray="2.6 2.2" stroke-linecap="round"/></svg></div><div class="cc-name">${T('未收集')}</div>`;
     grid.appendChild(cell);
   });
 }
@@ -10468,16 +12047,19 @@ function roomThumbURL(th,i){
 // str_replace 用的辅助：在指定 ctx 上画圆角矩形路径（主 rRect 是绑死全局 ctx 的，这里另起一个）
 function rRectOn(x,px,py,w,h,r){x.beginPath();x.moveTo(px+r,py);x.arcTo(px+w,py,px+w,py+h,r);x.arcTo(px+w,py+h,px,py+h,r);x.arcTo(px,py+h,px,py,r);x.arcTo(px,py,px+w,py,r);x.closePath();}
 // ✨✨ 房间选择面板：点左下角小房子进来选房间，锁着的用月光值或钥匙解锁
-// ✨✨ 户外场景选择器：现在有"星空山景"和"黄昏湖景"两个真场景可以点，其余用"敬请期待"占位格子占着位置，
-//    以后加新场景时，往 OUTDOOR_SCENES 里加一条、同时把下面的占位数量减一就行
+// ✨✨ 户外场景选择器：目前只有"星空山景"是真的能进的场景，"黄昏湖景"和"银河观景台"暂时下线、
+//    改成"正在开发"的占位格子（保留原来的图标和名字，方便以后重新开放时候对得上）。
+//    "月光游戏中心"入口挪到跟"星空山景"同一档并排放，两个都是当下真能点进去的东西。
 const OUTDOOR_SCENES=[
-  { id:'nightview', emoji:'🌌', name:'星空山景', bg:'linear-gradient(135deg,#1c2650,#3f7a97)' },
-  { id:'lakeview',  emoji:'🌇', name:'黄昏湖景', bg:'linear-gradient(135deg,#5c3470,#f2ae9e)' },
-  { id:'skydeck',   emoji:'🔭', name:'银河观景台', bg:'linear-gradient(135deg,#1a1440,#6a5acd)' }
+  { id:'nightview', emoji:'🌌', name:'星空山景', bg:'linear-gradient(135deg,#1c2650,#3f7a97)' }
 ];
-const OUTDOOR_COMING_SOON_COUNT=0; // 🎮 原来空出来的那个"敬请期待"占位格子，现在被"月光游戏中心"入口占用了
+const OUTDOOR_COMING_SOON_SCENES=[
+  { emoji:'🌇', name:'黄昏湖景', bg:'linear-gradient(135deg,#5c3470,#f2ae9e)' },
+  { emoji:'🔭', name:'银河观景台', bg:'linear-gradient(135deg,#1a1440,#6a5acd)' }
+];
 function buildOutdoorPickerGrid(){
   const grid=$('outdoorPickerGrid'); if(!grid) return; grid.innerHTML='';
+  // 第一档：星空山景（唯一的真场景）
   OUTDOOR_SCENES.forEach(sc=>{
     const isCurrent = scene===sc.id;
     const cell=document.createElement('div');
@@ -10489,25 +12071,25 @@ function buildOutdoorPickerGrid(){
         : `<button class="op-enter-btn" data-id="${sc.id}" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;">${T('进入')}</button>`}`;
     grid.appendChild(cell);
   });
-  for(let i=0;i<OUTDOOR_COMING_SOON_COUNT;i++){
-    const cell=document.createElement('div');
-    cell.style.cssText='border-radius:16px;padding:12px;text-align:center;background:#efeef3;';
-    cell.innerHTML=`<div style="width:100%;height:70px;border-radius:12px;margin-bottom:8px;background:#ddd8e6;display:flex;align-items:center;justify-content:center;font-size:22px;opacity:.6;">🔒</div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--muted);">${T('敬请期待')}</div>`;
-    grid.appendChild(cell);
-  }
-  // 🎮 新增：月光游戏中心入口——占用原来"敬请期待"占位格子的位置，点"进入"在新标签页打开
-  // luna-games.html（两个文件要放在同一个目录下才能正常跳转），不会切换 Lumi 这边的室内/户外场景状态
+  // 第一档：月光游戏中心（跟星空山景同一档，紧接着放在旁边）
   {
     const cell=document.createElement('div');
     cell.style.cssText='border-radius:16px;padding:12px;text-align:center;background:#f7f5fb;';
     cell.innerHTML=`<div style="width:100%;height:70px;border-radius:12px;margin-bottom:8px;background:linear-gradient(135deg,#241a3d,#7c5cbf);display:flex;align-items:center;justify-content:center;font-size:30px;">🎮</div>
       <div style="font-size:12.5px;font-weight:600;color:var(--text);">${T('月光游戏中心')}</div>
-      <button class="op-game-btn" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;">${T('进入')}</button>`;
+      <button onclick="location.href='/luna-games.html'" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-family:inherit;cursor:pointer;">${T('进入')}</button>`;
     grid.appendChild(cell);
   }
+  // 第二档：暂时下线、标"正在开发"的场景（黄昏湖景/银河观景台）
+  OUTDOOR_COMING_SOON_SCENES.forEach(sc=>{
+    const cell=document.createElement('div');
+    cell.style.cssText='border-radius:16px;padding:12px;text-align:center;background:#efeef3;';
+    cell.innerHTML=`<div style="width:100%;height:70px;border-radius:12px;margin-bottom:8px;background:${sc.bg};display:flex;align-items:center;justify-content:center;font-size:30px;opacity:.55;">${sc.emoji}</div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--text);opacity:.7;">${T(sc.name)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;">${T('正在开发')}</div>`;
+    grid.appendChild(cell);
+  });
   grid.querySelectorAll('.op-enter-btn').forEach(b=>b.onclick=()=>enterOutdoorScene(b.dataset.id));
-  grid.querySelectorAll('.op-game-btn').forEach(b=>b.onclick=()=>window.open('luna-games.html','_blank'));
 }
 function enterOutdoorScene(id){
   $('outdoorPickerSheet').classList.remove('show');
@@ -10719,7 +12301,7 @@ function buildTaskSheet(){
     const def=TASK_POOL.find(p=>p.id===t.id);
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:'+(t.done?'var(--purple-pale)':'#f7f5fb')+';';
-    row.innerHTML=`<span style="font-size:18px;">${t.done?'✅':'⬜'}</span><span style="font-size:14px;color:var(--text);${t.done?'text-decoration:line-through;opacity:.6;':''}">${T(def?def.label:'')}</span>`;
+    row.innerHTML=`<span style="display:inline-flex;width:20px;height:20px;flex:none;align-items:center;justify-content:center;">${t.done?'<svg viewBox="0 0 16 16" width="18" height="18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="#7c5cbf"/><path d="M5.2 8.2l2 2 3.6-4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':'<svg viewBox="0 0 16 16" width="18" height="18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.2" stroke="#b49de0" stroke-width="1.8"/></svg>'}</span><span style="font-size:14px;color:var(--text);${t.done?'text-decoration:line-through;opacity:.6;':''}">${T(def?def.label:'')}</span>`;
     list.appendChild(row);
   });
 }
@@ -11113,7 +12695,20 @@ $('secretInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDef
 
 // 提示 toast
 let toastT=null;
-function toast(msg){msg=T(msg);const el=$('toast');el.textContent=msg;el.classList.add('show');
+// 现代文案：所有 toast 经这一个出口，顺手去掉首尾装饰 Emoji（箭头←→、对勾✓✕保留；句中表情不动）
+function stripEdgeEmoji(s){
+  if(!s) return s;
+  var lead=/^(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\uFE0F?|\uFE0F|[\u2600-\u2640\u2642-\u2712\u2716-\u27BF]|\s)+/;
+  var trail=/(?:[\uD800-\uDBFF][\uDC00-\uDFFF]\uFE0F?|\uFE0F|[\u2600-\u2640\u2642-\u2712\u2716-\u27BF]|\s)+$/;
+  return String(s).replace(lead,'').replace(trail,'');
+}
+// 🩹 星空山景现在改成"睡眠音乐"专属场景了，进去以后原本那些互动提示气泡(到达/坐下/各种小动作的
+// toast 文案)反而显得吵，会打断助眠的氛围。改成：只要人在这个场景里，toast 一律不弹——
+// 这是全局唯一的 toast 出口，从这里统一拦截，不用去每个调用 toast() 的地方一个个改。
+// 睡眠音乐面板本身是独立的 DOM 弹层(不走 toast)，不受这条影响，正常显示/正常用。
+function toast(msg){
+  if(scene==='nightview') return;
+  msg=stripEdgeEmoji(T(msg));const el=$('toast');el.textContent=msg;el.classList.add('show');
   // ✨✨ 根据当前昼夜情况自动切换提示框深浅版：夜晚(nightAmt高)用深色玻璃，白天用浅色玻璃，跟场景亮度保持一致
   try{ el.classList.toggle('dark', typeof nightAmt==='function' && nightAmt(dayT)>0.45); }catch(e){}
   // ✨✨ 显示时长按文字长度自动拉长：泰语翻译普遍比中文长，短提示还是原来的2.6秒，
@@ -11385,7 +12980,7 @@ document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.s
 //    ✨✨ 新增：左下角(选房间/luna/户外场景)和右下角菜单按钮本体也一起淡化；
 //    菜单展开后里面那一排功能按钮(角色栏/日记/昼夜/天气/大窗/声音/语言)要保持清晰，不参与淡化
 let menuOpen=false;   // ✨ 提前声明(原本在下面右下角菜单那段)，因为下面 refreshHud() 首次调用就要读它
-const HUD_DIM_IDS=['lvCard','focusChip','starChip','phaseChip','taskChip','btnRoom','btnLuna','btnOutdoor','btnMenu'];
+const HUD_DIM_IDS=['lvCard','focusChip','starChip','phaseChip','taskChip','bagChip','bagChip2','btnRoom','btnLuna','btnOutdoor','btnMenu'];
 const HUD_WAKE_SHEET_IDS=['focusSheet','focusStopSheet','lunaExitSheet','treasureSheet','phaseSheet','taskSheet','roomPickerSheet','outdoorPickerSheet'];
 function setHudDim(dim){ HUD_DIM_IDS.forEach(id=>{ const el=$(id); if(el) el.classList.toggle('hud-dim', dim); }); }
 let hudLvWakeUntil=0;
@@ -11400,22 +12995,38 @@ function refreshHud(){
   refreshHud();   // 初始状态：还没有面板打开，默认就是淡化的
 })();
 
+// Luna Games B 版统一图标（16px 线形，跟游戏 iconbtn 同一套）
+var LUMI_SVG = {
+  clock:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2.5 1.5"/></svg>',
+  sunrise:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 12h12"/><path d="M5 12a3 3 0 0 1 6 0"/><path d="M8 2v2.5M4 3.5l1.5 1.5M12 3.5L10.5 5"/></svg>',
+  sun:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3.2"/><path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.3 1.3M11.3 11.3l1.3 1.3M12.6 3.4l-1.3 1.3M4.7 11.3l-1.3 1.3"/></svg>',
+  sunset:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 12h12"/><path d="M5 12a3 3 0 0 1 6 0"/><path d="M8 5.5V8M4 9.5l1.5-1.5M12 9.5L10.5 8"/></svg>',
+  moon:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M13 10.5A5.5 5.5 0 1 1 5.5 3 4.5 4.5 0 0 0 13 10.5z"/></svg>',
+  cloudSun:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11a2.8 2.8 0 1 1 .6-5.5A3.2 3.2 0 0 1 11.5 6.5 2.5 2.5 0 0 1 11 11.5h-6.5z"/><circle cx="11.5" cy="4" r="1.6"/></svg>',
+  cloudRain:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 9.5a2.8 2.8 0 1 1 .6-5.5A3.2 3.2 0 0 1 11.5 5 2.5 2.5 0 0 1 11 10H4.5z"/><path d="M6 12l-1 2M9.5 12l-1 2"/></svg>',
+  window:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/><path d="M8 3v10M3 8h10"/></svg>',
+  windowOpen:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="10" height="10" rx="1.5"/><path d="M8 3v10M3 8h10"/><path d="M5.5 1.5v1M8 1v1M10.5 1.5v1"/></svg>',
+  plus:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>',
+  x:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+  soundOn:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6v4h2.5L8 13V3L4.5 6H2z" fill="currentColor" stroke="none"/><path d="M10.5 6c.8.8.8 3.2 0 4M12.5 4.5c1.4 1.6 1.4 5.4 0 7"/></svg>',
+  soundOff:'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6v4h2.5L8 13V3L4.5 6H2z" fill="currentColor" stroke="none"/><path d="M11 6.5l4 4M15 6.5l-4 4"/></svg>'
+};
 // 昼夜
 // ✨✨ 手动选时段会"锁住"，不再被真实时间拉回去；数组第一项(null)是"自动跟随真实时间"，循环回到它才解锁
-const timePresets=[[null,'🕐','自动跟随真实时间'],[0.32,'🌅','晨光时段'],[0.5,'☀️','白天'],[0.72,'🌇','黄昏'],[0.92,'🌙','夜晚']];let timeIdx=0;
+const timePresets=[[null,'clock','自动跟随真实时间'],[0.32,'sunrise','晨光时段'],[0.5,'sun','白天'],[0.72,'sunset','黄昏'],[0.92,'moon','夜晚']];let timeIdx=0;
 let dayTimeLocked=false;
 $('btnTime').onclick=()=>{
   timeIdx=(timeIdx+1)%timePresets.length;
   const preset=timePresets[timeIdx];
-  $('btnTime').textContent=preset[1];
-  if(preset[0]===null){ dayTimeLocked=false; dayTarget=null; toast(preset[1]+' '+T('已切换为跟随真实时间')); }   // 切回自动：解锁，立刻交回真实时间
-  else { dayTimeLocked=true; dayTarget=preset[0]; toast(preset[1]+' '+T('已锁定：')+T(preset[2])); }              // 选了具体时段：锁住，到点后就停在那不再走
+  $('btnTime').innerHTML=LUMI_SVG[preset[1]];
+  if(preset[0]===null){ dayTimeLocked=false; dayTarget=null; toast(T('已切换为跟随真实时间')); }   // 切回自动：解锁，立刻交回真实时间
+  else { dayTimeLocked=true; dayTarget=preset[0]; toast(T('已锁定：')+T(preset[2])); }              // 选了具体时段：锁住，到点后就停在那不再走
 };
 
 // 天气：晴 ⇄ 雨
 function setWeather(w){weather=(w==='rain')?'rain':'clear';
   if(weather==='clear'){umbrella.held=false;umbrella.dragging=false;}
-  $('btnRain').textContent=weather==='rain'?'🌧️':'🌤️';
+  $('btnRain').innerHTML=weather==='rain'?LUMI_SVG.cloudRain:LUMI_SVG.cloudSun;
   toast(weather==='rain'?T('下起雨了… 把伞拖给 Lumi 吧 ☔'):T('雨停啦，天放晴 🌤️'));
   nextState();
 }
@@ -11425,7 +13036,7 @@ $('btnRain').onclick=()=>setWeather(weather==='rain'?'clear':'rain');
 $('btnWindow').onclick=()=>{
   const bw=room.bigWindow; if(!bw) return;
   bw.open=!bw.open;
-  $('btnWindow').textContent=bw.open?'🌅':'🪟';
+  $('btnWindow').innerHTML=bw.open?LUMI_SVG.windowOpen:LUMI_SVG.window;
   toast(bw.open?T('窗户缓缓升起，外面的天空照进来了 ☁️'):T('窗户慢慢合上了 🌙'));
 };
 
@@ -11433,7 +13044,7 @@ $('btnWindow').onclick=()=>{
 $('btnMenu').onclick=()=>{
   menuOpen=!menuOpen;
   $('controls').classList.toggle('open',menuOpen);
-  $('btnMenu').textContent=menuOpen?'✕':'☰';
+  $('btnMenu').innerHTML=menuOpen?LUMI_SVG.x:LUMI_SVG.plus;
   $('btnMenu').setAttribute('aria-label',T(menuOpen?'收起菜单':'展开菜单'));
   refreshHud();   // ✨ 菜单展开时按钮本体也跟着一起亮起来，收起后没有其它面板开着的话再淡回去
 };
@@ -11560,15 +13171,38 @@ const MUSIC_FADE=1.2;   // 切歌时的淡入/淡出时长（秒）
 //    （文件还没放/放错位置也只是安静不出声，不会报错）
 const OUTDOOR_MUSIC={
   outdoor:   'lumi-audio/outdoor/meadow.mp3',  // 樱花林/松林（户外主场景，两种风格共用一首）
-  nightview: 'lumi-audio/outdoor/night.mp3',   // 星空山景
-  lakeview:  'lumi-audio/outdoor/lake.mp3',    // 黄昏湖景
-  skydeck:   'lumi-audio/outdoor/galaxy.mp3'   // 银河观景台
+  lakeview:  'lumi-audio/outdoor/lake.mp3',    // 黄昏湖景（目前已下线，先保留映射，以后重新开放不用改这里）
+  skydeck:   'lumi-audio/outdoor/galaxy.mp3'   // 银河观景台（同上）
 };
+// 🌙 睡眠模式·10首曲目——星空山景现在不再用固定的单曲(原来的 night.mp3)，
+// 改成从这10首里选一首循环播，选哪首、上次选的记住，都在这里统一管理。
+// 【给准备好音频文件的人看】把10个音频文件都改名成 track1.mp3 到 track10.mp3（对应下面数组第1到第10条），
+// 上传到网站根目录下的 lumi-audio/outdoor/sleep/ 这个文件夹里（新建这个文件夹，
+// 位置跟放 lumi_1_.html、luna-games.html 的根目录同级）。文件名对不上、文件还没传，
+// 只会安静播不出声音，不会报错，传对了名字/位置立刻就能用，不用再改代码。
+// 如果想换某一首的显示名字（比如"山间夜风"想换成别的说法），或者想调整10首的顺序，
+// 直接改下面这个数组里对应那一条的 name 字段或者调整数组顺序就行。
+const SLEEP_TRACKS=[
+  { emoji:'🌬️', name:'山间夜风', src:'lumi-audio/outdoor/sleep/track1.mp3' },
+  { emoji:'🎐', name:'溪流低语', src:'lumi-audio/outdoor/sleep/track2.mp3' },
+  { emoji:'🌲', name:'松林私语', src:'lumi-audio/outdoor/sleep/track3.mp3' },
+  { emoji:'🔔', name:'远山钟声', src:'lumi-audio/outdoor/sleep/track4.mp3' },
+  { emoji:'🔥', name:'篝火低吟', src:'lumi-audio/outdoor/sleep/track5.mp3' },
+  { emoji:'🦉', name:'夜枭轻鸣', src:'lumi-audio/outdoor/sleep/track6.mp3' },
+  { emoji:'🌧️', name:'雨落青苔', src:'lumi-audio/outdoor/sleep/track7.mp3' },
+  { emoji:'✨', name:'星尘微光', src:'lumi-audio/outdoor/sleep/track8.mp3' },
+  { emoji:'🦗', name:'月下虫鸣', src:'lumi-audio/outdoor/sleep/track9.mp3' },
+  { emoji:'🏔️', name:'深谷回声', src:'lumi-audio/outdoor/sleep/track10.mp3' }
+];
+const SLEEP_TRACK_KEY='lumi_sleep_track_v1';
+let sleepTrackIdx=0;
+(function(){ try{ const raw=localStorage.getItem(SLEEP_TRACK_KEY); const i=raw!==null?parseInt(raw,10):0; if(i>=0 && i<SLEEP_TRACKS.length) sleepTrackIdx=i; }catch(e){} })();
 function currentMusicSrc(){
   if(secretSpace.phase==='inside' || secretSpace.phase==='exiting') return SECRET_MUSIC[secretAudioName(secretSpace.kind)]||null;
   const pairIdx=roomMusicPairIdx(room.theme||0);
   if(focus.active) return SECRET_MUSIC[ROOM_KIND_BY_THEME[pairIdx]]||null;
   if(scene==='indoor') return ROOM_MUSIC[pairIdx]||null;
+  if(scene==='nightview') return SLEEP_TRACKS[sleepTrackIdx].src;   // 星空山景：睡眠曲目列表里当前选中的那首
   if(OUTDOOR_MUSIC.hasOwnProperty(scene)) return OUTDOOR_MUSIC[scene];
   return null;
 }
@@ -11607,6 +13241,162 @@ function refreshMusic(){
     g.gain.linearRampToValueAtTime(1, actx.currentTime+MUSIC_FADE);
   }catch(e){ /* 同上：静默失败，不影响其它功能 */ }
 }
+// ══════════════════════════════════════════════════════════════════
+// 🌙 睡眠模式：只在三个户外场景(星空山景/黄昏湖景/银河观景台)里出现，用的还是这三个场景本来就有的
+//    OUTDOOR_MUSIC 背景乐（不需要额外的音频文件），加一个独立的"播放开关+定时器+音量"迷你面板。
+//    面板的播放开关本质上就是帮用户一步到位地打开/关掉 soundSettings.musicOn（跟房间那边共用同一条
+//    音频链），不额外维护一套平行的播放状态，这样两个入口永远不会互相打架。
+// ══════════════════════════════════════════════════════════════════
+const SLEEP_TIMER_OPTIONS=[15,30,60,90];   // 分钟，可选的定时时长
+const SLEEP_FADE_SEC=12;   // 倒计时最后这么多秒开始淡出音乐+画面，不是突然掐断
+let sleepMode={ timerMin:0, remainSec:0, fadeStarted:false, endAt:0 };
+// 🩹 App切到后台/锁屏期间被暂停的音乐，回到前台要恢复播放——这个标记只在"是我们自己因为
+// 切后台而暂停的"这种情况下才置true，用户自己手动关掉播放的不会被这段逻辑误恢复
+let _pausedForBackground=false;
+function isSleepScene(){ return scene==='nightview' || scene==='lakeview' || scene==='skydeck'; }
+function openSleepSheet(){
+  try{
+    if(!isSleepScene()) return;
+    buildSleepTimerChips();
+    syncSleepUI();
+    if($('sleepSheet')) $('sleepSheet').classList.add('show');
+  }catch(e){ /* 静默失败，不让面板本身的问题影响到其它按钮 */ }
+}
+function buildSleepTimerChips(){
+  const wrap=$('sleepTimerChips'); if(!wrap) return;
+  wrap.innerHTML='';
+  SLEEP_TIMER_OPTIONS.forEach(min=>{
+    const b=document.createElement('button');
+    b.className='sleep-chip'+(sleepMode.timerMin===min?' active':'');
+    b.textContent=min+T('分钟');
+    b.onclick=()=>{ setSleepTimer(min); };
+    wrap.appendChild(b);
+  });
+  const off=document.createElement('button');
+  off.className='sleep-chip'+(sleepMode.timerMin===0?' active':'');
+  off.textContent=T('不限时');
+  off.onclick=()=>{ setSleepTimer(0); };
+  wrap.appendChild(off);
+}
+function setSleepTimer(min){
+  sleepMode.timerMin=min;
+  sleepMode.remainSec=min*60;
+  sleepMode.fadeStarted=false;
+  sleepMode.endAt = min>0 ? Date.now()+min*60000 : 0;   // 🩹 记录真实的结束时间点，用来在后台期间校正倒计时
+  buildSleepTimerChips();
+  updateSleepCountdownDisplay();
+}
+function syncSleepUI(){
+  if($('sleepPlayToggle')) $('sleepPlayToggle').checked=!!soundSettings.musicOn;
+  if($('sleepVolSlider')) $('sleepVolSlider').value=Math.round(soundSettings.musicVol*100);
+  if($('sleepVolValue')) $('sleepVolValue').textContent=Math.round(soundSettings.musicVol*100)+'%';
+  updateSleepTrackDisplay();
+  if($('sleepTrackList')) $('sleepTrackList').style.display='none';   // 每次重新打开面板，列表都先收起
+  updateSleepCountdownDisplay();
+}
+// 🎵 曲目列表：点"当前曲目"那一行展开/收起，展开时把10首按顺序画成竖排的小列表，
+// 当前选中的那首打勾标出来，点别的曲目立刻切换（复用现成的 refreshMusic 淡入淡出）。
+function toggleSleepTrackList(){
+  try{
+    const list=$('sleepTrackList'); if(!list) return;
+    if(list.style.display==='none' || !list.style.display){ buildSleepTrackList(); list.style.display='block'; }
+    else { list.style.display='none'; }
+  }catch(e){}
+}
+function buildSleepTrackList(){
+  const list=$('sleepTrackList'); if(!list) return;
+  list.innerHTML='';
+  SLEEP_TRACKS.forEach((tr,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 6px;cursor:pointer;border-radius:8px;';
+    if(i===sleepTrackIdx) row.style.background='rgba(255,255,255,.08)';
+    row.innerHTML=`<span style="color:#fff;font-size:13px;">${tr.emoji} ${T(tr.name)}</span>${i===sleepTrackIdx?'<span style="color:#f7d98a;font-weight:700;">✓</span>':''}`;
+    row.onclick=()=>selectSleepTrack(i);
+    list.appendChild(row);
+  });
+}
+function selectSleepTrack(i){
+  try{
+    if(i<0 || i>=SLEEP_TRACKS.length) return;
+    sleepTrackIdx=i;
+    try{ localStorage.setItem(SLEEP_TRACK_KEY, String(i)); }catch(e){}
+    updateSleepTrackDisplay();
+    if($('sleepTrackList')) $('sleepTrackList').style.display='none';
+    refreshMusic();   // 如果正在播，立刻换成新选的这首，走现成的淡入淡出，不会生硬地卡一下
+  }catch(e){}
+}
+function updateSleepTrackDisplay(){
+  const el=$('sleepTrackCurrent'); if(!el) return;
+  const tr=SLEEP_TRACKS[sleepTrackIdx];
+  el.textContent = tr.emoji+' '+T(tr.name)+' ▾';
+}
+if($('sleepTrackRow')) $('sleepTrackRow').onclick=toggleSleepTrackList;
+function updateSleepCountdownDisplay(){
+  const el=$('sleepCountdownDisplay'); if(!el) return;
+  if(!soundSettings.musicOn || sleepMode.timerMin<=0){ el.textContent=''; return; }
+  const m=Math.max(0,Math.floor(sleepMode.remainSec/60));
+  const s=Math.max(0,Math.floor(sleepMode.remainSec%60));
+  el.textContent=T('还剩')+' '+m+' '+T('分')+' '+(s<10?'0':'')+s+' '+T('秒');
+}
+// 每帧调用：只在"人在这三个场景里 + 音乐正开着 + 选了具体定时时长"才推进倒计时——
+// 离开场景/手动关掉播放/选了"不限时"都会自然停住，不用另外写清理逻辑
+// 🩹 真实 bug：这个函数是在每帧的主循环里直接调用的，如果内部任何一步意外抛出异常
+// （比如 musicLayer/actx 在某个特殊时机还没就绪），会导致这一帧后面本该执行的代码
+// （包括处理户外场景里其它按钮点击/触摸的逻辑）被整个打断，表现出来就是"场景里的按钮
+// 突然按不了"——外表看起来跟按钮本身没关系，其实是睡眠定时器这段代码报错把整帧卡住了。
+// 整个函数体包一层 try/catch，出问题也只是这一帧的睡眠定时器没推进，不会连累其它功能。
+function updateSleepTimer(dt){
+  try{
+    if(!isSleepScene() || !soundSettings.musicOn || sleepMode.timerMin<=0) return;
+    sleepMode.remainSec-=dt;
+    if(sleepMode.remainSec<=SLEEP_FADE_SEC && !sleepMode.fadeStarted){
+      sleepMode.fadeStarted=true;
+      if(musicLayer.gain && actx){
+        musicLayer.gain.gain.cancelScheduledValues(actx.currentTime);
+        musicLayer.gain.gain.setValueAtTime(musicLayer.gain.gain.value, actx.currentTime);
+        musicLayer.gain.gain.linearRampToValueAtTime(0, actx.currentTime+SLEEP_FADE_SEC);
+      }
+      const dim=$('sleepDimOverlay');
+      if(dim){ dim.style.transition='opacity '+SLEEP_FADE_SEC+'s linear'; dim.style.opacity='0.35'; }
+    }
+    if(sleepMode.remainSec<=0){
+      sleepMode.timerMin=0; sleepMode.remainSec=0; sleepMode.fadeStarted=false; sleepMode.endAt=0;
+      soundSettings.musicOn=false; saveSoundSettings(); refreshMusic();
+      const dim=$('sleepDimOverlay');
+      if(dim){ dim.style.transition='opacity 1.5s linear'; dim.style.opacity='0'; }
+      if($('sleepPlayToggle')) $('sleepPlayToggle').checked=false;
+    }
+    updateSleepCountdownDisplay();
+  }catch(e){ /* 静默失败，不能让睡眠定时器的问题连累到场景里其它按钮/功能 */ }
+}
+if($('sleepPlayToggle')) $('sleepPlayToggle').onchange=(e)=>{
+  soundSettings.musicOn=e.target.checked;
+  saveSoundSettings();
+  ensureAudioCtx();
+  applySoundSettings();
+  refreshMusic();
+  if(!e.target.checked){
+    // 手动关掉播放，把淡出/变暗状态一起复位，避免"关了播放，画面还停留在变暗状态"这种奇怪情况
+    sleepMode.fadeStarted=false;
+    const dim=$('sleepDimOverlay'); if(dim){ dim.style.transition='opacity 1s linear'; dim.style.opacity='0'; }
+  }
+  updateSleepCountdownDisplay();
+};
+if($('sleepVolSlider')) $('sleepVolSlider').oninput=(e)=>{
+  const v=(+e.target.value)/100;
+  soundSettings.musicVol=v;
+  if($('sleepVolValue')) $('sleepVolValue').textContent=e.target.value+'%';
+  saveSoundSettings();
+  applySoundSettings();
+  // 顺手同步室内"声音设置"面板里那一条——两个入口调的是同一个数值，不会各调各的互相打架
+  if($('musicVolSlider')){ $('musicVolSlider').value=e.target.value; }
+  if($('musicVolValue')){ $('musicVolValue').textContent=e.target.value+'%'; }
+};
+// 离开这三个场景(回房间)时，睡眠定时器要清空，避免"回了房间倒计时还在背景里跑，突然把房间背景乐也淡出"
+function resetSleepModeOnLeave(){
+  sleepMode.timerMin=0; sleepMode.remainSec=0; sleepMode.fadeStarted=false; sleepMode.endAt=0;
+  const dim=$('sleepDimOverlay'); if(dim){ dim.style.transition='opacity .6s linear'; dim.style.opacity='0'; }
+}
 // ✨✨ 修复：退出 Lumi 回到 Luna 首页时背景音乐还在继续播——location.href 跳转在普通网页里
 //    会直接销毁页面，音乐自然停；但打包成 App 的 WebView（尤其是安卓/苹果壳子里的 APK/IPA 版本）
 //    有时候不会在跳转瞬间就真正销毁旧页面的 JS 和音频，导致背景乐残留在后台继续放。
@@ -11632,7 +13422,7 @@ function syncSoundUI(){
   $('sfxVolSlider').value=Math.round(soundSettings.sfxVol*100);
   $('sfxVolSlider').disabled=!soundSettings.sfxOn;
   $('sfxVolValue').textContent=Math.round(soundSettings.sfxVol*100)+'%';
-  $('btnSound').textContent = (soundSettings.musicOn || soundSettings.sfxOn) ? '🔊' : '🔇';
+  $('btnSound').innerHTML = (soundSettings.musicOn || soundSettings.sfxOn) ? LUMI_SVG.soundOn : LUMI_SVG.soundOff;
 }
 // ✨✨ 新增：本房间背景乐配对选择器——6 个按钮对应 6 套"房间乐+专注/秘密空间乐"配对，
 //    点哪个就把当前房间(room.theme)绑定到那一套，跟原生主题不一致也没关系，选完立刻生效
@@ -11793,14 +13583,15 @@ function playStepSound(alt){
   o.start(t);o.stop(t+.1);
 }
 // —— 踢玩具：短促下滑的"砰" ——
-function playKickSound(){
+function playKickSound(p01){
+  var pk = (p01==null)?1:clamp(p01,0,1);   // 0=轻，1=重：力度越大越响，不传参保持原来的响度
   const gain=ensureSfxGain(); if(!gain)return;
   const t=actx.currentTime;
   const g=actx.createGain();g.gain.value=0;g.connect(gain);
   const o=actx.createOscillator();o.type='sine';
   o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(65,t+.16);
   o.connect(g);
-  g.gain.linearRampToValueAtTime(.30,t+.01);
+  g.gain.linearRampToValueAtTime(.18+.12*pk,t+.01);
   g.gain.exponentialRampToValueAtTime(.0001,t+.24);
   o.start(t);o.stop(t+.26);
   // ✨ 补一层短促的噪声"啪"感，跟低频音叠加，比纯正弦波更容易被听清楚(不容易被脚步声等其他音效盖过)
@@ -11809,7 +13600,7 @@ function playKickSound(){
   for(let i=0;i<bufLen;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/bufLen,2);
   const src=actx.createBufferSource();src.buffer=buf;
   const hp=actx.createBiquadFilter();hp.type='highpass';hp.frequency.value=800;
-  const ng=actx.createGain();ng.gain.value=.16;
+  const ng=actx.createGain();ng.gain.value=.10+.06*pk;
   src.connect(hp);hp.connect(ng);ng.connect(gain);
   src.start(t);
 }
@@ -11986,8 +13777,44 @@ function playPortalAppearSound(){
 }
 
 
-document.addEventListener('visibilitychange',()=>{running=!document.hidden;last=performance.now();
-  if(document.hidden){saveGame();}});
+document.addEventListener('visibilitychange',()=>{
+  running=!document.hidden;last=performance.now();
+  if(document.hidden){
+    saveGame();
+    // 🩹 默认切后台/锁屏就暂停音乐——省电，也符合"离开App声音该停"的直觉。
+    // 唯一例外：睡眠定时器正在跑的时候，故意让音乐继续放，这时候就是想锁屏了还能听着声音入睡，
+    // 跟真的白噪音机一个道理，不该被这条规则一并停掉。
+    const sleepActive = (typeof isSleepScene==='function') && isSleepScene() && soundSettings.musicOn && sleepMode.timerMin>0;
+    if(!sleepActive){
+      try{
+        if(musicLayer.el && !musicLayer.el.paused){ musicLayer.el.pause(); _pausedForBackground=true; }
+      }catch(e){}
+    }
+  } else {
+    // 🩹 从后台回来：睡眠定时器在后台这段时间里，主循环(requestAnimationFrame)是完全停的，
+    // updateSleepTimer() 根本没被调用过，remainSec 会停在切后台那一刻、感觉"没有流逝"。
+    // 用真实经过的时间（endAt 减去现在）重新校正一次，该到点的直接在这里收尾，不用等下一帧慢慢追。
+    if(sleepMode.timerMin>0 && sleepMode.endAt){
+      const remain = Math.max(0, Math.round((sleepMode.endAt - Date.now())/1000));
+      sleepMode.remainSec = remain;
+      if(remain<=0){
+        try{
+          sleepMode.timerMin=0; sleepMode.remainSec=0; sleepMode.fadeStarted=false; sleepMode.endAt=0;
+          soundSettings.musicOn=false; saveSoundSettings();
+          if(typeof refreshMusic==='function') refreshMusic();
+          const dim=$('sleepDimOverlay'); if(dim){ dim.style.transition='opacity 1.5s linear'; dim.style.opacity='0'; }
+          if($('sleepPlayToggle')) $('sleepPlayToggle').checked=false;
+          if(typeof updateSleepCountdownDisplay==='function') updateSleepCountdownDisplay();
+        }catch(e){}
+      }
+    }
+    // 🩹 之前因为切后台被暂停的音乐，回来了就恢复播放——用户没有手动关，不该让TA以为音乐"消失"了
+    if(_pausedForBackground){
+      _pausedForBackground=false;
+      try{ if(soundSettings.musicOn && musicLayer.el) musicLayer.el.play().catch(()=>{}); }catch(e){}
+    }
+  }
+});
 
 /* ============ 对外 API ============ */
 function setPhase(key){if(!PHASES[key])return;currentPhase=key;syncTop();
@@ -12071,7 +13898,7 @@ function init(){applyLangToDOM();resize();lumi.x=0;buildWorld();buildCreatures()
   try{ localStorage.setItem('luna_lumi_last_visit', String(dayIndex())); }catch(e){}
   // —— 声音设置：读取上次保存的开关/音量（默认开、音乐70%/音效85%）——
   loadSoundSettings();
-  $('btnSound').textContent = (soundSettings.musicOn || soundSettings.sfxOn) ? '🔊' : '🔇';
+  $('btnSound').innerHTML = (soundSettings.musicOn || soundSettings.sfxOn) ? LUMI_SVG.soundOn : LUMI_SVG.soundOff;
   enter("wander");syncTop();
   if($('lvAvatarCanvas')) drawAvatarFace($('lvAvatarCanvas'), lumi.costume);   // ✨ 初始头像
   dailyCheckIn();

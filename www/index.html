@@ -4691,17 +4691,41 @@ const appleProvider = new OAuthProvider('apple.com'); // 供网页/PWA环境的 
     if(window._pushTokenReject){ window._pushTokenReject(err); window._pushTokenResolve = null; window._pushTokenReject = null; }
   });
 })();
-// 触发一次原生 register()，等待上面的监听器拿到 token（15 秒超时）
+// 触发一次原生 register()，等待上面的监听器拿到 token。
+// 🩹 改成最多重试3次，单次等5秒，总共还是原来15秒这个上限——
+// 之前是"试一次、15秒没等到就直接判定失败"，网络偶尔卡一下就得让用户自己
+// 重新点一次开关才能补救；现在网络抖一下会在这15秒预算内自己重试，不用用户感知到
 function _nativeGetPushToken(){
+  const MAX_ATTEMPTS = 3, ATTEMPT_TIMEOUT_MS = 5000;
   return new Promise((resolve, reject) => {
     const PN = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
     if(!PN){ reject(new Error('no-plugin')); return; }
-    window._pushTokenResolve = resolve;
-    window._pushTokenReject = reject;
-    PN.register();
-    setTimeout(() => {
-      if(window._pushTokenResolve){ window._pushTokenResolve = null; window._pushTokenReject = null; reject(new Error('timeout')); }
-    }, 15000);
+    let attempt = 0, settled = false;
+    const finish = (fn, val) => {
+      if(settled) return;
+      settled = true;
+      window._pushTokenResolve = null; window._pushTokenReject = null;
+      fn(val);
+    };
+    const tryOnce = () => {
+      attempt++;
+      window._pushTokenResolve = (token) => finish(resolve, token);
+      window._pushTokenReject = (err) => {
+        // 真的报错了(不是超时)，只要还有重试次数，也再给一次机会——
+        // 有些报错本身就是"这一瞬间网络不通"，不一定是真正的永久性故障
+        if(attempt < MAX_ATTEMPTS){ setTimeout(tryOnce, 800); }
+        else { finish(reject, err); }
+      };
+      PN.register();
+      setTimeout(() => {
+        if(!settled && window._pushTokenResolve){
+          window._pushTokenResolve = null; window._pushTokenReject = null;
+          if(attempt < MAX_ATTEMPTS){ tryOnce(); }
+          else { finish(reject, new Error('timeout')); }
+        }
+      }, ATTEMPT_TIMEOUT_MS);
+    };
+    tryOnce();
   });
 }
 

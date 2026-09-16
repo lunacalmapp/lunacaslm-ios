@@ -4935,6 +4935,32 @@ trackEvent('app_open');
   }catch(e){ console.warn('TikTok App Events 初始化失败', e); }
 })();
 
+// ══════════════════════════════════════════════════════════
+// 📘 Facebook/Meta 广告推广埋点：用的是 @capgo/capacitor-facebook-analytics 这个插件。
+// ATT授权(iOS)复用上面TikTok那次请求的结果，不用再问用户第二次——ATT是系统级权限，
+// 一次决定对整个App的所有SDK都生效，不是"每个SDK各自问一遍"。
+// ══════════════════════════════════════════════════════════
+(async function initFacebookAppEvents(){
+  try{
+    const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if(!isNative) return;
+    const FA = window.Capacitor.Plugins && window.Capacitor.Plugins.FacebookAnalytics;
+    if(!FA) return;   // 插件还没装/没同步，安静跳过，不影响App正常使用
+    // 只有真的拿到了跟踪授权(iOS)，才打开广告主跟踪；安卓没有ATT这个概念，直接打开
+    try{
+      const platform = window.Capacitor.getPlatform();
+      if(platform !== 'ios'){
+        await FA.enableAdvertiserTracking();
+      } else {
+        const ATT = window.Capacitor.Plugins && window.Capacitor.Plugins.AppTrackingTransparency;
+        const status = ATT ? await ATT.getStatus().catch(()=>null) : null;
+        if(status && status.status === 'authorized') await FA.enableAdvertiserTracking();
+      }
+    }catch(e){ /* 跟踪授权这步失败不影响下面初始化App Events本身 */ }
+    await FA.initAppEvents();
+  }catch(e){ console.warn('Facebook App Events 初始化失败', e); }
+})();
+
 // ══ 🛡️ App Control：维护模式 / 强制更新检查 ══
 // 例外说明：上面注释说"登录前 app 不读写 Firebase"，指的是不碰用户私有数据（users/userdata）；
 // appControl 是公开的、跟具体用户无关的开关配置（安全规则里是 .read:true，任何人能读），

@@ -30,6 +30,12 @@
 				<string>com.googleusercontent.apps.830021751175-iovnl8kaakh7i72853kpr3ecdkn7f1ke</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1089194293913555</string>
+			</array>
+		</dict>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
@@ -68,5 +74,11 @@
 	<string>需要保存图片到相册 / ต้องการบันทึกรูปภาพลงในคลังภาพ</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>我们会使用您的数据为您提供更精准的广告推荐 / เราจะใช้ข้อมูลของคุณเพื่อมอบโฆษณาที่ตรงใจคุณมากขึ้น</string>
+	<key>FacebookAppID</key>
+	<string>1089194293913555</string>
+	<key>FacebookClientToken</key>
+	<string>cd7825758ae9d3c24abd91b85c84bde8</string>
+	<key>FacebookDisplayName</key>
+	<string>Luna Calm</string>
 </dict>
 </plist>

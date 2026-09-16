@@ -66,5 +66,7 @@
 	<string>需要访问相册以选择头像照片 / ต้องการเข้าถึงคลังภาพเพื่อเลือกรูปโปรไฟล์</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>需要保存图片到相册 / ต้องการบันทึกรูปภาพลงในคลังภาพ</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>我们会使用您的数据为您提供更精准的广告推荐 / เราจะใช้ข้อมูลของคุณเพื่อมอบโฆษณาที่ตรงใจคุณมากขึ้น</string>
 </dict>
 </plist>

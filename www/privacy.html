@@ -157,6 +157,15 @@
     <div class="item"><span class="bullet">•</span><span id="s4i7"></span></div>
   </div>
 
+  <!-- 5 广告与营销数据（新增，不影响原有编号） -->
+  <div class="section">
+    <div class="section-title">📢 <span id="sAdsTitle">ข้อมูลเพื่อการโฆษณา</span></div>
+    <div class="item"><span class="bullet">•</span><span id="sAdsI1"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sAdsI2"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sAdsI3"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sAdsI4"></span></div>
+  </div>
+
   <!-- 5 安全 -->
   <div class="section">
     <div class="section-title">🔐 <span id="s5title">ความปลอดภัย</span></div>
@@ -187,7 +196,7 @@
   <!-- 9 健康免责 -->
   <div class="section">
     <div class="section-title">⚕️ <span id="s9title">ข้อจำกัดด้านสุขภาพ</span></div>
-    <p id="s9body"></p>
+    <div id="s9body" style="font-size:13.5px;color:#4a4060;line-height:1.9;"></div>
   </div>
 
   <!-- 10 政策更新 -->
@@ -218,7 +227,7 @@ const CONTENT = {
   th: {
     pageTitle: 'นโยบายความเป็นส่วนตัว',
     pageSubtitle: 'Luna Calm · ข้อมูลของคุณปลอดภัย',
-    updatedTxt: 'อัปเดตล่าสุด: สิงหาคม 2026 (v5)',
+    updatedTxt: 'อัปเดตล่าสุด: กันยายน 2026 (v6)',
     s1title: 'เกี่ยวกับแอปนี้',
     s1body: 'Luna Calm เป็นแอปสำหรับบันทึกและติดตามรอบเดือน อาการ และอารมณ์ เราเคารพความเป็นส่วนตัวของคุณ และนโยบายนี้อธิบายว่าเราเก็บ ใช้ และปกป้องข้อมูลของคุณอย่างไร',
     s2title: 'ข้อมูลที่เราเก็บ',
@@ -237,7 +246,12 @@ const CONTENT = {
     s3title: 'วิธีใช้ข้อมูล',
     s3i1: 'เพื่อบันทึก วิเคราะห์ และทำนายรอบเดือนของคุณ',
     s3i2: 'เพื่อให้บริการวิเคราะห์สุขภาพและฟีเจอร์สมาชิก',
-    s3i3: 'เราไม่ขายหรือแบ่งปันข้อมูลของคุณกับบุคคลภายนอกเพื่อการโฆษณา',
+    s3i3: 'เราไม่ขายข้อมูลส่วนบุคคลของคุณให้บุคคลภายนอก ส่วนการแชร์ข้อมูลเพื่อวัดผลโฆษณา ดูรายละเอียดที่หัวข้อ "ข้อมูลเพื่อการโฆษณา" ด้านล่าง',
+    sAdsTitle: 'ข้อมูลเพื่อการโฆษณา',
+    sAdsI1: 'เราใช้ TikTok App Events SDK เพื่อวัดผลและปรับปรุงแคมเปญโฆษณาของเรา',
+    sAdsI2: 'ข้อมูลที่แชร์ ได้แก่ ตัวระบุอุปกรณ์ (Advertising ID) และเหตุการณ์การใช้งานแอป เช่น การเปิดแอป การลงทะเบียน และการซื้อ',
+    sAdsI3: 'บน iOS คุณสามารถปฏิเสธการติดตามได้ผ่านหน้าต่างขออนุญาต "App Tracking Transparency" ของระบบ หากปฏิเสธ แอปจะยังใช้งานได้ตามปกติ เพียงแต่โฆษณาที่เกี่ยวข้องอาจไม่ตรงกับความสนใจของคุณมากนัก',
+    sAdsI4: 'ข้อมูลนี้ใช้เพื่อวัดผลและปรับปรุงโฆษณาเท่านั้น เราไม่นำไปใช้เพื่อวัตถุประสงค์อื่น และไม่ขายให้บุคคลภายนอกที่ไม่เกี่ยวข้อง',
     s4title: 'การจัดเก็บและบริการภายนอก',
     s4i1: 'ข้อมูลถูกจัดเก็บบนอุปกรณ์ของคุณ และซิงค์ไปยัง Google Firebase เพื่อสำรองและใช้งานข้ามอุปกรณ์',
     s4i2: 'เซิร์ฟเวอร์ Firebase ตั้งอยู่ในภูมิภาคสิงคโปร์ (เอเชียตะวันออกเฉียงใต้)',
@@ -258,7 +272,15 @@ const CONTENT = {
     s8title: 'ผู้เยาว์',
     s8body: 'แอปนี้แนะนำให้ใช้งานภายใต้การรับทราบของผู้ปกครอง หากคุณอายุต่ำกว่า 20 ปี (อายุบรรลุนิติภาวะตามกฎหมายไทย) โปรดใช้งานโดยได้รับความยินยอมจากบิดามารดาหรือผู้ปกครอง',
     s9title: 'ข้อจำกัดด้านสุขภาพ',
-    s9body: 'ข้อมูลและการวิเคราะห์ในแอปมีไว้เพื่อการอ้างอิงเท่านั้น ไม่สามารถใช้แทนคำแนะนำทางการแพทย์ การวินิจฉัย หรือการคุมกำเนิดได้ หากมีข้อกังวลด้านสุขภาพ โปรดปรึกษาแพทย์',
+    s9body: 'Luna Calm ไม่ใช่อุปกรณ์ทางการแพทย์ (Medical Device) และไม่ได้รับการรับรองหรือขึ้นทะเบียนให้ใช้ในการวินิจฉัย รักษา หรือป้องกันโรคใด ๆ ข้อมูลและการวิเคราะห์ในแอปมีไว้เพื่อการอ้างอิงเท่านั้น ไม่สามารถใช้แทนคำแนะนำทางการแพทย์ การวินิจฉัย หรือการคุมกำเนิดได้ หากมีข้อกังวลด้านสุขภาพ โปรดปรึกษาแพทย์<br><br>' +
+      '<strong>📚 แหล่งข้อมูลอ้างอิง:</strong> เนื้อหาสุขภาพในแอปนี้จัดทำโดยอ้างอิงข้อมูลสาธารณะจากหน่วยงานต่อไปนี้:' +
+      '<ul style="margin:8px 0 0 18px;padding:0;">' +
+      '<li style="margin-bottom:4px;"><a href="https://www.who.int/news-room/fact-sheets/detail/menstrual-health" target="_blank" rel="noopener" style="color:#7c5cbf;">World Health Organization (WHO)</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186" target="_blank" rel="noopener" style="color:#7c5cbf;">Mayo Clinic – Menstrual cycle</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034" target="_blank" rel="noopener" style="color:#7c5cbf;">Mayo Clinic – Iron deficiency anemia</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.cdc.gov/uti/about/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – Urinary Tract Infection</a></li>' +
+      '<li><a href="https://www.cdc.gov/hpv/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – HPV and HPV Vaccine</a></li>' +
+      '</ul>',
     s10title: 'การเปลี่ยนแปลงนโยบาย',
     s10body: 'เราอาจปรับปรุงนโยบายนี้เป็นครั้งคราว การเปลี่ยนแปลงจะแสดงในหน้านี้พร้อมวันที่อัปเดต',
     s11title: 'ติดต่อเรา',
@@ -268,7 +290,7 @@ const CONTENT = {
   zh: {
     pageTitle: '隐私政策',
     pageSubtitle: 'Luna Calm · 您的数据安全有保障',
-    updatedTxt: '最后更新：2026年8月 (v5)',
+    updatedTxt: '最后更新：2026年9月 (v6)',
     s1title: '关于本App',
     s1body: 'Luna Calm 是一款用于记录和追踪月经周期、症状与心情的应用。我们尊重您的隐私，本政策说明我们如何收集、使用和保护您的数据。',
     s2title: '我们收集的数据',
@@ -287,7 +309,12 @@ const CONTENT = {
     s3title: '如何使用数据',
     s3i1: '用于记录、分析和预测您的月经周期',
     s3i2: '用于提供健康分析和会员功能',
-    s3i3: '我们不会为广告目的出售或分享您的数据给第三方',
+    s3i3: '我们不会出售您的个人数据给第三方；关于广告效果衡量方面的数据分享，详见下方"广告数据"一节',
+    sAdsTitle: '广告数据',
+    sAdsI1: '我们使用 TikTok App Events SDK 来衡量和优化我们的广告投放效果',
+    sAdsI2: '会分享的数据包括：设备广告标识符，以及打开App、注册、购买等使用行为事件',
+    sAdsI3: '在iOS上，您可以通过系统的"App跟踪透明度"权限弹窗拒绝跟踪；拒绝后App仍可正常使用，只是收到的广告可能不够贴合您的兴趣',
+    sAdsI4: '这些数据仅用于广告效果衡量与优化，我们不会用于此目的之外的用途，也不会出售给无关第三方',
     s4title: '数据存储与第三方服务',
     s4i1: '数据存储在您的设备上，并同步至 Google Firebase 以便备份和跨设备使用',
     s4i2: 'Firebase 服务器位于新加坡区域（东南亚）',
@@ -308,7 +335,15 @@ const CONTENT = {
     s8title: '未成年人',
     s8body: '本应用建议在监护人知情的情况下使用。若您未满 20 周岁（泰国法定成年年龄），请在父母或监护人同意下使用本服务。',
     s9title: '健康免责声明',
-    s9body: 'App中的信息和分析仅供参考，不能替代专业医疗建议、诊断或避孕措施。如有健康方面的顾虑，请咨询医生。',
+    s9body: 'Luna Calm 不是医疗器械（Medical Device），未经认证或注册用于任何疾病的诊断、治疗或预防。App 中的信息和分析仅供参考，不能替代专业医疗建议、诊断或避孕措施。如有健康方面的顾虑，请咨询医生。<br><br>' +
+      '<strong>📚 参考资料来源：</strong>App 内健康内容参考以下权威机构的公开资料整理：' +
+      '<ul style="margin:8px 0 0 18px;padding:0;">' +
+      '<li style="margin-bottom:4px;"><a href="https://www.who.int/news-room/fact-sheets/detail/menstrual-health" target="_blank" rel="noopener" style="color:#7c5cbf;">世界卫生组织（WHO）</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186" target="_blank" rel="noopener" style="color:#7c5cbf;">妙佑医疗国际（Mayo Clinic）– 月经周期</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034" target="_blank" rel="noopener" style="color:#7c5cbf;">Mayo Clinic – 缺铁性贫血</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.cdc.gov/uti/about/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">美国疾控中心（CDC）– 尿路感染</a></li>' +
+      '<li><a href="https://www.cdc.gov/hpv/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – HPV 与 HPV 疫苗</a></li>' +
+      '</ul>',
     s10title: '政策变更',
     s10body: '我们可能会不时更新本政策。任何变更将在本页面显示，并附上更新日期。',
     s11title: '联系我们',

@@ -12122,7 +12122,7 @@ function buildOutdoorPickerGrid(){
     cell.style.cssText='border-radius:16px;padding:12px;text-align:center;background:#f7f5fb;';
     cell.innerHTML=`<div style="width:100%;height:70px;border-radius:12px;margin-bottom:8px;background:linear-gradient(135deg,#241a3d,#7c5cbf);display:flex;align-items:center;justify-content:center;font-size:30px;">🎮</div>
       <div style="font-size:12.5px;font-weight:600;color:var(--text);">${T('月光游戏中心')}</div>
-      <button onclick="location.href='/luna-games.html'" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-family:inherit;cursor:pointer;">${T('进入')}</button>`;
+      <button onclick="_navToGamesOrFallback()" style="margin-top:6px;font-size:11px;padding:6px 14px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-family:inherit;cursor:pointer;">${T('进入')}</button>`;
     grid.appendChild(cell);
   }
   // 第二档：暂时下线、标"正在开发"的场景（黄昏湖景/银河观景台）
@@ -13266,16 +13266,22 @@ function currentMusicSrc(){
 }
 let musicLayer={el:null, gain:null, src:null};
 // 每帧调用一次：跟当前"应该播哪首"对比，没变就直接跳过(开销很小)，变了才做一次淡出旧的+淡入新的
+let _musicManuallyPaused=false;   // 🩹 用户自己点暂停按钮暂停的，置true——下面那段"自动重试播放"
+                                    // 的兜底逻辑看到这个是true就不会去抢着重新播放
 function refreshMusic(){
   const want = soundSettings.musicOn ? currentMusicSrc() : null;
   if(musicLayer.src===want){
     // ✨ 兜底：如果刚才是因为还没有用户手势触发导致 play() 被浏览器拦截了，这里顺便重试播放，
     //    等真的有一次点击/触摸触发了 AudioContext resume，音乐会自动接上，不用非得切一次房间才补救
-    if(musicLayer.el && musicLayer.el.paused && actx && actx.state==='running'){
+    // 🩹 加了 !_musicManuallyPaused 这个条件——不然用户自己点暂停，这段逻辑会在下一帧就把它
+    //    自动重新播放，表现出来就是"点暂停没反应"，之前没人发现是因为压根没有别的入口能做到
+    //    "曲子不变、单纯暂停"这个操作，这次加播放器才第一次真正暴露出来
+    if(!_musicManuallyPaused && musicLayer.el && musicLayer.el.paused && actx && actx.state==='running'){
       const p=musicLayer.el.play(); if(p&&p.catch) p.catch(()=>{});
     }
     return;
   }
+  _musicManuallyPaused=false;   // 曲子换了/音乐整个开关了，"手动暂停"这个状态自然失效，重置
   const mg=ensureMusicGain();
   const oldEl=musicLayer.el, oldGain=musicLayer.gain;
   musicLayer.src=want; musicLayer.el=null; musicLayer.gain=null;
@@ -13313,6 +13319,25 @@ let sleepMode={ timerMin:0, remainSec:0, fadeStarted:false, endAt:0 };
 let _pausedForBackground=false;
 function isSleepScene(){ return scene==='nightview' || scene==='lakeview' || scene==='skydeck'; }
 
+// 🩹 备用线路：万一本地打包进App里的 luna-games.html 因为某次构建漏打包/损坏而打不开，
+// 不再直接卡死在浏览器自己的报错页——先探测一下本地文件是否真的能打开，
+// 不行就自动改走 Netlify 上托管的备份版本。
+// ⚠️ LUMI_FALLBACK_BASE 这个地址现在是占位符，部署到 Netlify 之后要把这里换成真实网址
+// (index_apk.html、luna-games.html 里也各有一处一样的占位符，几个地方要一起换)
+//
+// 🩹 只限安卓才走这套探测逻辑——这次报"打不开"的只有安卓，iOS本来没问题。
+// lumi.html这份文件是两个平台共用的同一份，不能像index_apk/index-27那样直接分开改，
+// 只能在代码里判断平台：iOS(以及网页环境)保持原来最简单的直接跳转，不承担
+// "fetch预检测在WKWebView上行为不一定跟安卓WebView一致"这个多余的新风险。
+var LUMI_FALLBACK_BASE = 'https://YOUR-SITE-NAME.netlify.app';
+window._navToGamesOrFallback = function(){
+  const isAndroid = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android');
+  if(!isAndroid){ location.href = '/luna-games.html'; return; }
+  fetch('/luna-games.html', {method:'HEAD', cache:'no-store'}).then(function(r){
+    location.href = (r && r.ok) ? '/luna-games.html' : (LUMI_FALLBACK_BASE + '/luna-games.html');
+  }).catch(function(){ location.href = LUMI_FALLBACK_BASE + '/luna-games.html'; });
+};
+
 // ══════════════════════════════════════════════════════════
 // 🎵 天空播放器：睡眠场景播放音乐时的快捷控件，收起/展开两态，能拖进度条、暂停/继续。
 // 用轮询而不是给<audio>元素绑监听器——因为 musicLayer.el 每次切曲子/换场景都会
@@ -13336,8 +13361,14 @@ window.toggleSkyMpExpand = function(){
 window.toggleSkyMpPlayPause = function(){
   try{
     if(!musicLayer.el) return;
-    if(musicLayer.el.paused){ const p=musicLayer.el.play(); if(p&&p.catch) p.catch(()=>{}); }
-    else { musicLayer.el.pause(); }
+    if(musicLayer.el.paused){
+      _musicManuallyPaused=false;
+      const p=musicLayer.el.play(); if(p&&p.catch) p.catch(()=>{});
+    }
+    else {
+      _musicManuallyPaused=true;
+      musicLayer.el.pause();
+    }
   }catch(e){}
 };
 function updateSkyMpUI(){

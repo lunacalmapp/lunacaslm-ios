@@ -17,6 +17,8 @@
     "@capacitor/ios": "^8.4.1",
     "@capacitor/push-notifications": "^8.0.0",
     "@capacitor/share": "^8.0.1",
+    "@capawesome/capacitor-app-tracking-transparency": "latest",
+    "@capawesome/capacitor-tiktok-app-events": "latest",
     "@capgo/capacitor-file-sharer": "^8.1.8",
     "@capgo/capacitor-social-login": "^8.0.0",
     "@revenuecat/purchases-capacitor": "latest"

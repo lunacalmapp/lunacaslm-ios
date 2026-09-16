@@ -4899,6 +4899,42 @@ function trackEvent(name, extra){
 window.trackEvent = trackEvent;
 trackEvent('app_open');
 
+// ══════════════════════════════════════════════════════════
+// 🎯 TikTok 广告推广埋点：用的是 @capawesome/capacitor-tiktok-app-events 这个
+// 社区维护的Capacitor插件，原生桥接层插件自己已经做好了，这里只需要调JS方法。
+// 只在原生App环境下有意义，网页环境直接跳过。
+// ⚠️ debugMode先开着，方便你在TikTok Events Manager的"Test Events"里验证数据有没有
+// 正常送达；确认没问题之后，正式发布前一定要改成false，不然收集到的都是测试数据，
+// 不计入正式的广告归因报表。
+// ══════════════════════════════════════════════════════════
+(async function initTiktokAppEvents(){
+  try{
+    const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if(!isNative) return;
+    const platform = window.Capacitor.getPlatform();
+    const isIOS = platform === 'ios';
+
+    // iOS：TikTok SDK要拿到广告标识符(IDFA)，必须先过苹果的"App跟踪透明度"(ATT)授权弹窗，
+    // 这是苹果强制要求的，不是可选项。用户拒绝也没关系，SDK照样能跑，只是拿不到IDFA、
+    // 归因准确度会打折扣。
+    if(isIOS){
+      try{
+        const ATT = window.Capacitor.Plugins && window.Capacitor.Plugins.AppTrackingTransparency;
+        if(ATT) await ATT.requestPermission();
+      }catch(e){ /* 用户拒绝或者插件没装，不影响后面SDK照常初始化 */ }
+    }
+
+    const TAE = window.Capacitor.Plugins && window.Capacitor.Plugins.TiktokAppEvents;
+    if(!TAE) return;   // 插件还没装/没同步，安静跳过，不影响App正常使用
+    await TAE.initialize({
+      accessToken: isIOS ? 'TTfQk3M6V8MthKkNmdejewmFujAiytfQ' : 'TTtgHu2X2Ps6vqxwOYg2okLJNRXLSlct',
+      tiktokAppId: isIOS ? '7685712647567900693' : '7685705124299259925',
+      iosAppId: '6796192825',   // App Store数字ID，只有iOS用得到，Android会自动用包名(app.lunacalm.flow)代替
+      debugMode: true   // ⚠️ 正式发布前记得改成 false
+    });
+  }catch(e){ console.warn('TikTok App Events 初始化失败', e); }
+})();
+
 // ══ 🛡️ App Control：维护模式 / 强制更新检查 ══
 // 例外说明：上面注释说"登录前 app 不读写 Firebase"，指的是不碰用户私有数据（users/userdata）；
 // appControl 是公开的、跟具体用户无关的开关配置（安全规则里是 .read:true，任何人能读），
@@ -13174,6 +13210,9 @@ window.setLang = setLang;
       }catch(e){ resolve(); }
     });
   };
+  // 🩹 这次只有安卓那边报过"lumi.html打不开"，iOS本来就没问题——所以这里恢复回最原始的
+  // 直接跳转写法，不加探测+备用线路那一套。加上的话，等于让iOS也去扛"fetch预检测在
+  // WKWebView上行为不一定跟安卓WebView一致"这个新增风险，收益(iOS本来没问题)配不上这个风险。
   window._enterLumi = function(){
     try{ localStorage.setItem('luna_returnTo', location.pathname); }catch(e){}
     try{ if(window._closeLunaPanel) window._closeLunaPanel(); }catch(e){}

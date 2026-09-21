@@ -13118,8 +13118,14 @@ function loadSoundSettings(){
 }
 function saveSoundSettings(){ try{ localStorage.setItem(SOUND_KEY, JSON.stringify(soundSettings)); }catch(e){} }
 function ensureAudioCtx(){
-  if(!actx){ try{actx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;} }
-  if(actx.state==='suspended') actx.resume();
+  if(!actx){
+    try{actx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}
+    // 🩹 系统把音频挂起/打断时（切后台、来电、锁屏），只要页面还在前台就自动试着唤醒一次，见下面 wakeAudio()
+    try{ actx.onstatechange = _onAudioStateChange; }catch(e){}
+  }
+  // 🩹 修复"退出App再回来就没声音"：原来只判断 'suspended'。但苹果(iOS/WKWebView)从后台回来时状态是 'interrupted'，
+  //    不在这里处理就永远静音，直到重开页面。只要不是 running（也不是 closed），都去 resume 一次。
+  if(actx.state!=='running' && actx.state!=='closed'){ try{ const p=actx.resume(); if(p&&p.catch) p.catch(()=>{}); }catch(e){} }
   return actx;
 }
 function ensureSfxGain(){
@@ -13601,7 +13607,9 @@ function resetSleepModeOnLeave(){
 //    会直接销毁页面，音乐自然停；但打包成 App 的 WebView（尤其是安卓/苹果壳子里的 APK/IPA 版本）
 //    有时候不会在跳转瞬间就真正销毁旧页面的 JS 和音频，导致背景乐残留在后台继续放。
 //    这里不依赖浏览器/WebView 自己清理，跳转前主动把音乐暂停 + AudioContext 挂起，双重保险。
+let _audioLeaving=false;   // 🩹 "正在离开Lumi/页面被收掉"：这期间不要被下面的自动唤醒把刚停掉的音乐又叫醒
 function stopAllLumiAudio(){
+  _audioLeaving=true;
   try{ if(musicLayer.el){ musicLayer.el.pause(); musicLayer.el.currentTime = 0; } }catch(e){}
   musicLayer.src = null;
   try{ if(actx && actx.state==='running') actx.suspend(); }catch(e){}
@@ -13612,6 +13620,66 @@ window.stopAllLumiAudio = stopAllLumiAudio;
 // ✨ 兜底：不管是点按钮离开，还是被系统直接把页面收掉(比如 App 里手势返回)，pagehide 都会先触发一次，
 //    在这里再停一次音乐，防止漏网
 addEventListener('pagehide', stopAllLumiAudio);
+// ══════════════════════════════════════════════════════════════════════════════
+// 🩹 修复：用户退出App（切后台/锁屏/来电）再回来继续用，Lumi 里的音乐和户外睡眠音频一直没声音
+//
+// 根因：App 回到前台时，系统会把 AudioContext 挂起（安卓是 suspended，苹果是 interrupted）。
+//   而音乐是 <audio> 元素接进 AudioContext 里播的——上下文没醒，元素明明显示"在播放"，出来的却是静音。
+//   原来的代码只有这几种情况会去唤醒它，回到前台这条路上都碰不到：
+//     ① ensureAudioCtx() 只处理 'suspended'，苹果的 'interrupted' 压根不处理，一旦进去就永远静音；
+//     ② 只有"播互动音效/点画布"这类动作才会顺带唤醒；睡眠场景里音效被强制静音、用户只是听着音乐，
+//        回来后没有任何东西去唤醒它——这就是"户外睡眠音频"回来就没声音的原因；
+//     ③ 回到前台的处理只对 <audio> 元素调了 play()，没管 AudioContext。
+// 做法：统一一个 wakeAudio()，在"回到前台 / 页面恢复 / 窗口获得焦点 / 原生壳回到前台 / 用户任何一次点触 /
+//   音频状态被系统改成非 running（且页面在前台）"这些时刻都调一次；醒来以后，该继续播的音乐（不是用户
+//   手动暂停的）自动接着播。没有用户手势时浏览器可能拒绝 resume——静默失败，下一次点触再试。
+// ══════════════════════════════════════════════════════════════════════════════
+function _afterAudioRunning(){
+  try{
+    if(_audioLeaving) return;
+    if(soundSettings.musicOn && !_musicManuallyPaused && musicLayer.el && musicLayer.el.paused && !document.hidden){
+      const p=musicLayer.el.play(); if(p&&p.catch) p.catch(()=>{});
+    }
+  }catch(e){}
+}
+function wakeAudio(reason){
+  try{
+    if(!actx) return;                                   // 用户还没触发过任何声音，音频系统都没创建，不用管
+    // 这几种时刻说明"页面真的回来了/用户真的在操作"，可以解除"正在离开"标记；focus 和 statechange 不算
+    if(reason==='visible' || reason==='pageshow' || reason==='appActive' || reason==='gesture') _audioLeaving=false;
+    if(_audioLeaving) return;
+    if(actx.state==='closed') return;
+    if(actx.state==='running'){ _afterAudioRunning(); return; }
+    const p=actx.resume();                              // suspended(安卓) / interrupted(苹果) 都靠这个唤醒
+    if(p&&p.then) p.then(_afterAudioRunning).catch(()=>{});
+  }catch(e){}
+}
+function _onAudioStateChange(){
+  try{
+    if(!actx) return;
+    if(actx.state==='running'){ _afterAudioRunning(); return; }
+    if(!document.hidden && actx.state!=='closed') setTimeout(()=>wakeAudio('statechange'), 300);
+  }catch(e){}
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) wakeAudio('visible'); });
+addEventListener('pageshow', ()=>wakeAudio('pageshow'));   // 从后退缓存恢复页面（persisted）也会走到这里
+addEventListener('focus', ()=>wakeAudio('focus'));
+// 用户任何一次真正的点触都顺手确认一下：不是 running 才会去唤醒，开销很小。
+// 用 pointerup/touchend/click/keydown（浏览器认这些才算"用户手势"），并且不是只监听一次——
+// 因为音频可能被系统反复挂起，每次回来都要能再唤醒。
+['pointerup','touchend','click','keydown'].forEach(function(ev){
+  addEventListener(ev, function(){ if(actx && actx.state!=='running') wakeAudio('gesture'); }, {capture:true, passive:true});
+});
+// 原生壳（Capacitor）回到前台的事件：比网页的 visibilitychange 更可靠（有的安卓/苹果版本切回来时不一定触发 visibilitychange）
+try{
+  const _capApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if(_capApp && _capApp.addListener){
+    const r1 = _capApp.addListener('appStateChange', function(st){ if(st && st.isActive) wakeAudio('appActive'); });
+    if(r1 && r1.catch) r1.catch(()=>{});
+    const r2 = _capApp.addListener('resume', function(){ wakeAudio('appActive'); });
+    if(r2 && r2.catch) r2.catch(()=>{});
+  }
+}catch(e){}
 // ✨ 声音按钮打开统一的"声音设置"面板：音乐和音效分开的开关+音量，外加本房间背景乐配对选择
 function syncSoundUI(){
   $('musicToggle').checked=soundSettings.musicOn;

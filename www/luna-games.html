@@ -454,6 +454,19 @@
     aspect-ratio:480/480; max-width:100%; max-height:60vh; width:auto; height:auto;
     flex-shrink:0;
   }
+  /* 🩹 选关界面（还没开始玩）：这时顶部/底部面板是隐藏的，框却还是"棋盘那么大的正方形"，
+     里面的内容（标题+签到/商店/主题/返回主页+20个关卡格+翻页）比正方形高，下半截被截掉，只能在框里划着才看得到；
+     而框下面明明还空着一大块屏幕。所以选关界面时让框往下加长：撑满剩余高度（封顶640px），
+     关卡和按钮一眼能看全。一开始玩，class 就会去掉，棋盘还是原来的正方形，完全不受影响。 */
+  #m3GameWrap.m3-menu{
+    aspect-ratio:auto; width:100%; max-width:460px; flex:1 1 auto; min-height:0;
+    max-height:640px; max-height:min(100%, 640px);
+  }
+  /* 屏幕比较矮的手机（比如 360x640）：框能拿到的高度不够，把内容之间的间距收紧一点，保证还是能完整看到 */
+  @media (max-height:700px){
+    #m3GameWrap.m3-menu .overlay{ gap:5px; padding:10px 18px; }
+    #m3GameWrap.m3-menu #m3LevelMapGrid{ margin:0 0 4px; }
+  }
   #m3Canvas{ display:block; width:100%; height:100%; background:#fffdf5; touch-action:none; }
   #m3BombHint{
     position:absolute; top:8px; left:0; right:0; text-align:center; z-index:6; display:none;
@@ -471,6 +484,34 @@
   #m3BottomIconsRow .iconbtn{ background:rgba(124,92,191,0.14); color:var(--sky-horizon); border-color:rgba(124,92,191,0.2); width:38px; height:38px; border-radius:12px; }
   #m3BottomIconsRow .iconbtn svg{width:16px; height:16px;}
   #m3BottomIconsRow .iconbtn:active{ background:rgba(124,92,191,0.28); transform:scale(.92); }
+  /* ⏸→▶ 暂停中：暂停按钮变成实心紫色的"继续"按钮（图标同时换成 ▶），一眼看出现在是暂停状态、可以再点一下继续 */
+  #m3PauseBtn.paused{ background:rgba(124,92,191,0.92); color:#fff; border-color:#7c5cbf; box-shadow:0 0 0 3px rgba(124,92,191,0.28); }
+  /* 🔎 放大：上方"分数/金币/步数"面板 和 下方"工具+暂停"面板，高度都翻一倍（34→68、54→108），里面的字和按钮也跟着放大。
+     这两块本来就是整屏宽，宽度没法再翻倍，所以是"高度翻倍 + 里面的内容按屏幕宽度放到能放下的最大尺寸"：
+     字最大 30px（窄屏手机自动收到屏宽的 6%）；按钮最大 76px（一排 6 个，窄屏手机自动收到 46~58px，保证一排放得下）。
+     想整体再大/再小：改下面的 --m3-ui-scale（1=原来的大小，2=现在的一倍）。
+     用 @supports 包着：只在认识 min() 的浏览器里生效，很老的 WebView 保持原样、不会乱。 */
+  @supports (width:min(10px, 5vw)){
+    #screen-match3{ --m3-ui-scale:2; }
+    #m3TopPanel{
+      min-height:calc(34px * var(--m3-ui-scale)); justify-content:center;
+      padding:8px 16px; border-radius:calc(14px * var(--m3-ui-scale) * .75);
+    }
+    #m3ScoreMovesRow{ font-size:min(calc(15px * var(--m3-ui-scale)), 6vw); white-space:nowrap; gap:8px; }
+    #m3BottomPanel{
+      --m3-btn:min(calc(38px * var(--m3-ui-scale)), calc((min(100vw - 16px, 460px) - 64px) / 6));
+      min-height:calc(54px * var(--m3-ui-scale)); align-items:center;
+      border-radius:calc(14px * var(--m3-ui-scale) * .75);
+    }
+    #m3BottomIconsRow{ flex:1 1 auto; width:100%; }
+    #m3BottomIconsRow .iconbtn{ width:var(--m3-btn); height:var(--m3-btn); border-radius:calc(var(--m3-btn) * .32); }
+    #m3BottomIconsRow .iconbtn svg{ width:calc(var(--m3-btn) * .5); height:calc(var(--m3-btn) * .5); }
+    /* 工具右下角的库存数字小红点，也跟着按钮一起放大（原来是写死在标签上的行内样式，所以要 !important 才盖得住） */
+    #m3BottomIconsRow .iconbtn span{
+      min-width:calc(var(--m3-btn) * .4) !important; height:calc(var(--m3-btn) * .4) !important;
+      line-height:calc(var(--m3-btn) * .4) !important; font-size:calc(var(--m3-btn) * .26) !important;
+    }
+  }
   #screen-match3 .overlay{
     position:absolute; inset:0; z-index:10; background:rgba(36,26,61,0.88);
     backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -496,6 +537,7 @@
     padding:8px 16px; border-radius:14px; font-size:13px; font-weight:700; opacity:0; transition:opacity .3s ease;
   }
   #m3ShopToast.show{ opacity:1; }
+  #m3ShopToast.tip{ background:rgba(124,92,191,0.95); }   /* 新工具说明：用主题紫，别跟"金币不够"那种红色报错提示混在一起 */
   /* 🩹 关卡格子之前用的是共用的 .level-cell 样式，底色只有12%不透明度的白，磨砂弹层又是半透明，
      两层叠加起来棋盘的颜色透得太明显，格子看不清楚。这里单独给消消乐这边的格子加深底色，
      不改 .level-cell 本身（Lumi Jump 那边也在用，不能动），只加一条更具体的选择器覆盖它 */
@@ -532,6 +574,90 @@
     font-family:inherit; background:#f7d98a; color:#2a2018; cursor:pointer;
   }
   .m3-shop-item button:disabled{ opacity:0.5; cursor:default; }
+
+  /* ══════════════ 🍬 糖果玻璃风（Modern Candy Game UI）：深色底 + 糖果光晕 + 磨砂玻璃面板 + 软 3D 按钮 ══════════════
+     只改颜色/质感，不动任何尺寸和布局。所有颜色集中在这一段和 THEMES 里；--m3-accent 是当前主题的光晕色（由 applyTheme 设置）。 */
+  #screen-match3{
+    font-family:ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", var(--font-body);
+    --m3-accent:190,140,255;
+  }
+  #m3Title{ color:#ffe6f5; text-shadow:0 2px 14px rgba(var(--m3-accent),0.75), 0 1px 2px rgba(0,0,0,0.4); letter-spacing:0.5px; }
+  /* 玻璃面板：上方分数条、下方工具条 */
+  #m3TopPanel, #m3BottomPanel{
+    background:rgba(255,255,255,0.12);
+    background:linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%);
+    border:1px solid rgba(255,255,255,0.30);
+    box-shadow:0 10px 30px rgba(8,4,40,0.42), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.06);
+    -webkit-backdrop-filter:blur(16px) saturate(150%); backdrop-filter:blur(16px) saturate(150%);
+  }
+  #m3ScoreMovesRow{ color:#ffffff; text-shadow:0 1px 8px rgba(0,0,0,0.45); }
+  /* 棋盘外框：玻璃 + 主题色光晕（去掉原来的金色粗边） */
+  #m3GameWrap{
+    border:1px solid rgba(255,255,255,0.32); border-radius:26px;
+    background:rgba(255,255,255,0.08);
+    background:linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 52%, rgba(255,255,255,0.10) 100%);
+    box-shadow:0 22px 50px rgba(8,4,40,0.5), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+    box-shadow:0 22px 50px rgba(8,4,40,0.5), 0 0 46px rgba(var(--m3-accent),0.30), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  #m3Canvas{ background:transparent; }
+  #m3BombHint{ color:#ffe1f0; text-shadow:0 1px 8px rgba(0,0,0,0.65); }
+  /* 底部按钮：玻璃圆角方块，图标白色 */
+  #m3BottomIconsRow .iconbtn{
+    background:linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.10) 100%);
+    border:1px solid rgba(255,255,255,0.38); color:#ffffff;
+    box-shadow:0 5px 14px rgba(8,4,40,0.32), inset 0 1px 0 rgba(255,255,255,0.55);
+  }
+  #m3BottomIconsRow .iconbtn:active{ background:linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.18) 100%); transform:scale(.92); }
+  #m3BottomIconsRow .iconbtn svg{ filter:drop-shadow(0 2px 3px rgba(0,0,0,0.30)); }
+  #m3BottomIconsRow .iconbtn span{ background:linear-gradient(180deg,#ff7aa2,#ff3d6e) !important; border:1.5px solid rgba(255,255,255,0.85); box-shadow:0 2px 6px rgba(0,0,0,0.35); }
+  #m3BottomIconsRow #m3PauseBtn.paused{
+    background:linear-gradient(135deg,#ff7ac0 0%,#a06bff 100%); border-color:rgba(255,255,255,0.7);
+    box-shadow:0 0 0 3px rgba(255,255,255,0.22), 0 8px 20px rgba(255,110,190,0.45), inset 0 2px 0 rgba(255,255,255,0.6);
+  }
+  #m3BottomIconsRow #m3BombToolBtn.armed{ background:linear-gradient(135deg,#ff9a5a,#ff5c7a) !important; box-shadow:0 0 0 3px rgba(255,255,255,0.3), 0 8px 20px rgba(255,120,100,0.5) !important; }
+  /* 弹层（选关/暂停/结算/商店/主题…）：深色磨砂玻璃 */
+  #screen-match3 .overlay{
+    background:rgba(24,14,64,0.80);
+    background:linear-gradient(180deg, rgba(44,26,98,0.80) 0%, rgba(16,9,48,0.92) 100%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%); backdrop-filter:blur(14px) saturate(140%);
+  }
+  #screen-match3 .overlay h1{ color:#ffffff; text-shadow:0 2px 16px rgba(var(--m3-accent),0.85), 0 1px 2px rgba(0,0,0,0.5); }
+  #screen-match3 .overlay p{ color:rgba(255,255,255,0.88); }
+  /* 主按钮：糖果渐变胶囊 + 上亮下暗的软 3D */
+  #screen-match3 .btn-primary{
+    background:linear-gradient(135deg,#ff7ac0 0%,#b07bff 100%); color:#fff; border:1px solid rgba(255,255,255,0.5); border-radius:999px;
+    font-weight:800; text-shadow:0 1px 2px rgba(80,20,120,0.45);
+    box-shadow:0 10px 24px rgba(255,110,190,0.38), inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(90,30,140,0.28);
+  }
+  #screen-match3 .btn-primary:active{ transform:scale(.96); }
+  /* 次按钮：玻璃胶囊 */
+  #screen-match3 .btn-overlay-secondary{
+    background:linear-gradient(180deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.08) 100%);
+    border:1px solid rgba(255,255,255,0.36); color:#fff;
+    box-shadow:0 6px 16px rgba(8,4,40,0.34), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  #screen-match3 .btn-overlay-secondary:active{ background:linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.16) 100%); }
+  #screen-match3 .m3-pager-btn{ background:linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08)); border:1px solid rgba(255,255,255,0.4); box-shadow:inset 0 1px 0 rgba(255,255,255,0.5); }
+  /* 关卡格：已通关=薄荷糖，当前=蜜桃糖(会呼吸发光)，未解锁=暗玻璃 */
+  #screen-match3 .level-cell{
+    color:#fff; font-weight:800; border-radius:16px; font-family:inherit;
+    background:linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.05) 100%);
+    border:1px solid rgba(255,255,255,0.28); box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  #screen-match3 .level-cell.cleared{
+    background:linear-gradient(180deg,#86f3c9 0%,#2fbf8f 100%); border-color:rgba(255,255,255,0.6); text-shadow:0 1px 2px rgba(0,80,60,0.45);
+    box-shadow:0 6px 14px rgba(47,191,143,0.38), inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(0,90,70,0.25);
+  }
+  @keyframes m3CandyPulse{ 0%,100%{ box-shadow:0 6px 16px rgba(255,140,190,0.45), 0 0 0 0 rgba(255,209,102,0.55), inset 0 2px 0 rgba(255,255,255,0.65), inset 0 -3px 0 rgba(160,60,90,0.25); } 50%{ box-shadow:0 8px 22px rgba(255,140,190,0.6), 0 0 0 6px rgba(255,209,102,0), inset 0 2px 0 rgba(255,255,255,0.65), inset 0 -3px 0 rgba(160,60,90,0.25); } }
+  #screen-match3 .level-cell.current{
+    background:linear-gradient(180deg,#ffe07a 0%,#ff8fb8 100%); border-color:rgba(255,255,255,0.75); text-shadow:0 1px 2px rgba(150,40,80,0.5);
+    animation:m3CandyPulse 2.2s ease-in-out infinite;
+  }
+  #screen-match3 .level-cell.locked{ opacity:0.5; background:rgba(255,255,255,0.06); box-shadow:none; }
+  /* 商店卡片 / 提示条 */
+  #screen-match3 .m3-shop-item{ background:linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.07)); border:1px solid rgba(255,255,255,0.32); box-shadow:0 6px 16px rgba(8,4,40,0.3), inset 0 1px 0 rgba(255,255,255,0.45); }
+  #screen-match3 .m3-shop-item button{ background:linear-gradient(180deg,#ffe98a,#ffb84d); color:#4a2a10; box-shadow:0 4px 10px rgba(255,170,60,0.4), inset 0 1px 0 rgba(255,255,255,0.7); }
+  #screen-match3 .bg-swatch{ box-shadow:0 4px 12px rgba(8,4,40,0.4), inset 0 1px 0 rgba(255,255,255,0.4); }
 
   /* ══════════════ 🍓 消水果：跟图片一样的蓝天草墙风格，画布 480x640 竖版。
      外壳（标题/面板/按钮/弹层）复用月光紫语言；safe-area 上下都垫好，
@@ -612,6 +738,78 @@
     font-size:13px; font-weight:800; color:#a8791f; white-space:nowrap;
     background:rgba(244,201,107,0.25); border-radius:999px; padding:6px 12px;
   }
+
+  /* ══════════════ 🍬 消水果：糖果玻璃风（跟萌宠消消乐同一套）——只改颜色/质感，不动尺寸和布局 ══════════════ */
+  #screen-fruit{
+    font-family:ui-rounded, "SF Pro Rounded", "Nunito", "Trebuchet MS", var(--font-body);
+    --fr-accent:190,140,255;
+  }
+  #fruitTitle{ color:#ffe6f5; text-shadow:0 2px 14px rgba(var(--fr-accent),0.75), 0 1px 2px rgba(0,0,0,0.4); letter-spacing:0.5px; }
+  #fruitWrap{
+    border:1px solid rgba(255,255,255,0.32); border-radius:26px;
+    background:rgba(255,255,255,0.08);
+    background:linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 52%, rgba(255,255,255,0.10) 100%);
+    box-shadow:0 22px 50px rgba(8,4,40,0.5), inset 0 1px 0 rgba(255,255,255,0.5);
+    box-shadow:0 22px 50px rgba(8,4,40,0.5), 0 0 46px rgba(var(--fr-accent),0.30), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  #fruitCanvas{ background:transparent; }
+  #fruitBottomPanel{
+    background:rgba(255,255,255,0.12);
+    background:linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 100%);
+    border:1px solid rgba(255,255,255,0.30);
+    box-shadow:0 10px 30px rgba(8,4,40,0.42), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(255,255,255,0.06);
+    -webkit-backdrop-filter:blur(16px) saturate(150%); backdrop-filter:blur(16px) saturate(150%);
+  }
+  #fruitBottomIconsRow .iconbtn{
+    background:linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.10) 100%);
+    border:1px solid rgba(255,255,255,0.38); color:#ffffff;
+    box-shadow:0 5px 14px rgba(8,4,40,0.32), inset 0 1px 0 rgba(255,255,255,0.55);
+  }
+  #fruitBottomIconsRow .iconbtn:active{ background:linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.18) 100%); transform:scale(.92); }
+  #fruitBottomIconsRow .iconbtn svg{ filter:drop-shadow(0 2px 3px rgba(0,0,0,0.30)); }
+  .fruit-tool-count{ background:linear-gradient(180deg,#ff7aa2,#ff3d6e) !important; border:1.5px solid rgba(255,255,255,0.85); box-shadow:0 2px 6px rgba(0,0,0,0.35); }
+  #fruitCoinsHud{
+    color:#ffe9a8; text-shadow:0 1px 4px rgba(0,0,0,0.35);
+    background:linear-gradient(180deg, rgba(255,233,138,0.34), rgba(255,184,77,0.16));
+    border:1px solid rgba(255,233,138,0.55); box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  #screen-fruit .overlay{
+    background:rgba(24,14,64,0.80);
+    background:linear-gradient(180deg, rgba(44,26,98,0.80) 0%, rgba(16,9,48,0.92) 100%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%); backdrop-filter:blur(14px) saturate(140%);
+  }
+  #screen-fruit .overlay h1{ color:#ffffff; text-shadow:0 2px 16px rgba(var(--fr-accent),0.85), 0 1px 2px rgba(0,0,0,0.5); }
+  #screen-fruit .overlay p{ color:rgba(255,255,255,0.88); }
+  #screen-fruit .btn-primary{
+    background:linear-gradient(135deg,#ff7ac0 0%,#b07bff 100%); color:#fff; border:1px solid rgba(255,255,255,0.5); border-radius:999px;
+    font-weight:800; text-shadow:0 1px 2px rgba(80,20,120,0.45);
+    box-shadow:0 10px 24px rgba(255,110,190,0.38), inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(90,30,140,0.28);
+  }
+  #screen-fruit .btn-primary:active{ transform:scale(.96); }
+  #screen-fruit .btn-overlay-secondary{
+    background:linear-gradient(180deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.08) 100%);
+    border:1px solid rgba(255,255,255,0.36); color:#fff;
+    box-shadow:0 6px 16px rgba(8,4,40,0.34), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  #screen-fruit .btn-overlay-secondary:active{ background:linear-gradient(180deg, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.16) 100%); }
+  #screen-fruit .m3-pager-btn{ background:linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08)); border:1px solid rgba(255,255,255,0.4); box-shadow:inset 0 1px 0 rgba(255,255,255,0.5); }
+  #screen-fruit .level-cell{
+    color:#fff; font-weight:800; border-radius:16px; font-family:inherit;
+    background:linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.05) 100%);
+    border:1px solid rgba(255,255,255,0.28); box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  #screen-fruit .level-cell.cleared{
+    background:linear-gradient(180deg,#86f3c9 0%,#2fbf8f 100%); border-color:rgba(255,255,255,0.6); text-shadow:0 1px 2px rgba(0,80,60,0.45);
+    box-shadow:0 6px 14px rgba(47,191,143,0.38), inset 0 2px 0 rgba(255,255,255,0.6), inset 0 -3px 0 rgba(0,90,70,0.25);
+  }
+  #screen-fruit .level-cell.current{
+    background:linear-gradient(180deg,#ffe07a 0%,#ff8fb8 100%); border-color:rgba(255,255,255,0.75); text-shadow:0 1px 2px rgba(150,40,80,0.5);
+    animation:m3CandyPulse 2.2s ease-in-out infinite;
+  }
+  #screen-fruit .level-cell.locked{ opacity:0.5; background:rgba(255,255,255,0.06); box-shadow:none; }
+  #screen-fruit .m3-shop-item{ background:linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.07)); border:1px solid rgba(255,255,255,0.32); box-shadow:0 6px 16px rgba(8,4,40,0.3), inset 0 1px 0 rgba(255,255,255,0.45); }
+  #screen-fruit .m3-shop-item button{ background:linear-gradient(180deg,#ffe98a,#ffb84d); color:#4a2a10; box-shadow:0 4px 10px rgba(255,170,60,0.4), inset 0 1px 0 rgba(255,255,255,0.7); }
+  #screen-fruit .bg-swatch{ box-shadow:0 4px 12px rgba(8,4,40,0.4), inset 0 1px 0 rgba(255,255,255,0.4); }
 
   @media (prefers-reduced-motion: reduce){
     .go-record{animation:none;}
@@ -910,6 +1108,9 @@
         </div>
         <button id="startBtn" class="btn btn-primary" data-i18n="mario_confirm_btn">确定</button>
         <button id="levelMapBtn" class="btn-overlay-secondary" data-i18n="mario_level_map_btn" style="margin-top:8px;">🗺️ 关卡</button>
+        <!-- 🩹 开始界面一直没有"返回主页"：进了 Lumi Jump 选完场景颜色，想回游戏中心只能先开一局、暂停再点返回。
+             （左上角那个小房子按钮在开始界面是被隐藏的，见 resetToStart。）这里补一个，跟暂停/结算界面的一样。 -->
+        <button id="startHomeBtn" class="btn-overlay-secondary" data-i18n="btn_backhome" style="margin-top:8px;">返回主页</button>
       </div>
 
       <div id="levelMapOverlay" class="overlay">
@@ -957,7 +1158,7 @@
         <div id="m3MovesText">👣 0</div>
       </div>
     </div>
-    <div id="m3GameWrap">
+    <div id="m3GameWrap" class="m3-menu">
       <div id="m3BombHint" data-i18n="m3_bomb_armed_hint">💣 点棋盘上任意一格引爆～</div>
       <canvas id="m3Canvas" width="480" height="480"></canvas>
 
@@ -1223,6 +1424,9 @@
       m3_page_label:function(cur,total){ return '第 '+cur+' / '+total+' 页'; },
       m3_prev_page:'上一页', m3_next_page:'下一页',
       m3_next_level_btn:'下一关 ▶',
+      m3_tip_cross:'✚ 十字块：清掉一整行 + 一整列',
+      m3_tip_diag:'✖ 叉叉块：清掉两条斜线',
+      m3_tip_star:'⭐ 星星块：随机再清掉 8 格',
       m3_back_to_map:'🗺️ 关卡地图',
       m3_shop_btn:'🛍️ 商店',
       m3_shop_title:'🛍️ 商店',
@@ -1344,6 +1548,9 @@
       m3_page_label:function(cur,total){ return 'หน้า '+cur+' / '+total; },
       m3_prev_page:'หน้าก่อนหน้า', m3_next_page:'หน้าถัดไป',
       m3_next_level_btn:'ด่านถัดไป ▶',
+      m3_tip_cross:'✚ บล็อกกากบาท: ล้างทั้งแถวและทั้งคอลัมน์',
+      m3_tip_diag:'✖ บล็อกทแยง: ล้างสองเส้นทแยง',
+      m3_tip_star:'⭐ บล็อกดาว: ล้างเพิ่มอีก 8 ช่องแบบสุ่ม',
       m3_back_to_map:'🗺️ แผนที่ด่าน',
       m3_shop_btn:'🛍️ ร้านค้า',
       m3_shop_title:'🛍️ ร้านค้า',
@@ -2469,10 +2676,8 @@
   $('cardMario').addEventListener('click', function(){ showScreen('mario'); });
   $('cardMatch3').addEventListener('click', function(){ showScreen('match3'); });
   $('cardFruit').addEventListener('click', function(){ showScreen('fruit'); });
-  // 🏠 回 Lumi 房间：跟主 App（index.html）、Lumi 自己进入游戏中心的入口保持同一个文件名——
-  // 生产环境实际部署的文件名是 lumi.html（根目录下），不是本地开发时用的带版本号文件名，
-  // 之前这里写的 'lumi-1-8-b.html' 跟实际部署的路径对不上，点了会打不开/404。
-  $('btnHubLumi').addEventListener('click', function(){ location.href = '/lumi.html'; });
+  // 🏠 回 Lumi 房间：跟 lumi-1-8-b.html 同目录，直接相对路径跳回去，存档都在 localStorage 里不会丢
+  $('btnHubLumi').addEventListener('click', function(){ location.href = 'lumi-1-8-b.html'; });
   $('btnShareScore').addEventListener('click', function(){
     shareScore(lbViewMode, stats[lbViewMode].highScore, $('btnShareScore'));
   });
@@ -3450,6 +3655,7 @@
   document.getElementById('homeBtn').addEventListener('click', goHome);
   document.getElementById('pauseHomeBtn').addEventListener('click', goHome);
   document.getElementById('endHomeBtn').addEventListener('click', goHome);
+  document.getElementById('startHomeBtn').addEventListener('click', goHome);
 
   function updateHUD(){
     document.getElementById('scoreText').textContent = t().mario_coins_label(runCoins);
@@ -4120,7 +4326,7 @@
   // 色相拉开、明度统一拉高，6种放在一起鲜艳但不刺眼，跟"萌系现代卡通"统一。
   // 背景做6款深浅不同：深色2款（对比强、动物更跳）+ 浅色4款，棋盘底/格子底跟着主题走，
   // 不再全是单一奶白色。动物配色6款主题共用同一套，保证认得清哪只对哪只。
-  var M3_ANIMALS = ['#FF9EBB','#FFB26B','#FFD93D','#6BCBFF','#FF6B6B','#B388FF'];
+  var M3_ANIMALS = ['#FF86BE','#FFA654','#FFDE4D','#5CCBFF','#FF6684','#A98BFF'];   // 糖果粉/橘子/柠檬黄/汽水蓝/树莓红/葡萄紫
   var M3_FACES = ['🐰','🐱','🐶','🐼','🦊','🐻'];
   function hexToRgba(hex, a){
     var num = parseInt(hex.replace('#',''),16);
@@ -4128,35 +4334,35 @@
     return 'rgba('+r+','+g+','+b+','+a+')';
   }
   var THEMES = [
-    { id:'moonlight', nameKey:'m3_theme_moonlight', swatch:'radial-gradient(circle at 50% 30%, #4a3172 0%, #241a3d 70%)',
-      bg:'radial-gradient(circle at 50% -10%, #4a3172 0%, #241a3d 65%)',
-      titleColor:'#f4c96b', hudColor:'#7c5cbf',
-      boardBg:'#2E2350', boardGrid:'rgba(255,255,255,0.10)',
+    { id:'moonlight', nameKey:'m3_theme_moonlight', accent:'190,140,255',
+      swatch:'radial-gradient(circle at 30% 20%, #ff7ac0 0%, #6a3fd0 45%, #1b1247 100%)',
+      bg:'radial-gradient(70% 45% at 12% 8%, rgba(255,122,190,0.34) 0%, rgba(255,122,190,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(96,190,255,0.28) 0%, rgba(96,190,255,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(168,124,255,0.40) 0%, rgba(168,124,255,0) 66%), linear-gradient(165deg,#1b1247 0%,#2a1a63 52%,#3a1f73 100%)',
+      titleColor:'#ffe6f5', hudColor:'#ffffff', boardBg:'rgba(255,255,255,0.08)', boardGrid:'rgba(255,255,255,0.05)',
       animalColors:M3_ANIMALS },
-    { id:'mint', nameKey:'m3_theme_mint', swatch:'linear-gradient(135deg,#eafbf3 0%, #b8e6cc 100%)',
-      bg:'linear-gradient(#eafbf3 0%, #d9f3e6 100%)',
-      titleColor:'#3a9a6e', hudColor:'#3a9a6e',
-      boardBg:'#DDF3E6', boardGrid:'rgba(58,154,110,0.12)',
+    { id:'mint', nameKey:'m3_theme_mint', accent:'110,240,190',
+      swatch:'radial-gradient(circle at 30% 20%, #7dffd0 0%, #14806f 45%, #062b31 100%)',
+      bg:'radial-gradient(70% 45% at 10% 8%, rgba(110,240,190,0.32) 0%, rgba(110,240,190,0) 62%), radial-gradient(60% 45% at 92% 24%, rgba(90,200,255,0.26) 0%, rgba(90,200,255,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(255,235,120,0.22) 0%, rgba(255,235,120,0) 66%), linear-gradient(165deg,#062b31 0%,#0b4a4f 55%,#0f5f57 100%)',
+      titleColor:'#dcfff0', hudColor:'#ffffff', boardBg:'rgba(255,255,255,0.08)', boardGrid:'rgba(255,255,255,0.05)',
       animalColors:M3_ANIMALS },
-    { id:'peach', nameKey:'m3_theme_peach', swatch:'linear-gradient(135deg,#ffe9e2 0%, #ffc9b8 100%)',
-      bg:'linear-gradient(#fff3ee 0%, #ffd9cc 100%)',
-      titleColor:'#c95b3f', hudColor:'#c95b3f',
-      boardBg:'#FFE4D6', boardGrid:'rgba(201,91,63,0.12)',
+    { id:'peach', nameKey:'m3_theme_peach', accent:'255,160,130',
+      swatch:'radial-gradient(circle at 30% 20%, #ffc09a 0%, #c04a5a 45%, #3a1220 100%)',
+      bg:'radial-gradient(70% 45% at 12% 8%, rgba(255,170,120,0.34) 0%, rgba(255,170,120,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(255,120,160,0.28) 0%, rgba(255,120,160,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(255,214,120,0.24) 0%, rgba(255,214,120,0) 66%), linear-gradient(165deg,#3a1220 0%,#652338 55%,#7d2f3f 100%)',
+      titleColor:'#fff0e6', hudColor:'#ffffff', boardBg:'rgba(255,255,255,0.08)', boardGrid:'rgba(255,255,255,0.05)',
       animalColors:M3_ANIMALS },
-    { id:'starry', nameKey:'m3_theme_starry', swatch:'linear-gradient(135deg,#1c3a6e 0%, #101c3f 100%)',
-      bg:'linear-gradient(#1c3a6e 0%, #101c3f 100%)',
-      titleColor:'#8fd0ff', hudColor:'#8fd0ff',
-      boardBg:'#18294F', boardGrid:'rgba(143,208,255,0.14)',
+    { id:'starry', nameKey:'m3_theme_starry', accent:'110,205,255',
+      swatch:'radial-gradient(circle at 30% 20%, #6fd6ff 0%, #1b4aa8 45%, #081a4a 100%)',
+      bg:'radial-gradient(70% 45% at 12% 8%, rgba(90,210,255,0.34) 0%, rgba(90,210,255,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(150,130,255,0.30) 0%, rgba(150,130,255,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(255,140,200,0.22) 0%, rgba(255,140,200,0) 66%), linear-gradient(165deg,#081a4a 0%,#123a8a 55%,#1b4aa8 100%)',
+      titleColor:'#e3f5ff', hudColor:'#ffffff', boardBg:'rgba(255,255,255,0.08)', boardGrid:'rgba(255,255,255,0.05)',
       animalColors:M3_ANIMALS },
-    { id:'cream', nameKey:'m3_theme_cream', swatch:'linear-gradient(135deg,#fff8e6 0%, #ffe3a3 100%)',
-      bg:'linear-gradient(#fffaf0 0%, #ffefc9 100%)',
-      titleColor:'#a8791f', hudColor:'#a8791f',
-      boardBg:'#FBEFCF', boardGrid:'rgba(168,121,31,0.12)',
+    { id:'cream', nameKey:'m3_theme_cream', accent:'255,214,150',
+      swatch:'radial-gradient(circle at 30% 20%, #ffe0a0 0%, #8a5a3a 45%, #2b1a1e 100%)',
+      bg:'radial-gradient(70% 45% at 12% 8%, rgba(255,220,150,0.30) 0%, rgba(255,220,150,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(255,150,130,0.26) 0%, rgba(255,150,130,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(255,190,120,0.26) 0%, rgba(255,190,120,0) 66%), linear-gradient(165deg,#2b1a1e 0%,#4a2d2a 55%,#5e3a2e 100%)',
+      titleColor:'#fff3d8', hudColor:'#ffffff', boardBg:'rgba(255,255,255,0.08)', boardGrid:'rgba(255,255,255,0.05)',
       animalColors:M3_ANIMALS },
-    { id:'sakura', nameKey:'m3_theme_sakura', swatch:'linear-gradient(135deg,#ffeef4 0%, #ffc4d6 100%)',
-      bg:'linear-gradient(#fff0f4 0%, #ffd6e2 100%)',
-      titleColor:'#c44a74', hudColor:'#c44a74',
-      boardBg:'#FBDCE6', boardGrid:'rgba(196,74,116,0.12)',
+    { id:'sakura', nameKey:'m3_theme_sakura', accent:'255,150,210',
+      swatch:'radial-gradient(circle at 30% 20%, #ffb0dc 0%, #8a2a7a 45%, #3a0f3a 100%)',
+      bg:'radial-gradient(70% 45% at 12% 8%, rgba(255,150,210,0.36) 0%, rgba(255,150,210,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(190,140,255,0.30) 0%, rgba(190,140,255,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(120,200,255,0.22) 0%, rgba(120,200,255,0) 66%), linear-gradient(165deg,#3a0f3a 0%,#6a1f62 55%,#8a2a7a 100%)',
+      titleColor:'#ffe8f4', hudColor:'#ffffff', boardBg:'rgba(255,255,255,0.08)', boardGrid:'rgba(255,255,255,0.05)',
       animalColors:M3_ANIMALS }
   ];
   var currentThemeIndex = 0;
@@ -4164,11 +4370,11 @@
     currentThemeIndex = idx;
     var theme = THEMES[idx];
     var screenEl = document.getElementById('screen-match3');
-    if(screenEl) screenEl.style.background = theme.bg;
+    if(screenEl){ screenEl.style.background = theme.bg; screenEl.style.setProperty('--m3-accent', theme.accent || '190,140,255'); }
     $('m3Title').style.color = theme.titleColor;
     $('m3ScoreMovesRow').style.color = theme.hudColor;
     var cv = $('m3Canvas');
-    if(cv) cv.style.background = theme.boardBg;
+    if(cv) cv.style.background = 'transparent';
     LG.stats.match3.themeId = theme.id;
     LG.saveStats();
     renderThemePreview();
@@ -4203,7 +4409,7 @@
     for(var i=0;i<6;i++){
       var d = document.createElement('div');
       d.className = 'prev-dot';
-      d.style.background = hexToRgba(theme.animalColors[i], 0.32);
+      d.style.background = 'radial-gradient(circle at 32% 26%, ' + shadeColor(theme.animalColors[i], 45) + ' 0%, ' + theme.animalColors[i] + ' 60%, ' + shadeColor(theme.animalColors[i], -18) + ' 100%)';
       d.textContent = M3_FACES[i];
       prev.appendChild(d);
     }
@@ -4217,6 +4423,31 @@
   // 所以30关目标分照涨、步数变多，那一关会稍缓一口，之后每关目标分继续涨、步数不变，难度继续爬坡。 ----------
   var TOTAL_LEVELS = 200;
   var currentLevel = 1;
+  // ---------- 🎁 新工具（第 8 关起）：消除时会额外掉下三种"惊喜工具"，第 8 关以后不再只靠 4连/5连/L形 这三种旧工具 ----------
+  //   ✚ 十字块(cross)：清掉所在的整行+整列；✖ 叉叉块(diag)：清掉经过它的两条斜线；⭐ 星星块(star)：再随机清掉 8 格。
+  //   什么时候掉：连消（同一手引发的第 2 次及以后的消除）或者一次性清掉 7 格以上；每一步最多掉 1 个，
+  //   按解锁顺序轮流出（这样三种都能见到）；场上同时最多留 3 个，避免满屏都是。
+  //   想调：SURPRISE_UNLOCK 改各工具从第几关开始出现；SURPRISE_MIN_CHAIN / SURPRISE_MIN_CELLS 改触发门槛（数字越小掉得越多）。
+  var MOVES_BONUS_START = 6;      // 第 8 关额外多给的步数（第 8 关 20→26 步）
+  var MOVES_BONUS_SLOPE = 1.0;    // 之后每高一关，额外步数再多给 1 步
+  var MOVES_CAP = 38;             // 总步数封顶（第 8 关起才生效；到第 23 关左右封顶）
+  var SURPRISE_UNLOCK = { cross:8, diag:10, star:12 };
+  var SURPRISE_ORDER = ['cross','diag','star'];
+  var SURPRISE_MIN_CHAIN = 2;
+  var SURPRISE_MIN_CELLS = 8;
+  var SURPRISE_PROB_BASE = 0.25;  // 第 8 关起，符合条件的那一步有 25% 的概率掉一个……
+  var SURPRISE_PROB_STEP = 0.02;  // ……之后每高一关，概率再加 2%（封顶 100%），关卡越高工具越多，用来抵消越来越高的目标分
+  var SURPRISE_MAX_ON_BOARD = 3;  // 场上同时最多留几个（第 20 关起 +1，见下面 surpriseMax）
+  var SURPRISE_STAR_EXTRA = 8;
+  var surpriseSeq = 0;
+  var surpriseThisMove = false;   // 这一手（含连消）已经掉过一个了：每一手最多掉 1 个，不会一个连消掉一串
+  function surpriseProb(){ return Math.min(1, SURPRISE_PROB_BASE + Math.max(0, currentLevel - 8) * SURPRISE_PROB_STEP); }
+  function surpriseMax(){ return SURPRISE_MAX_ON_BOARD + (currentLevel >= 20 ? 1 : 0); }
+  function unlockedSurprises(){
+    var out = [];
+    SURPRISE_ORDER.forEach(function(k){ if(currentLevel >= SURPRISE_UNLOCK[k]) out.push(k); });
+    return out;
+  }
   // ---------- 关卡地图分页：不用长列表一直往下滑，改成一页一页翻，4列x5行正好20关一页，
   // 像日历翻页那样左右切换。打开地图时自动跳到"当前进度"所在的那一页。 ----------
   var LEVELS_PER_PAGE = 20;
@@ -4239,6 +4470,10 @@
     }
     var moves = Math.max(17, 22 - Math.floor(Math.min(n,33)/3));
     if(n>=30) moves += 6; // 30关起每关多给6步（17→23），之后步数不再变，难度靠目标分继续爬坡
+    // 🩹 第 8 关起目标分涨得快、步数却越来越少，一直卡关——从第 8 关起额外多给步数：第 8 关 +MOVES_BONUS_START 步，
+    // 之后每高一关多给一点（每关 +MOVES_BONUS_SLOPE 步），总步数封顶 MOVES_CAP，避免一局拖得太长。
+    // 想调松紧：改这三个数就行（数字越大越容易）。
+    if(n>=8){ moves = Math.min(MOVES_CAP, moves + MOVES_BONUS_START + Math.floor((n-8)*MOVES_BONUS_SLOPE)); }
     return { target: target, moves: moves };
   }
 
@@ -4283,7 +4518,7 @@
   var floatTexts = []; // 飘分 {x,y,vy,life,maxLife,text,color,size}
   var clearFlash = 0; // 全盘柔光 0..1，大消除时闪一下，跟浅色棋盘统一的柔白+金
   var chainDepth = 0; // 连锁深度：同一手引发的第几次消除，用来缩放特效+音调爬升
-  var TYPE_COLORS = ['#FF9EBB','#FFB26B','#FFD93D','#6BCBFF','#FF6B6B','#B388FF'];
+  var TYPE_COLORS = ['#FF86BE','#FFA654','#FFDE4D','#5CCBFF','#FF6684','#A98BFF'];
   // 👀 表情状态：选中卖萌 / 滑动失败惊讶——渲染层只读这两个变量，不碰游戏逻辑
   var invalidCells = []; // 最近一次"换了但消不掉"的那两个格子 {r,c}
   var invalidTimer = 0; // 惊讶表情剩余帧数，倒数到0自动清除
@@ -4363,6 +4598,50 @@
       }
     }
     return b;
+  }
+
+  // ---------- 🎁 惊喜工具：这一步要不要额外生成一个、生成在哪、生成哪一种（规则见上面 SURPRISE_* 的说明） ----------
+  function maybeSpawnSurprise(groups, cellsArr, spawns){
+    var kinds = unlockedSurprises();
+    if(!kinds.length) return null;
+    if(!(chainDepth >= SURPRISE_MIN_CHAIN || cellsArr.length >= SURPRISE_MIN_CELLS)) return null;
+    if(surpriseThisMove) return null;
+    if(Math.random() >= surpriseProb()) return null;
+    var onBoard = 0;
+    for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++){ var s0 = special[r][c]; if(s0 && SURPRISE_UNLOCK[s0.kind]!==undefined) onBoard++; }
+    if(onBoard >= surpriseMax()) return null;
+    var taken = {}; spawns.forEach(function(sp){ taken[sp.r+','+sp.c] = true; });
+    // 位置：优先选"最大的那一组"的中间格；没有(是被特殊块连锁清出来的)就选被清掉的格子里居中的一个
+    var pick = null, best = null;
+    groups.forEach(function(g){ if(!best || g.cells.length > best.cells.length) best = g; });
+    if(best){ var mid = best.cells[Math.floor(best.cells.length/2)]; if(!taken[mid.r+','+mid.c]) pick = mid; }
+    if(!pick){
+      var cand = cellsArr.filter(function(cc){ return !taken[cc.r+','+cc.c]; });
+      if(cand.length) pick = cand[Math.floor(cand.length/2)];
+    }
+    if(!pick) return null;
+    var type = board[pick.r][pick.c];
+    if(type===null || type===undefined) return null;
+    var kind = kinds[surpriseSeq % kinds.length];
+    surpriseSeq++;
+    surpriseThisMove = true;
+    return { r:pick.r, c:pick.c, kind:kind, type:type };
+  }
+  // 惊喜工具落到棋盘上的那一刻：冒个小图标；每种工具第一次出现，再弹一句说明（只弹一次，记在存档里）
+  var SURPRISE_ICON = { cross:'✚', diag:'✖', star:'⭐' };
+  function noteSurpriseSpawned(sp){
+    var pos = cellCenter(sp.r, sp.c);
+    spawnFloatText(pos.x, pos.y - CELL*0.3, SURPRISE_ICON[sp.kind] || '✨', '#f4c96b', 22);
+    try{
+      var st = LG.stats.match3;
+      st.toolTips = st.toolTips || {};
+      if(!st.toolTips[sp.kind]){
+        st.toolTips[sp.kind] = 1;
+        LG.saveStats();
+        var msg = t()['m3_tip_'+sp.kind];
+        if(msg) showShopToast(msg, true);
+      }
+    }catch(e){}
   }
 
   // ---------- 匹配检测：返回一组"连续三个以上"的分组，每组记录格子列表/方向/长度/种类，
@@ -4446,6 +4725,7 @@
       boardBusy = false;
       resolvePhase = null;
       chainDepth = 0;
+      surpriseThisMove = false;
       checkWinLose();
       return;
     }
@@ -4517,6 +4797,26 @@
         for(var rr2=0;rr2<ROWS;rr2++) for(var cc2=0;cc2<COLS;cc2++){
           if(board[rr2][cc2]===targetType) toClear[rr2+','+cc2]=true;
         }
+      } else if(sp.kind==='cross'){
+        // ✚ 十字块：整行 + 整列
+        for(var cx1=0;cx1<COLS;cx1++) toClear[r+','+cx1]=true;
+        for(var cy1=0;cy1<ROWS;cy1++) toClear[cy1+','+c]=true;
+      } else if(sp.kind==='diag'){
+        // ✖ 叉叉块：经过它的两条斜线（左上-右下、右上-左下）
+        var span = Math.max(ROWS, COLS);
+        for(var k=-span;k<=span;k++){
+          var dr1 = r+k, dc1 = c+k, dc2 = c-k;
+          if(dr1>=0&&dr1<ROWS&&dc1>=0&&dc1<COLS) toClear[dr1+','+dc1]=true;
+          if(dr1>=0&&dr1<ROWS&&dc2>=0&&dc2<COLS) toClear[dr1+','+dc2]=true;
+        }
+      } else if(sp.kind==='star'){
+        // ⭐ 星星块：除了自己这一格，再随机清掉 SURPRISE_STAR_EXTRA 格（优先挑这一轮还没被清掉的，不浪费）
+        var pool = [];
+        for(var sr=0;sr<ROWS;sr++) for(var sc=0;sc<COLS;sc++){
+          if(board[sr][sc]!==null && !toClear[sr+','+sc]) pool.push({r:sr,c:sc});
+        }
+        for(var pi2=pool.length-1; pi2>0; pi2--){ var pj = Math.floor(Math.random()*(pi2+1)); var tmp3 = pool[pi2]; pool[pi2] = pool[pj]; pool[pj] = tmp3; }
+        pool.slice(0, SURPRISE_STAR_EXTRA).forEach(function(pp){ toClear[pp.r+','+pp.c]=true; });
       }
     }
     var changed = true;
@@ -4531,6 +4831,9 @@
     }
 
     var cellsArr = Object.keys(toClear).map(function(key){ var p=key.split(','); return {r:+p[0], c:+p[1]}; });
+    // 🎁 第 8 关起：连消/大消除时额外掉一个惊喜工具（十字/叉叉/星星）
+    var surprise = maybeSpawnSurprise(groups, cellsArr, spawns);
+    if(surprise) spawns.push(surprise);
     flashCells = cellsArr;
     // 现代消除特效：火花数量随连锁加深，每组中心补一个柔光冲击波，整块中心飘一个 +分
     cellsArr.forEach(function(cell){
@@ -4552,7 +4855,7 @@
       var cxSum=0, cySum=0;
       cellsArr.forEach(function(cell){ var pos=cellCenter(cell.r,cell.c); cxSum+=pos.x; cySum+=pos.y; });
       spawnFloatText(cxSum/cellsArr.length, cySum/cellsArr.length - CELL*0.4,
-        '+'+gained, chainDepth>=2 ? '#b97a0a' : '#7c5cbf', cellsArr.length>=6 ? 19 : 15);
+        '+'+gained, chainDepth>=2 ? '#ffd166' : '#ffffff', cellsArr.length>=6 ? 19 : 15);
     }
     clearFlash = Math.min(0.32, 0.06 + cellsArr.length*0.015 + triggeredPositions.length*0.08);
     pendingSpawns = spawns;
@@ -4566,16 +4869,19 @@
       if(sp.kind==='line') spawnShockwave(bp.x, bp.y, sp.orientation==='h' ? 'beamH' : 'beamV', '255,255,255');
       else if(sp.kind==='bomb') spawnShockwave(bp.x, bp.y, 'ring', '244,201,107');
       else if(sp.kind==='rainbow') spawnShockwave(bp.x, bp.y, 'rainbow', '181,101,232');
+      else if(sp.kind==='cross'){ spawnShockwave(bp.x, bp.y, 'beamH', '120,210,255'); spawnShockwave(bp.x, bp.y, 'beamV', '120,210,255'); }
+      else if(sp.kind==='diag') spawnShockwave(bp.x, bp.y, 'ring', '255,150,220');
+      else if(sp.kind==='star') spawnShockwave(bp.x, bp.y, 'ring', '255,225,110');
     });
 
     // 这一步还没真正清空棋盘(要等flash阶段结束)，special[r][c]仍然是触发前的原始状态，
     // 可以在这里放心检查"这次触发/生成的里面有没有彩虹块"，选更合适的音效
-    var hasRainbowTriggered = triggeredPositions.some(function(pos){ return special[pos.r][pos.c] && special[pos.r][pos.c].kind==='rainbow'; });
+    var hasRainbowTriggered = triggeredPositions.some(function(pos){ return special[pos.r][pos.c] && (special[pos.r][pos.c].kind==='rainbow' || special[pos.r][pos.c].kind==='star'); });
     var hasRainbowSpawned = spawns.some(function(sp){ return sp.kind==='rainbow'; });
-    var hasLineTriggered = triggeredPositions.some(function(pos){ return special[pos.r][pos.c] && special[pos.r][pos.c].kind==='line'; });
+    var hasLineTriggered = triggeredPositions.some(function(pos){ return special[pos.r][pos.c] && (special[pos.r][pos.c].kind==='line' || special[pos.r][pos.c].kind==='cross'); });
 
     if(hasRainbowTriggered) sfx.rainbowTrigger();
-    else if(hasTriggeredAnySpecial && triggeredPositions.some(function(pos){ return special[pos.r][pos.c] && special[pos.r][pos.c].kind==='bomb'; })) sfx.bombTrigger();
+    else if(hasTriggeredAnySpecial && triggeredPositions.some(function(pos){ return special[pos.r][pos.c] && (special[pos.r][pos.c].kind==='bomb' || special[pos.r][pos.c].kind==='diag'); })) sfx.bombTrigger();
     else if(hasLineTriggered) sfx.lineTrigger();
     else if(cellsArr.length>=6) sfx.matchBig(chainDepth);
     else sfx.match(chainDepth, cellsArr.length);
@@ -4836,6 +5142,7 @@
         pendingSpawns.forEach(function(sp){
           board[sp.r][sp.c] = sp.type;
           special[sp.r][sp.c] = { kind:sp.kind, orientation:sp.orientation };
+          if(SURPRISE_UNLOCK[sp.kind] !== undefined) noteSurpriseSpawned(sp);
         });
         pendingSpawns = [];
         flashCells = [];
@@ -4857,22 +5164,57 @@
     $('m3ScoreText').textContent = t().m3_score_label(score, TARGET_SCORE);
     $('m3MovesText').textContent = t().m3_moves_label(Math.max(0,movesLeft));
     $('m3CoinsHudText').textContent = t().m3_coins_label(LG.stats.match3.coins||0);
+    m3FitTopRow();
+  }
+  // 🔎 顶部面板字放大之后，万一分数/金币位数特别多（比如 5 位数）会挤不下：一行放不下就把字号一点点收小，直到放得下为止；
+  // 平时数字不长，这里什么都不会发生（也就不会有任何开销）。
+  function m3FitTopRow(){
+    var row = $('m3ScoreMovesRow');
+    if(!row) return;
+    row.style.fontSize = '';
+    var fs = parseFloat(window.getComputedStyle(row).fontSize) || 15, guard = 0;
+    while(row.clientWidth > 0 && row.scrollWidth > row.clientWidth + 1 && fs > 11 && guard < 30){
+      fs -= 1; row.style.fontSize = fs + 'px'; guard++;
+    }
   }
 
   // ---------- 渲染 ----------
   // ---------- 6种萌宠：现代卡通萌系重绘（马卡龙渐变脸蛋 + 立体高光 + 腮红 + 大眼）----------
   // 以现代卡通为准：圆润脸型、渐变体积感、标配腮红+高光眼，不再是以前的纯色平涂+小黑豆眼。
   // mood: 'normal' 日常 / 'cute' 点击选中卖萌（眼睛睁大） / 'surprised' 滑动失败惊讶（大眼+挑眉+O嘴）
+  // 🍬 软 3D 糖果质感：左上打光的体积渐变 + 一颗亮的高光 + 一圈很淡的边缘光 + 贴地的软阴影，
+  // 粉彩的脸蛋在深色玻璃格子上像一颗颗软糖。所有光影都是 canvas 渐变，不用图片，也不影响玩法。
   function paintBody(cx, cy, r, BASE){
-    // 哑光版：去掉正白色高光，脸蛋不再有"打蜡"反光，只留很淡的体积感
-    var g = ctx.createRadialGradient(cx, cy-r*0.1, r*0.1, cx, cy, r*0.85);
-    g.addColorStop(0, shadeColor(BASE, 10));
-    g.addColorStop(0.65, BASE);
-    g.addColorStop(1, shadeColor(BASE, -10));
+    // 贴地软阴影（在身体下面，格子玻璃上像"浮"起来）
+    var sg = ctx.createRadialGradient(cx, cy+r*0.78, r*0.05, cx, cy+r*0.78, r*0.72);
+    sg.addColorStop(0, 'rgba(12,4,40,0.34)');
+    sg.addColorStop(1, 'rgba(12,4,40,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.ellipse(cx, cy+r*0.78, r*0.72, r*0.2, 0, 0, Math.PI*2); ctx.fill();
+    // 体积：亮部在左上，暗部在右下
+    var g = ctx.createRadialGradient(cx-r*0.30, cy-r*0.36, r*0.06, cx+r*0.05, cy+r*0.05, r*0.95);
+    g.addColorStop(0, shadeColor(BASE, 58));
+    g.addColorStop(0.30, shadeColor(BASE, 20));
+    g.addColorStop(0.72, BASE);
+    g.addColorStop(1, shadeColor(BASE, -24));
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.arc(cx, cy, r*0.8, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = 'rgba(60,30,40,0.10)'; ctx.lineWidth = Math.max(1, r*0.035);
-    ctx.stroke();
+    // 边缘光：一圈很淡的白边，像果冻的透光
+    ctx.strokeStyle = 'rgba(255,255,255,0.32)'; ctx.lineWidth = Math.max(1, r*0.05);
+    ctx.beginPath(); ctx.arc(cx, cy, r*0.8, 0, Math.PI*2); ctx.stroke();
+    drawGloss(cx, cy, r);
+  }
+  // 糖果高光：左上一块柔亮 + 一颗清晰的椭圆高光 + 一个小亮点
+  function drawGloss(cx, cy, r){
+    var hg = ctx.createRadialGradient(cx-r*0.36, cy-r*0.46, 0, cx-r*0.36, cy-r*0.46, r*0.46);
+    hg.addColorStop(0, 'rgba(255,255,255,0.42)');
+    hg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.arc(cx, cy, r*0.8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.beginPath(); ctx.ellipse(cx-r*0.36, cy-r*0.52, r*0.17, r*0.085, -0.62, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(cx-r*0.12, cy-r*0.64, r*0.032, 0, Math.PI*2); ctx.fill();
   }
   function drawModernFace(cx, cy, r, mood){
     var eyeDX = r*0.27, eyeY = cy - r*0.02;
@@ -4977,6 +5319,9 @@
       paintBody(cx, cy, r, BASE);
       ctx.fillStyle = '#FFF7F2';
       ctx.beginPath(); ctx.arc(cx, cy+r*0.04, r*0.62, 0, Math.PI*2); ctx.fill();
+      var pg = ctx.createRadialGradient(cx-r*0.2, cy-r*0.3, 0, cx-r*0.2, cy-r*0.3, r*0.6);
+      pg.addColorStop(0, 'rgba(255,255,255,0)'); pg.addColorStop(1, 'rgba(255,190,150,0.20)');
+      ctx.fillStyle = pg; ctx.beginPath(); ctx.arc(cx, cy+r*0.04, r*0.62, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = '#3A2E39';
       ctx.beginPath(); ctx.ellipse(cx-r*0.26,cy-r*0.02,r*0.17,r*0.21,-0.15,0,Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(cx+r*0.26,cy-r*0.02,r*0.17,r*0.21,0.15,0,Math.PI*2); ctx.fill();
@@ -5042,27 +5387,77 @@
   // 加一层固定大小的圆角方形背景垫在每只萌宠下面，不管耳朵朝哪个方向，
   // 每一格视觉上的"占地面积"都是同一个方框，棋盘看起来才会整齐统一
   // 每只动物自己的彩色底：不再统一奶白，按动物主色给28%淡彩底 + 白色内描，6格一眼分得清
-  function drawTileBackground(cx, cy, size, type){
-    var half = size/2;
-    var radius = size*0.18;
+  // 圆角矩形路径（不依赖 ctx.roundRect，老 WebView 也能用）
+  function m3RoundRect(c, x, y, w, h, rad){
+    rad = Math.min(rad, w/2, h/2);
+    c.beginPath();
+    c.moveTo(x+rad, y);
+    c.arcTo(x+w, y, x+w, y+h, rad);
+    c.arcTo(x+w, y+h, x, y+h, rad);
+    c.arcTo(x, y+h, x, y, rad);
+    c.arcTo(x, y, x+w, y, rad);
+    c.closePath();
+  }
+  // 🍬 玻璃糖果格：上亮下暗的糖果色磨砂玻璃 + 顶部反光条 + 底部一点果冻色晕 + 上亮下暗的描边 + 软投影。
+  // 这些都是静态的，按 主题×种类×尺寸 预渲染成一张小图缓存起来，每帧 36 格只是 drawImage，几乎不占性能。
+  var tileSprites = {};
+  function getTileSprite(type, size){
+    var key = currentThemeIndex + '_' + type + '_' + Math.round(size*10);
+    if(tileSprites[key]) return tileSprites[key];
+    var pad = Math.ceil(size*0.14), dim = Math.ceil(size + pad*2);
+    var cv = document.createElement('canvas');
+    cv.width = Math.ceil(dim*M3_DPR); cv.height = Math.ceil(dim*M3_DPR);
+    var c2 = cv.getContext('2d');
+    c2.setTransform(M3_DPR,0,0,M3_DPR,0,0);
     var BASE = THEMES[currentThemeIndex].animalColors[type===undefined||type===null ? 0 : type];
-    ctx.save();
-    ctx.fillStyle = hexToRgba(BASE, 0.30);
-    ctx.beginPath();
-    if(ctx.roundRect){ ctx.roundRect(cx-half, cy-half, size, size, radius); }
-    else { ctx.rect(cx-half, cy-half, size, size); }
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-    ctx.lineWidth = Math.max(1.2, size*0.025);
-    ctx.stroke();
-    ctx.restore();
+    var x = pad, y = pad, rad = size*0.26;
+    // 软投影
+    c2.save();
+    c2.shadowColor = 'rgba(8,3,36,0.5)'; c2.shadowBlur = size*0.2; c2.shadowOffsetY = size*0.07;
+    c2.fillStyle = 'rgba(255,255,255,0.10)';
+    m3RoundRect(c2, x, y, size, size, rad); c2.fill();
+    c2.restore();
+    // 玻璃底
+    var g = c2.createLinearGradient(0, y, 0, y+size);
+    // 粉彩玻璃：底色向白色提亮，透明度提高，避免颜色被深色背景"染脏"（黄色变橄榄色那种），同时和上面更饱和的棋子拉开层次
+    g.addColorStop(0, hexToRgba(shadeColor(BASE, 55), 0.68));
+    g.addColorStop(1, hexToRgba(shadeColor(BASE, 12), 0.52));
+    c2.fillStyle = g;
+    m3RoundRect(c2, x, y, size, size, rad); c2.fill();
+    c2.save();
+    m3RoundRect(c2, x, y, size, size, rad); c2.clip();
+    // 底部果冻色晕
+    var rg = c2.createRadialGradient(x+size/2, y+size*1.02, size*0.05, x+size/2, y+size*1.02, size*0.75);
+    rg.addColorStop(0, hexToRgba(shadeColor(BASE, 10), 0.55));
+    rg.addColorStop(1, hexToRgba(BASE, 0));
+    c2.fillStyle = rg; c2.fillRect(x, y, size, size);
+    // 顶部玻璃反光
+    var hg = c2.createLinearGradient(0, y, 0, y+size*0.52);
+    hg.addColorStop(0, 'rgba(255,255,255,0.46)');
+    hg.addColorStop(1, 'rgba(255,255,255,0)');
+    c2.fillStyle = hg; c2.fillRect(x, y, size, size*0.52);
+    c2.restore();
+    // 描边：上亮下暗
+    var sg = c2.createLinearGradient(0, y, 0, y+size);
+    sg.addColorStop(0, 'rgba(255,255,255,0.85)');
+    sg.addColorStop(0.5, 'rgba(255,255,255,0.22)');
+    sg.addColorStop(1, 'rgba(255,255,255,0.10)');
+    c2.strokeStyle = sg; c2.lineWidth = Math.max(1.2, size*0.03);
+    m3RoundRect(c2, x+0.5, y+0.5, size-1, size-1, rad); c2.stroke();
+    var sprite = { cv:cv, dim:dim };
+    tileSprites[key] = sprite;
+    return sprite;
+  }
+  function drawTileBackground(cx, cy, size, type){
+    var sp = getTileSprite(type, size);
+    ctx.drawImage(sp.cv, cx - sp.dim/2, cy - sp.dim/2, sp.dim, sp.dim);
   }
 
   function drawSpecialGlow(sp, cx, cy, r){
     if(!sp) return;
     var pulse = 0.5 + 0.5*Math.sin(frameCount*0.1);
     var glowR = r*(1.35 + pulse*0.35);
-    var color = sp.kind==='bomb' ? '255,150,60' : '255,255,255';
+    var color = ({ bomb:'255,150,60', cross:'120,210,255', diag:'255,150,220', star:'255,225,110' })[sp.kind] || '255,255,255';
     ctx.save();
     if(ctx.createRadialGradient){
       var grad = ctx.createRadialGradient(cx,cy,r*0.2,cx,cy,glowR);
@@ -5103,6 +5498,35 @@
         ctx.strokeStyle = 'hsl('+RAINBOW_HUES[k]+',85%,68%)';
         ctx.beginPath(); ctx.arc(cx,cy,r*0.96,ang0,ang1); ctx.stroke();
       }
+    } else if(sp.kind==='cross'){
+      // ✚ 十字块：横竖两条线
+      ctx.lineWidth = Math.max(2, r*0.18);
+      ctx.beginPath();
+      ctx.moveTo(cx-r*0.86,cy); ctx.lineTo(cx+r*0.86,cy);
+      ctx.moveTo(cx,cy-r*0.86); ctx.lineTo(cx,cy+r*0.86);
+      ctx.stroke();
+    } else if(sp.kind==='diag'){
+      // ✖ 叉叉块：两条斜线
+      ctx.lineWidth = Math.max(2, r*0.18);
+      var dd = r*0.68;
+      ctx.beginPath();
+      ctx.moveTo(cx-dd,cy-dd); ctx.lineTo(cx+dd,cy+dd);
+      ctx.moveTo(cx+dd,cy-dd); ctx.lineTo(cx-dd,cy+dd);
+      ctx.stroke();
+    } else if(sp.kind==='star'){
+      // ⭐ 星星块：五角星描边 + 淡金填充
+      var spikes = 5, outerR = r*0.86, innerR = r*0.38, rot = -Math.PI/2;
+      ctx.beginPath();
+      for(var si=0; si<spikes*2; si++){
+        var rad = (si%2===0) ? outerR : innerR;
+        var an = rot + si*Math.PI/spikes;
+        var px = cx + Math.cos(an)*rad, py = cy + Math.sin(an)*rad;
+        if(si===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255,225,110,0.55)'; ctx.fill();
+      ctx.lineWidth = Math.max(1.6, r*0.12); ctx.lineJoin = 'round';
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -5110,10 +5534,10 @@
   function drawBoard(){
     var theme = THEMES[currentThemeIndex];
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle = theme.boardBg;
-    ctx.fillRect(0,0,W,H);
+    // 🍬 糖果玻璃风：画布本身透明，玻璃质感由外框(#m3GameWrap)负责；格子区只铺一层很淡的内凹感，让棋子"浮"在上面
     ctx.fillStyle = theme.boardGrid;
-    ctx.fillRect(BOARD_LEFT, BOARD_TOP, CELL*COLS, CELL*ROWS);
+    m3RoundRect(ctx, BOARD_LEFT-2, BOARD_TOP-2, CELL*COLS+4, CELL*ROWS+4, 18);
+    ctx.fill();
 
     // 先画一层固定在格子网格位置上的彩色卡片底——用棋盘当前这一格动物的主色，
     // 不受交换/下落动画影响，保证网格结构本身稳定不动，只有上面的动物会随动画移动
@@ -5166,11 +5590,11 @@
         ctx.save();
         if(isSelected){
           // 选中：紫色高亮 + 脉动光圈，提示"这只被点中了"
-          ctx.fillStyle = 'rgba(124,92,191,0.3)';
+          ctx.fillStyle = 'rgba(255,255,255,0.18)';
           ctx.beginPath(); ctx.roundRect ? ctx.roundRect(BOARD_LEFT+c*CELL+3, BOARD_TOP+r*CELL+3, CELL-6, CELL-6, 10) : ctx.rect(BOARD_LEFT+c*CELL+3, BOARD_TOP+r*CELL+3, CELL-6, CELL-6);
           ctx.fill();
-          ctx.strokeStyle = 'rgba(179,136,255,'+(0.55+0.3*Math.sin(frameCount*0.15)).toFixed(2)+')';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(255,255,255,'+(0.70+0.25*Math.sin(frameCount*0.15)).toFixed(2)+')';
+          ctx.lineWidth = 2.5;
           ctx.beginPath(); ctx.roundRect ? ctx.roundRect(BOARD_LEFT+c*CELL+3, BOARD_TOP+r*CELL+3, CELL-6, CELL-6, 10) : ctx.rect(BOARD_LEFT+c*CELL+3, BOARD_TOP+r*CELL+3, CELL-6, CELL-6);
           ctx.stroke();
         }
@@ -5283,7 +5707,7 @@
       ctx.globalAlpha = a;
       ctx.font = '800 '+ft.size+'px -apple-system,"PingFang SC",sans-serif';
       ctx.textAlign = 'center';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,253,245,0.9)';
+      ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(28,10,66,0.7)';
       ctx.strokeText(ft.text, ft.x, ft.y);
       ctx.fillStyle = ft.color;
       ctx.fillText(ft.text, ft.x, ft.y);
@@ -5297,6 +5721,7 @@
     // 顶多这一帧画面不对，下一帧还能正常恢复。
     try{
       update();
+      m3SyncPauseBtn();
       drawBoard();
     }catch(e){}
     requestAnimationFrame(loop);
@@ -5330,6 +5755,8 @@
     floatTexts = [];
     clearFlash = 0;
     chainDepth = 0;
+    surpriseSeq = 0;
+    surpriseThisMove = false;
     forcedClearCells = null;
     bombToolArmed = false;
     $('m3BombHint').style.display = 'none';
@@ -5342,6 +5769,7 @@
     $('m3TopPanel').style.display = 'flex';
     $('m3BottomPanel').style.display = 'flex';
     $('m3StartOverlay').style.display = 'none';
+    $('m3GameWrap').classList.remove('m3-menu');   // 开始玩：框回到棋盘那个正方形
     bombToolArmed = false;
     $('m3BombHint').style.display = 'none';
     updateReshuffleBtn();
@@ -5504,12 +5932,13 @@
     grid.appendChild(item3);
   }
   var shopToastTimer = null;
-  function showShopToast(msg){
+  function showShopToast(msg, isTip){
     var el = $('m3ShopToast');
     el.textContent = msg;
+    el.classList.toggle('tip', !!isTip);
     el.classList.add('show');
     if(shopToastTimer) clearTimeout(shopToastTimer);
-    shopToastTimer = setTimeout(function(){ el.classList.remove('show'); }, 1600);
+    shopToastTimer = setTimeout(function(){ el.classList.remove('show'); }, isTip ? 2800 : 1600);
   }
   // 通用的"购买确认"流程：钱不够就弹提示；钱够就弹"确定要买吗"的确认框，
   // 真正点了确认才会执行传进来的购买函数——不管钱够不够，点"购买"按钮都会有明确反馈，
@@ -5683,6 +6112,7 @@
     $('m3EndOverlay').style.display = 'none';
     $('m3TopPanel').style.display = 'none';
     $('m3BottomPanel').style.display = 'none';
+    $('m3GameWrap').classList.add('m3-menu');      // 选关界面：框往下加长，关卡和按钮完整可见
     renderLevelMap();
     $('m3StartOverlay').style.display = 'flex';
   }
@@ -5741,18 +6171,42 @@
   $('m3ReshuffleBtn').addEventListener('click', useReshuffle);
   $('m3BombToolBtn').addEventListener('click', useBombTool);
   $('m3ExtraMovesBtn').addEventListener('click', useExtraMoves);
-  $('m3PauseBtn').addEventListener('click', function(){
-    if(gameState!=='playing') return;
-    sfx.click();
-    gameState = 'paused';
-    $('m3PauseOverlay').style.display = 'flex';
-  });
-  $('m3ResumeBtn').addEventListener('click', function(){
+  // ⏸/▶ 暂停按钮：暂停中变成"继续 ▶"并高亮（加 paused 这个 class），再点一下就继续；
+  // 退出暂停（继续 / 再来一局 / 返回主页 / 通关结算……不管走哪条路）之后自动变回 ⏸。
+  // 图标状态在每一帧都跟 gameState 对一次（见 loop 里的 m3SyncPauseBtn），所以不会出现"游戏已经继续了、按钮还停在 ▶"这种不一致。
+  var SVG_PAUSE_16 = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3" y="2" width="3.4" height="12" rx="1.2"/><rect x="9.6" y="2" width="3.4" height="12" rx="1.2"/></svg>';
+  var SVG_PLAY_16 = '<svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M4.8 3v10l8-5z"/></svg>';
+  var pauseBtnShowsPaused = false;
+  function m3SyncPauseBtn(){
+    var paused = (gameState === 'paused');
+    if(paused === pauseBtnShowsPaused) return;
+    pauseBtnShowsPaused = paused;
+    var btn = $('m3PauseBtn');
+    btn.innerHTML = paused ? SVG_PLAY_16 : SVG_PAUSE_16;
+    btn.classList.toggle('paused', paused);
+    btn.setAttribute('aria-label', paused ? t().mario_resume : t().pause_btn);
+  }
+  function m3Resume(){
     LG.ensureAudio();
     sfx.click();
     gameState = 'playing';
     $('m3PauseOverlay').style.display = 'none';
+    m3SyncPauseBtn();
+  }
+  $('m3PauseBtn').addEventListener('click', function(){
+    if(gameState === 'paused'){
+      // 暂停中再点一下 = 继续；但商店/确认购买的弹层开着的时候先不处理，免得跟弹层打架（要先把弹层关掉）
+      if($('m3ShopOverlay').style.display==='flex' || $('m3ConfirmBuyOverlay').style.display==='flex') return;
+      m3Resume();
+      return;
+    }
+    if(gameState!=='playing') return;
+    sfx.click();
+    gameState = 'paused';
+    $('m3PauseOverlay').style.display = 'flex';
+    m3SyncPauseBtn();
   });
+  $('m3ResumeBtn').addEventListener('click', m3Resume);
   $('m3PauseRestartBtn').addEventListener('click', function(){
     LG.ensureAudio(); // 防御性调用：万一暂停期间浏览器把音频上下文挂起了，这里顺手唤醒
     sfx.click();
@@ -5889,15 +6343,18 @@
 
   // ---------- 主题：换天空 + 外壳配色，动物配色不变，跟消消乐主题一样先预览再进游戏 ----------
   var FRUIT_THEMES = [
-    { id:'day', nameKey:'fruit_theme_day', swatch:'linear-gradient(135deg,#3f96dd 0%, #8fc8ef 100%)',
-      screenBg:'linear-gradient(#3f96dd 0%, #8fc8ef 60%, #c9e7f7 100%)',
-      titleColor:'#ffffff', sky:['#3f96dd','#8fc8ef','#c9e7f7'] },
-    { id:'dusk', nameKey:'fruit_theme_dusk', swatch:'linear-gradient(135deg,#ff8f5e 0%, #ffd3a3 100%)',
-      screenBg:'linear-gradient(#e86a4a 0%, #ff9a6a 55%, #ffd3a3 100%)',
-      titleColor:'#ffffff', sky:['#e86a4a','#ff9a6a','#ffd9b0'] },
-    { id:'night', nameKey:'fruit_theme_night', swatch:'linear-gradient(135deg,#1c2a52 0%, #4a5f92 100%)',
-      screenBg:'radial-gradient(circle at 50% -10%, #2e4470 0%, #0d1530 70%)',
-      titleColor:'#f4c96b', sky:['#1c2a52','#2e4470','#4a5f92'] }
+    { id:'day', nameKey:'fruit_theme_day', accent:'110,205,255',
+      swatch:'radial-gradient(circle at 30% 20%, #6fd6ff 0%, #1b4aa8 45%, #081a4a 100%)',
+      screenBg:'radial-gradient(70% 45% at 12% 8%, rgba(90,210,255,0.34) 0%, rgba(90,210,255,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(150,130,255,0.30) 0%, rgba(150,130,255,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(255,140,200,0.24) 0%, rgba(255,140,200,0) 66%), linear-gradient(165deg,#081a4a 0%,#123a8a 55%,#1b4aa8 100%)',
+      titleColor:'#e3f5ff', sky:['#081a4a','#123a8a','#1b4aa8'], glows:['90,210,255','150,130,255','255,140,200'], capTop:'#a5ecff', capBottom:'#4aa9ff' },
+    { id:'dusk', nameKey:'fruit_theme_dusk', accent:'255,160,130',
+      swatch:'radial-gradient(circle at 30% 20%, #ffc09a 0%, #c04a5a 45%, #3a1220 100%)',
+      screenBg:'radial-gradient(70% 45% at 12% 8%, rgba(255,170,120,0.34) 0%, rgba(255,170,120,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(255,120,160,0.28) 0%, rgba(255,120,160,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(255,214,120,0.24) 0%, rgba(255,214,120,0) 66%), linear-gradient(165deg,#3a1220 0%,#652338 55%,#7d2f3f 100%)',
+      titleColor:'#fff0e6', sky:['#3a1220','#652338','#7d2f3f'], glows:['255,170,120','255,120,160','255,214,120'], capTop:'#ffd0b5', capBottom:'#ff7a8a' },
+    { id:'night', nameKey:'fruit_theme_night', accent:'190,140,255',
+      swatch:'radial-gradient(circle at 30% 20%, #ff7ac0 0%, #6a3fd0 45%, #1b1247 100%)',
+      screenBg:'radial-gradient(70% 45% at 12% 8%, rgba(255,122,190,0.34) 0%, rgba(255,122,190,0) 62%), radial-gradient(60% 45% at 92% 22%, rgba(96,190,255,0.28) 0%, rgba(96,190,255,0) 62%), radial-gradient(80% 50% at 50% 104%, rgba(168,124,255,0.40) 0%, rgba(168,124,255,0) 66%), linear-gradient(165deg,#1b1247 0%,#2a1a63 52%,#3a1f73 100%)',
+      titleColor:'#ffe6f5', sky:['#1b1247','#2a1a63','#3a1f73'], glows:['255,122,190','96,190,255','168,124,255'], capTop:'#ffb8e8', capBottom:'#a07bff' }
   ];
   var fruitThemeIndex = 0;
   function fruitTheme(){ return FRUIT_THEMES[fruitThemeIndex]; }
@@ -5905,9 +6362,9 @@
     fruitThemeIndex = idx;
     var th = FRUIT_THEMES[idx];
     var screenEl = document.getElementById('screen-fruit');
-    if(screenEl) screenEl.style.background = th.screenBg;
+    if(screenEl){ screenEl.style.background = th.screenBg; screenEl.style.setProperty('--fr-accent', th.accent || '190,140,255'); }
     $('fruitTitle').style.color = th.titleColor;
-    $('fruitCanvas').style.background = th.sky[2];
+    $('fruitCanvas').style.background = 'transparent';   // 玻璃感由外框负责，画布透出下面的糖果渐变背景
     LG.stats.fruit.themeId = th.id;
     LG.saveStats();
     renderFruitThemePreview();
@@ -5948,7 +6405,7 @@
     for(var i=0;i<faces.length;i++){
       var d = document.createElement('div');
       d.className = 'prev-dot';
-      d.style.background = 'rgba(255,255,255,0.35)';
+      d.style.background = 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.2))';
       d.textContent = faces[i];
       prev.appendChild(d);
     }
@@ -5963,12 +6420,33 @@
   function sfxWin(){ [523.25,659.25,783.99,1046.5].forEach(function(f,i){ setTimeout(function(){ LG.beep(f,0.14,'triangle',0.11); }, i*95); }); }
   function sfxLose(){ [392,349.23,311.13,261.63].forEach(function(f,i){ setTimeout(function(){ LG.beep(f,0.22,'sine',0.1); }, i*150); }); }
 
-  /* 150 关：每关从10种里随机抽 5~7 种，只数 150→200（一关比一关多）；
+  /* 150 关：每关从10种里随机抽 N 种；
      每种给随机权重再成对生成——这局香蕉多、下局西瓜多，每次打开都不重样；
-     只数永远偶数，保证理论上能清完 */
+     只数永远偶数，保证理论上能清完。
+     水果数量：前 50 关每关随机 60~120 只；第 51 关起 100 只，之后每高一关多 6 只，封顶 300 只（第 85 关起就固定 300 只）。
+     （每次开始这一关都会重新随机，所以同一关重玩，水果数也不一样。）
+     想调：改下面这几个数。种类越少越容易；只数请保持偶数。 */
+  var FRUIT_EARLY_MAX_LEVEL = 50;   // 前几关用"随机只数"
+  var FRUIT_EARLY_MIN = 60, FRUIT_EARLY_MAX = 120;   // 前 50 关：随机 60~120 只
+  var FRUIT_LATE_START = 100;       // 第 51 关的只数
+  var FRUIT_LATE_STEP = 6;          // 之后每高一关多几只
+  var FRUIT_WEIGHT_MIN = 0.7, FRUIT_WEIGHT_SPREAD = 0.9, FRUIT_STAR_BOOST = 1.5;   // 各种类数量的均衡程度，见 startLevel
+  var FRUIT_LATE_MAX = 300;         // 封顶只数（第 85 关起固定这个数；要一直加下去就把它改得很大，比如 9999；请保持偶数）
+  var FRUIT_EASY_LEVELS = 10;       // 前几关用较少的种类（FRUIT_TYPES_EARLY），之后用 FRUIT_TYPES_LATER
+  // 🩹 水果种类：原来前 10 关只有 3 种、之后 4 种，而且每局都有一个"主角水果"被加成到别的十几倍，
+  // 结果画面里几乎只看到 2~3 种。现在：前 10 关 4 种，之后 5 种；各种类的数量也拉得更均匀（下面 FRUIT_WEIGHT_*），
+  // 每种都能看到。种类越多越难（沟只有 4 格）：想更简单就把这两个数调小，想更丰富就调大（最多 10 种）。
+  var FRUIT_TYPES_EARLY = 4;        // 前 FRUIT_EASY_LEVELS 关的种类数
+  var FRUIT_TYPES_LATER = 5;        // 之后的种类数
+  function fruitTypesFor(lv){ return lv <= FRUIT_EASY_LEVELS ? FRUIT_TYPES_EARLY : FRUIT_TYPES_LATER; }
   function levelConfig(lv){
-    var types = 5 + Math.floor(Math.random()*3);
-    return { total: Math.min(150 + (lv-1)*2, 200), types: types };
+    var total;
+    if(lv <= FRUIT_EARLY_MAX_LEVEL){
+      total = FRUIT_EARLY_MIN + 2*Math.floor(Math.random() * ((FRUIT_EARLY_MAX - FRUIT_EARLY_MIN)/2 + 1));
+    } else {
+      total = Math.min(FRUIT_LATE_MAX, FRUIT_LATE_START + FRUIT_LATE_STEP*(lv - FRUIT_EARLY_MAX_LEVEL - 1));
+    }
+    return { total: total, types: fruitTypesFor(lv) };
   }
 
   function startLevel(lv){
@@ -5984,8 +6462,10 @@
     var pool = [0,1,2,3,4,5,6,7,8,9];
     for(var ps=pool.length-1;ps>0;ps--){ var pj = Math.floor(Math.random()*(ps+1)); var ptmp = pool[ps]; pool[ps] = pool[pj]; pool[pj] = ptmp; }
     pool = pool.slice(0, cfg.types);
-    var weights = pool.map(function(){ return 0.4 + Math.random()*2.2; });
-    weights[Math.floor(Math.random()*weights.length)] *= 2.5; // 本局"主角水果"，数量明显最多
+    // 每种水果的"占比权重"：原来是 0.4~2.6 再给一个主角乘 2.5（最多能差十几倍，画面里只剩两三种）；
+    // 现在 0.7~1.6，主角只乘 1.5（最多差三倍多），每种都有足够的数量，能看出种类多。
+    var weights = pool.map(function(){ return FRUIT_WEIGHT_MIN + Math.random()*FRUIT_WEIGHT_SPREAD; });
+    weights[Math.floor(Math.random()*weights.length)] *= FRUIT_STAR_BOOST; // 本局"主角水果"，数量稍多
     var bag = [];
     for(var k=0;k<cfg.total/2;k++){
       var roll = Math.random(), acc = 0, totalW = 0, tp = pool[0];
@@ -6051,14 +6531,22 @@
     f.mode = 'falling'; f.vy = 60; f.slot = slot;
     sfxDrop();
   }
-  // 中间腾地方了，两边自动飘进来补位（含中间侧边）：每约1秒挑一只挪一格，不响不打扰
+  // 中间腾地方了，两边自动飘进来补位：每隔一小会儿(FRUIT_DRIFT_INTERVAL)挑几只(FRUIT_DRIFT_PER_STEP)往中间挪一格，不响不打扰。
+  // 🩹 原来有两个问题：① 只有"不在中间可掉落区"的水果才会挪，可是可掉落区是第 3~6 列，第 3、6 列的水果永远不会再往中间靠，
+  // 于是中间两列（第 4、5 列）一旦被消空就一直是空的，只剩两边一堆水果；② 而且约 1.1 秒才挪一只，太慢。
+  // 现在：只要不在最中间那两列，就都会往中间挪（哪怕已经在可掉落区里）；挪得也勤快得多。
+  var FRUIT_DRIFT_INTERVAL = 0.4;   // 每隔多少秒补一次位
+  var FRUIT_DRIFT_PER_STEP = 2;     // 每次最多补几只
+  function isCenterCol(c){ return c === Math.floor((COLS-1)/2) || c === Math.ceil((COLS-1)/2); }
   function autoDriftStep(){
-    var mid = (DROP_L + DROP_R) / 2;
+    for(var n=0; n<FRUIT_DRIFT_PER_STEP; n++){ if(!autoDriftOnce()) break; }
+  }
+  function autoDriftOnce(){
     var cands = [];
     for(var i=0;i<fruits.length;i++){
       var f = fruits[i];
-      if(f.mode !== 'sky' || inDropZone(f)) continue;
-      var dir = f.ex < mid ? 1 : -1;
+      if(f.mode !== 'sky' || isCenterCol(f.col)) continue;
+      var dir = f.col < (COLS-1)/2 ? 1 : -1;
       var nc = f.col + dir;
       if(nc < 0 || nc >= COLS) continue;
       var count = 0;
@@ -6074,12 +6562,13 @@
       }
       if(!busy) cands.push({ f:f, nc:nc, ni:ni });
     }
-    if(!cands.length) return;
+    if(!cands.length) return false;
     // 优先挪下面的（先把视野填满），前3名里随机一只，看着像浮动不死板
     cands.sort(function(a,b){ return a.f.idx - b.f.idx; });
     var pick = cands[Math.floor(Math.random()*Math.min(3, cands.length))];
     removeFromColumn(pick.f);
     pick.f.col = pick.nc; pick.f.idx = pick.ni;
+    return true;
   }
   // 往中间挪一格：目标格有人占着就挪不动（做鬼脸），空着就滑过去
   function tryStepInward(f){
@@ -6125,9 +6614,12 @@
     burst(ditchX(slot), DITCH_Y, FRUITS[f.type].c, 6);
     resolvePairs();
     if(state !== 'playing') return;
-    var full = true;
-    for(var i=0;i<DITCH_SLOTS;i++){ if(!ditch[i]){ full = false; break; } }
-    if(full) endGame(false, 'full');
+    // 🩹 真实 bug：原来"4 格都非空就算满、直接输"，但格子里还包含"占位"（有一只水果正在往这格掉、还没落定）。
+    // 结果就是：沟里已经躺着 3 种不同的，再有一只**同种、马上就能配对消掉**的水果正在掉，只要另一只这时候落地就直接判输——
+    // 手快连点几只的人（也就是大多数人）会被这个冤枉地输掉。现在有占位时不判满，等它落定、那次落地再判断。
+    var full = true, hasComing = false;
+    for(var i=0;i<DITCH_SLOTS;i++){ if(!ditch[i]){ full = false; break; } if(ditch[i].coming) hasComing = true; }
+    if(full && !hasComing) endGame(false, 'full');
   }
   // 沟里同种凑够两只就消一对：飞进篮子 +20，剩下的往左靠拢；可能连锁多对
   function resolvePairs(){
@@ -6193,7 +6685,7 @@
 
     // 两边自动往中间飘填空
     autoDriftTimer += dt;
-    if(autoDriftTimer >= 1.1){ autoDriftTimer = 0; autoDriftStep(); }
+    if(autoDriftTimer >= FRUIT_DRIFT_INTERVAL){ autoDriftTimer = 0; autoDriftStep(); }
 
     for(var i=fruits.length-1;i>=0;i--){
       var f = fruits[i];
@@ -6360,8 +6852,78 @@
     ctx.closePath();
   }
 
+  // ══════════ 🍬 糖果玻璃风（跟萌宠消消乐一套）：深色底 + 糖果光晕 + 磨砂玻璃柱子/托盘 + 软 3D 果冻水果 ══════════
+  // 辅助：颜色提亮/压暗、转 rgba、当前主题光晕色
+  function fShade(hex, percent){
+    var num = parseInt(hex.replace('#',''),16);
+    var r0 = (num>>16)&0xff, g0 = (num>>8)&0xff, b0 = num&0xff;
+    function adj(c){ return Math.max(0, Math.min(255, Math.round(c + (percent<0 ? c*percent/100 : (255-c)*percent/100)))); }
+    return '#'+((1<<24)+(adj(r0)<<16)+(adj(g0)<<8)+adj(b0)).toString(16).slice(1);
+  }
+  function fRgba(hex, a){
+    var num = parseInt(hex.replace('#',''),16);
+    return 'rgba('+((num>>16)&0xff)+','+((num>>8)&0xff)+','+(num&0xff)+','+a+')';
+  }
+  function fAcc(a){ return 'rgba(' + fruitTheme().accent + ',' + a + ')'; }
+
+  // 🍬 果冻水果：光晕 + 贴地软阴影 + 左上打光的体积渐变 + 边缘光 + emoji + 高光。
+  // 全是静态的，按"种类"预渲染成一张小图缓存；每帧只 drawImage（原来是每帧现画 emoji，更费）。
+  var fruitSprites = {};
+  function getFruitSprite(type){
+    if(fruitSprites[type]) return fruitSprites[type];
+    var FT = FRUITS[type], r = R, dim = Math.ceil((r + 10) * 2);
+    var cv = document.createElement('canvas');
+    cv.width = Math.ceil(dim*DPR); cv.height = Math.ceil(dim*DPR);
+    var c2 = cv.getContext('2d');
+    c2.setTransform(DPR,0,0,DPR,0,0);
+    var cx = dim/2, cy = dim/2;
+    // 柔光晕
+    var hg = c2.createRadialGradient(cx, cy, r*0.55, cx, cy, r+9);
+    hg.addColorStop(0, fRgba(FT.c, 0.42)); hg.addColorStop(1, fRgba(FT.c, 0));
+    c2.fillStyle = hg; c2.beginPath(); c2.arc(cx, cy, r+9, 0, Math.PI*2); c2.fill();
+    // 贴地软阴影
+    c2.fillStyle = 'rgba(8,3,36,0.30)';
+    c2.beginPath(); c2.ellipse(cx, cy + r*0.86, r*0.78, r*0.2, 0, 0, Math.PI*2); c2.fill();
+    // 体积：亮部在左上，暗部在右下
+    var g = c2.createRadialGradient(cx - r*0.36, cy - r*0.42, r*0.08, cx + r*0.05, cy + r*0.05, r*1.08);
+    g.addColorStop(0, fShade(FT.c, 62)); g.addColorStop(0.38, fShade(FT.c, 20)); g.addColorStop(0.78, FT.c); g.addColorStop(1, fShade(FT.c, -26));
+    c2.fillStyle = g; c2.beginPath(); c2.arc(cx, cy, r, 0, Math.PI*2); c2.fill();
+    // 边缘光：一圈淡白边，像果冻透光
+    c2.strokeStyle = 'rgba(255,255,255,0.50)'; c2.lineWidth = 2;
+    c2.beginPath(); c2.arc(cx, cy, r-1, 0, Math.PI*2); c2.stroke();
+    // emoji：drawFruitFace 用的是外层 ctx 变量，这里临时换成小图的画布来画，画完换回来
+    var saved = ctx; ctx = c2;
+    try{ drawFruitFace(cx, cy, type, 36); }catch(e){}
+    ctx = saved;
+    // 高光：左上一块柔亮 + 一颗清晰的椭圆
+    var sg = c2.createRadialGradient(cx - r*0.4, cy - r*0.5, 0, cx - r*0.4, cy - r*0.5, r*0.6);
+    sg.addColorStop(0, 'rgba(255,255,255,0.42)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+    c2.fillStyle = sg; c2.beginPath(); c2.arc(cx, cy, r, 0, Math.PI*2); c2.fill();
+    c2.fillStyle = 'rgba(255,255,255,0.72)';
+    c2.beginPath(); c2.ellipse(cx - r*0.4, cy - r*0.55, r*0.2, r*0.1, -0.62, 0, Math.PI*2); c2.fill();
+    var sprite = { cv:cv, dim:dim };
+    fruitSprites[type] = sprite;
+    return sprite;
+  }
+  // 按半径 rr 画一只果冻水果（rr 不等于 R 时等比缩放）
+  function drawFruitSprite(x, y, type, rr){
+    var sp = getFruitSprite(type), s = (rr || R) / R, d = sp.dim * s;
+    ctx.drawImage(sp.cv, x - d/2, y - d/2, d, d);
+  }
+
+  function roundRectPath(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // 糖果云：半透明的柔光团
   function drawCloud(x, y, s){
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    var g = ctx.createRadialGradient(x+22*s, y-4*s, 2, x+22*s, y, 46*s);
+    g.addColorStop(0, 'rgba(255,255,255,0.28)'); g.addColorStop(1, 'rgba(255,255,255,0.04)');
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(x, y, 20*s, 0, Math.PI*2);
     ctx.arc(x+22*s, y-10*s, 16*s, 0, Math.PI*2);
@@ -6369,87 +6931,95 @@
     ctx.fill();
   }
 
+  // 玻璃柱子 + 糖果帽
   function drawWall(x, w){
-    // 砖墙
-    ctx.fillStyle = '#c99a63';
-    ctx.fillRect(x, WALL_TOP, w, H-WALL_TOP);
-    ctx.fillStyle = 'rgba(120,70,30,0.25)';
-    for(var ry=WALL_TOP+34; ry<H; ry+=34){ ctx.fillRect(x, ry, w, 3); }
+    var th = fruitTheme();
+    var g = ctx.createLinearGradient(0, WALL_TOP, 0, H);
+    g.addColorStop(0, 'rgba(255,255,255,0.24)'); g.addColorStop(1, 'rgba(255,255,255,0.07)');
+    ctx.fillStyle = g; ctx.fillRect(x, WALL_TOP, w, H-WALL_TOP);
+    // 淡淡的砖缝
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    for(var ry=WALL_TOP+34; ry<H; ry+=34){ ctx.fillRect(x, ry, w, 2); }
     for(var ry2=WALL_TOP; ry2<H; ry2+=34){
       var off = ((ry2/34)%2===0) ? w*0.5 : w*0.25;
-      ctx.fillRect(x+off, ry2, 3, 34);
+      ctx.fillRect(x+off, ry2, 2, 34);
     }
-    // 草顶
-    ctx.fillStyle = '#7fbf4d';
-    roundRectPath(x-6, WALL_TOP-26, w+12, 34, 12); ctx.fill();
-    ctx.fillStyle = '#6aa83e';
-    for(var gx=x; gx<x+w; gx+=26){
-      ctx.beginPath(); ctx.arc(gx+8, WALL_TOP+6, 13, 0, Math.PI*2); ctx.fill();
-    }
-    // 藤蔓
-    ctx.strokeStyle = '#4e8f2f'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    // 朝沟的那一侧亮边（像玻璃的切边）
+    ctx.fillStyle = 'rgba(255,255,255,0.38)';
+    if(x === 0) ctx.fillRect(x+w-2, WALL_TOP, 2, H-WALL_TOP); else ctx.fillRect(x, WALL_TOP, 2, H-WALL_TOP);
+    // 糖果帽：渐变胶囊 + 顶部高光 + 小糖粒
+    var cg = ctx.createLinearGradient(0, WALL_TOP-26, 0, WALL_TOP+8);
+    cg.addColorStop(0, th.capTop); cg.addColorStop(1, th.capBottom);
+    ctx.fillStyle = cg; roundRectPath(x-6, WALL_TOP-26, w+12, 34, 14); ctx.fill();
+    var hg = ctx.createLinearGradient(0, WALL_TOP-26, 0, WALL_TOP-6);
+    hg.addColorStop(0, 'rgba(255,255,255,0.65)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = hg; roundRectPath(x-4, WALL_TOP-25, w+8, 18, 12); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5; roundRectPath(x-6, WALL_TOP-26, w+12, 34, 14); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    for(var gx=x+8; gx<x+w-4; gx+=26){ ctx.beginPath(); ctx.arc(gx, WALL_TOP-6, 2.2, 0, Math.PI*2); ctx.fill(); }
+    // 一道发光的弧线（代替原来的藤蔓）
+    ctx.strokeStyle = fAcc(0.40); ctx.lineWidth = 3; ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(x+w*0.3, WALL_TOP+8);
+    ctx.moveTo(x+w*0.3, WALL_TOP+14);
     ctx.quadraticCurveTo(x+w*0.2, WALL_TOP+70, x+w*0.35, WALL_TOP+120);
     ctx.stroke();
-    ctx.fillStyle = '#5da53a';
-    ctx.beginPath(); ctx.ellipse(x+w*0.22, WALL_TOP+60, 10, 5, 0.5, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(x+w*0.36, WALL_TOP+95, 10, 5, -0.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.arc(x+w*0.22, WALL_TOP+60, 2.4, 0, Math.PI*2); ctx.arc(x+w*0.36, WALL_TOP+96, 2, 0, Math.PI*2); ctx.fill();
   }
 
+  // 糖果篮子：粉紫渐变的玻璃篮 + 高光
   function drawBasket(){
-    var s = 1 + basket.pop*0.12;
+    var s2 = 1 + basket.pop*0.12;
     ctx.save();
     ctx.translate(basket.x, BASKET_Y);
-    ctx.scale(s, s);
-    // 篮身
-    ctx.fillStyle = '#b07a3f';
+    ctx.scale(s2, s2);
+    var bg = ctx.createLinearGradient(0, -6, 0, BASKET_H);
+    bg.addColorStop(0, '#ffa8d8'); bg.addColorStop(1, '#9a6bff');
+    ctx.fillStyle = bg;
     ctx.beginPath();
     ctx.moveTo(-BASKET_W/2, -6); ctx.lineTo(BASKET_W/2, -6);
     ctx.lineTo(BASKET_W/2-12, BASKET_H); ctx.lineTo(-BASKET_W/2+12, BASKET_H);
     ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#7a4f22'; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.strokeStyle = 'rgba(122,79,34,0.6)'; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.5;
     for(var ly=2; ly<BASKET_H; ly+=8){
       ctx.beginPath(); ctx.moveTo(-BASKET_W/2+4+ly*0.4, ly-6); ctx.lineTo(BASKET_W/2-4-ly*0.4, ly-6); ctx.stroke();
     }
     // 已消除的战果先摆进篮子（下半截一会儿被篮口盖住，只露一半）
     for(var i=0;i<basketMinis.length;i++){
       var mx = -(basketMinis.length-1)*11 + i*22, my = -11;
-      ctx.fillStyle = FRUITS[basketMinis[i]].c;
-      ctx.beginPath(); ctx.arc(mx, my, 9, 0, Math.PI*2); ctx.fill();
-      drawFruitFace(mx, my, basketMinis[i], 12);
+      drawFruitSprite(mx, my, basketMinis[i], 10);
     }
-    // 篮口 + 格纹布（盖住果子下半截）
-    ctx.fillStyle = '#8a5c2a';
+    // 篮口：亮粉玻璃环 + 半透明的糖果布
+    var rg = ctx.createLinearGradient(0, -16, 0, 4);
+    rg.addColorStop(0, '#ffd2ec'); rg.addColorStop(1, '#b48aff');
+    ctx.fillStyle = rg;
     ctx.beginPath(); ctx.ellipse(0, -6, BASKET_W/2, 10, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#f6c9d4';
+    ctx.fillStyle = 'rgba(255,240,250,0.85)';
     ctx.beginPath(); ctx.ellipse(0, -6, BASKET_W/2-8, 6.5, 0, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.2;
     for(var lx=-BASKET_W/2+12; lx<BASKET_W/2-8; lx+=10){
       ctx.beginPath(); ctx.moveTo(lx, -11); ctx.lineTo(lx+6, -1); ctx.stroke();
     }
     ctx.restore();
   }
 
-  // 沟槽：木头框 + 4 个格子，只装 4 只，空格画虚线圈
+  // 沟槽：磨砂玻璃托盘 + 4 个格子，只装 4 只，空格画发光虚线圈
   function drawDitch(){
     var trayW = (DITCH_SLOTS-1)*SLOT_DX + 2*R + 24;
     var trayX = BASKET_X - trayW/2, trayY = DITCH_Y - R - 14;
     var trayH = 2*R + 28;
-    ctx.fillStyle = '#8a5c2a';
-    roundRectPath(trayX, trayY, trayW, trayH, 12); ctx.fill();
-    ctx.fillStyle = '#a9763d';
-    roundRectPath(trayX+5, trayY+5, trayW-10, trayH-10, 9); ctx.fill();
+    var tg = ctx.createLinearGradient(0, trayY, 0, trayY+trayH);
+    tg.addColorStop(0, 'rgba(255,255,255,0.32)'); tg.addColorStop(1, 'rgba(255,255,255,0.10)');
+    ctx.fillStyle = tg; roundRectPath(trayX, trayY, trayW, trayH, 18); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1.5; roundRectPath(trayX, trayY, trayW, trayH, 18); ctx.stroke();
+    ctx.fillStyle = 'rgba(10,4,44,0.40)'; roundRectPath(trayX+6, trayY+6, trayW-12, trayH-12, 13); ctx.fill();
     for(var i=0;i<DITCH_SLOTS;i++){
       var sx = ditchX(i), cell = ditch[i];
       if(cell && !cell.coming){
-        ctx.fillStyle = FRUITS[cell.type].c;
-        ctx.beginPath(); ctx.arc(sx, DITCH_Y, R, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 2; ctx.stroke();
-        drawFruitFace(sx, DITCH_Y, cell.type, 36);
+        drawFruitSprite(sx, DITCH_Y, cell.type, R);
       } else {
-        ctx.strokeStyle = cell ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)';
+        ctx.strokeStyle = cell ? fAcc(0.95) : fAcc(0.5);
         ctx.lineWidth = 2;
         ctx.setLineDash([5,4]);
         ctx.beginPath(); ctx.arc(sx, DITCH_Y, R-2, 0, Math.PI*2); ctx.stroke();
@@ -6458,22 +7028,84 @@
     }
   }
 
-  function drawFruit(f){
-    var FT = FRUITS[f.type];
+  // 😮 惊讶 / 😭 哭泣：贴在水果上的一张脸（水果本体是 emoji、本来没有脸，所以是画上去的，
+  // 跟"被挡住点不动时做鬼脸"是同一个思路）。rr=水果半径，按比例缩放；tt=动画计时（哭泣的眼泪用它往下流）。
+  function drawFruitExpr(x, y, rr, kind, tt){
+    var k = rr / 24;
     ctx.save();
-    // 天上飘的带一圈呼吸白环，提示"可以点我"
+    ctx.translate(x, y); ctx.scale(k, k);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if(kind === 'surprised'){
+      // 眉毛：高高挑起
+      ctx.strokeStyle = 'rgba(60,35,30,0.92)'; ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(-15,-14); ctx.quadraticCurveTo(-9,-20,-3,-14);
+      ctx.moveTo(3,-14); ctx.quadraticCurveTo(9,-20,15,-14);
+      ctx.stroke();
+      // 眼睛：睁得大大的
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-9,-4,8.5,0,Math.PI*2); ctx.arc(9,-4,8.5,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = 'rgba(60,35,30,0.35)'; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(-9,-4,8.5,0,Math.PI*2); ctx.moveTo(17.5,-4); ctx.arc(9,-4,8.5,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle = '#33222A';
+      ctx.beginPath(); ctx.arc(-9,-4,3,0,Math.PI*2); ctx.arc(9,-4,3,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-8,-5.2,1.1,0,Math.PI*2); ctx.arc(10,-5.2,1.1,0,Math.PI*2); ctx.fill();
+      // 嘴：张成 O 形
+      ctx.fillStyle = '#5A2A2A';
+      ctx.beginPath(); ctx.ellipse(0,12,5.5,7.5,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.beginPath(); ctx.ellipse(-1.6,9.5,1.4,2.4,0,0,Math.PI*2); ctx.fill();
+      // 头顶三道"惊"线（先描一圈深色边，浅色背景上也看得清）
+      var sh = [[-10,-31,-14,-37],[0,-33,0,-40],[10,-31,14,-37]];
+      ctx.strokeStyle = 'rgba(40,20,70,0.55)'; ctx.lineWidth = 4.6;
+      ctx.beginPath(); for(var i=0;i<sh.length;i++){ ctx.moveTo(sh[i][0],sh[i][1]); ctx.lineTo(sh[i][2],sh[i][3]); } ctx.stroke();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.4;
+      ctx.beginPath(); for(var j=0;j<sh.length;j++){ ctx.moveTo(sh[j][0],sh[j][1]); ctx.lineTo(sh[j][2],sh[j][3]); } ctx.stroke();
+    } else if(kind === 'cry'){
+      // 八字眉：内侧上扬，一副委屈样
+      ctx.strokeStyle = 'rgba(60,35,30,0.92)'; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.moveTo(-16,-13); ctx.lineTo(-5,-18); ctx.moveTo(16,-13); ctx.lineTo(5,-18); ctx.stroke();
+      // 眼睛：紧闭的 > <（先描白边再描深色，颜色再花也看得清）
+      var eyes = [[-14,-9,-6,-4,-14,1],[14,-9,6,-4,14,1]];
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 5.4;
+      for(var e=0;e<2;e++){ ctx.beginPath(); ctx.moveTo(eyes[e][0],eyes[e][1]); ctx.lineTo(eyes[e][2],eyes[e][3]); ctx.lineTo(eyes[e][4],eyes[e][5]); ctx.stroke(); }
+      ctx.strokeStyle = '#33222A'; ctx.lineWidth = 2.8;
+      for(var e2=0;e2<2;e2++){ ctx.beginPath(); ctx.moveTo(eyes[e2][0],eyes[e2][1]); ctx.lineTo(eyes[e2][2],eyes[e2][3]); ctx.lineTo(eyes[e2][4],eyes[e2][5]); ctx.stroke(); }
+      // 眼泪：两道泪痕 + 不停往下流的泪珠
+      for(var sd=-1; sd<=1; sd+=2){
+        ctx.strokeStyle = 'rgba(160,225,255,0.75)'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(sd*12, 1); ctx.lineTo(sd*14, 21); ctx.stroke();
+        for(var dj=0; dj<2; dj++){
+          var ph = ((tt||0)*1.6 + dj*0.5 + (sd>0?0.25:0)) % 1;
+          var tx = sd*(12 + ph*2), ty = 1 + ph*22, al = 1 - ph*0.6;
+          ctx.globalAlpha = al;
+          ctx.fillStyle = '#9fe0ff'; ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(tx, ty-4.5); ctx.quadraticCurveTo(tx+4, ty+1, tx, ty+4.5); ctx.quadraticCurveTo(tx-4, ty+1, tx, ty-4.5); ctx.fill(); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      // 嘴：哇哇大哭
+      ctx.fillStyle = '#5A2A2A';
+      ctx.beginPath(); ctx.ellipse(0,14,7.5,5.5,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ff8fa3';
+      ctx.beginPath(); ctx.ellipse(0,16.2,4,2.4,0,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawFruit(f){
+    ctx.save();
+    // 天上飘的带一圈呼吸光环，提示"可以点我"
     if(f.mode === 'sky'){
-      var pulse = 0.35 + 0.25*Math.sin(frameCount*0.08 + f.phase);
+      var pulse = 0.30 + 0.25*Math.sin(frameCount*0.08 + f.phase);
       ctx.strokeStyle = 'rgba(255,255,255,'+pulse.toFixed(2)+')';
       ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(f.x, f.y, f.r+4, 0, Math.PI*2); ctx.stroke();
     }
-    ctx.fillStyle = FT.c;
-    ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 2; ctx.stroke();
-    drawFruitFace(f.x, f.y, f.type, 36);
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.beginPath(); ctx.ellipse(f.x-8, f.y-11, 6, 3.5, -0.5, 0, Math.PI*2); ctx.fill();
+    drawFruitSprite(f.x, f.y, f.type, f.r);
+    // 刚被点中、正在往沟里掉：露出惊讶的表情（落进沟里就不显示了）
+    if(f.mode === 'falling') drawFruitExpr(f.x, f.y, f.r, 'surprised', frameCount);
     // 被挡住点不动：随机做鬼脸——睁大眼 / 惊讶O嘴，0.7秒自己消失
     if(f.react > 0){
       var a = Math.min(1, f.react/0.3);
@@ -6494,61 +7126,83 @@
     ctx.restore();
   }
 
+  // 顶部信息胶囊：磨砂玻璃
   function drawHudPill(x, y, text, align){
     ctx.font = '800 17px -apple-system,"PingFang SC",sans-serif';
     var wpx = ctx.measureText(text).width + 22;
     var bx = align === 'right' ? x - wpx : (align === 'center' ? x - wpx/2 : x);
-    ctx.fillStyle = 'rgba(20,50,100,0.45)';
-    roundRectPath(bx, y, wpx, 30, 15); ctx.fill();
+    var pg = ctx.createLinearGradient(0, y, 0, y+30);
+    pg.addColorStop(0, 'rgba(34,20,92,0.86)'); pg.addColorStop(1, 'rgba(22,12,66,0.80)');   // 深色磨砂玻璃，压在水果上也看得清
+    ctx.fillStyle = pg; roundRectPath(bx, y, wpx, 30, 15); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1; roundRectPath(bx+0.5, y+0.5, wpx-1, 29, 14.5); ctx.stroke();
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 4;
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(text, bx + wpx/2, y + 16);
+    ctx.restore();
+  }
+
+  // 🩹 顶部信息（剩余 / 第几关 / 分数）：水果多的时候，最上面几排水果会叠到画布顶端，原来信息是先画的、被水果盖住了。
+  // 现在：信息放到水果上层画，并且先垫一层从上往下渐隐的深色底、胶囊本身也更不透明，压在水果上面字也看得清。
+  function drawHud(){
+    var sg = ctx.createLinearGradient(0, 0, 0, 60);
+    sg.addColorStop(0, 'rgba(10,4,44,0.66)'); sg.addColorStop(1, 'rgba(10,4,44,0)');
+    ctx.fillStyle = sg; ctx.fillRect(0, 0, W, 60);
+    drawHudPill(12, 12, t().fruit_remaining_label(skyCount()), 'left');
+    drawHudPill(W/2, 12, t().fruit_level_label(level), 'center');
+    var sc = '⭐ ' + score;
+    ctx.font = '800 17px -apple-system,"PingFang SC",sans-serif';
+    drawHudPill(W-12, 12, sc, 'right');
   }
 
   function draw(){
-    // 天（跟主题走）
-    var sk = fruitTheme().sky;
-    var sky = ctx.createLinearGradient(0,0,0,H);
-    sky.addColorStop(0,sk[0]); sky.addColorStop(0.55,sk[1]); sky.addColorStop(1,sk[2]);
-    ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+    var th = fruitTheme();
+    ctx.clearRect(0, 0, W, H);   // 画布透明：糖果渐变背景和玻璃外框由页面负责
+    // 三团慢慢飘的糖果光晕
+    for(var gi=0; gi<3; gi++){
+      var gx = W*(0.2+0.3*gi) + Math.sin(frameCount*0.004 + gi*2)*40, gy = 120 + gi*150 + Math.cos(frameCount*0.003 + gi)*30;
+      var gg = ctx.createRadialGradient(gx, gy, 0, gx, gy, 190);
+      gg.addColorStop(0, 'rgba('+th.glows[gi]+',0.20)'); gg.addColorStop(1, 'rgba('+th.glows[gi]+',0)');
+      ctx.fillStyle = gg; ctx.fillRect(gx-190, gy-190, 380, 380);
+    }
     // 云
     for(var i=0;i<clouds.length;i++){
       var c = clouds[i];
       var cx = (c.x + frameCount*0.016*c.v) % (W+140) - 70;
       drawCloud(cx, c.y, c.s);
     }
-    // 远山
-    ctx.fillStyle = 'rgba(140,190,230,0.55)';
+    // 远处的柔光山丘
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
     ctx.beginPath(); ctx.ellipse(90, 330, 150, 60, 0, Math.PI, 0); ctx.fill();
     ctx.beginPath(); ctx.ellipse(400, 340, 170, 70, 0, Math.PI, 0); ctx.fill();
     // 中间可掉落区引导线：两边的水果先点着挪进来，进了这两条线才能点落
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.strokeStyle = fAcc(0.42);
     ctx.lineWidth = 2;
     ctx.setLineDash([8,7]);
     ctx.beginPath(); ctx.moveTo(DROP_L, 66); ctx.lineTo(DROP_L, WALL_TOP-28); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(DROP_R, 66); ctx.lineTo(DROP_R, WALL_TOP-28); ctx.stroke();
     ctx.setLineDash([]);
-    // 洞 shaft 底（天色透下去）
-    ctx.fillStyle = 'rgba(30,80,150,0.18)';
+    // 洞 shaft 底（更深一点的玻璃）
+    ctx.fillStyle = 'rgba(8,3,40,0.30)';
     ctx.fillRect(GAP_L, WALL_TOP, GAP_R-GAP_L, H-WALL_TOP);
     // 双墙
     drawWall(0, GAP_L);
     drawWall(GAP_R, W-GAP_R);
     // 沟槽（4 格）+ 顶部 HUD
     drawDitch();
-    drawHudPill(12, 12, t().fruit_remaining_label(skyCount()), 'left');
-    drawHudPill(W/2, 12, t().fruit_level_label(level), 'center');
-    var sc = '⭐ ' + score;
-    ctx.font = '800 17px -apple-system,"PingFang SC",sans-serif';
-    drawHudPill(W-12, 12, sc, 'right');
-    // 篮子 + 水果 + 飞进篮子的 + 特效
+    // 篮子 + 水果 + 飞进篮子的 + 特效（顶部信息放到水果的上层去画，见下面的 drawHud）
     drawBasket();
-    for(var fi=0;fi<fruits.length;fi++) drawFruit(fruits[fi]);
+    for(var fi=0;fi<fruits.length;fi++){
+      var ff = fruits[fi];
+      if(ff.y !== undefined && ff.y < -R*2) continue;   // 整只都在画布上方，跳过
+      drawFruit(ff);
+    }
     for(var yi=0;yi<flyers.length;yi++){
       var yl = flyers[yi];
-      ctx.fillStyle = FRUITS[yl.type].c;
-      ctx.beginPath(); ctx.arc(yl.x, yl.y, 18, 0, Math.PI*2); ctx.fill();
-      drawFruitFace(yl.x, yl.y, yl.type, 26);
+      drawFruitSprite(yl.x, yl.y, yl.type, 18);
+      drawFruitExpr(yl.x, yl.y, 18, 'cry', yl.t);   // 配对消掉、跳向篮子的水果：哭泣的表情
     }
+    drawHud();   // 顶部信息：盖在水果上面
     for(var pi=0;pi<particles.length;pi++){
       var p = particles[pi];
       ctx.globalAlpha = Math.max(0, 1 - p.age/p.life);
@@ -6561,7 +7215,7 @@
       ctx.globalAlpha = Math.max(0, 1 - ft.age/ft.life);
       ctx.font = '800 20px -apple-system,"PingFang SC",sans-serif';
       ctx.textAlign = 'center';
-      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(20,50,100,0.6)';
+      ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(28,10,66,0.7)';
       ctx.strokeText(ft.text, ft.x, ft.y);
       ctx.fillStyle = ft.color;
       ctx.fillText(ft.text, ft.x, ft.y);

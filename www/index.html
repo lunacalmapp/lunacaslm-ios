@@ -9,7 +9,7 @@
      得把全站几百处 onclick 都改成 addEventListener，是另一件工程量大得多的独立重构，
      不在这次"顺手修一下"的范围内。当前这版 CSP 挡的是"外部脚本注入"这一类真正的高危场景，
      跟内联 onclick 本身不是一回事。 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://*.firebaseapp.com https://asia-southeast1-sasomboon.cloudfunctions.net; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://*.firebaseapp.com https://asia-southeast1-sasomboon.cloudfunctions.net https://lunacalm.app; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self';">
 <script>
   // ██ PLAY 版总开关（必须最早定义，全文件生效）██
   // Play 上架版第一版=纯净免费版：隐藏外部支付、关闭试用锁、功能全开。
@@ -7134,7 +7134,14 @@ onValue(ref(db,'notifications'), snap => {
     // 太突然容易吓到人；改成先铺一层"加载中"过渡（白底+转圈，3秒），缓冲一下再露出弹窗，
     // 体感上更像"在准备内容"，不是突然弹出来一个陌生的东西。同样是纯本地 setTimeout 计时，
     // 不依赖任何网络请求，不会卡住。
+    // 🔘 开关：true＝引导页结束/跳过后弹"免费 vs 会员"对比页；false＝跳过，直接进首页。
+    // 想切换的时候，只改这一行的 true/false，其它都不用动。
+    var SHOW_TRIAL_INTRO_PAGE = true;
     function _showTrialIntroWithLoading(onConfirm){
+      if(!SHOW_TRIAL_INTRO_PAGE){
+        try{ if(typeof onConfirm === 'function') onConfirm(); }catch(e){}
+        return;
+      }
       try{
         document.querySelectorAll('#obTrialLoadingOverlay').forEach(function(el){ el.remove(); });
         const overlay = document.createElement('div');
@@ -7235,7 +7242,8 @@ onValue(ref(db,'notifications'), snap => {
             <button id="trialIntroConfirmBtn" class="ob-btn-pulse"
               style="width:100%;padding:18px 0;border:none;border-radius:20px;margin-top:auto;flex-shrink:0;
               background:${_tc.btn};color:#fff;font-size:17px;font-weight:700;
-              font-family:inherit;cursor:pointer;box-shadow:0 10px 26px ${_tc.btnShadow};">${isTh?'ตกลง':'确定'}</button>
+              font-family:inherit;cursor:pointer;box-shadow:0 10px 26px ${_tc.btnShadow};">${isTh?'เริ่มใช้งาน':'免费开始使用'}</button>
+            <div style="text-align:center;margin-top:10px;flex-shrink:0;font-size:12.5px;color:${_tc.ink};opacity:0.55;">${isTh?'ไม่ต้องชำระเงิน':'无需付款'}</div>
           </div>`;
         document.body.appendChild(m);
         _onTrialCompareScroll(); // 初始化圆点状态（默认停在第1页）
@@ -13584,13 +13592,27 @@ window.setLang = setLang;
       }catch(e){ resolve(); }
     });
   };
-  // 🩹 这次只有安卓那边报过"lumi.html打不开"，iOS本来就没问题——所以这里恢复回最原始的
-  // 直接跳转写法，不加探测+备用线路那一套。加上的话，等于让iOS也去扛"fetch预检测在
-  // WKWebView上行为不一定跟安卓WebView一致"这个新增风险，收益(iOS本来没问题)配不上这个风险。
+  // 🔘 2026-09-21 开关：true＝先看网上（lunacalm.app）有没有能打开的最新版 Lumi，能打开就用那份——
+  // 以后想更新 Lumi/小游戏内容，只要把新文件传到 lunacalm.app，不用再走App商店审核；
+  // 连不上网/连不上那个网址，2.5秒内退回本地打包版，不会卡住。false＝固定用本地打包版。
+  var PREFER_REMOTE_LUMI = false;
+  var REMOTE_LUMI_URL = 'https://lunacalm.app/lumi';
+  var LOCAL_LUMI_URL = '/lumi.html';
+  function _goRemoteOrLocal(remoteUrl, localUrl, prefer){
+    if(!prefer){ location.href = localUrl; return; }
+    var settled = false;
+    function go(url){ if(settled) return; settled = true; location.href = url; }
+    try{
+      Promise.race([
+        fetch(remoteUrl, {mode:'no-cors', cache:'no-store'}).then(function(){ return true; }),
+        new Promise(function(resolve){ setTimeout(function(){ resolve(false); }, 2500); })
+      ]).then(function(ok){ go(ok ? remoteUrl : localUrl); }).catch(function(){ go(localUrl); });
+    }catch(e){ go(localUrl); }
+  }
   window._enterLumi = function(){
     try{ localStorage.setItem('luna_returnTo', location.pathname); }catch(e){}
     try{ if(window._closeLunaPanel) window._closeLunaPanel(); }catch(e){}
-    var go=function(){ location.href='/lumi.html'; };
+    var go=function(){ _goRemoteOrLocal(REMOTE_LUMI_URL, LOCAL_LUMI_URL, PREFER_REMOTE_LUMI); };
     if(window._prefetchLumiSave){ window._prefetchLumiSave().then(go, go); } else { go(); }
   };
 

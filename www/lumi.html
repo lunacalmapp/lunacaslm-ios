@@ -13325,23 +13325,23 @@ let sleepMode={ timerMin:0, remainSec:0, fadeStarted:false, endAt:0 };
 let _pausedForBackground=false;
 function isSleepScene(){ return scene==='nightview' || scene==='lakeview' || scene==='skydeck'; }
 
-// 🩹 备用线路：万一本地打包进App里的 luna-games.html 因为某次构建漏打包/损坏而打不开，
-// 不再直接卡死在浏览器自己的报错页——先探测一下本地文件是否真的能打开，
-// 不行就自动改走 Netlify 上托管的备份版本。
-// ⚠️ LUMI_FALLBACK_BASE 这个地址现在是占位符，部署到 Netlify 之后要把这里换成真实网址
-// (index_apk.html、luna-games.html 里也各有一处一样的占位符，几个地方要一起换)
-//
-// 🩹 只限安卓才走这套探测逻辑——这次报"打不开"的只有安卓，iOS本来没问题。
-// lumi.html这份文件是两个平台共用的同一份，不能像index_apk/index-27那样直接分开改，
-// 只能在代码里判断平台：iOS(以及网页环境)保持原来最简单的直接跳转，不承担
-// "fetch预检测在WKWebView上行为不一定跟安卓WebView一致"这个多余的新风险。
-var LUMI_FALLBACK_BASE = 'https://YOUR-SITE-NAME.netlify.app';
+// 🔘 2026-09-21 开关：true＝先看网上（lunacalm.app）有没有能打开的最新版游戏中心，能打开就用那份——
+// 以后想更新三个小游戏，只要把新文件传到 lunacalm.app，不用再走App商店审核；
+// 连不上网/连不上那个网址，2.5秒内退回本地打包版，不会卡住。false＝固定用本地打包版。
+// 两个平台现在走同一套逻辑，不用再分安卓/iOS。
+var PREFER_REMOTE_GAMES = false;
+var REMOTE_GAMES_URL = 'https://lunacalm.app/luna-games';
+var LOCAL_GAMES_URL = '/luna-games.html';
 window._navToGamesOrFallback = function(){
-  const isAndroid = !!(window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android');
-  if(!isAndroid){ location.href = '/luna-games.html'; return; }
-  fetch('/luna-games.html', {method:'HEAD', cache:'no-store'}).then(function(r){
-    location.href = (r && r.ok) ? '/luna-games.html' : (LUMI_FALLBACK_BASE + '/luna-games.html');
-  }).catch(function(){ location.href = LUMI_FALLBACK_BASE + '/luna-games.html'; });
+  if(!PREFER_REMOTE_GAMES){ location.href = LOCAL_GAMES_URL; return; }
+  var settled = false;
+  function go(url){ if(settled) return; settled = true; location.href = url; }
+  try{
+    Promise.race([
+      fetch(REMOTE_GAMES_URL, {mode:'no-cors', cache:'no-store'}).then(function(){ return true; }),
+      new Promise(function(resolve){ setTimeout(function(){ resolve(false); }, 2500); })
+    ]).then(function(ok){ go(ok ? REMOTE_GAMES_URL : LOCAL_GAMES_URL); }).catch(function(){ go(LOCAL_GAMES_URL); });
+  }catch(e){ go(LOCAL_GAMES_URL); }
 };
 
 // ══════════════════════════════════════════════════════════

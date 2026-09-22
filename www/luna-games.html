@@ -2676,8 +2676,23 @@
   $('cardMario').addEventListener('click', function(){ showScreen('mario'); });
   $('cardMatch3').addEventListener('click', function(){ showScreen('match3'); });
   $('cardFruit').addEventListener('click', function(){ showScreen('fruit'); });
-  // 🏠 回 Lumi 房间：跟 lumi-1-8-b.html 同目录，直接相对路径跳回去，存档都在 localStorage 里不会丢
-  $('btnHubLumi').addEventListener('click', function(){ location.href = 'lumi-1-8-b.html'; });
+  // 🏠 回 Lumi 房间：真实文件名是 lumi.html（之前这里错写成了 lumi-1-8-b.html，点了没反应，2026-09-21 已修）。
+  // 🔘 开关：true＝先看网上（lunacalm.app）有没有能打开的最新版 Lumi，2.5秒内连不上就退回本地打包版；
+  // false＝固定用本地打包版。存档都在 localStorage 里，走哪条线路都不会丢。
+  var PREFER_REMOTE_LUMI = false;
+  var REMOTE_LUMI_URL = 'https://lunacalm.app/lumi';
+  var LOCAL_LUMI_URL = '/lumi.html';
+  $('btnHubLumi').addEventListener('click', function(){
+    if(!PREFER_REMOTE_LUMI){ location.href = LOCAL_LUMI_URL; return; }
+    var settled = false;
+    function go(url){ if(settled) return; settled = true; location.href = url; }
+    try{
+      Promise.race([
+        fetch(REMOTE_LUMI_URL, {mode:'no-cors', cache:'no-store'}).then(function(){ return true; }),
+        new Promise(function(resolve){ setTimeout(function(){ resolve(false); }, 2500); })
+      ]).then(function(ok){ go(ok ? REMOTE_LUMI_URL : LOCAL_LUMI_URL); }).catch(function(){ go(LOCAL_LUMI_URL); });
+    }catch(e){ go(LOCAL_LUMI_URL); }
+  });
   $('btnShareScore').addEventListener('click', function(){
     shareScore(lbViewMode, stats[lbViewMode].highScore, $('btnShareScore'));
   });
@@ -4326,7 +4341,8 @@
   // 色相拉开、明度统一拉高，6种放在一起鲜艳但不刺眼，跟"萌系现代卡通"统一。
   // 背景做6款深浅不同：深色2款（对比强、动物更跳）+ 浅色4款，棋盘底/格子底跟着主题走，
   // 不再全是单一奶白色。动物配色6款主题共用同一套，保证认得清哪只对哪只。
-  var M3_ANIMALS = ['#FF86BE','#FFA654','#FFDE4D','#5CCBFF','#FF6684','#A98BFF'];   // 糖果粉/橘子/柠檬黄/汽水蓝/树莓红/葡萄紫
+  var M3_ANIMALS = ['#F881CD','#50E281','#F7DE64','#6FBBF6','#F65F5A','#AE86F3'];   // 2026-09-22 重配色：橘子色改成了草绿色，跟黄色/红色拉开距离(原来橘-黄只差20°、红-粉只差16°，真机上容易看混)；
+  // 六个色相基本按60°等分排开，同时把饱和度从100%降到~72-90%，缓解真机上"太鲜艳发灰"的观感。糖果粉/草绿/柠檬黄/天蓝/珊瑚红/葡萄紫
   var M3_FACES = ['🐰','🐱','🐶','🐼','🦊','🐻'];
   function hexToRgba(hex, a){
     var num = parseInt(hex.replace('#',''),16);

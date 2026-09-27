@@ -36,7 +36,9 @@
     banner: null,      // {enabled, title:{zh,th}, body:{zh,th}, icon, link, startAt, endAt}
     featureFlags: {},  // 例如 {aiAssistant:false} 就能远程关掉首页AI小助手悬浮球，不用发版
     images: {},        // 例如 {cycleGirlPose0:'https://...'} 就能远程换掉首页那几张卡通女孩插画，不用发版
-    popupNotice: null  // {enabled, id, message:{zh,th}} —— 独立于铃铛通知的强提醒弹窗，见下方 _showSystemPopupNotice
+    popupNotice: null, // {enabled, id, message:{zh,th}} —— 独立于铃铛通知的强提醒弹窗，见下方 _showSystemPopupNotice
+    guestLoginBanner: null  // {enabled, title:{zh,th}, body:{zh,th}} —— 只给"没登录的访客"看的首页登录提示条，
+                             // 跟上面 banner 是完全独立的两条：banner 给所有人看，这条专门只给访客看
   };
   // 功能灾度开关读取小助手：不在表里 / 值不是 false，一律当"开启"处理，只有明确写 false 才关闭
   window._isFeatureEnabled = function(name){
@@ -100,6 +102,35 @@
   window._createNewUserProfile = async function(uid, user, opts){
     opts = opts || {};
     const nowTs = opts.now || Date.now();
+    // 🛡️ 2026-09-23 加一道保险：调这个函数的两个地方，都是先读了一次"users/{uid}"、
+    // 发现是空的，才认定"这个人没有档案，需要新建"。但那一次读取有极小概率因为网络时机问题
+    // 误判成"没有"——其实档案好好地在，只是这次没读到。如果照旧直接整份覆盖写进去，
+    // 会把 isTestAccount、管理员手动改过的到期时间这些全部冲掉，而且悄无声息、后台查不出原因。
+    // 这里在真正动手覆盖之前，再确认一次：万一这次真的读到了，就不覆盖，只补一下登录时间，
+    // 原来的东西一个字段都不动。绝大多数情况（真的是新用户）这次确认也是空的，跟以前一模一样，
+    // 只多花一次读取的时间，不影响任何正常流程。
+    try{
+      if(window._fb){
+        // 🛡️ 网络"卡住但没有明确断开"的情况：get() 可能迟迟不成功也不报错，一直挂着——
+        // 给这次确认设一个3秒上限，超时就别再傻等了，按"当成新用户处理"的原逻辑往下走，
+        // 保底原则是"别让登录卡住进不去"，数据保护这件事在这种极端情况下退居第二位。
+        const _recheck = await Promise.race([
+          window._fb.get('users/' + uid),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('recheck timeout')), 3000))
+        ]);
+        if(_recheck && typeof _recheck === 'object'){
+          // 确认其实是有档案的——不新建，只安全地补一下登录时间和这次登录带来的资料，
+          // 用户看到的效果跟"老用户登录"完全一样，其它字段原样保留
+          try{ await window._fb.set('users/' + uid + '/lastLogin', nowTs); }catch(e){}
+          if(user && user.email)       try{ await window._fb.set('users/' + uid + '/email', user.email); }catch(e){}
+          if(user && user.displayName) try{ await window._fb.set('users/' + uid + '/displayName', user.displayName); }catch(e){}
+          if(user && user.photoURL)    try{ await window._fb.set('users/' + uid + '/photoURL', user.photoURL); }catch(e){}
+          try{ localStorage.setItem('luna_first_login', String(_recheck.firstLogin || nowTs)); }catch(e){}
+          try{ if(typeof window.LunaDB === 'object' && window.LunaDB.set) window.LunaDB.set('luna_first_login', _recheck.firstLogin || nowTs); }catch(e){}
+          return Object.assign({}, _recheck, { lastLogin: nowTs });
+        }
+      }
+    }catch(e){ /* 这次确认失败也不要紧，往下走原来的新建流程，不会卡住 */ }
     const profile = {
       uid,
       displayName: (user && user.displayName) || '',
@@ -232,11 +263,13 @@
         if(rc.featureFlags && typeof rc.featureFlags === 'object') window._remoteConfig.featureFlags = rc.featureFlags;
         if(rc.images && typeof rc.images === 'object') window._remoteConfig.images = rc.images;
         if(rc.popupNotice && typeof rc.popupNotice === 'object') window._remoteConfig.popupNotice = rc.popupNotice;
+        if(rc.guestLoginBanner && typeof rc.guestLoginBanner === 'object') window._remoteConfig.guestLoginBanner = rc.guestLoginBanner;
         // 首页公告横幅 / 卡通女孩插画 这时候DOM/函数不一定已经就绪，两个函数内部自己会做存在性检查；
         // 横幅真正的显示时机主要靠 updateOrbVisibility() 里那个钩子（每次进首页都会重新判断一次），
         // 女孩插画则是靠 calUpdateStats() 首次调用时的 renderCycleGirlPose()，这里额外补调一次，
         // 防止那次调用发生得比这个远程请求还早，导致外链图片配置晚到没生效。
         try{ if(typeof window._applyRemoteBanner === 'function') window._applyRemoteBanner(); }catch(e){}
+        try{ if(typeof window._applyGuestLoginBanner === 'function') window._applyGuestLoginBanner(); }catch(e){}
         try{ if(typeof window.renderCycleGirlPose === 'function') window.renderCycleGirlPose(); }catch(e){}
         // 🩹 系统公告弹窗：这个函数就定义在这同一个早期<script>标签里（往下看），不存在"函数还没
         // 定义好"这种时序问题，可以直接调用，不用像上面两个一样做 typeof 存在性检查再委托后面兜底
@@ -3071,9 +3104,44 @@ window.installPWA = function() {
       background:radial-gradient(circle, rgba(var(--purple-rgb),0.11) 0%, rgba(var(--purple-rgb),0) 70%);"></div>
   </div>
 
+  <!-- 🌙 Luna 的本月观察：免费预览，不要求VIP/试用期，一个账号终身最多2次，
+       内容由 generateFreePreview 云函数按真实数据算出来，不是编的。看完引导去开会员。 -->
+  <div id="freePreviewModal" style="display:none;position:fixed;inset:0;z-index:9999;
+    background:rgba(20,10,35,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:24px;padding:26px 20px 22px;width:100%;max-width:380px;
+      max-height:85vh;overflow-y:auto;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.3);">
+      <button onclick="closeFreePreview()" aria-label="close" style="position:absolute;top:14px;right:14px;
+        width:30px;height:30px;border-radius:50%;border:none;background:rgba(0,0,0,.06);color:#7a6ea3;
+        font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div id="freePreviewBody"></div>
+    </div>
+  </div>
+
   <!-- 📣 首页公告横幅：内容全部来自 Firebase remoteConfig/banner，后台改了直接生效，不用发版。
        默认隐藏，_applyRemoteBanner() 会在拉到远程配置后判断是否显示——没启用 / 不在起止时间
        范围内 / 标题正文都是空的 / 用户已经点过关闭这条，四种情况都不显示，绝不会硬露出个空壳。 -->
+
+  <!-- 🌙 游客登录提示条：只给"没登录的访客"看，跟上面那条给所有人看的公告横幅是分开的两套。
+       内容(标题/正文)在后台改，开关也在后台控制，App这边不用发版就能生效。
+       登录按钮点了直接唤起 showGuestLoginModal()，跟"我的"页面那个入口是同一套登录逻辑。 -->
+  <div id="guestLoginBanner" style="display:none;margin:8px 16px 0;padding:14px 16px;border-radius:16px;
+    background:var(--home-btn-gradient, linear-gradient(135deg,#7c5cbf,#c47ab0));box-shadow:0 4px 16px rgba(124,92,191,0.28);
+    position:relative;z-index:5;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;flex-shrink:0;">🌙</span>
+      <div style="flex:1;min-width:0;">
+        <div id="guestLoginBannerTitle" style="font-size:13px;font-weight:700;color:#fff;"></div>
+        <div id="guestLoginBannerBody" style="font-size:11.5px;color:rgba(255,255,255,.88);margin-top:2px;line-height:1.4;"></div>
+      </div>
+      <span onclick="_closeGuestLoginBanner(event)" style="font-size:14px;color:rgba(255,255,255,.75);padding:4px;flex-shrink:0;cursor:pointer;">✕</span>
+    </div>
+    <button onclick="if(window.showGuestLoginModal)showGuestLoginModal();" style="width:100%;margin-top:10px;padding:10px;
+      background:#fff;color:#7c5cbf;border:none;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;">
+      <span id="guestLoginBannerBtnText">🌙 登录</span>
+    </button>
+  </div>
+
   <div id="homeAnnounceBanner" style="display:none;margin:8px 16px 0;padding:11px 14px;border-radius:16px;background:var(--home-card-bg);box-shadow:0 2px 10px rgba(0,0,0,0.06);align-items:center;gap:10px;cursor:pointer;position:relative;z-index:5;" onclick="_onAnnounceBannerTap(event)">
     <span id="homeAnnounceBannerIcon" style="font-size:20px;flex-shrink:0;">📣</span>
     <div style="flex:1;min-width:0;">
@@ -4704,6 +4772,8 @@ import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider,
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getMessaging, getToken, onMessage }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
+import { getFunctions, httpsCallable }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD-f0zXfJuN2CCAVqlVdsTKKPwlit1qxn0",
@@ -4716,6 +4786,14 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
+// 🌙 2026-09-27：免费预览功能要调用 generateFreePreview 这个云函数（onCall 类型），
+// 用 Callable SDK 调用，会自动带上登录token，不用像 analyzeCycle 那样手动拼 Authorization 头
+const _functions = getFunctions(app, 'asia-southeast1');
+window._callGenerateFreePreview = async (lang) => {
+  const fn = httpsCallable(_functions, 'generateFreePreview');
+  const res = await fn({ lang });
+  return res.data;
+};
 
 // ══════════════════════════════════════════════════════════════
 // 🩹 服务器时间校正：防止用户手动调手机系统时间来延长试用期 / 绕过会员到期。
@@ -4772,7 +4850,56 @@ const appleProvider = new OAuthProvider('apple.com'); // 供网页/PWA环境的 
   PN.addListener('registrationError', (err) => {
     if(window._pushTokenReject){ window._pushTokenReject(err); window._pushTokenResolve = null; window._pushTokenReject = null; }
   });
+  // 🌙 2026-09-27 新增：用户点了一条推送通知之后触发（不管当时App是关着的、在后台、还是开着的）。
+  // 现在只处理一种情况——后台发通知时勾了"跳转统计页+高亮"，就带 action:'open_stats_highlight'
+  // 过来；别的推送不带这个字段，这里什么都不做，维持原样打开App到默认首页。
+  PN.addListener('pushNotificationActionPerformed', (action) => {
+    try{
+      const data = (action && action.notification && action.notification.data) || {};
+      if(data.action === 'open_stats_highlight' && typeof window._lunaShowPushHighlight === 'function'){
+        window._lunaShowPushHighlight(data.title, data.body);
+      }
+    }catch(e){}
+  });
 })();
+
+// 🌙 2026-09-27：点了"跳统计页+高亮AI分析"这种推送之后，实际要做的两件事——
+// 1) 切到统计页；2) 给两个AI分析按钮来一段"这里看这里"的高亮特效，
+// 顺便把推送里写的那段话用一个小横幅展示出来，不然用户点进来只看到两个按钮在闪，
+// 却不知道"Luna 到底想跟她说什么"，失去了"原来它真的懂我"这个最关键的感受。
+function _lunaShowPushHighlight(title, body){
+  try{
+    if(typeof showStats === 'function') showStats();
+  }catch(e){}
+  // 等页面真正切过去、DOM渲染稳定了再加效果，不然找不到元素或者效果被切页面的动画盖掉
+  setTimeout(function(){
+    try{
+      ['aiAnalysisBtn','moodAnalysisBtn'].forEach(function(id){
+        const btn = document.getElementById(id);
+        if(!btn) return;
+        btn.classList.add('luna-push-spotlight');
+        setTimeout(function(){ btn.classList.remove('luna-push-spotlight'); }, 5000);
+      });
+    }catch(e){}
+    if(title || body){
+      try{
+        const old = document.getElementById('_lunaPushBanner'); if(old) old.remove();
+        const banner = document.createElement('div');
+        banner.id = '_lunaPushBanner';
+        banner.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:16px;right:16px;z-index:9998;'
+          + 'background:linear-gradient(135deg,var(--sky-horizon,#7c5cbf),var(--pink,#c47ab0));color:#fff;border-radius:16px;'
+          + 'padding:14px 16px;box-shadow:0 10px 28px rgba(0,0,0,.3);font-family:inherit;cursor:pointer;';
+        const esc = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+        banner.innerHTML = '<div style="font-size:14px;font-weight:700;margin-bottom:3px;">' + esc(title) + '</div>'
+          + '<div style="font-size:13px;opacity:.92;line-height:1.4;">' + esc(body) + '</div>';
+        banner.onclick = function(){ banner.remove(); };
+        document.body.appendChild(banner);
+        setTimeout(function(){ if(banner.parentElement) banner.remove(); }, 6000);
+      }catch(e){}
+    }
+  }, 450);
+}
+window._lunaShowPushHighlight = _lunaShowPushHighlight;
 // 触发一次原生 register()，等待上面的监听器拿到 token。
 // 🩹 改成最多重试3次，单次等5秒，总共还是原来15秒这个上限——
 // 之前是"试一次、15秒没等到就直接判定失败"，网络偶尔卡一下就得让用户自己
@@ -5768,12 +5895,27 @@ onAuthStateChanged(auth, async (user) => {
 // 这里额外监听"App 回到前台"，每次恢复前台时也顺手更新一次 lastLogin。
 // 简单节流：10分钟内只写一次，避免频繁切前后台时疯狂写数据库。
 let _lastLoginTouchAt = 0;
-function _touchLastLoginOnForeground() {
+let _touchRetryTimer = null;
+function _touchLastLoginOnForeground(attempt) {
+  attempt = attempt || 0;
   try {
     const code = localStorage.getItem('luna_uid');
-    if (!code || !window._fb) return;
+    if (!code) return; // 没登录，不用管
     const now = Date.now();
-    if (now - _lastLoginTouchAt < 10 * 60 * 1000) return;
+    if (now - _lastLoginTouchAt < 10 * 60 * 1000) return; // 10分钟内已经更新过，不用再更新
+    if (!window._fb) {
+      // 🛡️ 2026-09-25 修复：App 刚被切到前台的这一瞬间，跟 Firebase 建立连接本身需要一点点时间，
+      // 有极小概率这一刻 Firebase 还没准备好。原来这里直接放弃，这次更新机会就丢了——如果用户
+      // 之后一直没有再切出去、切回来一次，这次打开就会一直没被记录到"最近登录"里。
+      // 现在改成"等一下再试"，最多试6次，间隔逐次拉长（1/2/3/4/5/6秒，最长约21秒），
+      // 绝大多数情况 Firebase 早就准备好了，走不到这个分支；只有真的撞上这个时机差的时候，
+      // 才会用到这几次重试，用户完全感觉不到，也不会因为多试几次就多弹出什么提示。
+      if (attempt < 6) {
+        clearTimeout(_touchRetryTimer);
+        _touchRetryTimer = setTimeout(function () { _touchLastLoginOnForeground(attempt + 1); }, (attempt + 1) * 1000);
+      }
+      return;
+    }
     _lastLoginTouchAt = now;
     window._fb.set('users/' + code + '/lastLogin', now).catch(() => {});
   } catch (e) {}
@@ -7436,6 +7578,11 @@ onValue(ref(db,'notifications'), snap => {
     // 🐛 之前的版本是两层同时各自淡入淡出，中间会有一瞬间两层都是半透明，
     // 首页就从缝隙里露出来了一下，这次改成"下面这层先直接显示、只有上面这层做淡出"就不会有这个问题
     window.langGatePick = function(lang){
+      // 📲 2026-09-22：这里只有"这台设备从没看过引导、也没有本地数据"时才会走到（见下面的入口判断），
+      // 天生只会在真正的第一次打开触发一次，不会像 app_open 那样每次开App都触发——
+      // 拿来当"这是一次真实新安装"的信号，比用 app_open 去重要干净、也不用等新版本上线才有意义。
+      // 复用已经在跑的 trackEvent，不新建一套埋点机制，写入失败也只是静默跳过，不影响正常使用。
+      try{ trackEvent('real_install_open', { lang: lang }); }catch(e){}
       try{ obSetLang(lang); }catch(e){}
       obStartFlow();
       const lg = document.getElementById('langGate');
@@ -8162,6 +8309,107 @@ window.setLang = setLang;
     _showMemberCodeModal();
   }
 
+  // ══════════════════════════════════════════════════════════════
+  // 🌙 Luna 的本月观察：免费预览入口。不要求VIP/试用期，一个账号终身最多2次
+  // （次数在服务器算，卸载重装也不会重置）。内容来自真实周期/情绪数据，看完引导去开会员。
+  // ══════════════════════════════════════════════════════════════
+  function _fpEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function _fpRenderLoading(){
+    const isTh = _appLang !== 'zh';
+    return '<div style="text-align:center;padding:30px 10px;">'
+      + '<div style="font-size:38px;margin-bottom:14px;">🌙</div>'
+      + '<div style="font-size:14px;color:#7a6ea3;">' + (isTh ? 'Luna กำลังดูข้อมูลของคุณ…' : 'Luna 正在看你的记录…') + '</div>'
+      + '</div>';
+  }
+
+  function _fpRenderUsedUp(){
+    const isTh = _appLang !== 'zh';
+    return '<div style="text-align:center;">'
+      + '<div style="font-size:38px;margin-bottom:10px;">🌙</div>'
+      + '<div style="font-size:16px;font-weight:700;color:#2d1b4e;margin-bottom:8px;">'
+      + (isTh ? 'ใช้ครบโควต้าฟรีแล้วนะคะ' : '免费预览的次数已经用完啦') + '</div>'
+      + '<div style="font-size:13px;color:#7a6ea3;line-height:1.6;margin-bottom:20px;">'
+      + (isTh ? 'อยากให้ Luna ดูข้อมูลให้ต่อเนื่องทุกเดือน ลองเปิดสมาชิกดูนะคะ'
+              : '想让 Luna 每个月都帮你持续看数据、给出更完整的分析，可以开通会员试试～') + '</div>'
+      + '<button onclick="closeFreePreview();showVipPaywall();" style="width:100%;padding:14px;border:none;'
+      + 'border-radius:14px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;'
+      + 'font-weight:700;cursor:pointer;">' + (isTh ? '✨ ดูแพ็กเกจสมาชิก' : '✨ 查看会员套餐') + '</button>'
+      + '</div>';
+  }
+
+  function _fpRenderError(){
+    const isTh = _appLang !== 'zh';
+    return '<div style="text-align:center;padding:20px 10px;">'
+      + '<div style="font-size:34px;margin-bottom:10px;">🌙</div>'
+      + '<div style="font-size:14px;color:#7a6ea3;margin-bottom:18px;">'
+      + (isTh ? 'เครือข่ายมีปัญหา ลองใหม่อีกครั้งนะคะ' : '网络出了点小问题，请稍后再试') + '</div>'
+      + '<button onclick="showFreePreview()" style="padding:10px 24px;border:1px solid #d8cfe8;border-radius:12px;'
+      + 'background:#fff;color:#7c5cbf;font-size:14px;font-weight:600;cursor:pointer;">'
+      + (isTh ? '🔄 ลองอีกครั้ง' : '🔄 重试') + '</button>'
+      + '</div>';
+  }
+
+  function _fpSection(icon, titleZh, titleTh, text, isTh){
+    if(!text) return '';
+    return '<div style="margin-bottom:16px;">'
+      + '<div style="font-size:13px;font-weight:700;color:#7c5cbf;margin-bottom:4px;">' + icon + ' ' + (isTh?titleTh:titleZh) + '</div>'
+      + '<div style="font-size:13.5px;color:#3d3355;line-height:1.7;">' + _fpEsc(text) + '</div>'
+      + '</div>';
+  }
+
+  function _fpRenderContent(r){
+    const isTh = _appLang !== 'zh';
+    const parts = [];
+    parts.push('<div style="text-align:center;margin-bottom:18px;">'
+      + '<div style="font-size:34px;">🌙</div>'
+      + '<div style="font-size:16px;font-weight:700;color:#2d1b4e;margin-top:4px;">'
+      + (isTh ? 'สิ่งที่ Luna สังเกตเห็นเดือนนี้' : 'Luna 的本月观察') + '</div>'
+      + '</div>');
+    parts.push(_fpSection('🩸', '周期', 'รอบเดือน', r.cycle && r.cycle.text, isTh));
+    parts.push(_fpSection('💗', '情绪', 'อารมณ์', r.mood && r.mood.text, isTh));
+    parts.push(_fpSection('🌸', '发现', 'ข้อสังเกต', r.correlation && r.correlation.text, isTh));
+    parts.push(_fpSection('☁️', '给你的话', 'สิ่งที่อยากบอกคุณ', r.tip && r.tip.text, isTh));
+    parts.push('<button onclick="closeFreePreview();showVipPaywall();" style="width:100%;padding:14px;border:none;'
+      + 'border-radius:14px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;'
+      + 'font-weight:700;cursor:pointer;margin-top:6px;">'
+      + (isTh ? '✨ ดูการวิเคราะห์ฉบับเต็ม' : '✨ 查看完整 AI 分析') + '</button>');
+    if(typeof r.usesRemaining === 'number'){
+      const hint = r.usesRemaining > 0
+        ? (isTh ? `ยังมีโควต้าฟรีอีก ${r.usesRemaining} ครั้ง` : `还有 ${r.usesRemaining} 次免费预览机会`)
+        : (isTh ? 'นี่คือการดูฟรีครั้งสุดท้ายแล้วนะคะ' : '这是最后一次免费预览了');
+      parts.push('<div style="text-align:center;font-size:11px;color:#a89ec8;margin-top:10px;">' + hint + '</div>');
+    }
+    return parts.join('');
+  }
+
+  async function showFreePreview(){
+    if(!auth || !auth.currentUser){
+      if (typeof showToast === 'function') showToast(_appLang!=='zh' ? 'กรุณาเข้าสู่ระบบก่อน' : '请先登录');
+      return;
+    }
+    const modal = document.getElementById('freePreviewModal');
+    const body = document.getElementById('freePreviewBody');
+    if(!modal || !body) return;
+    modal.style.display = 'flex';
+    body.innerHTML = _fpRenderLoading();
+    try{
+      const r = await window._callGenerateFreePreview(_appLang);
+      if(!r || r.allowed === false){ body.innerHTML = _fpRenderUsedUp(); return; }
+      body.innerHTML = _fpRenderContent(r);
+    }catch(e){
+      body.innerHTML = _fpRenderError();
+    }
+  }
+  window.showFreePreview = showFreePreview;
+
+  function closeFreePreview(){
+    const modal = document.getElementById('freePreviewModal');
+    if(modal) modal.style.display = 'none';
+  }
+  window.closeFreePreview = closeFreePreview;
+
+
   // 🔒 小巧的 VIP 锁定提示卡片：从各处点到 VIP 专属功能时弹这个，而不是直接弹整页订阅页。
   // 悬浮在屏幕底部中间，轻量、可点外部/等几秒自动消失；卡片上的"查看"按钮才会打开完整订阅页。
   function showVipMiniPrompt(featureZh, featureTh) {
@@ -8721,6 +8969,42 @@ window.setLang = setLang;
     }catch(e){}
   }
   window._applyRemoteBanner = _applyRemoteBanner;
+
+  // 🌙 只给访客看的首页登录提示条——内容和开关都来自 remoteConfig.guestLoginBanner，
+  // 后台随时改、随时开关，不用发版。已登录的人这个函数直接跳过，不会看到。
+  // 跟系统公告弹窗那个 includeGuests 判断是反过来的：这里是"只有访客才显示"。
+  window._applyGuestLoginBanner = function(){
+    try{
+      const el = document.getElementById('guestLoginBanner');
+      if(!el) return;
+      if(!window._isGuestSafe()){ el.style.display='none'; return; } // 已登录，不用管这条
+      const rc = window._remoteConfig && window._remoteConfig.guestLoginBanner;
+      if(!rc || rc.enabled !== true){ el.style.display='none'; return; }
+      const isZh = (window._appLang || window._gateLang) === 'zh';
+      const title = (rc.title && (isZh ? rc.title.zh : rc.title.th)) || '';
+      const body = (rc.body && (isZh ? rc.body.zh : rc.body.th)) || '';
+      if(!title && !body){ el.style.display='none'; return; } // 文案是空的，不硬显示一个空壳
+      // 🩹 2026-09-27：点过"×"之后，按后台设的小时数暂停显示，真的存在手机本地，
+      // 不是只管"这一次浏览"——明天重新打开App也认得，不会天天都弹一遍烦到人。
+      // dismissHours 后台可以自己填：不填/填0 就是"不设冷却，每次都弹"（原来的行为）。
+      const cooldownH = (typeof rc.dismissHours === 'number' && rc.dismissHours >= 0) ? rc.dismissHours : 24;
+      if(cooldownH > 0){
+        const dismissedAt = Number(localStorage.getItem('luna_guest_banner_dismissed_at') || 0);
+        if(dismissedAt && (Date.now() - dismissedAt) < cooldownH * 3600000) return;
+      }
+      document.getElementById('guestLoginBannerTitle').textContent = title;
+      document.getElementById('guestLoginBannerBody').textContent = body;
+      el.style.display = 'block';
+    }catch(e){}
+  };
+  window._closeGuestLoginBanner = function(ev){
+    try{
+      if(ev) ev.stopPropagation();
+      const el = document.getElementById('guestLoginBanner');
+      if(el) el.style.display='none';
+      try{ localStorage.setItem('luna_guest_banner_dismissed_at', String(Date.now())); }catch(e){}
+    }catch(e){}
+  };
 
   function _closeAnnounceBanner(ev){
     try{
@@ -11564,7 +11848,8 @@ window.setLang = setLang;
       if(onHome && loggedIn){ try{ updateLumiNudge(); }catch(e){} }   // 🌙 刷新久未到访 Lumi 小红点（游客没账号，跳过）
       // 🌐 首页公告横幅：跟悬浮球共用"是否在首页"这个判断——每次进首页都重新检查一次远程配置
       try{ const home2 = (!mine||mine.style.display==='none') && (!cal||cal.style.display==='none') && (!stats||stats.style.display==='none');
-        if(home2 && typeof window._applyRemoteBanner==='function') window._applyRemoteBanner(); }catch(e){}
+        if(home2 && typeof window._applyRemoteBanner==='function') window._applyRemoteBanner();
+        if(home2 && typeof window._applyGuestLoginBanner==='function') window._applyGuestLoginBanner(); }catch(e){}
     }
     window._updateOrbVisibility = updateOrbVisibility;
     // 定期检查页面状态（面板切换没有统一事件，轮询最稳）
@@ -18858,6 +19143,13 @@ window.setLang = setLang;
       }
       .ai-gen-btn:disabled { opacity:.6; animation:none; box-shadow:none; }
       .ai-gen-btn:disabled::after { display:none; }
+      /* 🌙 2026-09-27：推送通知引导过来的"这里看这里"高亮特效——一圈光晕往外扩散再消失，
+         循环几次，5秒后由JS自动摘掉这个class，不用CSS自己控制次数 */
+      .luna-push-spotlight { animation: lunaPushGlow 1s ease-in-out infinite; }
+      @keyframes lunaPushGlow {
+        0%,100% { box-shadow: 0 0 0 0 rgba(var(--purple-rgb),0.55); }
+        50% { box-shadow: 0 0 0 12px rgba(var(--purple-rgb),0); }
+      }
       @keyframes aiBtnGradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
       @keyframes aiBtnShine { 0%{left:-60%} 45%{left:130%} 100%{left:130%} }
       .ai-history-card { background:var(--stat-bg); border-radius:14px; padding:15px 15px 14px; border:1px solid rgba(var(--purple-rgb),0.10); }

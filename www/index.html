@@ -3565,6 +3565,8 @@ window.installPWA = function() {
     #ttcHomeCard .ttc-cell.f{ background:rgba(70,180,131,.20); color:var(--th-ink); }
     #ttcHomeCard .ttc-cell.p{ background:rgba(70,180,131,.46); color:var(--th-ink); font-weight:700; }
     #ttcHomeCard .ttc-cell.pd{ background:rgba(240,127,160,.35); color:var(--th-ink); }
+    /* 预计月经日：跟日历页的"预计月经"一样，淡粉色底 + 粉色细描边（描边用 inset 阴影画，不改变格子大小） */
+    #ttcHomeCard .ttc-cell.pp{ background:rgba(240,127,160,.14); box-shadow:inset 0 0 0 1.5px rgba(240,127,160,.6); color:var(--th-ink); }
     #ttcHomeCard .ttc-cell.td{ background:rgb(var(--purple-rgb)) !important; color:#fff !important; font-weight:700; box-shadow:none !important; }
     #ttcHomeCard .ttc-egg{ position:absolute; top:-6px; right:-2px; font-size:12px; line-height:1; }
 
@@ -7619,21 +7621,21 @@ onValue(ref(db,'notifications'), snap => {
         // 跟"我的"页正式订阅弹窗（showVipPaywall）里的功能清单文案保持完全一致，之后哪边改了
         // 功能清单，记得两边一起改，避免两处文案对不上——这里只多加了两条游戏清单
         const vipFeaturesHTML = `
-          ✅ ${isTh?'Luna ผู้ช่วยน้อย + วิเคราะห์เชิงลึก (50 แต้มจันทร์/เดือน)':'Luna 小助手 + AI深度分析（每月50点）'}<br>
-          ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน':'查看120天历史记录'}<br>
+          ✅ ${isTh?'แชทกับ Luna ผู้ช่วยน้อย (50 แต้มจันทร์/เดือน)':'Luna 小助手聊天（每月50点）'}<br>
+          ✅ ${isTh?'วิเคราะห์สุขภาพเชิงลึกด้วย AI':'AI 深度健康分析'}<br>
+          ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน (ฟรี 31 วัน)':'查看120天历史记录（免费版31天）'}<br>
           ✅ ${isTh?'สถิติครบถ้วนแบบเต็ม':'完整统计图表'}<br>
           ✅ ${isTh?'ธีมสีพิเศษเฉพาะ VIP ทั้งหมด':'全部VIP专属主题色'}<br>
-          ✅ ${isTh?'ห้อง Lumi พิเศษอีก 2 ห้อง':'Lumi 剩余2个专属房间'}<br>
+          ✅ ${isTh?'สรุปรอบเดือน + กราฟอุณหภูมิ (โหมดวางแผนตั้งครรภ์)':'备孕周期回顾 + 体温曲线分析'}<br>
+          ✅ ${isTh?'กราฟน้ำหนักระหว่างตั้งครรภ์':'孕期体重变化曲线'}<br>
+          ✅ ${isTh?'ห้อง Lumi พิเศษอีก 2 ห้อง (รวม 6 ห้อง)':'Lumi 另外2个专属房间（共6个）'}<br>
           ✅ ${isTh?'ป้ายสมาชิกพรีเมียม 👑':'正版会员专属徽章 👑'}`;
         const freeFeaturesHTML = `
           🌱 ${isTh?'บันทึกประจำเดือน/อาการ/อารมณ์ ไม่จำกัด':'无限记录经期/症状/心情'}<br>
           🌱 ${isTh?'ปฏิทินรอบเดือนแบบเต็ม':'完整周期日历'}<br>
-          🌱 ${isTh?'แบบทดสอบดูแลตัวเอง':'自我护理自测'}<br>
-          🌱 ${isTh?'ส่งออกข้อมูลได้ทุกเมื่อ':'随时导出数据'}<br>
-          🌱 ${isTh?'Lumi เพื่อนคู่ใจตลอดไป ฟรี 4 จาก 6 ห้อง':'Lumi 永久陪伴，6个房间里4个免费'}<br>
-          🌱 ${isTh?'ธีมสีฟรีหลายแบบตลอดไป':'多款主题色永久免费'}<br>
-          🌱 ${isTh?'🐰 เกมจับคู่สัตว์น่ารัก':'🐰 萌宠消消乐小游戏'}<br>
-          🌱 ${isTh?'🍓 เกมเก็บผลไม้':'🍓 消水果小游戏'}`;
+          🌱 ${isTh?'โหมดวางแผนตั้งครรภ์ · ตั้งครรภ์ · หลังคลอด (ฟังก์ชันพื้นฐาน)':'备孕 · 怀孕 · 产后模式（基础功能）'}<br>
+          🌱 ${isTh?'แบบทดสอบดูแลตัวเอง · ส่งออกข้อมูลได้ทุกเมื่อ':'自我护理自测 · 随时导出数据'}<br>
+          🌱 ${isTh?'Lumi ฟรี 4 ห้อง · ธีมสีฟรี · มินิเกม':'Lumi 4个免费房间 · 免费主题色 · 小游戏'}`;
         const m = document.createElement('div');
         m.id = 'trialIntroModal';
         // 🩹 改成真正满屏页面：不再是"半透明遮罩+居中悬浮卡片"，背景本身就是柔和渐变铺满整屏，
@@ -8831,12 +8833,15 @@ window.setLang = setLang;
       backdrop-filter:blur(5px);display:flex;align-items:flex-end;justify-content:center;`;
 
     const vipFeaturesHTML = `
-      ✅ ${isTh?'Luna ผู้ช่วยน้อย + วิเคราะห์เชิงลึก (50 แต้มจันทร์/เดือน)':'Luna 小助手 + AI深度分析（每月50点）'}<br>
-      ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน':'查看120天历史记录'}<br>
-      ✅ ${isTh?'สถิติครบถ้วนแบบเต็ม':'完整统计图表'}<br>
-      ✅ ${isTh?'ธีมสีพิเศษเฉพาะ VIP ทั้งหมด':'全部VIP专属主题色'}<br>
-      ✅ ${isTh?'ห้อง Lumi พิเศษอีก 2 ห้อง':'Lumi 剩余2个专属房间'}<br>
-      ✅ ${isTh?'ป้ายสมาชิกพรีเมียม 👑':'正版会员专属徽章 👑'}`;
+          ✅ ${isTh?'แชทกับ Luna ผู้ช่วยน้อย (50 แต้มจันทร์/เดือน)':'Luna 小助手聊天（每月50点）'}<br>
+          ✅ ${isTh?'วิเคราะห์สุขภาพเชิงลึกด้วย AI':'AI 深度健康分析'}<br>
+          ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน (ฟรี 31 วัน)':'查看120天历史记录（免费版31天）'}<br>
+          ✅ ${isTh?'สถิติครบถ้วนแบบเต็ม':'完整统计图表'}<br>
+          ✅ ${isTh?'ธีมสีพิเศษเฉพาะ VIP ทั้งหมด':'全部VIP专属主题色'}<br>
+          ✅ ${isTh?'สรุปรอบเดือน + กราฟอุณหภูมิ (โหมดวางแผนตั้งครรภ์)':'备孕周期回顾 + 体温曲线分析'}<br>
+          ✅ ${isTh?'กราฟน้ำหนักระหว่างตั้งครรภ์':'孕期体重变化曲线'}<br>
+          ✅ ${isTh?'ห้อง Lumi พิเศษอีก 2 ห้อง (รวม 6 ห้อง)':'Lumi 另外2个专属房间（共6个）'}<br>
+          ✅ ${isTh?'ป้ายสมาชิกพรีเมียม 👑':'正版会员专属徽章 👑'}`;
     // 🩹 这份"永久免费"清单原来混了两条试用期限定的福利（7天试用/试用送5点），跟"永久能用"
     // 这个定位对不上——试用结束这两条就没有了，写在这里容易让人误会是长期免费权益。
     // 现在改成清清楚楚只列真正不管有没有开会员、用多久都一直能用的功能，不掺任何试用期话术。
@@ -8844,12 +8849,11 @@ window.setLang = setLang;
     // 免费解锁；Lumi 6个房间里4个免费2个VIP，数字跟VIP清单/App内FAQ原本写的完全对得上，
     // 不是我瞎编的），漏了这两条会让人以为"想要好看的主题/房间就必须充钱"，其实大部分不用
     const freeFeaturesHTML = `
-      🌱 ${isTh?'บันทึกประจำเดือน/อาการ/อารมณ์ ไม่จำกัด':'无限记录经期/症状/心情'}<br>
-      🌱 ${isTh?'ปฏิทินรอบเดือนแบบเต็ม':'完整周期日历'}<br>
-      🌱 ${isTh?'แบบทดสอบดูแลตัวเอง':'自我护理自测'}<br>
-      🌱 ${isTh?'ส่งออกข้อมูลได้ทุกเมื่อ':'随时导出数据'}<br>
-      🌱 ${isTh?'Lumi เพื่อนคู่ใจตลอดไป ฟรี 4 จาก 6 ห้อง':'Lumi 永久陪伴，6个房间里4个免费'}<br>
-      🌱 ${isTh?'ธีมสีฟรีหลายแบบตลอดไป':'多款主题色永久免费'}`;
+          🌱 ${isTh?'บันทึกประจำเดือน/อาการ/อารมณ์ ไม่จำกัด':'无限记录经期/症状/心情'}<br>
+          🌱 ${isTh?'ปฏิทินรอบเดือนแบบเต็ม':'完整周期日历'}<br>
+          🌱 ${isTh?'โหมดวางแผนตั้งครรภ์ · ตั้งครรภ์ · หลังคลอด (ฟังก์ชันพื้นฐาน)':'备孕 · 怀孕 · 产后模式（基础功能）'}<br>
+          🌱 ${isTh?'แบบทดสอบดูแลตัวเอง · ส่งออกข้อมูลได้ทุกเมื่อ':'自我护理自测 · 随时导出数据'}<br>
+          🌱 ${isTh?'Lumi ฟรี 4 ห้อง · ธีมสีฟรี · มินิเกม':'Lumi 4个免费房间 · 免费主题色 · 小游戏'}`;
 
     m.innerHTML = `
       <div id="vipPaywallCard" style="background:#fff;border-radius:28px 28px 0 0;padding:24px 22px 32px;
@@ -11502,6 +11506,80 @@ window.setLang = setLang;
       bubble(WELCOME[zh()?'zh':'th'],'luna');
       renderChips();
     }
+    // ═══════════════════════════════════════════════════════════════════════════
+    // 🌙 小助手聊天记录 · 折中办法：只在"这次打开 App 期间"保留，只放在本机，不上传
+    //  · 以前：对话只画在页面上，退出 App（页面重新加载）再进来就没了。
+    //  · 现在：把对话存进 sessionStorage（只在 App 开着时有效，彻底退出 App 就清空；不上传服务器），
+    //          App 还开着时重新进小助手，会把之前的对话画回去。
+    //  存：盯着对话区，气泡增减（含用户长按"删除"）就把当前所有气泡重新存一遍，所以删除自动同步。
+    //      只存真正的对话气泡：不存"正在输入"、锁定提示、追问按钮（每次现场从知识库挑，存了反而会固化旧语言）、欢迎语（自动生成、随语言变）。
+    //  取：重新接管 startChat——有保存的对话就画回去（欢迎语照常放在最上面）并重建发给服务器的 chatHistory；没有就走原来的 startChat，行为一字不变。
+    //  边界：最多 60 条、每条最长 4000 字、逐条校验坏数据直接丢掉；键里带 luna_uid，换账号看不到上一个人的对话；
+    //        sessionStorage 不可用（隐私模式）时全部静默跳过；恢复出任何错就退回原来的 startChat，保证小助手一定能打开。
+    //  语法约定：同前，只用传统写法，不用 ?. / ??。
+    // ═══════════════════════════════════════════════════════════════════════════
+    (function(){
+      var BASE = 'luna_ai_session_v1', MAX = 60, MAXLEN = 4000;
+      // 拿不到账号（luna_uid 为空）就返回空串：既不读也不写。不再退成 'guest'——否则登录态暂时读不到的瞬间，对话会被存到/读自一个错误的键
+      function key(){ var u = ''; try{ u = localStorage.getItem('luna_uid') || ''; }catch(e){} return u ? (BASE + '_' + u) : ''; }
+      function valid(m){ return !!m && (m.w === 'me' || m.w === 'luna') && typeof m.t === 'string' && m.t.length > 0 && m.t.length <= MAXLEN; }
+      function readSaved(){
+        try{
+          var k = key(); if(!k) return [];
+          var a = JSON.parse(sessionStorage.getItem(k)); if(!Array.isArray(a)) return [];
+          var out = [], i; for(i = 0; i < a.length; i++) if(valid(a[i])) out.push({ w: a[i].w, t: a[i].t });
+          return out.slice(-MAX);
+        }catch(e){ return []; }
+      }
+      function isWelcome(t){ return t === WELCOME.zh || t === WELCOME.th; }
+      // 从对话区读出当前的真气泡：样式里有 aiBubbleIn、没有 id、第一个子元素是有文字的 div（排除 正在输入 / 锁定提示 / 追问按钮）
+      function collect(){
+        var out = [], kids = body.children, i, w, b, t;
+        for(i = 0; i < kids.length; i++){
+          w = kids[i]; if(w.id || !w.style || String(w.style.cssText).indexOf('aiBubbleIn') < 0) continue;
+          b = w.firstElementChild; if(!b || b.tagName !== 'DIV') continue;
+          t = b.textContent; if(!t) continue;
+          out.push({ w: (w.style.justifyContent === 'flex-end') ? 'me' : 'luna', t: t.slice(0, MAXLEN) });
+        }
+        var hadWelcome = out.length > 0 && out[0].w === 'luna' && isWelcome(out[0].t);
+        if(hadWelcome) out.shift();
+        return { list: out.slice(-MAX), hadWelcome: hadWelcome };
+      }
+      function save(){
+        try{
+          var k = key(); if(!k) return;                         // 不知道是谁 → 不存
+          var c = collect();
+          if(c.list.length){ sessionStorage.setItem(k, JSON.stringify(c.list)); return; }
+          // 没有任何对话气泡：如果欢迎语还在，说明用户把对话都删光了 → 清掉保存；如果连欢迎语都没有（startChat / 锁定提示刚把对话区清空），就不动已有的保存
+          if(c.hadWelcome) sessionStorage.removeItem(k);
+        }catch(e){}
+      }
+      try{ new MutationObserver(function(){ save(); }).observe(body, { childList: true }); }catch(e){}
+
+      var _origStart = startChat;
+      startChat = function(){
+        if(started) return;
+        var saved = readSaved();
+        if(!saved.length) return _origStart();                 // 没有保存的对话 → 跟原来完全一样
+        try{
+          started = true; body.innerHTML = ''; chatHistory = [];
+          var hint = document.getElementById('aiPointsHint'); if(hint) hint.style.display = 'none';
+          bubble(WELCOME[zh() ? 'zh' : 'th'], 'luna');
+          var hasMe = false, i;
+          for(i = 0; i < saved.length; i++){
+            bubble(saved[i].t, saved[i].w);
+            chatHistory.push({ role: saved[i].w === 'me' ? 'user' : 'assistant', content: saved[i].t });
+            if(saved[i].w === 'me') hasMe = true;
+          }
+          renderChips(); if(hasMe) chips.style.display = 'none';   // 跟聊过之后的样子一致：聊过就把快捷问题收起来
+        }catch(e){
+          started = false; try{ body.innerHTML = ''; chatHistory = []; }catch(_){}
+          return _origStart();                                  // 恢复出错 → 退回原来的流程，保证小助手能打开
+        }
+      };
+      window.LunaAiSession = { key: key, readSaved: readSaved, collect: collect, save: save, history: function(){ return chatHistory.slice(); } };
+    })();
+
     function renderChips(){
       chips.innerHTML=''; chips.style.display='flex';
       (QUICK[zh()?'zh':'th']).forEach(q=>{
@@ -17922,13 +18000,25 @@ window.setLang = setLang;
     function esc(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
     // 首页小日历条：今天前 2 天 ～ 后 8 天
     var STRIP_PAST = 2, STRIP_FUTURE = 31;                 // 小日历条：今天前 2 天 ～ 未来 31 天（可左右滑动）；原来是 前 2 天 ～ 后 8 天
+    // 预计月经日：每个窗口的 nextStart 起连续 periodLen 天，只取"今天之后"的日子（今天及以前是真实记录，不是预测）。
+    // 跟首页"距离下次月经 · 预计开始日"用的是同一个日期（windows[0].nextStart 就是 predicted）。
+    function predictedPeriodSet(m){
+      var out = {}, j, i, L, w;
+      if(!m || !m.windows) return out;                 // 先判空，再读字段（readModel 不会给 null，但这是个对外导出的纯函数）
+      L = m.periodLen || 5;
+      for(j = 0; j < m.windows.length; j++){
+        w = m.windows[j]; if(!w || !w.nextStart) continue;
+        for(i = 0; i < L; i++){ var kk = key(U.addDays(U.parseKey(w.nextStart), i)); if(kk > m.today) out[kk] = 1; }
+      }
+      return out;
+    }
     function stripHtml(m){
-      var h = '', off, k, d, info, cls, pset = {}, i;
+      var h = '', off, k, d, info, cls, pset = {}, i, ppset = predictedPeriodSet(m);
       try{ if(typeof periodSet !== 'undefined' && periodSet) periodSet.forEach(function(x){ pset[x] = 1; }); }catch(e){}
       for(off = -STRIP_PAST; off <= STRIP_FUTURE; off++){
         d = U.addDays(U.todayDate(), off); k = key(d);
         info = dayInfo(m, k); cls = 'ttc-cell';
-        if(pset[k]) cls += ' pd'; else if(info) cls += info.kind === 'peak' ? ' p' : ' f';
+        if(pset[k]) cls += ' pd'; else if(info) cls += info.kind === 'peak' ? ' p' : ' f'; else if(ppset[k]) cls += ' pp';      // 已记录的经期日 > 易孕/高峰 > 预计月经日
         if(off === 0) cls += ' td';
         h += '<div class="' + cls + '">' + d.getDate() + (info && info.ovu ? '<span class="ttc-egg">🥚</span>' : '') + '</div>';
       }
@@ -18015,7 +18105,7 @@ window.setLang = setLang;
         if(h && !obsHome){ obsHome = new MutationObserver(function(){ if(on()) later(); }); obsHome.observe(h, { childList: true, subtree: true, characterData: true }); }
       }catch(e){}
     }
-    X.view = { model: model, bbtShift: bbtShift, observed: observed, dayInfo: dayInfo, view: view, groupRuns: groupRuns, refresh: refresh, renderHome: renderHome, markCalendar: markCalendar, readModel: readModel, _N_WIN: N_WIN };
+    X.view = { model: model, bbtShift: bbtShift, observed: observed, dayInfo: dayInfo, view: view, groupRuns: groupRuns, refresh: refresh, renderHome: renderHome, markCalendar: markCalendar, readModel: readModel, predictedPeriodSet: predictedPeriodSet, stripHtml: stripHtml, _N_WIN: N_WIN };
     // 备孕状态变化：开启 → 标出来；退出 → 让日历按原样重画一次（恢复 App 原来的易孕期颜色）
     document.addEventListener('luna-ttc-change', function(){
       attach();
@@ -26841,3 +26931,600 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
   <!-- iframe 内容区（顶部留出顶栏高度，同样加上 safe-area-inset-top）-->
   <iframe id="legalFrame" src="about:blank" title="legal" style="position:absolute; top:calc(54px + env(safe-area-inset-top, 0px)); left:0; width:100%; height:calc(100% - 54px - env(safe-area-inset-top, 0px)); border:none; background:#fff;"></iframe>
 </div>
+
+<!-- 🌱 引导页"使用目的"选了"正在备孕" → 引导结束、试用介绍弹窗关掉之后，首页弹一次轻提示：要不要开启备孕模式？
+     "开启"→ 打开备孕设置页；"以后再说"→ 关掉。只弹一次，不会自动替用户开启。不改引导流程/试用/付费的任何原有逻辑：
+     只是在 window.obFinish 外面包一层（先记下选了什么，再原样调用原函数），然后等所有弹窗都收掉、回到首页再出现。 -->
+<script>
+(function lunaTtcNudge(){
+  try{
+    if(window.LunaTtcNudge) return;
+    var K_PENDING = 'luna_ttc_nudge_pending', K_DONE = 'luna_ttc_nudge_done';
+    function ls(k, v){ try{ if(v === undefined) return localStorage.getItem(k); if(v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){} return null; }
+    function isZh(){ try{ return (window._appLang || ls('luna_lang')) === 'zh'; }catch(e){ return false; } }
+    function shown(el){ if(!el) return false; try{ var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden'; }catch(e){ return false; } }
+    function ttcOk(){
+      try{ var T = window.LunaTtc; return !!(T && typeof T.open === 'function' && T.entryVisible() && !T.isActive()); }catch(e){ return false; }
+    }
+    // 现在是"干净的首页"吗：引导/试用介绍/登录/公告等弹窗都没有，也不在别的整页里
+    function homeClear(){
+      var ids = ['onboardGate','trialIntroModal','obTrialConfirmLoadingOverlay','guestLoginModal','sysPopupNotice','consentOverlay','langGate','codeGate','freePreviewModal','mine-panel','calPanel','statsPanel'];
+      for(var i=0;i<ids.length;i++){ if(shown(document.getElementById(ids[i]))) return false; }
+      try{ if(document.querySelector('.modal-overlay.open, .fp-root.open')) return false; }catch(e){}
+      return true;
+    }
+    function remove(){ var e = document.getElementById('ttcNudge'); if(e && e.parentNode) e.parentNode.removeChild(e); }
+    function track(n){ try{ if(typeof window.trackEvent === 'function') window.trackEvent(n); }catch(e){} }
+    function finish(){ ls(K_PENDING, null); ls(K_DONE, '1'); }
+    function show(){
+      if(document.getElementById('ttcNudge')) return;
+      var zh = isZh();
+      var T = zh ? {t:'要不要开启备孕模式？', d:'开启后会标出易孕期和预测排卵日，还能记录排卵试纸、基础体温等。', ok:'开启', later:'以后再说'}
+                 : {t:'เปิดโหมดวางแผนตั้งครรภ์ไหม?', d:'เมื่อเปิดแล้วจะแสดงช่วงที่มีโอกาสตั้งครรภ์สูงและวันตกไข่ที่คาดการณ์ รวมถึงบันทึกชุดตรวจไข่ตก อุณหภูมิร่างกาย ฯลฯ ได้', ok:'เปิดใช้งาน', later:'ไว้ทีหลัง'};
+      var el = document.createElement('div'); el.id = 'ttcNudge'; el.setAttribute('role','dialog'); el.setAttribute('aria-label', T.t);
+      el.style.cssText = 'position:fixed;left:14px;right:14px;margin:0 auto;max-width:460px;bottom:calc(190px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));z-index:130;'
+        + 'background:#fff;border-radius:28px;padding:24px 22px 18px;box-shadow:0 12px 36px rgba(90,50,140,.22),0 2px 8px rgba(90,50,140,.10);border:1px solid rgba(124,92,191,.14);'
+        + 'font-family:inherit;color:#2d2640;opacity:0;transform:translateY(14px);transition:opacity .3s ease,transform .3s ease;';
+      el.innerHTML =
+        '<div style="display:flex;gap:16px;align-items:flex-start;">'
+        +   '<div style="flex:0 0 auto;width:54px;height:54px;border-radius:50%;background:#f3edfb;display:flex;align-items:center;justify-content:center;font-size:29px;">🌱</div>'
+        +   '<div style="flex:1;min-width:0;"><div id="ttcNudgeT" style="font-size:20px;font-weight:700;line-height:1.35;"></div>'
+        +   '<div id="ttcNudgeD" style="margin-top:8px;font-size:15px;line-height:1.65;color:#5f5776;"></div></div>'
+        + '</div>'
+        + '<div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:20px;">'
+        +   '<button type="button" id="ttcNudgeLater" style="background:none;border:none;color:#7d7694;font-size:16px;padding:13px 16px;min-height:48px;cursor:pointer;font-family:inherit;"></button>'
+        +   '<button type="button" id="ttcNudgeOk" style="background:linear-gradient(135deg,#7c5cbf,#c47ab0);border:none;color:#fff;font-size:17px;font-weight:700;padding:13px 34px;min-height:48px;border-radius:999px;cursor:pointer;font-family:inherit;"></button>'
+        + '</div>';
+      document.body.appendChild(el);
+      el.querySelector('#ttcNudgeT').textContent = T.t; el.querySelector('#ttcNudgeD').textContent = T.d;
+      el.querySelector('#ttcNudgeLater').textContent = T.later; el.querySelector('#ttcNudgeOk').textContent = T.ok;
+      el.querySelector('#ttcNudgeOk').addEventListener('click', function(){
+        remove(); finish(); track('ttc_nudge_open');
+        try{ window.LunaTtc.open(); }catch(e){}
+      });
+      el.querySelector('#ttcNudgeLater').addEventListener('click', function(){ remove(); finish(); track('ttc_nudge_later'); });
+      finish();                                  // 一出现就记成"已经弹过"，之后不管点没点都不会再弹
+      track('ttc_nudge_shown');
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }); });
+    }
+    var timer = null, okTicks = 0, tries = 0;
+    function tick(){
+      try{
+        if(ls(K_PENDING) !== '1' || ls(K_DONE) === '1'){ stop(); return; }
+        if(++tries > 180){ stop(); return; }              // 本次启动最多等 3 分钟，别无限轮询
+        if(!ttcOk()){ okTicks = 0; return; }              // 怀孕/产后/后台关闸/已开启：不弹（等不到就算了，下次启动再看）
+        if(!homeClear()){ okTicks = 0; return; }
+        if(++okTicks >= 2){ stop(); show(); }             // 连续两次都是干净首页才弹，避免弹窗交接的瞬间抢出来
+      }catch(e){ stop(); }
+    }
+    function stop(){ if(timer){ clearInterval(timer); timer = null; } }
+    function arm(){
+      if(ls(K_DONE) === '1') return;
+      ls(K_PENDING, '1'); okTicks = 0; tries = 0;
+      if(!timer) timer = setInterval(tick, 1000);
+    }
+    // 包住 obFinish：先记下"使用目的"选了什么，再原样调用原函数，返回值也原样返回
+    var orig = window.obFinish;
+    if(typeof orig === 'function'){
+      window.obFinish = function(){
+        var goal = '';
+        try{ var b = document.querySelector('.ob-goal-btn.selected'); goal = b ? (b.getAttribute('data-goal') || '') : ''; }catch(e){}
+        var r = orig.apply(this, arguments);
+        try{ if(goal === 'conceive') arm(); }catch(e){}
+        return r;
+      };
+    }
+    // 引导结束后如果刚好重启过（比如"已有账号→登录"会跳走再回来），上次没弹出来的继续等
+    try{ if(ls(K_PENDING) === '1' && ls(K_DONE) !== '1'){ var go = function(){ arm(); }; if(document.readyState === 'complete') setTimeout(go, 1500); else window.addEventListener('load', function(){ setTimeout(go, 1500); }); } }catch(e){}
+    window.LunaTtcNudge = { arm: arm, show: show, remove: remove, _homeClear: homeClear, _ttcOk: ttcOk };
+  }catch(e){ try{ console.log('LunaTtcNudge 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 👑 备孕/孕期的"深度分析"会员门槛：备孕统计页（周期回顾）整页、孕期体重页里的"变化曲线"图表。
+     免费用户看到一块模糊的内容 + 🔒"VIP 专属"+"解锁 VIP 查看"按钮（沿用 App 里"身体规律洞察"同一套做法，
+     点按钮走现有的 showTrialLockModal）。其余全部保持免费：备孕预测/日历/记录/提醒、孕期周详情/产检/体重录入与历史列表、产后。
+     判断沿用 App 现有的 isPro()（Play 版 isPro() 恒为 true，所以不会被锁）。不改任何原有函数：只是在页面元素外面
+     加一层"模糊+锁卡"，会员状态变化时（每 0.8 秒对一次）自动解开/重新锁上。出任何错都当"不锁"。 -->
+<script>
+(function lunaPremiumGate(){
+  try{
+    if(window.LunaPremiumGate) return;
+    function zh(){ try{ return (window._appLang || localStorage.getItem('luna_lang')) === 'zh'; }catch(e){ return false; } }
+    function locked(){
+      try{ if(typeof isPro !== 'function') return false; return !isPro(); }catch(e){ return false; }   // 判断不了就当"不锁"，宁可放行也不误伤
+    }
+    var T = {
+      ttc: { zh:['🔒 备孕周期回顾为 VIP 专属','平均周期、黄体期、排卵确认，以及每个周期的体温曲线','解锁 VIP 查看','备孕周期回顾为VIP专属'],
+             th:['🔒 สรุปรอบเดือนสำหรับ VIP','รอบเดือนเฉลี่ย ระยะลูเทียล การยืนยันการตกไข่ และกราฟอุณหภูมิแต่ละรอบ','ปลดล็อก VIP','สรุปรอบเดือนสำหรับ VIP'] },
+      wt:  { zh:['🔒 体重变化曲线为 VIP 专属','记录体重、查看历史记录仍然免费','解锁 VIP 查看','孕期体重曲线为VIP专属'],
+             th:['🔒 กราฟน้ำหนักสำหรับ VIP','บันทึกน้ำหนักและดูประวัติได้ฟรีเหมือนเดิม','ปลดล็อก VIP','กราฟน้ำหนักสำหรับ VIP'] }
+    };
+    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function lockCard(id, kind, css){
+      var t = T[kind][zh() ? 'zh' : 'th'], e = document.createElement('div'); e.id = id; e.setAttribute('data-lpg','1');
+      e.style.cssText = css + 'display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;padding:12px 18px;box-sizing:border-box;z-index:5;';
+      e.innerHTML = '<div style="font-size:15px;font-weight:700;color:var(--purple,#7c5cbf);">' + esc(t[0]) + '</div>'
+        + '<div style="font-size:12.5px;line-height:1.6;color:var(--stat-fg-muted,#8a849e);max-width:290px;">' + esc(t[1]) + '</div>'
+        + '<button type="button" style="margin-top:4px;background:linear-gradient(135deg,var(--purple,#7c5cbf),var(--purple-light,#c47ab0));color:#fff;border:none;border-radius:22px;padding:10px 26px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">' + esc(t[2]) + '</button>';
+      e.querySelector('button').addEventListener('click', function(ev){
+        ev.stopPropagation();
+        try{ if(window.showTrialLockModal) window.showTrialLockModal(t[3], t[3]); }catch(err){}
+      });
+      return e;
+    }
+    function blur(el, on){
+      if(!el) return;
+      if(on){ el.style.filter = 'blur(6px)'; el.style.opacity = '.5'; el.style.pointerEvents = 'none'; el.style.userSelect = 'none'; el.setAttribute('aria-hidden','true'); }
+      else { el.style.filter = ''; el.style.opacity = ''; el.style.pointerEvents = ''; el.style.userSelect = ''; el.removeAttribute('aria-hidden'); }
+    }
+    // ① 备孕统计页：整页内容（汇总 + 每个周期）
+    function gateTtc(lk){
+      var p = document.getElementById('ttcStatsPanel'); if(!p) return;
+      var body = p.children[1]; if(!body) return;
+      var card = document.getElementById('ttcStatsLock');
+      if(lk){
+        blur(body, true);
+        if(!card){ card = lockCard('ttcStatsLock','ttc','position:fixed;left:16px;right:16px;top:50%;transform:translateY(-50%);'); p.appendChild(card); }
+      } else { blur(body, false); if(card && card.parentNode) card.parentNode.removeChild(card); }
+    }
+    // ② 孕期体重页：只锁"变化曲线"这张卡里的摘要和图（录入表单、历史列表不动）
+    function gateWeight(lk){
+      var title = document.getElementById('pregWtChartTitle'); if(!title) return;
+      var cardEl = title.closest ? title.closest('.stat-card') : null; if(!cardEl) return;
+      var card = document.getElementById('pregWtLock');
+      if(lk){
+        blur(document.getElementById('pregWtSummary'), true); blur(document.getElementById('pregWtChart'), true);
+        if(!card){ if(getComputedStyle(cardEl).position === 'static') cardEl.style.position = 'relative'; cardEl.setAttribute('data-lpg-pos','1');
+          card = lockCard('pregWtLock','wt','position:absolute;left:0;right:0;top:44px;bottom:0;'); cardEl.appendChild(card); }
+      } else {
+        blur(document.getElementById('pregWtSummary'), false); blur(document.getElementById('pregWtChart'), false);
+        if(card && card.parentNode) card.parentNode.removeChild(card);
+        if(cardEl.getAttribute('data-lpg-pos')){ cardEl.style.position = ''; cardEl.removeAttribute('data-lpg-pos'); }
+      }
+    }
+    var lastKey = '';
+    function reconcile(){
+      try{
+        var lk = locked(), key = (lk ? '1' : '0') + (zh() ? 'z' : 't');
+        // 语言切换时重画锁卡文案；状态没变且锁卡都在时什么也不做
+        var needs = key !== lastKey || (lk && (!document.getElementById('ttcStatsLock') || !document.getElementById('pregWtLock')));
+        if(!needs) return;
+        if(key !== lastKey){ var a = document.getElementById('ttcStatsLock'), b = document.getElementById('pregWtLock'); if(a) a.remove(); if(b) b.remove(); }
+        lastKey = key; gateTtc(lk); gateWeight(lk);
+      }catch(e){}
+    }
+    setInterval(reconcile, 800); reconcile();
+    window.LunaPremiumGate = { locked: locked, reconcile: reconcile };
+  }catch(e){ try{ console.log('LunaPremiumGate 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🌙 小助手 × 备孕/怀孕记录：把她【自己记录的内容】也一起交给 AI（以前只给了"阶段数据"：排卵日、孕几周、预产期）。
+     备孕：最近 14 天的体温/排卵试纸/同房/黏液读数；怀孕：体重记录（最新、第一条、变化、条数）和下一次产检还有几天。
+     只追加：包一层 window.fetch，只处理发往 /lunaChatReply 的 JSON 请求，在 summary 里多放 ttcLog / pregTrack 两个字段；
+     普通/产后模式、取不到数据、任何出错 → 原样放行，一个字节都不改。服务器端 chatPrompt.js 负责清洗并写进提示词。 -->
+<script>
+(function lunaAiModeData(){
+  try{
+    if(window.__lunaAiDataWrapped) return;
+    function build(){
+      var L = window.LunaPreg, X = window.LunaTtc; if(!L || !L._u) return null;
+      var U = L._u, today = U.todayDate(), todayK = U.fmtKey(today);
+      function ago(k){ var d = U.parseKey(k); return d ? U.diffDays(d, today) : null; }
+      var preg = false, post = false;
+      try{ post = !!(L.post && L.post.isActive()); }catch(e){}
+      try{ preg = !post && !!L.isActive(); }catch(e){}
+      if(preg){
+        var ws = L.track.weights(), t = {}, nv = null;
+        if(ws && ws.length){
+          var last = ws[ws.length - 1], first = ws[0];
+          t.weightLatest = { kg: last.kg, daysAgo: ago(last.date) };
+          t.weightFirst = first.kg; t.weightCount = ws.length;
+        }
+        try{ nv = L.track.nextVisit(); }catch(e){}
+        if(nv && nv.date){ var dd = -ago(nv.date); if(dd >= 0) t.nextVisitDays = dd; }
+        for(var k in t) return { key: 'pregTrack', val: t };
+        return null;
+      }
+      if(!post && X && X.isActive()){
+        var live = X.logs.map(), keys = Object.keys(live).sort().reverse(), o = { bbtCount: 0, sexRecent: 0 }, i, e, a;
+        for(i = 0; i < keys.length; i++){
+          e = live[keys[i]]; a = ago(keys[i]); if(a === null || a < 0 || a > 14) continue;
+          if(typeof e.bbt === 'number'){ o.bbtCount++; if(!o.bbtLast) o.bbtLast = { v: e.bbt, daysAgo: a }; }
+          if(e.lh && !o.lhLast) o.lhLast = { v: e.lh, daysAgo: a };
+          if(e.mucus && !o.mucusLast) o.mucusLast = { v: e.mucus, daysAgo: a };
+          if(e.sex && a <= 6){ o.sexRecent++; }
+        }
+        if(o.bbtCount || o.lhLast || o.mucusLast || o.sexRecent) return { key: 'ttcLog', val: o };
+      }
+      return null;
+    }
+    if(typeof window.fetch !== 'function') return;
+    var orig = window.fetch;
+    window.fetch = function(url, opts){
+      try{
+        if(typeof url === 'string' && url.indexOf('/lunaChatReply') >= 0 && opts && typeof opts.body === 'string'){
+          var x = build();
+          if(x){
+            var b = JSON.parse(opts.body), sm = (b.summary && typeof b.summary === 'object' && !Array.isArray(b.summary)) ? b.summary : {};
+            sm[x.key] = x.val; b.summary = sm;
+            var o2 = {}, k; for(k in opts) o2[k] = opts[k]; o2.body = JSON.stringify(b);
+            return orig.call(this, url, o2);
+          }
+        }
+      }catch(e){}
+      return orig.apply(this, arguments);
+    };
+    window.__lunaAiDataWrapped = true; window.LunaAiModeData = { build: build };
+  }catch(e){ try{ console.log('LunaAiModeData 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🩹 修复：首页「记录」弹窗里先打开"标记为月经日"、选了几个表情，再点"＋ 更多记录"进详细页保存 —— 统计页「情绪与备注」没有月经标志。
+     原因：点"更多记录"时首页弹窗只是被关掉（openMoreLog→closeModal），月经开关和已选表情都没保存；详细页的保存（saveMoreLog）
+     只认详细页自己的内容，也不看那个开关，所以今天没有被记成月经日，列表里的 🩸 标志自然不会出现。
+     做法：只追加，不改原函数。包一层 saveMoreLog：保存前① 若首页弹窗的月经开关是打开的 → 把今天记成月经日（写法和首页「保存」一致：
+     本地 + 云端 + 内存）；② 把首页弹窗里已选的表情并进这次保存；保存后清掉首页弹窗里那几个已选状态，避免下次打开残留。
+     只处理"开关打开"的情况，不会因此把已有的月经日取消；任何出错都当没发生，原来的保存照常进行。 -->
+<script>
+(function lunaMoreLogCarry(){
+  try{
+    if(window.__lunaMoreLogCarry || typeof window.saveMoreLog !== 'function') return;
+    var orig = window.saveMoreLog;
+    window.saveMoreLog = function(){
+      var restore = null, carried = false;
+      try{
+        var key = (typeof getTodayKey === 'function') ? getTodayKey() : null;
+        var pt = document.getElementById('quickPeriodToggle');
+        if(key && pt && pt.checked && typeof _acctKey === 'function'){
+          var arr = [];
+          try{ arr = JSON.parse(localStorage.getItem(_acctKey('luna_period_days')) || '[]'); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
+          if(arr.indexOf(key) < 0){
+            arr.push(key);
+            try{ localStorage.setItem(_acctKey('luna_period_days'), JSON.stringify(arr)); }catch(e){}
+            try{ if(typeof periodSet !== 'undefined') periodSet = new Set(arr); }catch(e){}
+            try{ var code = localStorage.getItem('luna_uid'); if(code && window._fb && typeof _fbSetWithRetry === 'function') _fbSetWithRetry('userdata/' + code + '/periodDays', arr); }catch(e){}
+            carried = true;
+          }
+        }
+        if(typeof collectQuickSymptoms === 'function' && typeof window.collectDetailSymptoms === 'function'){
+          var quick = collectQuickSymptoms();
+          if(quick && quick.length){
+            var od = window.collectDetailSymptoms;
+            window.collectDetailSymptoms = function(){
+              var items = od.apply(this, arguments) || [], seen = {}, i;
+              for(i = 0; i < items.length; i++) seen[items[i].name] = 1;
+              for(i = 0; i < quick.length; i++) if(!seen[quick[i].name]){ items.push(quick[i]); seen[quick[i].name] = 1; }
+              return items;
+            };
+            restore = function(){ window.collectDetailSymptoms = od; };
+          }
+        }
+      }catch(e){}
+      var r;
+      try{ r = orig.apply(this, arguments); }
+      finally{
+        try{ if(restore) restore(); }catch(e){}
+        try{
+          document.querySelectorAll('.symptom-btn.active').forEach(function(b){ b.classList.remove('active'); });
+          if(carried){
+            if(typeof calUpdateStats === 'function') calUpdateStats();
+            if(typeof renderLogList === 'function') renderLogList();
+            if(typeof calRender === 'function') calRender();
+            if(typeof updateOnboard === 'function') updateOnboard();
+          }
+        }catch(e){}
+      }
+      return r;
+    };
+    window.__lunaMoreLogCarry = true;
+  }catch(e){ try{ console.log('lunaMoreLogCarry 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🌙 底部中间的按钮（可在"我的"页用开关切换 AI / 记录；未满13岁一律「记录」）：「记录」换成「AI」（点开就是 Luna 小助手，名字还是 Luna 小助手）；月亮精灵球展开菜单里的 AI 那一项拿掉；泰语底栏文字加大。
+     记录入口没有少：首页卡片的「开始记录」「记录每天状态」、日历里点任意一天都还是能记录。
+     只追加，不改原有元素：在原来的按钮里多放一份"AI 图标+文字"，用一个 class 切换显示哪一份；原来的「记录」图标/文字/语言切换都不动。
+     "AI 小助手"被后台远程开关关掉、或用户未满 13 岁（AI 不开放）时，这个按钮自动变回原来的「记录」。出任何错都保持原样。 -->
+<style>
+  #nav-log:not(.lpg-ai) .lpg-x{display:none !important;}
+  #nav-log.lpg-ai > .nav-center-circle:not(.lpg-x), #nav-log.lpg-ai > .nav-label:not(.lpg-x){display:none !important;}
+  #nav-log .lpg-x.nav-label{font-weight:700;letter-spacing:.3px;}
+  #orbSubAI{display:none !important;}
+  body.lpg-th .bottom-nav .nav-label{font-size:13px !important;line-height:1.15;}
+  body.lpg-th .bottom-nav .nav-item-center .nav-label{font-size:13px !important;}
+</style>
+<script>
+(function lunaNavAi(){
+  try{
+    if(window.__lunaNavAi) return;
+    var el = document.getElementById('nav-log'); if(!el) return;
+    var origOnclick = el.getAttribute('onclick') || 'openModal()';
+    var circle = document.createElement('div'); circle.className = 'nav-center-circle lpg-x';
+    circle.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4l1.9 4.6L17.5 10.5l-4.6 1.9L11 17l-1.9-4.6L4.5 10.5l4.6-1.9z"/><path d="M18.5 4v3M17 5.5h3"/><path d="M18 15.5v2.6M16.7 16.8h2.6"/></svg>';
+    var label = document.createElement('span'); label.className = 'nav-label lpg-x'; label.textContent = 'AI';
+    el.insertBefore(circle, el.firstChild); el.appendChild(label);
+    // AI 能不能用（后台开关 / 未满13岁）——不能用时底部永远是「记录」，"我的"页的切换开关也藏起来
+    function aiAvailable(){
+      try{
+        if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('aiAssistant')) return false;
+        if(typeof isAgeRestricted === 'function' && isAgeRestricted()) return false;
+        return typeof window._openAiPanel === 'function';
+      }catch(e){ return false; }
+    }
+    function prefOn(){ try{ return localStorage.getItem('luna_nav_ai') !== '0'; }catch(e){ return true; } }   // 没设过 = 显示 AI
+    function aiAllowed(){ return aiAvailable() && prefOn(); }
+    // "我的"页：在「悬浮球样式」那一组后面加一个切换开关（只追加一个新的组，不动原来的）
+    var row = null;
+    function isZh(){ try{ return (window._appLang || localStorage.getItem('luna_lang')) === 'zh'; }catch(e){ return false; } }
+    function buildRow(){
+      try{
+        var anchor = document.getElementById('orbStyleBody'); anchor = anchor && anchor.parentNode; if(!anchor || !anchor.parentNode) return;
+        row = document.createElement('div'); row.id = 'navAiRow';
+        row.innerHTML = '<div class="s-title"><span id="navAiTitle"></span></div>'
+          + '<div class="s-group" style="overflow:hidden;border:1px solid var(--mine-surface-border);box-shadow:var(--mine-surface-shadow);">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;">'
+          + '<div style="min-width:0;"><div id="navAiLabel" style="font-size:14px;font-weight:500;color:var(--mine-fg);"></div>'
+          + '<div id="navAiHint" style="font-size:11.5px;line-height:1.6;color:var(--mine-chip-fg,#8a849e);margin-top:4px;"></div></div>'
+          + '<div class="s-toggle" id="navAiToggle" role="switch" style="flex-shrink:0;"></div></div></div>';
+        anchor.parentNode.insertBefore(row, anchor.nextSibling);
+        row.querySelector('#navAiToggle').addEventListener('click', function(){
+          var on = !prefOn();
+          try{ localStorage.setItem('luna_nav_ai', on ? '1' : '0'); }catch(e){}
+          reconcile(true);
+          try{ if(typeof showToast === 'function') showToast(isZh() ? (on ? '底部按钮：AI' : '底部按钮：记录') : (on ? 'ปุ่มด้านล่าง: AI' : 'ปุ่มด้านล่าง: บันทึก')); }catch(e){}
+        });
+      }catch(e){}
+    }
+    function syncRow(){
+      if(!row) return;
+      var z = isZh(), avail = aiAvailable();
+      row.style.display = avail ? '' : 'none';                      // 未满13岁 / 后台关闭：不显示这个开关
+      row.querySelector('#navAiTitle').textContent = z ? '🧭 底部中间按钮' : '🧭 ปุ่มกลางด้านล่าง';
+      row.querySelector('#navAiLabel').textContent = z ? '底部中间显示 AI 小助手' : 'แสดงปุ่ม AI ที่แถบด้านล่าง';
+      row.querySelector('#navAiHint').textContent = z ? '关闭后，底部中间改回「记录」按钮' : 'ปิดเพื่อกลับไปใช้ปุ่ม "บันทึก" ตามเดิม';
+      var t = row.querySelector('#navAiToggle'); t.classList.toggle('on', prefOn()); t.setAttribute('aria-checked', prefOn() ? 'true' : 'false');
+    }
+    function openAi(e){ try{ if(e && e.stopPropagation) e.stopPropagation(); if(typeof window.trackEvent === 'function') window.trackEvent('nav_ai_tap'); window._openAiPanel(); }catch(err){} }
+    var mode = null;
+    function reconcile(force){
+      try{
+        if(!row) buildRow(); syncRow();
+        var th = false; try{ th = (window._appLang || localStorage.getItem('luna_lang')) !== 'zh'; }catch(e){}
+        document.body.classList.toggle('lpg-th', th);
+        var ai = aiAllowed();
+        if(ai === mode && force !== true) return; mode = ai;
+        el.classList.toggle('lpg-ai', ai);
+        if(ai){ el.removeAttribute('onclick'); el.onclick = openAi; }
+        else { el.onclick = null; el.setAttribute('onclick', origOnclick); }
+      }catch(e){}
+    }
+    setInterval(reconcile, 700); reconcile();
+    window.__lunaNavAi = { reconcile: reconcile };
+  }catch(e){ try{ console.log('lunaNavAi 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🌙 小助手界面 × 备孕/怀孕：欢迎语、快捷问题（面板底部那排）、回答后冒出来的"💬 追问"按钮，备孕/怀孕模式下换成跟当前模式有关的。
+     以前这三处全是写给普通用户的（"经期/怎么记录月经/会员费/经痛"），备孕、怀孕的人打开小助手看到的还是经期话题。
+     换上去的每一个问题都是"本地能直接答"的（走备孕/怀孕卡片上算好的数据，不扣 AI 点数）——用 e2e 逐个验证过。
+     只追加：用 MutationObserver 盯着小助手的聊天区和快捷问题区，发现原来的内容就就地改文字；点击走原来的发送按钮。
+     普通模式、产后模式、任何出错 → 一个字不改。 -->
+<script>
+(function lunaAiModeUi(){
+  try{
+    if(window.__lunaAiModeUi) return;
+    var body = document.getElementById('aiBody'), chips = document.getElementById('aiChips'), input = document.getElementById('aiInput'), send = document.getElementById('aiSend');
+    if(!body || !chips || !input || !send) return;
+    function zh(){ try{ return window._appLang === 'zh'; }catch(e){ return false; } }
+    function mode(){
+      try{ var L = window.LunaPreg, X = window.LunaTtc;
+        if(L && L.post && L.post.isActive()){ var pi = L.post.info(); return (pi && pi.kind === 'ended') ? 'ppEnded' : 'pp'; }   // 产后 / 怀孕已结束（后者不能出现"产后/宝宝"这类词）
+        if(L && L.isActive()) return 'preg';
+        if(X && X.isActive()) return 'ttc';
+      }catch(e){}
+      return 'normal';
+    }
+    var Q = {
+      ttc:  { zh: ['我什么时候排卵','什么时候可以验孕','排卵试纸怎么用','基础体温怎么测','叶酸要吃吗','备孕多久该看医生'],
+              th: ['วันตกไข่ของฉันคือเมื่อไร','ตรวจครรภ์ได้เมื่อไร','ชุดตรวจไข่ตกใช้ยังไง','วัดอุณหภูมิร่างกายยังไง','กรดโฟลิกต้องกินไหม','วางแผนนานแค่ไหนควรไปหาหมอ'] },
+      preg: { zh: ['我现在孕几周','预产期是哪天','孕期出血怎么办','肚子痛怎么办','宝宝什么时候生','孕期腹痛怎么办'],
+              th: ['ตอนนี้ท้องกี่สัปดาห์','กำหนดคลอดวันไหน','ตั้งครรภ์มีเลือดออกทำยังไง','ปวดท้องทำยังไงดี','ครบกำหนดอีกกี่วัน','ปวดท้องน้อยตอนตั้งครรภ์ทำยังไง'] }
+    };
+    // 产后里"本地能直接答"的只有 月经什么时候回来 / 出血；其余几个会交给 AI（带产后模式、有就医红线）
+    Q.pp = { zh: ['月经什么时候回来','产后出血很多怎么办','产后情绪低落怎么办','伤口疼怎么办'],
+             th: ['ประจำเดือนจะกลับมาเมื่อไร','หลังคลอดเลือดออกมากทำยังไง','หลังคลอดอารมณ์ไม่ดีทำยังไง','แผลปวดทำยังไง'] };
+    Q.ppEnded = { zh: ['月经什么时候回来','出血很多怎么办','最近心情很低落怎么办'],
+                  th: ['ประจำเดือนจะกลับมาเมื่อไร','มีเลือดออกมากทำยังไง','ช่วงนี้อารมณ์ไม่ดีทำยังไง'] };
+    var HELLO = {
+      ttc:  { zh: '你好呀 🌙 我是 Luna 小助手~\n备孕路上的排卵、易孕期、验孕、体温和试纸，或者别的小问题，都可以问我 💗',
+              th: 'สวัสดีค่ะ 🌙 Luna ผู้ช่วยน้อยของคุณเองนะคะ\nเรื่องวันตกไข่ ช่วงเจริญพันธุ์ การตรวจครรภ์ อุณหภูมิ หรือเรื่องอื่น ๆ ระหว่างวางแผนตั้งครรภ์ ถามได้เลยค่ะ 💗' },
+      preg: { zh: '你好呀 🌙 我是 Luna 小助手~\n孕期的周数、预产期、身体的小变化，都可以问我 💗 如果有出血、剧烈腹痛，请先联系医生哦',
+              th: 'สวัสดีค่ะ 🌙 Luna ผู้ช่วยน้อยของคุณเองนะคะ\nเรื่องอายุครรภ์ กำหนดคลอด หรือการเปลี่ยนแปลงของร่างกายระหว่างตั้งครรภ์ ถามได้เลยค่ะ 💗 หากมีเลือดออกหรือปวดท้องรุนแรง ควรติดต่อแพทย์ก่อนนะคะ' }
+    };
+    HELLO.pp = { zh: '你好呀 🌙 我是 Luna 小助手~\n身体恢复得怎么样？月经什么时候回来、心情的起伏，都可以跟我聊聊 💗 如果出血很多、发烧、剧烈腹痛，请尽快就医哦',
+                 th: 'สวัสดีค่ะ 🌙 Luna ผู้ช่วยน้อยของคุณเองนะคะ\nร่างกายฟื้นตัวเป็นยังไงบ้างคะ ประจำเดือนจะกลับมาเมื่อไร หรืออารมณ์ที่ขึ้นลง คุยกับ Luna ได้เลยค่ะ 💗 หากเลือดออกมาก มีไข้ หรือปวดท้องรุนแรง ควรไปพบแพทย์ทันทีนะคะ' };
+    HELLO.ppEnded = { zh: '你好呀 🌙 我是 Luna 小助手~\n身体恢复得怎么样？有什么想聊、想问的，都可以跟我说 💗 如果出血很多、发烧、剧烈腹痛，请尽快就医哦',
+                      th: 'สวัสดีค่ะ 🌙 Luna ผู้ช่วยน้อยของคุณเองนะคะ\nร่างกายฟื้นตัวเป็นยังไงบ้างคะ มีอะไรอยากเล่าหรืออยากถาม บอก Luna ได้เลยค่ะ 💗 หากเลือดออกมาก มีไข้ หรือปวดท้องรุนแรง ควรไปพบแพทย์ทันทีนะคะ' };
+    function fire(q){ try{ input.value = q; send.click(); }catch(e){} }
+    function list(){ var m = mode(); return m === 'normal' ? null : Q[m][zh() ? 'zh' : 'th']; }
+    // ⚠ 产后/怀孕结束：追问按钮只放 2 个（池子小，轮换没有意义，"换一批"也就没有必要）
+
+    // ① 快捷问题（面板底部）
+    function fixChips(){
+      var l = list(); if(!l || chips.getAttribute('data-lpg') === mode() + (zh() ? 'z' : 't')) return;
+      var kids = chips.children; if(!kids.length) return;
+      var tmpl = kids[0], i, c;
+      chips.setAttribute('data-lpg', mode() + (zh() ? 'z' : 't'));
+      var keep = []; for(i = 0; i < Math.min(4, l.length); i++) keep.push(l[i]);
+      while(chips.firstChild) chips.removeChild(chips.firstChild);
+      keep.forEach(function(q){ c = tmpl.cloneNode(false); c.textContent = q; c.onclick = function(){ fire(q); }; chips.appendChild(c); });
+    }
+    // ② 欢迎语（只改最开头那一条、且还是原来的欢迎语时）
+    function fixHello(node){
+      var m = mode(); if(m === 'normal') return;
+      var b = node && node.firstChild; if(!b || b.nodeType !== 1 || b.getAttribute('data-lpg')) return;
+      var t = b.textContent || '';
+      if(t.indexOf('你好呀 🌙 我是 Luna 小助手') === 0 || t.indexOf('สวัสดีค่ะ 🌙 Luna ผู้ช่วยน้อย') === 0){ b.textContent = HELLO[m][zh() ? 'zh' : 'th']; b.setAttribute('data-lpg', '1'); }
+    }
+    // ③ 回答后的"💬 追问"
+    var rot = 0;
+    function myBubbles(){ return [].filter.call(body.children, function(x){ return /flex-end/.test(x.getAttribute('style') || ''); }); }   // 浏览器会把 style 改写成"justify-content: flex-end"（带空格），所以用正则找
+    function lastAsked(){ var me = myBubbles(); return me.length ? (me[me.length - 1].textContent || '') : ''; }
+    // ④ 中文界面里混进了泰文的追问按钮（原来的话题清单里，中文那一份其实写的是泰文）→ 换成对应的中文问题（点了发的也是中文）
+    var ZHMAP = {
+      'ปวดท้อง':'经痛怎么办','เมนมาช้า':'月经推迟了怎么办','เมนมาปวดหัว':'月经期间头痛怎么办','ตกขาว':'白带异常怎么办','เมนไหลน้อย':'月经量很少怎么办','ปวดเอว':'经期腰痛怎么办',
+      'เครียด':'我压力好大','เศร้า':'我很难过','เหงา':'我好孤单','หงุดหงิด':'我好烦躁',
+      'แฟนไม่ตอบ':'男朋友不回我消息','คิดถึงแฟน':'好想男朋友','อกหัก':'我失恋了','โสด':'单身好孤单',
+      'ออกกำลังกายตอนมีเมนส์':'经期可以运动吗','กินอะไรดีตอนมีเมนส์':'经期吃什么好','สระผมตอนมีเมนส์':'经期可以洗头吗',
+      'ใช้ยังไง':'Luna怎么用','บันทึกประจำเดือน':'怎么记录月经','ราคา':'会员费多少钱','เปลี่ยนมือถือ':'换手机了数据怎么办'
+    };
+    var THAI = /[\u0e00-\u0e7f]/;
+    // 知识库里这些话题的关键词是泰文的：发给知识库的还是原来的泰文（保证和以前一样能答上、不扣点数），但气泡里显示中文
+    function fireMapped(zhQ, thQ){
+      try{
+        input.value = thQ; send.click();
+        var me = myBubbles();
+        if(me.length){ var b = me[me.length - 1].firstChild; if(b && b.nodeType === 1) b.textContent = zhQ; }
+      }catch(e){}
+    }
+    function fixZhThai(wrap){
+      if(!zh()) return;
+      var kids = [].slice.call(wrap.children), i, c, t, q;
+      for(i = 0; i < kids.length - 1; i++){            // 最后一个是"换一批"，不动
+        c = kids[i]; t = (c.textContent || '').replace(/^💬\s*/, '');
+        if(!THAI.test(t)) continue;
+        q = ZHMAP[t];
+        if(!q){ wrap.removeChild(c); continue; }
+        c.textContent = '💬 ' + q;
+        (function(zhQ, thQ){ c.onclick = function(){ fireMapped(zhQ, thQ); }; })(q, t);
+      }
+    }
+    function fixFollow(wrap){
+      var l = list(); if(wrap.getAttribute('data-lpg')) return;
+      if(!l){ wrap.setAttribute('data-lpg', '1'); fixZhThai(wrap); return; }
+      wrap.setAttribute('data-lpg', '1');
+      var spans = wrap.children; if(spans.length < 2) return;
+      var more = spans[spans.length - 1], tmpl = spans[0], asked = lastAsked();
+      function pick(){
+        var pool = l.filter(function(q){ return q !== asked; }), out = [], i;
+        for(i = 0; i < 3 && i < pool.length; i++) out.push(pool[(rot + i) % pool.length]);
+        return out;
+      }
+      function fill(){
+        var i; for(i = wrap.children.length - 2; i >= 0; i--) wrap.removeChild(wrap.children[i]);
+        pick().forEach(function(q){ var c = tmpl.cloneNode(false); c.textContent = '💬 ' + q; c.onclick = function(){ fire(q); }; if(more.parentNode === wrap) wrap.insertBefore(c, more); else wrap.appendChild(c); });
+      }
+      more.onclick = function(){ rot += 3; fill(); };
+      fill();
+      if(l.filter(function(q){ return q !== asked; }).length <= 3) wrap.removeChild(more);   // 池子太小，换不出新的 → 不放没用的"换一批"
+    }
+    new MutationObserver(function(muts){
+      try{ muts.forEach(function(m){ [].forEach.call(m.addedNodes, function(n){
+        if(n.nodeType !== 1) return;
+        if(n.classList && n.classList.contains('aiFuWrap')) fixFollow(n);
+        else if(body.children.length <= 2) fixHello(n);
+      }); }); }catch(e){}
+    }).observe(body, { childList: true });
+    new MutationObserver(function(){ try{ fixChips(); }catch(e){} }).observe(chips, { childList: true });
+    try{ fixChips(); if(body.firstElementChild) fixHello(body.firstElementChild); }catch(e){}
+    window.__lunaAiModeUi = true;
+  }catch(e){ try{ console.log('lunaAiModeUi 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🌙 小助手发送键：改成 Claude / ChatGPT / 豆包 那种——纯色圆形 + 向上箭头；输入框是空的时候是浅灰（不能发），打字以后变成主题紫色（能发）。
+     只追加：不动原来的按钮和发送逻辑（点击、回车发送都还是原来的），只是换图标、换样式、按输入内容切换"灰/亮"；顺手把中文界面里泰文的输入框提示改成中文。 -->
+<style>
+  #aiSend{ width:40px !important; height:40px !important; font-size:0 !important; padding:0 !important;
+    background:var(--purple,#7c5cbf) !important; box-shadow:0 2px 8px rgba(124,92,191,.35) !important;
+    transition:background .18s ease, box-shadow .18s ease, transform .12s ease, opacity .18s ease; -webkit-tap-highlight-color:transparent; }
+  #aiSend:active{ transform:scale(.9); }
+  #aiSend.lpg-empty{ background:#e3dcef !important; box-shadow:none !important; cursor:default !important; }
+  #aiSend svg{ display:block; pointer-events:none; }
+</style>
+<script>
+(function lunaAiSendBtn(){
+  try{
+    if(window.__lunaAiSendBtn) return;
+    var btn = document.getElementById('aiSend'), input = document.getElementById('aiInput'); if(!btn || !input) return;
+    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M5.5 11.5L12 5l6.5 6.5"/></svg>';
+    btn.setAttribute('aria-label', 'Send');
+    function sync(){
+      try{ var ph = (window._appLang === 'zh') ? '输入你想问的…' : 'พิมพ์คำถามได้เลยนะ...'; if(input.getAttribute('placeholder') !== ph) input.setAttribute('placeholder', ph); }catch(e){}   // 中文界面里输入框提示原来是泰文
+      var empty = !(input.value && input.value.trim());
+      if(btn.classList.contains('lpg-empty') !== empty){ btn.classList.toggle('lpg-empty', empty); btn.setAttribute('aria-disabled', empty ? 'true' : 'false'); }
+    }
+    input.addEventListener('input', sync); input.addEventListener('change', sync);
+    btn.addEventListener('click', function(){ setTimeout(sync, 0); }, true);
+    input.addEventListener('keydown', function(){ setTimeout(sync, 0); });
+    setInterval(sync, 300); sync();                // 程序里清空/填入输入框（点快捷问题等）时也跟着变
+    window.__lunaAiSendBtn = true;
+  }catch(e){ try{ console.log('lunaAiSendBtn 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🌙 ① 小助手"在线"前面的小圆点改成绿色（以前是白色，看起来像普通文字符号）。
+     🌙 ② 联系方式：以前小助手回答"怎么联系你们"只给一个邮箱文字。现在：
+        · 小助手这条联系回答的下面直接出两个按钮：「LINE 联系我们」（绿色）和「发邮件」，点了就跳转，不用用户自己去搜；
+        （"我的"页的「联系我们」弹窗本来就有 LINE 和邮件，没动；登录页现在是关闭状态，也没动。）
+        LINE 链接沿用 App 里已有的那个（remoteConfig.lineUrl，默认 https://lin.ee/STIfOtU）；邮箱沿用 remoteConfig.supportEmail。
+     只追加，不改原有任何元素；出任何错都当没发生。 -->
+<script>
+(function lunaContactLine(){
+  try{
+    if(window.__lunaContactLine) return;
+    function zh(){ try{ return window._appLang === 'zh'; }catch(e){ return false; } }
+    function lineUrl(){ try{ var u = window._remoteConfig && window._remoteConfig.lineUrl; return (typeof u === 'string' && u.indexOf('http') === 0) ? u : 'https://lin.ee/STIfOtU'; }catch(e){ return 'https://lin.ee/STIfOtU'; } }
+    function email(){ try{ return (window._remoteConfig && window._remoteConfig.supportEmail) || 'lunacalm00@gmail.com'; }catch(e){ return 'lunacalm00@gmail.com'; } }
+    function openLine(){ try{ window.open(lineUrl(), '_blank'); }catch(e){} }
+    function openMail(){ try{ if(typeof window._contactSupport === 'function') window._contactSupport(); else window.location.href = 'mailto:' + email(); }catch(e){} }
+
+    // ① 绿点
+    var st = document.getElementById('aiStatus');
+    function dot(){
+      try{
+        if(!st) return; var t = st.textContent || '';
+        if(t.charAt(0) !== '●' || st.querySelector('.lpg-dot')) return;
+        st.innerHTML = '<span class="lpg-dot" style="color:#4ade80;text-shadow:0 0 6px rgba(74,222,128,.9);">●</span>';
+        st.appendChild(document.createTextNode(t.slice(1)));
+      }catch(e){}
+    }
+    if(st){ new MutationObserver(dot).observe(st, { childList: true, characterData: true, subtree: true }); dot(); }
+
+    // ② 小助手联系回答下面的按钮
+    var body = document.getElementById('aiBody');
+    function btn(label, bg, fn){
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+      b.style.cssText = 'border:none;background:' + bg + ';color:#fff;font-weight:700;font-size:13px;padding:10px 16px;border-radius:14px;cursor:pointer;font-family:inherit;box-shadow:0 3px 10px rgba(0,0,0,.12);';
+      b.addEventListener('click', function(e){ e.stopPropagation(); fn(); }); return b;
+    }
+    function addButtons(wrap){
+      try{
+        if(wrap.getAttribute('data-lpg-contact')) return;
+        var t = wrap.textContent || ''; if(t.indexOf(email()) < 0) return;
+        wrap.setAttribute('data-lpg-contact', '1');
+        var row = document.createElement('div'); row.className = 'lpg-contact-row';
+        row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start;margin:2px 0 4px;';
+        row.appendChild(btn(zh() ? '💬 LINE 联系我们' : '💬 ติดต่อทาง LINE', 'linear-gradient(135deg,#06c755,#00b544)', openLine));
+        row.appendChild(btn(zh() ? '✉️ 发邮件' : '✉️ ส่งอีเมล', 'linear-gradient(135deg,#9d7bd6,#e98ab0)', openMail));
+        if(wrap.nextSibling) wrap.parentNode.insertBefore(row, wrap.nextSibling); else wrap.parentNode.appendChild(row);
+        body.scrollTop = body.scrollHeight;
+      }catch(e){}
+    }
+    if(body) new MutationObserver(function(ms){ ms.forEach(function(m){ [].forEach.call(m.addedNodes, function(n){ if(n.nodeType === 1 && !(n.classList && (n.classList.contains('aiFuWrap') || n.classList.contains('lpg-contact-row')))) addButtons(n); }); }); }).observe(body, { childList: true });
+
+    window.__lunaContactLine = true;
+  }catch(e){ try{ console.log('lunaContactLine 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+</script>
+
+<!-- 📌 「孕期小百科」和「产后小提示」两个二级页：往下滚的时候，顶部那一行（返回键 + 标题）固定在顶部不动，只固定标题，
+     孕期小百科里"上一周/下一周"那一栏还是跟着内容一起滚走。做法跟统计里另一个二级页已有的固定标题一样（position:sticky + 同一个背景色，内容滚到下面不会透出来）。
+     只追加一段样式，不改任何原有元素。 -->
+<style>
+  #pregWeekPanel > div:first-child, #ppInfoPanel > div:first-child{
+    position:sticky; top:0; z-index:5; background:var(--stat-bg); transition:background .4s ease;
+  }
+</style>

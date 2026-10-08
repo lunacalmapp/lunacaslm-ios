@@ -14098,6 +14098,291 @@ function setPhase(key){if(!PHASES[key])return;currentPhase=key;syncTop();
   saveGame();
 }
 function setCostume(key){if(COSTUMES[key])lumi.costume=key;}
+/* ============ 🌸 Lumi 认得"备孕 / 怀孕 / 产后 / 恢复期"（只追加，原来的代码一行没改）============
+ * 老问题：
+ *  ① Lumi 的阶段是它自己读 luna_period_days 重新算的，根本不知道用户在怀孕/产后/备孕——怀孕的人会看到"排卵期 🦋 雀跃：今天闪闪发光"，
+ *     怀孕结束的人也一样，会很伤人；
+ *  ② 它读的是【没有账号后缀】的 luna_period_days，而 App 对登录用户存的是 luna_period_days_<uid>（升级时只复制过一次，之后新记录只写带后缀的）。
+ *     所以登录用户的 Lumi 读到的是升级当时的旧快照，新注册的登录用户什么都读不到，阶段永远停在"舒适期"。
+ * 这里做的事：
+ *  · 修正读数据的方式：先读带账号后缀的，没有再退回无后缀的（老用户升级前的数据）；其余算法（经期分组、排卵窗口）跟原来完全一致；
+ *  · 新增三个【自动】阶段（不放进 PHASE_ORDER，用户在阶段选择器里选不到）：孕期 🌸 / 产后 🌷 / 恢复期 🌿（怀孕已经结束）；
+ *    话术不预测月经/排卵；"恢复期"整套话术不出现 宝宝/恭喜/产后/哺乳/母乳/恶露，也不催她振作；
+ *  · 备孕用户沿用原来的四个阶段，但每日寄语换成不给压力的版本（月经来了/排卵期/等待期各一句）；
+ *  · 优先级：产后/恢复期 > 怀孕 > 备孕 > 普通；状态读不出来/写坏了一律当普通用户；
+ *  · 页面回到前台时重新同步（用户从 App 切过来，storage 事件不一定触发）。
+ * 读的 key（都带账号后缀）：luna_postpartum（active,kind）、luna_preg_state（active）、luna_ttc_state（active）。
+ */
+(function(){
+  /* ── 新阶段：字段跟原有四个阶段完全一样，动作/服装只用已有的 ── */
+  const NEW_PHASES = {
+    pregnant: {
+      key:'pregnant', name:'孕期', emoji:'🌸', emotion:'温柔', dot:'#e59ac0',
+      desc:'放慢脚步，常坐下来休息、看看云，光晕柔和。',
+      speed:0.6, glow:0.8, warm:0.45, restBias:1.8,
+      behaviorPool:['sit','watchClouds','sit','sleep','idle','watchClouds'],
+      primaryAction:'meditate', defaultCostume:'pajama',
+      eyeBrightness:0.85, roomTint:0.05, lightIntensity:0.97,
+      dailyMsg:'今天也辛苦了。慢慢来，多喝点水，累了就歇一歇，我陪着你 🌸',
+      emotionalTone:'soft-calm', wantAction:'meditate', favoriteSpot:{x:90, dy:0.34}, petEnergy:0.5,
+      petMsg:['谢谢你摸摸我，好暖和 🌸','轻轻蹭了蹭你的手，安安静静的','有你在，心里很踏实 💗','闭上眼睛，靠着你歇一会儿','今天慢慢来，不用着急','谢谢你一直这样照顾自己','嗯…有你陪着，就很好了']
+    },
+    postpartum: {
+      key:'postpartum', name:'产后', emoji:'🌷', emotion:'柔软', dot:'#f0a6b8',
+      desc:'不着急，一点一点恢复，常停下来休息。',
+      speed:0.5, glow:0.65, warm:0.5, restBias:2.2,
+      behaviorPool:['sit','sleep','watchClouds','sit','sleep'],
+      primaryAction:'sleep', defaultCostume:'pajama',
+      eyeBrightness:0.7, roomTint:0.07, lightIntensity:0.94,
+      dailyMsg:'照顾好宝宝的同时，也别忘了照顾自己。累了就歇一会儿，我陪着你 🌷',
+      emotionalTone:'gentle-tired', wantAction:'sleep', favoriteSpot:{x:-120, dy:0.32}, petEnergy:0.45,
+      petMsg:['谢谢你摸摸我，你已经很棒了 🥺','轻轻蹭了蹭你的手，好像知道你很累','有你在，我也觉得安心 💗','不用样样都做好，慢慢来','今天没睡够吧？靠一会儿也没关系','谢谢你还惦记着我','嗯…这样安静地待一会儿就好']
+    },
+    recovery: {
+      key:'recovery', name:'恢复期', emoji:'🌿', emotion:'安静', dot:'#9bbf9f',
+      desc:'慢慢来，不用着急，安静地陪着你。',
+      speed:0.5, glow:0.6, warm:0.45, restBias:2.2,
+      behaviorPool:['sit','watchClouds','sit','idle','sit'],
+      primaryAction:'meditate', defaultCostume:'purple',
+      eyeBrightness:0.7, roomTint:0.07, lightIntensity:0.94,
+      dailyMsg:'今天不用做什么，也不用振作。想安静就安静，想哭就哭，我陪着你 🌿',
+      emotionalTone:'quiet-soft', wantAction:'meditate', favoriteSpot:{x:110, dy:0.34}, petEnergy:0.4,
+      petMsg:['谢谢你摸摸我，我在这里 🥺','轻轻靠着你，什么都不用说','慢慢来，不着急','有你在身边，我也安心 💗','今天不想说话也没关系','谢谢你还愿意让我陪着','嗯…就这样待一会儿']
+    }
+  };
+  Object.keys(NEW_PHASES).forEach(k=>{ if(!PHASES[k]) PHASES[k]=NEW_PHASES[k]; });
+
+  /* ── 备孕用户：每日寄语换成不给压力的版本（只有这三个阶段需要换；舒适期原来的就很合适）── */
+  const TTC_MSG = {
+    period:    '月经来了，今天先好好休息。备孕路上你已经很努力了，给自己一个拥抱 🫖',
+    ovulation: '今天不用给自己压力。放轻松，做让自己开心的事 💫',
+    luteal:    '等待的日子不容易。慢下来，允许自己有情绪，我陪着你 🌙'
+  };
+
+  /* ── 泰语（只补缺的，绝不覆盖已有的翻译）── */
+  const TH_NEW = {
+    '孕期':'ช่วงตั้งครรภ์', '产后':'หลังคลอด', '恢复期':'ช่วงฟื้นตัว', '柔软':'อ่อนโยน', '安静':'เงียบสงบ',
+    '放慢脚步，常坐下来休息、看看云，光晕柔和。':'เดินช้าลง มักนั่งพัก มองเมฆ แสงนวลอ่อน',
+    '不着急，一点一点恢复，常停下来休息。':'ไม่ต้องรีบ ค่อยๆ ฟื้นตัว มักหยุดพักบ่อยๆ',
+    '慢慢来，不用着急，安静地陪着你。':'ค่อยๆ ไป ไม่ต้องรีบ อยู่เป็นเพื่อนอย่างเงียบๆ',
+    '今天也辛苦了。慢慢来，多喝点水，累了就歇一歇，我陪着你 🌸':'วันนี้ก็เหนื่อยแล้วนะ ค่อยๆ ไป ดื่มน้ำเยอะๆ เหนื่อยก็พักสักหน่อย Luna อยู่เป็นเพื่อนนะ 🌸',
+    '谢谢你摸摸我，好暖和 🌸':'ขอบคุณที่ลูบหัวนะ อุ่นจัง 🌸',
+    '轻轻蹭了蹭你的手，安安静静的':'ซุกมือเธอเบาๆ เงียบๆ สงบๆ',
+    '有你在，心里很踏实 💗':'มีเธออยู่ ใจก็มั่นคง 💗',
+    '闭上眼睛，靠着你歇一会儿':'หลับตา พิงเธอพักสักครู่',
+    '今天慢慢来，不用着急':'วันนี้ค่อยๆ ไป ไม่ต้องรีบ',
+    '谢谢你一直这样照顾自己':'ขอบคุณที่ดูแลตัวเองมาตลอดนะ',
+    '嗯…有你陪着，就很好了':'อืม…มีเธออยู่ข้างๆ ก็ดีแล้ว',
+    '照顾好宝宝的同时，也别忘了照顾自己。累了就歇一会儿，我陪着你 🌷':'ดูแลลูกแล้ว อย่าลืมดูแลตัวเองด้วยนะ เหนื่อยก็พักสักครู่ Luna อยู่เป็นเพื่อนนะ 🌷',
+    '谢谢你摸摸我，你已经很棒了 🥺':'ขอบคุณที่ลูบหัวนะ เธอเก่งมากแล้ว 🥺',
+    '轻轻蹭了蹭你的手，好像知道你很累':'ซุกมือเธอเบาๆ เหมือนรู้ว่าเธอเหนื่อย',
+    '有你在，我也觉得安心 💗':'มีเธออยู่ ฉันก็รู้สึกอุ่นใจ 💗',
+    '不用样样都做好，慢慢来':'ไม่ต้องทำได้ทุกอย่าง ค่อยๆ ไปนะ',
+    '今天没睡够吧？靠一会儿也没关系':'วันนี้นอนไม่พอใช่ไหม พิงสักพักก็ไม่เป็นไรนะ',
+    '谢谢你还惦记着我':'ขอบคุณที่ยังนึกถึงกันนะ',
+    '嗯…这样安静地待一会儿就好':'อืม…อยู่เงียบๆ แบบนี้สักพักก็พอแล้ว',
+    '今天不用做什么，也不用振作。想安静就安静，想哭就哭，我陪着你 🌿':'วันนี้ไม่ต้องทำอะไร ไม่ต้องฝืนเข้มแข็ง อยากเงียบก็เงียบ อยากร้องไห้ก็ร้องได้ Luna อยู่ตรงนี้ 🌿',
+    '谢谢你摸摸我，我在这里 🥺':'ขอบคุณที่ลูบหัวนะ Luna อยู่ตรงนี้ 🥺',
+    '轻轻靠着你，什么都不用说':'พิงเธอเบาๆ ไม่ต้องพูดอะไรเลย',
+    '慢慢来，不着急':'ค่อยๆ ไป ไม่ต้องรีบ',
+    '有你在身边，我也安心 💗':'มีเธออยู่ข้างๆ ฉันก็อุ่นใจ 💗',
+    '今天不想说话也没关系':'วันนี้ไม่อยากพูดก็ไม่เป็นไรนะ',
+    '谢谢你还愿意让我陪着':'ขอบคุณที่ยังยอมให้ Luna อยู่เป็นเพื่อน',
+    '嗯…就这样待一会儿':'อืม…อยู่แบบนี้สักพัก',
+    '月经来了，今天先好好休息。备孕路上你已经很努力了，给自己一个拥抱 🫖':'ประจำเดือนมาแล้ว วันนี้พักผ่อนก่อนนะ ตลอดเส้นทางการวางแผนมีลูกเธอพยายามมามากแล้ว กอดตัวเองสักที 🫖',
+    '今天不用给自己压力。放轻松，做让自己开心的事 💫':'วันนี้ไม่ต้องกดดันตัวเอง ผ่อนคลาย ทำสิ่งที่ทำให้มีความสุข 💫',
+    '等待的日子不容易。慢下来，允许自己有情绪，我陪着你 🌙':'ช่วงรอผลไม่ง่ายเลย ค่อยๆ ไป ยอมให้ตัวเองมีอารมณ์ได้ Luna อยู่เป็นเพื่อนนะ 🌙'
+  };
+  Object.keys(TH_NEW).forEach(k=>{ if(!(k in TEXT_MAP)) TEXT_MAP[k]=TH_NEW[k]; });
+
+  /* ── 读状态 ── */
+  const _uid=()=>{ try{ return localStorage.getItem('luna_uid')||''; }catch(e){ return ''; } };
+  const _acct=base=>{ const u=_uid(); return u ? base+'_'+u : base; };
+  const _json=k=>{ try{ const v=localStorage.getItem(k); return v==null ? null : JSON.parse(v); }catch(e){ return null; } };
+  // 先读带账号后缀的，没有再退回无后缀的（老用户升级前的数据）。注意"有带后缀的 key"就用它，哪怕是空数组——不能回头去读旧快照
+  const _scopedRaw=base=>{ try{ const u=_uid(); if(u){ const s=localStorage.getItem(base+'_'+u); if(s!==null) return s; } return localStorage.getItem(base); }catch(e){ return null; } };
+  // 校验跟 App 自己的 sane() 一样严（残缺/写坏的状态，App 会当没有，Lumi 也必须当没有，不能 Lumi 说"孕期"而 App 却是普通模式）
+  const _validKey=k=>{ if(typeof k!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return false; const p=k.split('-').map(Number), d=new Date(p[0],p[1]-1,p[2]); return d.getFullYear()===p[0] && d.getMonth()===p[1]-1 && d.getDate()===p[2]; };
+  const _obj=o=>!!o && typeof o==='object' && !Array.isArray(o);
+  function modeNow(){
+    const pp=_json(_acct('luna_postpartum'));
+    if(_obj(pp) && pp.active===true && (pp.kind==='birth' || pp.kind==='ended') && _validKey(pp.eventDate) && typeof pp.updatedAt==='number') return pp.kind==='ended' ? 'recovery' : 'postpartum';
+    const pg=_json(_acct('luna_preg_state'));
+    if(_obj(pg) && pg.active===true && _validKey(pg.dueDate) && typeof pg.updatedAt==='number') return 'pregnant';
+    const tt=_json(_acct('luna_ttc_state'));
+    if(_obj(tt) && tt.v===1 && tt.active===true && _validKey(tt.tryingSince) && typeof tt.updatedAt==='number') return 'ttc';
+    return 'normal';
+  }
+
+  /* ── 阶段同步：跟原来的 syncPhaseFromPeriodApp 算法一致，只是 ① 先看模式 ② 按账号读数据 ── */
+  let ttcMode=false;
+  syncPhaseFromPeriodApp = function(){
+    try{
+      const m=modeNow(); ttcMode=(m==='ttc');
+      if(m==='pregnant' || m==='postpartum' || m==='recovery'){ currentPhase=m; return true; }
+      const raw=_scopedRaw(LUNA_PERIOD_KEY);
+      if(!raw) return false;
+      const days=JSON.parse(raw);
+      if(!Array.isArray(days)||days.length===0) return false;
+      const cycleLen=Math.max(21,Math.min(45,parseInt(localStorage.getItem(LUNA_CYCLE_LEN_KEY)||'28')));
+      const parseLocal=k=>{const p=k.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);};
+      const sorted=[...days].sort();
+      const runs=[]; let run=[sorted[0]];
+      for(let i=1;i<sorted.length;i++){
+        const diff=(parseLocal(sorted[i])-parseLocal(sorted[i-1]))/86400000;
+        if(diff<=2) run.push(sorted[i]); else { runs.push(run); run=[sorted[i]]; }
+      }
+      runs.push(run);
+      const lastRun=runs[runs.length-1];
+      const lastStart=parseLocal(lastRun[0]);
+      const lastEnd=parseLocal(lastRun[lastRun.length-1]);
+      const now=new Date(); const todayMid=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      const todayStr=todayMid.getFullYear()+'-'+String(todayMid.getMonth()+1).padStart(2,'0')+'-'+String(todayMid.getDate()).padStart(2,'0');
+      let nextStart=new Date(lastStart.getTime()+cycleLen*86400000);
+      while(nextStart<todayMid) nextStart=new Date(nextStart.getTime()+cycleLen*86400000);
+      const ovulation=new Date(nextStart.getTime()-14*86400000);
+      const fertileS=new Date(ovulation.getTime()-5*86400000);
+      const fertileE=new Date(ovulation.getTime()+1*86400000);
+      let phase;
+      if(days.includes(todayStr) || (todayMid>=lastStart && todayMid<=lastEnd)) phase='period';
+      else if(todayMid>=fertileS && todayMid<=fertileE) phase='ovulation';
+      else if(todayMid>fertileE && todayMid<nextStart) phase='luteal';
+      else phase='stable';
+      if(PHASES[phase]){ currentPhase=phase; return true; }
+    }catch(e){}
+    return false;
+  };
+
+  /* ── 每日寄语：备孕用户在 月经来了/排卵期/等待期 这三个阶段换成不给压力的版本 ── */
+  function dailyMsgNow(){
+    const ph=PHASES[currentPhase]; if(!ph) return '';
+    return (ttcMode && TTC_MSG[currentPhase]) ? TTC_MSG[currentPhase] : ph.dailyMsg;
+  }
+  const _origDaily=showDailyPhaseMsgIfNeeded;
+  showDailyPhaseMsgIfNeeded = function(){
+    const ph=PHASES[currentPhase], alt=(ttcMode && TTC_MSG[currentPhase]) ? TTC_MSG[currentPhase] : null;
+    if(!ph || !alt) return _origDaily();
+    const keep=ph.dailyMsg; ph.dailyMsg=alt;
+    try{ return _origDaily(); } finally{ ph.dailyMsg=keep; }      // 原函数是同步取 msg 的，取完立刻还原，不留下副作用
+  };
+
+  /* ── 重新同步：状态 key 变了（storage 事件）/ 页面回到前台 ── */
+  const _resync=()=>{ try{ if(syncPhaseFromPeriodApp()) syncTop(); }catch(e){} };
+  try{
+    window.addEventListener('storage',e=>{ if(e.key && /^(luna_preg_state|luna_postpartum|luna_ttc_state|luna_period_days)/.test(e.key)) _resync(); });
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) _resync(); });
+  }catch(e){}
+
+  /* ── 给测试和排查用的只读出口 ── */
+  window.LumiMode={
+    mode:modeNow, phases:PHASES, ttcMsg:TTC_MSG, dailyMsg:dailyMsgNow, resync:_resync,
+    untranslated:()=>{ const out=[]; ['pregnant','postpartum','recovery'].forEach(k=>{ const p=PHASES[k]; [p.name,p.emotion,p.desc,p.dailyMsg].concat(p.petMsg).forEach(s=>{ if(!(s in TEXT_MAP)) out.push(s); }); }); Object.keys(TTC_MSG).forEach(k=>{ if(!(TTC_MSG[k] in TEXT_MAP)) out.push(TTC_MSG[k]); }); return out; }
+  };
+})();
+
+/* ============ 🫖🪴 Lumi 老手机表情兜底（只追加，原来的代码一行没改）============
+ * 问题：Lumi 里用了 10 种较新的表情（Unicode 12–14：🫖 🫂 🦶 🫧 🪄 🪨 🫙 🪴 🦪 …），
+ *   系统表情字体比它们旧的手机（老安卓/老三星）画不出来，会显示成"缺字方框"。
+ *   它们分两路出现：① 页面文字里（toast、话术、菜单、卡片）；② 画在 canvas 上（头顶气泡图标、房间贴纸、家具标签）。
+ * 做法（跟 App 里那个兜底同一个思路）：先【检测】这台手机能不能画出这个表情（小画布上画一下，跟肯定是缺字方框的字符比形状）。
+ *   · 都能画 → 什么都不做（不装监听、不包装 canvas，零开销，行为跟以前完全一样）；
+ *   · 画不出 → 只处理画不出的那几个字符，换成老字体里有的近义表情：
+ *       ① 页面文字：扫一遍 DOM + MutationObserver 盯着后来动态生成的内容；
+ *       ② canvas：包装 CanvasRenderingContext2D.prototype.fillText，画之前把画不出的表情换掉（签名和返回值不变）。
+ * 不影响翻译：界面文字是先翻译（T() 查 TEXT_MAP）、后上屏的；替换发生在"上屏/画出来"的那一刻，所以翻译表的键值一个字没动，也不会因此翻不出泰语。
+ * 测试用：页面加载前设置 window.__lunaEmojiForce = ['🫖','🪴'] 可以模拟"这两个画不出来"。
+ * 语法约定：同前，只用传统写法，不用 ?. / ??。
+ */
+(function(){
+  if(window.LunaEmoji && window.LunaEmoji.__lumi) return;      // 只执行一次：第二次执行时检测会走已经被包装过的 fillText，把画不出的表情换成近义表情再画，就会误判成"能画"
+  var MAP = { '🫖':'☕', '🫂':'🤗', '🦶':'👣', '🫧':'💭', '🪄':'✨', '🪨':'⚪', '🫙':'🏺', '🪴':'🌱', '🦪':'🐚' };
+  var CANDIDATES = ['🫖','🫂','🦶','🫧','🪄','🪨','🫙','🪴','🦪'];
+  var SKIP = { SCRIPT:1, STYLE:1, TEXTAREA:1, OPTION:1, TITLE:1, NOSCRIPT:1, CANVAS:1 };
+  var cache = {};
+
+  // 这台手机能画出这个表情吗？拿它画出来的形状，跟"肯定是缺字方框"的字符（私有区的 U+10FFFD）画出来的形状比：
+  //   · 真字形：跟方框差别很大（几百个像素不同）；缺字方框：跟方框几乎一样。
+  // （最初用的是"有没有彩色像素"——对灰色的 🪨 会误判成方框，所以改成比形状。）
+  var TOFU = '\u{10FFFD}', tofuShape = null;
+  function shape(ch){
+    var c = document.createElement('canvas'); c.width = 32; c.height = 32;
+    var x = c.getContext('2d'); if(!x) return null;
+    x.textBaseline = 'top'; x.font = '24px sans-serif'; x.fillStyle = '#000'; x.fillText(ch, 2, 2);
+    var d = x.getImageData(0, 0, 32, 32).data, a = [], i, on = 0;
+    for(i = 3; i < d.length; i += 4){ var v = d[i] > 40 ? 1 : 0; a.push(v); on += v; }
+    return { a: a, on: on };
+  }
+  function supported(ch){
+    if(cache.hasOwnProperty(ch)) return cache[ch];
+    var forced = window.__lunaEmojiForce, i;
+    if(forced && forced.length){ for(i = 0; i < forced.length; i++) if(forced[i] === ch){ cache[ch] = false; return false; } }
+    var ok = true;
+    try{
+      if(!tofuShape) tofuShape = shape(TOFU);
+      var s = shape(ch);
+      if(s && tofuShape){
+        var diff = 0; for(i = 0; i < s.a.length; i++) if(s.a[i] !== tofuShape.a[i]) diff++;
+        ok = (diff >= 200 && s.on >= 150);                 // 跟方框差得够远、而且画出来的东西够大 → 是真字形
+      }
+    }catch(e){ ok = true; }
+    cache[ch] = ok; return ok;
+  }
+
+  var bad = [], k;
+  for(k = 0; k < CANDIDATES.length; k++) if(!supported(CANDIDATES[k])) bad.push(CANDIDATES[k]);
+  var api = { supported: supported, bad: bad, active: bad.length > 0, map: MAP, scan: function(){}, swap: function(t){ return t; } };
+  api.__lumi = true;
+  window.LunaEmoji = api;
+  if(!bad.length) return;                                   // 这台手机都能画 → 什么都不做
+
+  var RE = new RegExp('(' + bad.join('|') + ')', 'g');
+  function swap(t){ return (typeof t === 'string' && t) ? t.replace(RE, function(m){ return MAP[m] || m; }) : t; }
+  api.swap = swap;
+
+  // ② canvas：包装 fillText（签名/返回值不变；只有字符串里含"画不出"的表情时才改动文字）
+  try{
+    var proto = window.CanvasRenderingContext2D && window.CanvasRenderingContext2D.prototype;
+    if(proto && !proto.__lunaEmojiWrapped){
+      var orig = proto.fillText;
+      proto.fillText = function(text){
+        var a = arguments;
+        if(typeof text === 'string' && text.length && RE.test(text)){ RE.lastIndex = 0; a = Array.prototype.slice.call(arguments); a[0] = swap(text); }
+        RE.lastIndex = 0;
+        return orig.apply(this, a);
+      };
+      proto.__lunaEmojiWrapped = true;
+    }
+  }catch(e){}
+
+  // ① 页面文字
+  function inSkip(n){ while(n){ if(n.nodeType === 1 && SKIP[n.tagName]) return true; n = n.parentNode; } return false; }
+  function fixText(node){
+    var t = node.nodeValue; if(!t) return;
+    RE.lastIndex = 0; if(!RE.test(t)){ RE.lastIndex = 0; return; } RE.lastIndex = 0;
+    if(node.parentNode && inSkip(node.parentNode)) return;
+    var nt = swap(t); if(nt !== t) node.nodeValue = nt;
+  }
+  function scan(root){
+    if(!root) return;
+    if(root.nodeType === 3){ fixText(root); return; }
+    if(root.nodeType !== 1 || inSkip(root)) return;
+    var w = document.createTreeWalker(root, 4, null, false), list = [], n;
+    while((n = w.nextNode())) list.push(n);
+    for(var i = 0; i < list.length; i++) fixText(list[i]);
+  }
+  api.scan = scan;
+  try{
+    scan(document.body);
+    new MutationObserver(function(muts){
+      for(var i = 0; i < muts.length; i++){
+        var m = muts[i];
+        if(m.type === 'characterData') fixText(m.target); else for(var j = 0; j < m.addedNodes.length; j++) scan(m.addedNodes[j]);
+      }
+    }).observe(document.body, { childList:true, subtree:true, characterData:true });
+    document.addEventListener('DOMContentLoaded', function(){ scan(document.body); });
+  }catch(e){}
+})();
+
 window.LumiWorld={ setPhase, setCostume, getStars:()=>starCount, onStar:null,
   setStars:n=>{ if(typeof n==='number'&&!isNaN(n)){ starCount=n; $('starCount').textContent=starCount; syncLv(); } },
   getPhase:()=>currentPhase,

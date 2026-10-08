@@ -27528,3 +27528,1078 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
     position:sticky; top:0; z-index:5; background:var(--stat-bg); transition:background .4s ease;
   }
 </style>
+
+<!-- 🌙 免费用户也能点 Luna 小助手的"预设回复" + 本月观察定期邀请。
+     ① 没付费（试用已过、不是会员）的人：能打开小助手、点快捷问题 / 问常见问题（这些是本地预设回答，不调 AI、不花钱）。
+        每次打开 App 重新计数：连续用到第 3 次、第 9 次，各弹一次付费窗口。
+        预设库答不上来、需要真 AI 的问题：不去请求服务器（保护 AI 成本），在聊天里温柔地告诉她"开通会员后可以自由提问"。
+        付费用户 / 试用期内 / 未满13岁 / 远程关掉了 AI：一个字不变。
+     ② "🌙 Luna 的本月观察"：每隔几天（INVITE_DAYS）在打开 App 一会儿后弹一张邀请卡，✕ 大而好点、点空白处也能关；
+        只给：没开会员、有经期记录、不在怀孕/产后、没满13岁、还没用完 2 次的人。
+     只追加：包一层 window._openAiPanel / window.fetch，不改原来任何一行。 -->
+<script>
+(function lunaFreeAi(){
+  try{
+    if(window.__lunaFreeAi) return; window.__lunaFreeAi = true;
+    var PAYWALL_AT = [3, 9];          // 第几次预设回复弹付费窗
+    var INVITE_DAYS = 3;              // 本月观察：几天弹一次
+    var INVITE_DELAY = 6000;          // 打开 App 后多久才考虑弹（毫秒）
+    var K_AT = 'luna_fp_invite_at', K_VIEWS = 'luna_fp_views';
+    function zh(){ try{ return window._appLang === 'zh'; }catch(e){ return false; } }
+    function ls(k, v){ try{ if(v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){} return null; }
+    function ffOn(n){ try{ return typeof window._isFeatureEnabled !== 'function' || window._isFeatureEnabled(n); }catch(e){ return true; } }   // 后台开关：显式写 false 才关
+    function flagOn(){ try{ return typeof window._isFeatureEnabled !== 'function' || window._isFeatureEnabled('aiAssistant'); }catch(e){ return true; } }
+    function young(){ try{ return typeof window.isAgeRestricted === 'function' && window.isAgeRestricted(); }catch(e){ return false; } }
+    function pro(){ try{ return !!(window.isPro && window.isPro()); }catch(e){ return true; } }
+    function trial(){ try{ return !!(window.inTrial && window.inTrial()); }catch(e){ return true; } }
+    // 出任何错都当"已付费"处理 → 保守地不拦、不弹
+    function isFree(){ return !window.IS_PLAY_BUILD && flagOn() && !young() && !pro() && !trial(); }
+
+    // ───────── ① 免费用户用预设回复 ─────────
+    var sendCount = 0;
+    var _open = window._openAiPanel;
+    if(typeof _open === 'function' && !_open.__lpgFree){
+      var wrapped = function(){
+        // 后台一键关闭 AI 小助手：任何入口都不再打开（含 iOS 原本不检查的那条路）
+        if(!flagOn()){ try{ var st = window.showToast || (typeof showToast === 'function' ? showToast : null); if(st) st(zh() ? '🛠 AI 小助手暂时维护中' : '🛠 AI ผู้ช่วยกำลังปรับปรุงชั่วคราว'); }catch(e){} return; }
+        if(!isFree()) return _open.apply(this, arguments);
+        // 原来的 canUseAI() 会把没付费的人挡在锁定页；这里只在"打开面板"这一瞬间（同步）让它放行，打开完立刻还原
+        var o = window.inTrial; window.inTrial = function(){ return true; };
+        try{ return _open.apply(this, arguments); } finally{ window.inTrial = o; }
+      };
+      wrapped.__lpgFree = true; window._openAiPanel = wrapped;
+    }
+    // 需要真 AI 的问题：没付费就不请求服务器，聊天里直接回一句引导
+    var _fetch = window.fetch;
+    if(typeof _fetch === 'function'){
+      window.fetch = function(u, o){
+        try{
+          var url = (typeof u === 'string') ? u : ((u && u.url) || '');
+          if(/lunaChatReply/i.test(url) && !flagOn()){       // 面板已经开着时后台才关：不再请求服务器，回一句维护中
+            return Promise.resolve(new Response(JSON.stringify({ reply: zh() ? '🛠 AI 小助手暂时维护中，请稍后再来～' : '🛠 AI ผู้ช่วยกำลังปรับปรุงชั่วคราว กรุณากลับมาใหม่ภายหลังนะคะ' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          }
+          if(/lunaChatReply/i.test(url) && isFree()){
+            var msg = zh()
+              ? '这个问题需要用 AI 才能回答哦～开通会员后就可以自由提问啦 💗 现在你可以试试问常见的问题，比如排卵、经期、孕期几周～'
+              : 'คำถามนี้ต้องใช้ AI ในการตอบนะคะ เปิดสมาชิกแล้วถามได้อย่างอิสระเลยค่ะ 💗 ตอนนี้ลองถามเรื่องที่พบบ่อยดูได้นะคะ เช่น วันตกไข่ ประจำเดือน หรือท้องกี่สัปดาห์';
+            return Promise.resolve(new Response(JSON.stringify({ reply: msg }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          }
+        }catch(e){}
+        return _fetch.apply(this, arguments);
+      };
+    }
+    function showPaywall(){
+      try{
+        if(!isFree()) return;
+        if(document.getElementById('vipPaywallModal')) return;
+        if(typeof window.showVipPaywall === 'function') window.showVipPaywall();
+        else if(typeof window.showTrialLockModal === 'function') window.showTrialLockModal('升级会员，让 Luna 随时陪你聊', 'เปิดสมาชิกเพื่อคุยกับ Luna ได้ไม่จำกัดนะคะ');
+      }catch(e){}
+    }
+    // 每次用户发一条消息，小助手都会先放一个"正在输入"（#aiTyping）——盯着它出现就是"发了一次"（恢复历史对话不会触发）
+    var body = document.getElementById('aiBody');
+    if(body){
+      try{
+        new MutationObserver(function(muts){
+          for(var i = 0; i < muts.length; i++){
+            var a = muts[i].addedNodes;
+            for(var j = 0; j < a.length; j++){
+              if(a[j].id !== 'aiTyping' || !isFree()) continue;
+              sendCount++;
+              if(PAYWALL_AT.indexOf(sendCount) >= 0) setTimeout(showPaywall, 1500);   // 让她先看到这条回答，再弹
+            }
+          }
+        }).observe(body, { childList: true });
+      }catch(e){}
+    }
+    window.LunaFreeAi = { count: function(){ return sendCount; }, isFree: isFree };
+
+    // ───────── ② 本月观察：定期邀请 ─────────
+    try{
+      var st = document.createElement('style');
+      st.textContent = '#freePreviewModal button[aria-label="close"]{width:44px!important;height:44px!important;font-size:20px!important;top:8px!important;right:8px!important;}'
+        + '#lpgFpInvite{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(20,10,35,.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);}'
+        + '#lpgFpInvite .lpg-card{position:relative;width:100%;max-width:340px;background:#fff;border-radius:24px;padding:30px 22px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.3);}'
+        + '#lpgFpInvite .lpg-x{position:absolute;top:6px;right:6px;width:48px;height:48px;border:none;border-radius:50%;background:transparent;color:#7a6ea3;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;}'
+        + '#lpgFpInvite .lpg-x:active{background:rgba(0,0,0,.08);}'
+        + '#lpgFpInvite .lpg-go{width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}'
+        + '#lpgFpInvite .lpg-later{margin-top:6px;width:100%;padding:12px;border:none;background:transparent;color:#9a90b8;font-size:13px;cursor:pointer;font-family:inherit;}';
+      document.head.appendChild(st);
+      var fm = document.getElementById('freePreviewModal');
+      if(fm) fm.addEventListener('click', function(e){ if(e.target === fm && typeof window.closeFreePreview === 'function') window.closeFreePreview(); });
+    }catch(e){}
+
+    function visible(id){ var el = document.getElementById(id); if(!el) return false; try{ return getComputedStyle(el).display !== 'none'; }catch(e){ return false; } }
+    function hasPeriodData(){
+      try{
+        for(var i = 0; i < localStorage.length; i++){
+          var k = localStorage.key(i);
+          if(k && k.indexOf('luna_period_days') >= 0){
+            var v = JSON.parse(localStorage.getItem(k) || 'null');
+            if(v && (Array.isArray(v) ? v.length : Object.keys(v).length)) return true;
+          }
+        }
+      }catch(e){}
+      return false;
+    }
+    function pregOrPost(){
+      try{ var L = window.LunaPreg; return !!(L && (L.isActive() || (L.post && L.post.isActive()))); }catch(e){ return false; }
+    }
+    function wrapFp(){
+      try{
+        var f = window._callGenerateFreePreview;
+        if(typeof f !== 'function' || f.__lpg) return;
+        var g = function(){
+          return f.apply(this, arguments).then(function(r){
+            try{ if(r && r.allowed !== false && !r.notApplicable) ls(K_VIEWS, String((parseInt(ls(K_VIEWS) || '0', 10) || 0) + 1)); else if(r && r.allowed === false) ls(K_VIEWS, '9'); }catch(e){}
+            return r;
+          });
+        };
+        g.__lpg = true; window._callGenerateFreePreview = g;
+      }catch(e){}
+    }
+    function loggedIn(){ try{ return typeof auth !== 'undefined' && !!auth && !!auth.currentUser; }catch(e){ return false; } }   // 本月观察要登录才能用
+    function eligible(){
+      if(!ffOn('freePreviewInvite')) return false;                       // 后台一键关闭「本月观察」邀请弹窗
+      if(pro() || young() || pregOrPost() || !loggedIn()) return false;
+      if(!ls('luna_uid') || !hasPeriodData()) return false;
+      if(typeof window.showFreePreview !== 'function' || typeof window._callGenerateFreePreview !== 'function') return false;
+      if((parseInt(ls(K_VIEWS) || '0', 10) || 0) >= 2) return false;                         // 2 次额度用完/看够了
+      var at = parseInt(ls(K_AT) || '0', 10) || 0;
+      if(at && Date.now() - at < INVITE_DAYS * 86400000) return false;
+      var busy = ['onboardGate','langGate','codeGate','consentOverlay','trialIntroModal','vipPaywallModal','guestLoginModal','sysPopupNotice','freePreviewModal','vipMiniPrompt','aiPanel','mine-panel','calPanel','statsPanel','pregWeekPanel','ppInfoPanel','ttcStatsPanel'];
+      for(var i = 0; i < busy.length; i++) if(visible(busy[i])) return false;
+      return true;
+    }
+    function closeInvite(){ var e = document.getElementById('lpgFpInvite'); if(e) e.remove(); }
+    function showInvite(){
+      ls(K_AT, String(Date.now()));
+      var T = zh()
+        ? { t: '🌙 Luna 的本月观察', d: 'Luna 看了你最近的记录，想不想看看她发现了什么？<br>免费的，不用开会员～', go: '看看 Luna 发现了什么', later: '下次再说' }
+        : { t: '🌙 สิ่งที่ Luna สังเกตเห็นเดือนนี้', d: 'Luna ดูบันทึกล่าสุดของคุณแล้ว อยากรู้ไหมว่าเธอเห็นอะไร?<br>ฟรี ไม่ต้องเป็นสมาชิกค่ะ', go: 'ดูสิ่งที่ Luna เห็น', later: 'ไว้คราวหน้า' };
+      var w = document.createElement('div'); w.id = 'lpgFpInvite';
+      w.innerHTML = '<div class="lpg-card"><button class="lpg-x" aria-label="close">✕</button>'
+        + '<div style="font-size:40px;margin-bottom:8px;">🌙</div>'
+        + '<div style="font-size:17px;font-weight:700;color:#2d1b4e;margin-bottom:8px;">' + T.t + '</div>'
+        + '<div style="font-size:13.5px;color:#7a6ea3;line-height:1.7;margin-bottom:18px;">' + T.d + '</div>'
+        + '<button class="lpg-go">' + T.go + '</button><button class="lpg-later">' + T.later + '</button></div>';
+      w.addEventListener('click', function(e){ if(e.target === w) closeInvite(); });
+      w.querySelector('.lpg-x').onclick = closeInvite;
+      w.querySelector('.lpg-later').onclick = closeInvite;
+      w.querySelector('.lpg-go').onclick = function(){ closeInvite(); try{ window.showFreePreview(); }catch(e){} };
+      document.body.appendChild(w);
+    }
+    var tick = 0, shown = false;
+    var iv = setInterval(function(){
+      try{
+        wrapFp();
+        if(shown){ clearInterval(iv); return; }
+        if(++tick > 150){ clearInterval(iv); return; }         // 最多等 ~15 分钟，这次打开不合适就算了
+        if(eligible()){ shown = true; showInvite(); clearInterval(iv); }
+      }catch(e){}
+    }, INVITE_DELAY);
+    window.LunaFreeAi.eligible = eligible; window.LunaFreeAi.showInvite = showInvite;
+  }catch(e){ try{ console.warn('lunaFreeAi', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🌷🤰 备孕 / 怀孕模式 · "Luna 智能分析"（统计页新增一张入口卡）。
+     按用户自己的记录【规则计算】出一份结构化报告（不调 AI、不花钱、不会瞎编医学内容；每个数字都能在她的记录里找到来源）：
+       备孕：🩸 月经分析 / 🌷 备孕分析 / 🤰 怀孕相关 + 个性化收尾话术
+       怀孕：🤰 孕期概况 / ⚖️ 体重变化 / 🏥 产检安排 / 📌 接下来的关键节点 + 个性化收尾话术
+     免费用户可生成 2 次（会员不限）；用完后点生成 → 弹付费窗；"查看上次报告"不扣次数。
+     次数存在本机（按账号），卸载重装会重置——要做到"卸载重装也不重置"需要像本月观察那样走云函数，这里没做。
+     普通模式 / 产后模式：入口不出现，一个字不改。只追加，不改原来任何一行。 -->
+<script>
+(function lunaModeAnalysis(){
+  try{
+    if(window.__lunaModeAnalysis) return;
+    var L = window.LunaPreg, X = window.LunaTtc;
+    if(!L || !L._u || !X) return;
+    window.__lunaModeAnalysis = true;
+    var U = L._u, FREE_TIMES = 2;
+    var TH_M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    function zhL(){ try{ return window._appLang === 'zh'; }catch(e){ return false; } }
+    function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function ff(n){ try{ return typeof window._isFeatureEnabled !== 'function' || window._isFeatureEnabled(n); }catch(e){ return true; } }   // 后台开关：显式写 false 才关
+    function pro(){ try{ return !!(window.isPro && window.isPro()); }catch(e){ return false; } }
+    function mean(a){ var s = 0, i; for(i = 0; i < a.length; i++) s += a[i]; return a.length ? s / a.length : 0; }
+    function md(key, zh){ var d = U.parseKey(key); if(!d) return ''; return zh ? ((d.getMonth() + 1) + '月' + d.getDate() + '日') : (d.getDate() + ' ' + TH_M[d.getMonth()]); }
+    function rng(a, b, zh){ return md(a, zh) + ' – ' + md(b, zh); }
+    function pick(arr, seed){ return arr[seed % arr.length]; }
+    function fill(s, o){ return s.replace(/\{(\w+)\}/g, function(_, k){ return o[k] == null ? '' : o[k]; }); }
+
+    // ═════════════ 月经统计（所有模式共用）═════════════
+    function periodStats(keys, todayKey){
+      var ks = [], i;
+      for(i = 0; i < (keys || []).length; i++) if(U.parseKey(keys[i])) ks.push(keys[i]);
+      ks.sort();
+      if(!ks.length) return { has: false };
+      var runs = [], run = [ks[0]];
+      for(i = 1; i < ks.length; i++){
+        if(U.diffDays(U.parseKey(ks[i - 1]), U.parseKey(ks[i])) <= 2) run.push(ks[i]); else { runs.push(run); run = [ks[i]]; }
+      }
+      runs.push(run);
+      var starts = [], lens = [], gaps = [];
+      for(i = 0; i < runs.length; i++){ starts.push(runs[i][0]); lens.push(U.diffDays(U.parseKey(runs[i][0]), U.parseKey(runs[i][runs[i].length - 1])) + 1); }
+      for(i = 1; i < starts.length; i++){ var g = U.diffDays(U.parseKey(starts[i - 1]), U.parseKey(starts[i])); if(g >= 18 && g <= 60) gaps.push(g); }   // 漏记造成的超长/超短间隔不算周期
+      var recent = gaps.slice(-6), spread = 0;
+      if(recent.length){ var lo = recent[0], hi = recent[0]; for(i = 1; i < recent.length; i++){ if(recent[i] < lo) lo = recent[i]; if(recent[i] > hi) hi = recent[i]; } spread = hi - lo; }
+      var cmp = null;
+      if(gaps.length >= 2){
+        var last = gaps[gaps.length - 1], prev = gaps.slice(Math.max(0, gaps.length - 4), gaps.length - 1);
+        cmp = Math.round(last - mean(prev));
+      }
+      return { has: true, starts: starts, runs: runs.length, lastStart: starts[starts.length - 1], curDay: U.diffDays(U.parseKey(starts[starts.length - 1]), U.parseKey(todayKey)) + 1,
+               gaps: gaps, avgCycle: recent.length ? Math.round(mean(recent)) : null, lastCycle: gaps.length ? gaps[gaps.length - 1] : null,
+               avgPeriod: Math.round(mean(lens.slice(-3))), spread: spread, cmp: cmp };
+    }
+    function periodSection(ps, zh, ext){
+      var rows = [];
+      if(!ps.has){
+        rows.push([zh ? '月经记录' : 'บันทึกประจำเดือน', zh ? '还没有记录，去日历记一次最近的月经吧' : 'ยังไม่มีบันทึก ไปที่ปฏิทินบันทึกประจำเดือนล่าสุดนะคะ']);
+        return { icon: '🩸', title: zh ? '月经分析' : 'วิเคราะห์ประจำเดือน', rows: rows };
+      }
+      rows.push([zh ? '本周期' : 'รอบนี้', zh ? '已进行到第 ' + ps.curDay + ' 天' : 'ถึงวันที่ ' + ps.curDay + ' ของรอบ']);
+      if(ps.lastCycle) rows.push([zh ? '上一个周期' : 'รอบที่แล้ว', ps.lastCycle + (zh ? ' 天' : ' วัน')]);
+      rows.push([zh ? '平均周期' : 'รอบเดือนเฉลี่ย', ps.avgCycle ? (ps.avgCycle + (zh ? ' 天（基于 ' + Math.min(6, ps.gaps.length) + ' 个周期）' : ' วัน (จาก ' + Math.min(6, ps.gaps.length) + ' รอบ)')) : (zh ? '再记录 1 次月经后就能算出来' : 'บันทึกอีก 1 รอบก็คำนวณได้')]);
+      rows.push([zh ? '经期' : 'ระยะมีประจำเดือน', zh ? '平均 ' + ps.avgPeriod + ' 天' : 'เฉลี่ย ' + ps.avgPeriod + ' วัน']);
+      var reg;
+      if(ps.gaps.length < 3) reg = zh ? '数据还不够（已有 ' + ps.gaps.length + ' 个周期，满 3 个更准）' : 'ข้อมูลยังไม่พอ (มี ' + ps.gaps.length + ' รอบ ครบ 3 รอบจะแม่นขึ้น)';
+      else if(ps.spread <= 3) reg = zh ? '稳定（周期之间只差 ' + ps.spread + ' 天）' : 'สม่ำเสมอ (แต่ละรอบต่างกันแค่ ' + ps.spread + ' วัน)';
+      else if(ps.spread <= 7) reg = zh ? '基本规律（周期之间相差 ' + ps.spread + ' 天）' : 'ค่อนข้างสม่ำเสมอ (แต่ละรอบต่างกัน ' + ps.spread + ' วัน)';
+      else reg = zh ? '不太规律（周期之间相差 ' + ps.spread + ' 天）' : 'ไม่ค่อยสม่ำเสมอ (แต่ละรอบต่างกัน ' + ps.spread + ' วัน)';
+      rows.push([zh ? '周期规律' : 'ความสม่ำเสมอ', reg]);
+      if(ps.cmp !== null){
+        var c = ps.cmp, t;
+        if(Math.abs(c) <= 2) t = zh ? '基本一致' : 'ใกล้เคียงกัน';
+        else if(c > 0) t = zh ? '比之前长了约 ' + c + ' 天' : 'ยาวกว่าที่ผ่านมาประมาณ ' + c + ' วัน';
+        else t = zh ? '比之前短了约 ' + (-c) + ' 天' : 'สั้นกว่าที่ผ่านมาประมาณ ' + (-c) + ' วัน';
+        rows.push([zh ? '与之前几个周期相比' : 'เทียบกับรอบก่อน ๆ', t]);
+      }
+      if(ext){ for(var q = 0; q < ext.length; q++) rows.push(ext[q]); }
+      return { icon: '🩸', title: zh ? '月经分析' : 'วิเคราะห์ประจำเดือน', rows: rows };
+    }
+
+    // ═════════════ 症状 / 情绪（普通模式的月经分析用）═════════════
+    var MOOD_ZH = { 'ดีใจ': '开心', 'สงบ': '平静', 'เศร้า': '难过', 'หงุดหงิด': '烦躁', 'กังวล': '焦虑' };
+    function canonSym(x){ return String(x).replace(/（อารมณ์）|（ปริมาณ）|（สี）/g, '').trim(); }
+    function moodKey(x){ var c = canonSym(x), k; if(MOOD_ZH[c]) return c; for(k in MOOD_ZH) if(MOOD_ZH[k] === c) return k; return null; }
+    // 某一天处在周期的哪个阶段：period 经期 / fol 经后 / ovu 排卵期前后 / lut 经前
+    function phaseAt(dateKey, starts, cl, pl){
+      var i, st = null; for(i = 0; i < starts.length; i++){ if(starts[i] <= dateKey) st = starts[i]; else break; }
+      if(!st) return null;
+      var cd = U.diffDays(U.parseKey(st), U.parseKey(dateKey)) + 1; if(cd > cl + 10) return null;
+      var ovu = cl - 14;
+      if(cd <= pl) return 'period'; if(cd <= ovu - 3) return 'fol'; if(cd <= ovu + 1) return 'ovu'; return 'lut';
+    }
+    var PH = { period: ['经期', 'ช่วงมีประจำเดือน'], fol: ['经后期', 'หลังหมดประจำเดือน'], ovu: ['排卵期前后', 'ช่วงใกล้ตกไข่'], lut: ['经前期', 'ก่อนมีประจำเดือน'] };
+    function symStats(ps, cl, pl, todayKey, fromKey){
+      var arr = []; try{ if(typeof logs !== 'undefined' && Array.isArray(logs)) arr = logs; }catch(e){}
+      var cnt = {}, mood = {}, phS = {}, phM = {}, nS = 0, nM = 0, i, j, l, x, mk, c, ph;
+      for(i = 0; i < arr.length; i++){
+        l = arr[i]; if(!l || typeof l.date !== 'string' || !Array.isArray(l.symptoms) || l.date > todayKey || (fromKey && l.date < fromKey)) continue;
+        ph = (ps && ps.has) ? phaseAt(l.date, ps.starts, cl, pl) : null;
+        for(j = 0; j < l.symptoms.length; j++){
+          x = l.symptoms[j]; if(typeof x !== 'string') continue;
+          if(x.indexOf('บันทึก：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
+          mk = moodKey(x);
+          if(mk){ mood[mk] = (mood[mk] || 0) + 1; nM++; if(ph) phM[ph] = (phM[ph] || 0) + 1; continue; }
+          c = canonSym(x); try{ if(window.toZhCanonical) c = window.toZhCanonical(c); }catch(e){}
+          if(!c || c === '状态良好' || c === 'สุขภาพดี' || c.length > 20) continue;
+          cnt[c] = (cnt[c] || 0) + 1; nS++; if(ph) phS[ph] = (phS[ph] || 0) + 1;
+        }
+      }
+      function top(o){ var a = [], k; for(k in o) a.push([k, o[k]]); a.sort(function(p1, p2){ return p2[1] - p1[1]; }); return a; }
+      function topPhase(o, n){ var a = top(o); if(!a.length || n < 3) return null; var share = a[0][1] / n; return share >= 0.4 ? { ph: a[0][0], pct: Math.round(share * 100) } : null; }
+      return { sym: top(cnt).slice(0, 3), nS: nS, mood: top(mood), nM: nM, symPh: topPhase(phS, nS), moodPh: topPhase(phM, nM) };
+    }
+    function symName(c, zh){ if(zh) return c; try{ return window.translateSym ? window.translateSym(c) : c; }catch(e){ return c; } }
+    function moodName(k, zh){ return zh ? MOOD_ZH[k] : k; }
+    function normalExtra(ps, ss, zh, todayKey){
+      var rows = [], cl = ps.avgCycle || 28;
+      if(ps.has){
+        var next = U.fmtKey(U.addDays(U.parseKey(ps.lastStart), cl)), dn = U.diffDays(U.parseKey(todayKey), U.parseKey(next));
+        rows.push([zh ? '预计下次月经' : 'คาดว่าประจำเดือนครั้งถัดไป', md(next, zh) + (dn >= 0 ? (zh ? '（还有 ' + dn + ' 天）' : ' (อีก ' + dn + ' วัน)') : (zh ? '（已推迟 ' + (-dn) + ' 天）' : ' (เลยกำหนด ' + (-dn) + ' วัน)'))]);
+        rows.push([zh ? '预计排卵日' : 'คาดว่าตกไข่', md(U.fmtKey(U.addDays(U.parseKey(next), -14)), zh) + (zh ? '（估计）' : ' (โดยประมาณ)')]);
+      }
+      if(ss.sym.length){
+        var a = [], i; for(i = 0; i < ss.sym.length; i++) a.push(symName(ss.sym[i][0], zh) + ' ' + ss.sym[i][1] + (zh ? ' 次' : ' ครั้ง'));
+        rows.push([zh ? '常见症状' : 'อาการที่พบบ่อย', a.join(' · ')]);
+        if(ss.symPh) rows.push([zh ? '症状多发阶段' : 'ช่วงที่มีอาการบ่อย', (zh ? PH[ss.symPh.ph][0] : PH[ss.symPh.ph][1]) + (zh ? '（占 ' + ss.symPh.pct + '%）' : ' (' + ss.symPh.pct + '%)')]);
+      }
+      if(ss.mood.length){
+        rows.push([zh ? '最常见情绪' : 'อารมณ์ที่พบบ่อย', moodName(ss.mood[0][0], zh) + ' ' + ss.mood[0][1] + (zh ? ' 次' : ' ครั้ง')]);
+        if(ss.moodPh) rows.push([zh ? '情绪起伏多在' : 'อารมณ์แปรปรวนบ่อยช่วง', zh ? PH[ss.moodPh.ph][0] : PH[ss.moodPh.ph][1]]);
+      }
+      var score = (ps.runs >= 2 ? 1 : 0) + (ps.runs >= 4 ? 1 : 0) + (ps.runs >= 6 ? 1 : 0) + (ss.nS + ss.nM >= 5 ? 1 : 0) + (ss.nS + ss.nM >= 20 ? 1 : 0), dots = '', j2;
+      for(j2 = 0; j2 < 5; j2++) dots += j2 < score ? '●' : '○';
+      rows.push([zh ? '数据完整度' : 'ความครบถ้วนของข้อมูล', dots + (zh ? (score >= 4 ? '  分析比较可靠' : score >= 2 ? '  再多记录会更准' : '  记录越多，分析越准') : (score >= 4 ? '  วิเคราะห์ค่อนข้างน่าเชื่อถือ' : score >= 2 ? '  บันทึกเพิ่มจะแม่นขึ้น' : '  ยิ่งบันทึกมาก ยิ่งแม่น'))]);
+      return rows;
+    }
+
+    // ═════════════ 产后 / 怀孕已结束 报告 ═════════════
+    function recentFlag(todayKey, days, pred){
+      var arr = []; try{ if(typeof logs !== 'undefined' && Array.isArray(logs)) arr = logs; }catch(e){}
+      var i, j, l, a;
+      for(i = 0; i < arr.length; i++){ l = arr[i]; if(!l || typeof l.date !== 'string' || !Array.isArray(l.symptoms)) continue;
+        a = U.diffDays(U.parseKey(l.date), U.parseKey(todayKey)); if(a < 0 || a > days) continue;
+        for(j = 0; j < l.symptoms.length; j++) if(typeof l.symptoms[j] === 'string' && pred(canonSym(l.symptoms[j]))) return true; }
+      return false;
+    }
+    function lowMoodCount(ss){ var n = 0, i; for(i = 0; i < ss.mood.length; i++) if(ss.mood[i][0] === 'เศร้า' || ss.mood[i][0] === 'กังวล' || ss.mood[i][0] === 'หงุดหงิด') n += ss.mood[i][1]; return n; }
+    function moodRows(ss, zh){
+      var rows = [], a = [], i;
+      for(i = 0; i < ss.mood.length; i++) a.push(moodName(ss.mood[i][0], zh) + ' ' + ss.mood[i][1] + (zh ? ' 次' : ' ครั้ง'));
+      rows.push([zh ? '近 14 天情绪记录' : 'อารมณ์ที่บันทึกใน 14 วันล่าสุด', a.length ? a.join(' · ') : (zh ? '还没有记录。想记的时候，随时可以在日历里记一笔' : 'ยังไม่มีบันทึก อยากบันทึกเมื่อไหร่ก็ทำได้ในปฏิทิน')]);
+      return rows;
+    }
+    function ppReport(ctx, zh){
+      var pp = ctx.pp, tk = ctx.todayKey, seed = ctx.seed, ss = ctx.ss, since = pp.since, wk = pp.weeks, dd = pp.days, sections = [];
+      var phase = since < 14 ? 'early' : (since < 42 ? 'puer' : 'after');
+      var r1 = [];
+      r1.push([zh ? '产后天数' : 'หลังคลอดมาแล้ว', zh ? '第 ' + pp.dayN + ' 天（' + wk + ' 周' + (dd ? ' + ' + dd + ' 天' : '') + '）' : 'วันที่ ' + pp.dayN + ' (' + wk + ' สัปดาห์' + (dd ? ' + ' + dd + ' วัน' : '') + ')']);
+      r1.push([zh ? '分娩日期' : 'วันที่คลอด', md(pp.eventDate, zh)]);
+      r1.push([zh ? '恢复阶段' : 'ระยะการฟื้นตัว', phase === 'early' ? (zh ? '产后早期（恶露较多，以休息为主）' : 'หลังคลอดระยะแรก (น้ำคาวปลายังมาก เน้นพักผ่อน)') : phase === 'puer' ? (zh ? '产褥期（身体在持续恢复）' : 'ระยะหลังคลอด (ร่างกายกำลังฟื้นตัวต่อเนื่อง)') : (zh ? '已过产褥期（42 天）' : 'พ้นระยะหลังคลอดแล้ว (42 วัน)')]);
+      var ck = U.fmtKey(U.addDays(U.parseKey(pp.eventDate), 42)), dl = U.diffDays(U.parseKey(tk), U.parseKey(ck));
+      r1.push([zh ? '产后复查' : 'ตรวจหลังคลอด', dl >= 0 ? (zh ? '产后 6 周前后（约 ' + md(ck, zh) + '，还有 ' + dl + ' 天）' : 'ประมาณสัปดาห์ที่ 6 (ราว ' + md(ck, zh) + ' อีก ' + dl + ' วัน)') : (zh ? '产后 6 周已过，如果还没复查，建议尽快预约' : 'ผ่าน 6 สัปดาห์แล้ว ถ้ายังไม่ได้ตรวจ แนะนำให้นัดโดยเร็ว')]);
+      sections.push({ icon: '🤱', title: zh ? '产后概况' : 'ภาพรวมหลังคลอด', rows: r1 });
+
+      var r2 = [], lochia;
+      if(since < 14) lochia = zh ? '恶露颜色多为红色到粉褐色，量会慢慢减少，这是子宫在恢复，不是月经' : 'น้ำคาวปลามักเป็นสีแดงถึงชมพูน้ำตาล ปริมาณค่อย ๆ ลดลง เป็นการฟื้นตัวของมดลูก ไม่ใช่ประจำเดือน';
+      else if(since < 42) lochia = zh ? '恶露颜色会变浅（黄白色），一般持续 2–6 周；如果又变成鲜红色且变多，要留意' : 'น้ำคาวปลาจะสีจางลง (เหลืองขาว) โดยทั่วไปนาน 2–6 สัปดาห์ ถ้ากลับมาเป็นสีแดงสดและมากขึ้นให้สังเกต';
+      else lochia = zh ? '这时一般已经没有恶露；如果仍有鲜红色出血或出血变多，请联系医生' : 'ช่วงนี้โดยทั่วไปไม่มีน้ำคาวปลาแล้ว ถ้ายังมีเลือดสดหรือเลือดออกมากขึ้นให้ติดต่อแพทย์';
+      r2.push([zh ? '恶露' : 'น้ำคาวปลา', lochia]);
+      r2.push([zh ? '月经回来' : 'ประจำเดือนกลับมา', zh ? '不哺乳的话，通常产后 6–8 周起恢复；母乳喂养的人可能晚得多，因人而异。回来后在日历记下第一次月经，Luna 会切回普通周期模式' : 'ถ้าไม่ให้นมแม่ มักกลับมาราว 6–8 สัปดาห์หลังคลอด ส่วนคนให้นมแม่อาจช้ากว่ามาก แต่ละคนต่างกัน เมื่อกลับมาแล้วบันทึกประจำเดือนครั้งแรกในปฏิทิน Luna จะกลับไปโหมดรอบเดือนปกติ']);
+      if(ctx.fever) r2.push([zh ? '⚠️ 近期记录' : '⚠️ บันทึกล่าสุด', zh ? '你最近记录过发烧。产后发烧（超过 38℃）需要尽快就医，别硬扛' : 'คุณบันทึกว่ามีไข้ในช่วงนี้ ไข้หลังคลอด (เกิน 38℃) ควรรีบไปพบแพทย์ อย่าฝืน']);
+      r2.push([zh ? '需要就医的信号' : 'สัญญาณที่ควรไปพบแพทย์', zh ? '出血突然变多（一小时湿透一片卫生巾，或有鸡蛋大的血块）、发烧超过 38℃、剧烈腹痛、伤口红肿流脓、持续情绪低落或有伤害自己的念头' : 'เลือดออกมากผิดปกติ (ผ้าอนามัยชุ่มภายในหนึ่งชั่วโมง หรือมีลิ่มเลือดขนาดไข่ไก่) ไข้เกิน 38℃ ปวดท้องรุนแรง แผลบวมแดงมีหนอง อารมณ์ดิ่งต่อเนื่อง หรือมีความคิดทำร้ายตัวเอง']);
+      sections.push({ icon: '🩸', title: zh ? '恢复提示' : 'ข้อควรรู้ในการฟื้นตัว', rows: r2 });
+
+      var r3 = moodRows(ss, zh), low = lowMoodCount(ss);
+      if(ss.sym.length){ var a = [], i; for(i = 0; i < ss.sym.length; i++) a.push(symName(ss.sym[i][0], zh) + ' ' + ss.sym[i][1] + (zh ? ' 次' : ' ครั้ง')); r3.push([zh ? '产后常见症状' : 'อาการที่พบบ่อย', a.join(' · ')]); }
+      var note;
+      if(low >= 5 && since >= 14) note = zh ? '近两周的情绪记录偏低落，而且已经持续一段时间了。产后抑郁并不少见，也是可以治疗的，建议和医生或信任的人聊聊' : 'อารมณ์ที่บันทึกใน 2 สัปดาห์ล่าสุดค่อนข้างดิ่ง และเป็นมาสักพักแล้ว ภาวะซึมเศร้าหลังคลอดพบได้ไม่น้อยและรักษาได้ แนะนำให้คุยกับแพทย์หรือคนที่ไว้ใจ';
+      else if(since < 14) note = zh ? '产后头两周情绪起伏很常见（俗称产后情绪低落），多休息、多让家人搭把手' : 'สองสัปดาห์แรกหลังคลอดอารมณ์แปรปรวนเป็นเรื่องปกติ (baby blues) พักผ่อนให้มาก ให้คนในครอบครัวช่วยดูแล';
+      else note = zh ? '如果低落的心情超过两周还没缓解，别犹豫，告诉医生或身边信任的人' : 'ถ้าอารมณ์ไม่ดีเกินสองสัปดาห์แล้วยังไม่ดีขึ้น อย่าลังเลที่จะบอกแพทย์หรือคนที่ไว้ใจ';
+      r3.push([zh ? '小结' : 'สรุป', note]);
+      sections.push({ icon: '💭', title: zh ? '情绪与身体' : 'อารมณ์และร่างกาย', rows: r3 });
+
+      var T = {
+        early: [
+          ['你刚刚完成了一件了不起的事。这几周，让身体慢慢恢复才是第一位的：睡不够就跟着宝宝补觉，家务和琐事交给家人。出血变多、发烧、剧烈腹痛时，请及时就医。',
+           'คุณเพิ่งทำสิ่งที่ยิ่งใหญ่มาก ช่วงสัปดาห์นี้การฟื้นตัวของร่างกายสำคัญที่สุด นอนไม่พอก็งีบตามลูก งานบ้านและเรื่องจุกจิกให้คนในครอบครัวช่วย ถ้าเลือดออกมากขึ้น มีไข้ หรือปวดท้องรุนแรง ให้ไปพบแพทย์ทันทีนะคะ'],
+          ['这段时间，你不需要做得完美。吃好、喝够水、多休息，就是在照顾宝宝，也是在照顾你自己 💗',
+           'ช่วงนี้คุณไม่ต้องทำให้สมบูรณ์แบบ กินดี ดื่มน้ำให้พอ พักผ่อนให้มาก คือการดูแลลูกและดูแลตัวเองไปพร้อมกันค่ะ 💗']],
+        puer: [
+          ['产后的日子很辛苦，你已经走过了最难的头两周。{mt}记得吃好、喝够水。{ck}',
+           'ช่วงหลังคลอดเหนื่อยมาก คุณผ่านสองสัปดาห์แรกที่ยากที่สุดมาแล้วค่ะ {mt}อย่าลืมกินให้ดีและดื่มน้ำให้พอ {ck}'],
+          ['身体还在慢慢恢复，别和任何人比进度。{mt}累了就让家人搭把手 💗 {ck}',
+           'ร่างกายกำลังค่อย ๆ ฟื้นตัว อย่าเอาไปเทียบกับใคร {mt}เหนื่อยก็ให้คนในครอบครัวช่วยนะคะ 💗 {ck}']],
+        after: [
+          ['产褥期已经过去，身体和作息会慢慢回到自己的节奏。月经回来后，记得在日历里记下第一次月经，Luna 会切回普通周期模式继续陪你 🌙 {mt}',
+           'พ้นระยะหลังคลอดแล้ว ร่างกายและการนอนจะค่อย ๆ กลับสู่จังหวะของคุณ เมื่อประจำเดือนกลับมา อย่าลืมบันทึกครั้งแรกในปฏิทิน Luna จะกลับไปโหมดรอบเดือนปกติและอยู่เคียงข้างคุณ 🌙 {mt}']]
+      };
+      var pair = pick(T[phase], seed), mt = '', ck = '';
+      if(low >= 5) mt = zh ? '最近你的情绪记录偏低落，这很不容易。请把感受告诉伴侣、家人或医生，你不需要一个人扛着。' : 'ช่วงนี้อารมณ์ที่บันทึกค่อนข้างดิ่ง ซึ่งไม่ง่ายเลย โปรดบอกความรู้สึกกับคู่ของคุณ ครอบครัว หรือแพทย์ คุณไม่ต้องแบกไว้คนเดียวนะคะ ';
+      if(since < 42) ck = zh ? '42 天左右的产后复查，别忘了预约。' : 'อย่าลืมนัดตรวจหลังคลอดช่วงประมาณ 42 วันนะคะ';
+      return { sections: sections, closing: fill(zh ? pair[0] : pair[1], { mt: mt, ck: ck }).replace(/\s+$/, ''), disclaimer: true };
+    }
+    function endedReport(ctx, zh){
+      var pp = ctx.pp, ss = ctx.ss, since = pp.since, sections = [];
+      var r1 = [];
+      r1.push([zh ? '已经过去' : 'ผ่านมาแล้ว', zh ? since + ' 天（' + pp.weeks + ' 周' + (pp.days ? ' + ' + pp.days + ' 天' : '') + '）' : since + ' วัน (' + pp.weeks + ' สัปดาห์' + (pp.days ? ' + ' + pp.days + ' วัน' : '') + ')']);
+      r1.push([zh ? '日期' : 'วันที่', md(pp.eventDate, zh)]);
+      r1.push([zh ? '这段时间' : 'ช่วงนี้', since <= 7 ? (zh ? '最初的几天，以休息为主' : 'ไม่กี่วันแรก เน้นพักผ่อน') : since <= 28 ? (zh ? '身体和心情都在慢慢恢复' : 'ร่างกายและจิตใจกำลังค่อย ๆ ฟื้นตัว') : (zh ? '已经过了一段时间，按自己的节奏来' : 'ผ่านมาสักพักแล้ว ใช้จังหวะของตัวเอง')]);
+      sections.push({ icon: '🌿', title: zh ? '恢复概况' : 'ภาพรวมการฟื้นตัว', rows: r1 });
+      var r2 = [];
+      r2.push([zh ? '出血' : 'การมีเลือดออก', zh ? '出血一般会慢慢减少，但每个人不同' : 'เลือดออกมักค่อย ๆ ลดลง แต่แต่ละคนไม่เหมือนกัน']);
+      r2.push([zh ? '月经回来' : 'ประจำเดือนกลับมา', zh ? '通常在几周内恢复，具体时间因人而异' : 'โดยทั่วไปกลับมาภายในไม่กี่สัปดาห์ แต่ละคนต่างกัน']);
+      if(ctx.fever) r2.push([zh ? '⚠️ 近期记录' : '⚠️ บันทึกล่าสุด', zh ? '你最近记录过发烧，请联系医生，别硬扛' : 'คุณบันทึกว่ามีไข้ในช่วงนี้ กรุณาติดต่อแพทย์ อย่าฝืน']);
+      r2.push([zh ? '需要就医的信号' : 'สัญญาณที่ควรไปพบแพทย์', zh ? '出血突然变多（一小时湿透一片卫生巾，或有大血块）、发烧超过 38℃、剧烈腹痛、分泌物有异味' : 'เลือดออกมากผิดปกติ (ผ้าอนามัยชุ่มภายในหนึ่งชั่วโมง หรือมีลิ่มเลือดก้อนใหญ่) ไข้เกิน 38℃ ปวดท้องรุนแรง ตกขาวมีกลิ่นผิดปกติ']);
+      r2.push([zh ? '复查' : 'การตรวจติดตาม', zh ? '按医生的安排复查；如果没有安排，可以主动问问医生' : 'ไปตรวจตามที่แพทย์นัด ถ้ายังไม่ได้นัด สอบถามแพทย์ได้เลย']);
+      sections.push({ icon: '🩸', title: zh ? '身体恢复提示' : 'ข้อควรรู้ด้านร่างกาย', rows: r2 });
+      var r3 = moodRows(ss, zh), low = lowMoodCount(ss);
+      r3.push([zh ? '小结' : 'สรุป', zh ? '难过、平静、空落落，甚至说不清，都可以。不用急着振作' : 'เศร้า สงบ ว่างเปล่า หรือบอกไม่ถูก ก็ได้ทั้งนั้น ไม่ต้องรีบเข้มแข็ง']);
+      sections.push({ icon: '💭', title: zh ? '心情' : 'ความรู้สึก', rows: r3 });
+      var EC = since <= 7 ? [
+        ['这几天，身体和心情都需要被温柔地照顾。能睡就睡，想哭就哭，什么都不想做也可以，不用向任何人交代什么。',
+         'ช่วงไม่กี่วันนี้ ร่างกายและจิตใจต้องการการดูแลอย่างอ่อนโยน นอนได้ก็นอน อยากร้องไห้ก็ร้อง ไม่อยากทำอะไรเลยก็ได้ ไม่ต้องอธิบายให้ใครฟังค่ะ'],
+        ['不管这次是怎样结束的，你的感受都值得被认真对待。先把身体放在第一位，吃点热的、多休息，其他的都可以先放一放。',
+         'ไม่ว่าครั้งนี้จะจบลงอย่างไร ความรู้สึกของคุณสมควรได้รับความใส่ใจ ให้ร่างกายมาก่อน กินอาหารอุ่น ๆ พักผ่อนให้มาก เรื่องอื่นไว้ก่อนได้ค่ะ']
+      ] : since <= 28 ? [
+        ['这段时间可能时好时坏，某一天突然很难受也很正常，这不代表你没有恢复好。给身体和心情多一点时间，不用急着振作。',
+         'ช่วงนี้อาจรู้สึกดีบ้างแย่บ้าง วันหนึ่งรู้สึกแย่ขึ้นมากะทันหันก็เป็นเรื่องปกติ ไม่ได้แปลว่าฟื้นตัวไม่ดี ให้เวลากับร่างกายและจิตใจ ไม่ต้องรีบเข้มแข็งค่ะ'],
+        ['身体在慢慢恢复，心情也有它自己的节奏。想聊的时候，可以找信任的人聊聊；不想说，也没关系。',
+         'ร่างกายกำลังค่อย ๆ ฟื้นตัว ใจก็มีจังหวะของมันเอง อยากคุยก็คุยกับคนที่ไว้ใจ ไม่อยากพูดก็ไม่เป็นไรค่ะ']
+      ] : [
+        ['已经过去一段时间了，但心里的感受不一定会跟着日历走，这很正常。按自己的节奏来就好，需要的时候，可以找医生或信任的人聊聊。',
+         'ผ่านมาสักพักแล้ว แต่ความรู้สึกในใจไม่จำเป็นต้องเดินตามปฏิทิน เป็นเรื่องปกติค่ะ ใช้จังหวะของตัวเอง และถ้าต้องการ คุยกับแพทย์หรือคนที่ไว้ใจได้เสมอ'],
+        ['谢谢你一直在好好照顾自己。身体的复查别忘了，心情也值得被关心，不用急着翻篇。',
+         'ขอบคุณที่ดูแลตัวเองมาตลอด อย่าลืมไปตรวจติดตามกับแพทย์ ความรู้สึกก็สมควรได้รับการเอาใจใส่ ไม่ต้องรีบผ่านไปค่ะ']
+      ];
+      var closing = pick(EC, ctx.seed)[zh ? 0 : 1];
+      closing += (low >= 4 ? (zh ? '\n\n最近你的情绪记录偏沉重。如果这种感觉持续很久、很难自己撑住，或者有伤害自己的念头，请尽快联系医生，或告诉身边可信任的人。' : '\n\nช่วงนี้อารมณ์ที่บันทึกค่อนข้างหนัก ถ้าความรู้สึกนี้ยืดเยื้อ ประคองตัวเองได้ยาก หรือมีความคิดทำร้ายตัวเอง กรุณาติดต่อแพทย์โดยเร็ว หรือบอกคนที่คุณไว้ใจ')
+                            : (zh ? '\n\n如果心情一直很沉、很难自己撑住，或者有伤害自己的念头，请联系医生，或告诉身边可信任的人。' : '\n\nถ้าความรู้สึกหนักอยู่นานและประคองตัวเองได้ยาก หรือมีความคิดทำร้ายตัวเอง กรุณาติดต่อแพทย์ หรือบอกคนที่คุณไว้ใจ'));
+      return { sections: sections, closing: closing, disclaimer: true };
+    }
+
+    // ═════════════ 普通模式（月经）报告 ═════════════
+    function normalReport(ctx, zh){
+      var ps = ctx.ps, seed = ctx.seed, tk = ctx.todayKey, cl = ps.avgCycle || 28, pl = ps.has ? ps.avgPeriod : 5, ss = symStats(ps, cl, pl, tk);
+      var sections = [periodSection(ps, zh, normalExtra(ps, ss, zh, tk))];
+      if(!ps.has) return { sections: sections, closing: zh ? '先在日历里记录最近一次月经吧。有了记录，Luna 才能帮你算出周期、预测下次月经和排卵日，慢慢读懂你的身体 🌙' : 'ไปบันทึกประจำเดือนครั้งล่าสุดในปฏิทินก่อนนะคะ เมื่อมีข้อมูล Luna จะช่วยคำนวณรอบเดือน คาดการณ์ประจำเดือนครั้งถัดไปและวันตกไข่ และค่อย ๆ เข้าใจร่างกายของคุณ 🌙', disclaimer: true };
+      var next = U.addDays(U.parseKey(ps.lastStart), cl), dn = U.diffDays(U.parseKey(tk), next), ph, cd = ps.curDay;
+      if(dn < 0){ ph = (-dn > cl) ? 'stale' : 'late'; }
+      else ph = phaseAt(tk, ps.starts, cl, pl) || 'lut';
+      var topSym = ss.sym.length ? symName(ss.sym[0][0], zh) : '';
+      var o = { n: dn, late: -dn, sym: topSym, ovu: md(U.fmtKey(U.addDays(next, -14)), zh), nx: md(U.fmtKey(next), zh) };
+      var T = {
+        period: [
+          ['经期第 {cd} 天，身体正在做一次小小的重置。多喝温水、注意保暖，疼得厉害就别硬撑。{symTip}',
+           'วันนี้เป็นวันที่ {cd} ของประจำเดือน ร่างกายกำลังรีเซ็ตเล็ก ๆ ดื่มน้ำอุ่น รักษาความอบอุ่น ถ้าปวดมากอย่าฝืนนะคะ {symTip}'],
+          ['这几天辛苦啦。经期的疲惫和情绪起伏都很正常，给自己多留一点休息的时间 🌙 {symTip}',
+           'ช่วงนี้เหนื่อยแย่เลยนะคะ ความเหนื่อยล้าและอารมณ์แปรปรวนช่วงมีประจำเดือนเป็นเรื่องปกติ ให้เวลาพักผ่อนตัวเองมากขึ้นนะคะ 🌙 {symTip}']],
+        fol: [
+          ['经期结束后身体慢慢恢复精力，是一个比较轻松的阶段。下次月经预计在 {nx}，现在可以安排一些想做的事 🌿',
+           'หลังหมดประจำเดือน ร่างกายค่อย ๆ มีแรงขึ้น เป็นช่วงที่สบายกว่า ประจำเดือนครั้งถัดไปคาดว่าวันที่ {nx} ตอนนี้วางแผนทำสิ่งที่อยากทำได้เลยค่ะ 🌿'],
+          ['这段时间精力通常不错，适合运动和做计划。保持规律作息，Luna 会继续帮你留意变化 💗',
+           'ช่วงนี้พลังงานมักดี เหมาะกับการออกกำลังกายและวางแผนต่าง ๆ พักผ่อนให้สม่ำเสมอ Luna จะคอยสังเกตความเปลี่ยนแปลงให้ค่ะ 💗']],
+        ovu: [
+          ['你正处在排卵期前后（预计 {ovu}），精力和心情通常都不错。有些人这几天会有轻微的下腹不适或分泌物变多，都是常见的 💗',
+           'ตอนนี้คุณอยู่ในช่วงใกล้ตกไข่ (คาดว่า {ovu}) พลังงานและอารมณ์มักดี บางคนอาจรู้สึกอึดอัดท้องน้อยเล็กน้อยหรือตกขาวมากขึ้น ซึ่งพบได้บ่อยค่ะ 💗']],
+        lut: [
+          ['进入经前期了，月经预计 {n} 天后来。容易疲倦、情绪敏感都很常见，早点休息、少喝咖啡，会舒服些 💗 {symTip}',
+           'เข้าสู่ช่วงก่อนมีประจำเดือนแล้ว คาดว่าประจำเดือนจะมาในอีก {n} วัน เหนื่อยง่ายและอารมณ์อ่อนไหวเป็นเรื่องปกติ นอนเร็วขึ้นและลดกาแฟจะสบายขึ้นค่ะ 💗 {symTip}'],
+          ['月经快到啦（预计 {nx}），提前备好用品、给自己留一点轻松的时间 🌙 {symTip}',
+           'ประจำเดือนใกล้มาแล้ว (คาดว่า {nx}) เตรียมของใช้ไว้ล่วงหน้า และเผื่อเวลาให้ตัวเองได้ผ่อนคลายค่ะ 🌙 {symTip}']],
+        late: [
+          ['月经比预计晚了 {late} 天。周期偶尔浮动很常见，压力、作息、旅行都会影响；如果推迟超过一周，或有怀孕的可能，可以验孕或咨询医生。',
+           'ประจำเดือนเลยกำหนด {late} วันแล้วค่ะ รอบเดือนเลื่อนบ้างเป็นเรื่องปกติ ความเครียด การนอน การเดินทางล้วนมีผล ถ้าเลยเกินหนึ่งสัปดาห์หรืออาจตั้งครรภ์ ให้ตรวจครรภ์หรือปรึกษาแพทย์ได้ค่ะ']],
+        stale: [
+          ['好像有一阵没记录月经了。补记最近一次，Luna 才能给你更准的预测 🌙',
+           'ดูเหมือนไม่ได้บันทึกประจำเดือนมาสักพัก บันทึกครั้งล่าสุดเพิ่ม Luna จะคาดการณ์ได้แม่นขึ้นค่ะ 🌙']]
+      };
+      var pair = pick(T[ph] || T.stale, seed);
+      var symTip = '';
+      if(topSym && (ph === 'period' || ph === 'lut')) symTip = zh ? '你的记录里最常出现的是「' + topSym + '」，这几天可以特别留意。' : 'ในบันทึกของคุณพบ "' + topSym + '" บ่อยที่สุด ช่วงนี้ลองสังเกตเป็นพิเศษนะคะ';
+      o.cd = cd; o.symTip = symTip;
+      var closing = fill(zh ? pair[0] : pair[1], o).replace(/\s+$/, '');
+      if(ps.gaps.length >= 3){
+        if(ps.spread <= 3) closing += zh ? '\n\n你的周期很稳定（最近几次只差 ' + ps.spread + ' 天），这是身体状态不错的好信号。' : '\n\nรอบเดือนของคุณสม่ำเสมอมาก (ต่างกันแค่ ' + ps.spread + ' วัน) เป็นสัญญาณที่ดีของร่างกายค่ะ';
+        else if(ps.spread > 7) closing += zh ? '\n\n你的周期有些浮动（最近几次相差 ' + ps.spread + ' 天），预测会有误差；坚持记录，Luna 会越来越懂你。如果经常大幅提前或推迟，建议咨询医生。' : '\n\nรอบเดือนของคุณค่อนข้างแกว่ง (ต่างกัน ' + ps.spread + ' วัน) การคาดการณ์อาจคลาดเคลื่อน บันทึกต่อเนื่อง Luna จะเข้าใจคุณมากขึ้น ถ้ามักเลื่อนหรือมาเร็วมาก ควรปรึกษาแพทย์ค่ะ';
+      } else closing += zh ? '\n\n再多记录几个周期，Luna 的预测和分析会更准确。' : '\n\nบันทึกเพิ่มอีกไม่กี่รอบ การคาดการณ์และวิเคราะห์ของ Luna จะแม่นขึ้นค่ะ';
+      return { sections: sections, closing: closing, disclaimer: true, noAi: (ph === 'late' || ph === 'stale') };
+    }
+
+    // ═════════════ 备孕报告 ═════════════
+    function ttcReport(ctx, zh){
+      var m = ctx.model, ps = ctx.ps, logs = ctx.logs, today = ctx.todayKey, seed = ctx.seed, sections = [periodSection(ps, zh)];
+      var info = ctx.ttcInfo || {};
+      if(!m || !m.hasData){
+        sections.push({ icon: '🌷', title: zh ? '备孕分析' : 'วิเคราะห์การวางแผนตั้งครรภ์', rows: [[zh ? '当前阶段' : 'ระยะปัจจุบัน', zh ? '先记录一次月经，Luna 才能推算排卵日和易孕期' : 'บันทึกประจำเดือนก่อน Luna จึงจะคำนวณวันตกไข่และช่วงเจริญพันธุ์ได้']]});
+        return { sections: sections, closing: zh ? '先去日历记录最近一次月经吧。有了记录，Luna 才能帮你算出排卵日和易孕期，陪你一步一步备孕 🌙' : 'ไปบันทึกประจำเดือนครั้งล่าสุดในปฏิทินก่อนนะคะ เมื่อมีข้อมูล Luna จะช่วยคำนวณวันตกไข่และช่วงเจริญพันธุ์ และอยู่เคียงข้างคุณ 🌙', disclaimer: true };
+      }
+      var st = m.state, w = m.win, cd = m.cycleDay, nextKey = (st === 'stale') ? (m.upcoming || w).nextStart : w.nextStart, up = (st === 'wait' || st === 'late' || st === 'stale') ? (m.upcoming || w) : w;
+      // 同房 / 体温 / 试纸 / 黏液：只看本周期（上次月经开始之后）
+      var ks = Object.keys(logs || {}).sort(), sexAll = 0, sexWin = 0, lastSex = null, bbtN = 0, lhN = 0, mucN = 0, lastPreg = null, lastLh = null, lastMuc = null, i, e, k;
+      for(i = 0; i < ks.length; i++){
+        k = ks[i]; e = logs[k]; if(k < m.lastStart || k > today) continue;
+        if(e.sex === 'yes'){ sexAll++; lastSex = k; if(st !== 'stale' && k >= w.fStart && k <= w.ovu) sexWin++; }
+        if(typeof e.bbt === 'number') bbtN++;
+        if(e.lh){ lhN++; lastLh = { k: k, v: e.lh }; }
+        if(e.mucus){ mucN++; lastMuc = { k: k, v: e.mucus }; }
+        if(e.preg) lastPreg = { k: k, v: e.preg };
+      }
+      var stage, stageShort;
+      if(st === 'period'){ stage = zh ? '经期中（第 ' + cd + ' 天）' : 'ช่วงมีประจำเดือน (วันที่ ' + cd + ')'; stageShort = zh ? '经期' : 'ช่วงมีประจำเดือน'; }
+      else if(st === 'before'){ stage = zh ? '易孕期前（还有 ' + m.daysToFertile + ' 天）' : 'ก่อนช่วงเจริญพันธุ์ (อีก ' + m.daysToFertile + ' วัน)'; stageShort = zh ? '易孕期前' : 'ก่อนช่วงเจริญพันธุ์'; }
+      else if(st === 'fertile'){ stage = zh ? '易孕期（第 ' + m.fertileDay + ' 天）' : 'ช่วงเจริญพันธุ์ (วันที่ ' + m.fertileDay + ')'; stageShort = zh ? '易孕期' : 'ช่วงเจริญพันธุ์'; }
+      else if(st === 'peak'){ stage = zh ? '易孕高峰期' : 'ช่วงโอกาสตั้งครรภ์สูงสุด'; stageShort = stage; }
+      else if(st === 'wait'){ stage = zh ? '排卵后等待期（排卵后第 ' + m.dpo + ' 天）' : 'ช่วงรอผลหลังตกไข่ (วันที่ ' + m.dpo + ')'; stageShort = zh ? '排卵后等待期' : 'ช่วงรอผล'; }
+      else if(st === 'late'){ stage = m.lateDays === 0 ? (zh ? '预计月经日（今天）' : 'วันที่คาดว่าประจำเดือนจะมา (วันนี้)') : (zh ? '月经推迟 ' + m.lateDays + ' 天' : 'ประจำเดือนเลยกำหนด ' + m.lateDays + ' วัน'); stageShort = zh ? '月经推迟' : 'ประจำเดือนเลยกำหนด'; }
+      else { stage = zh ? '较久没有记录月经' : 'ไม่ได้บันทึกประจำเดือนมานาน'; stageShort = stage; }
+      var src = m.ovuSource, ovLabel = zh ? '预计排卵日' : 'คาดว่าตกไข่';
+      if(src === 'bbt') ovLabel = zh ? '排卵日（体温确认）' : 'วันตกไข่ (ยืนยันจากอุณหภูมิ)';
+      else if(src === 'lh') ovLabel = zh ? '排卵日（试纸修正）' : 'วันตกไข่ (ปรับตามชุดตรวจ)';
+      var rows = [];
+      rows.push([zh ? '当前阶段' : 'ระยะปัจจุบัน', stage]);
+      if(st !== 'stale'){
+        rows.push([ovLabel, md(up.ovu, zh) + (src === 'predicted' ? '' : '')]);
+        rows.push([zh ? '易孕期' : 'ช่วงเจริญพันธุ์', rng(up.fStart, up.ovu, zh)]);
+      }
+      if(st === 'before' || st === 'fertile' || st === 'peak'){
+        rows.push([zh ? '同房记录' : 'บันทึกการมีเพศสัมพันธ์', zh ? '本周期 ' + sexAll + ' 次（易孕期内 ' + sexWin + ' 次）' : 'รอบนี้ ' + sexAll + ' ครั้ง (ในช่วงเจริญพันธุ์ ' + sexWin + ' ครั้ง)']);
+      } else {
+        rows.push([zh ? '同房记录' : 'บันทึกการมีเพศสัมพันธ์', zh ? '本周期 ' + sexAll + ' 次' + (st !== 'stale' && st !== 'period' ? '（易孕期内 ' + sexWin + ' 次）' : '') : 'รอบนี้ ' + sexAll + ' ครั้ง' + (st !== 'stale' && st !== 'period' ? ' (ในช่วงเจริญพันธุ์ ' + sexWin + ' ครั้ง)' : '')]);
+      }
+      // 记录项：体温 / 试纸 / 黏液
+      var bits = [];
+      bits.push((zh ? '体温 ' : 'อุณหภูมิ ') + bbtN + (zh ? ' 天' : ' วัน'));
+      bits.push((zh ? '试纸 ' : 'ชุดตรวจไข่ตก ') + lhN + (zh ? ' 次' : ' ครั้ง'));
+      bits.push((zh ? '黏液 ' : 'มูก ') + mucN + (zh ? ' 次' : ' ครั้ง'));
+      rows.push([zh ? '本周期记录' : 'บันทึกรอบนี้', bits.join(' · ')]);
+      // 数据完整度（让她知道多记录会更准）
+      var score = (ps.runs >= 2 ? 1 : 0) + (ps.runs >= 4 ? 1 : 0) + (bbtN >= 7 ? 1 : 0) + (lhN >= 2 ? 1 : 0) + (mucN >= 3 ? 1 : 0), dots = '', j;
+      for(j = 0; j < 5; j++) dots += j < score ? '●' : '○';
+      rows.push([zh ? '数据完整度' : 'ความครบถ้วนของข้อมูล', dots + (zh ? (score >= 4 ? '  预测比较可靠' : score >= 2 ? '  再多记录会更准' : '  记录越多，预测越准') : (score >= 4 ? '  การคาดการณ์ค่อนข้างน่าเชื่อถือ' : score >= 2 ? '  บันทึกเพิ่มจะแม่นขึ้น' : '  ยิ่งบันทึกมาก ยิ่งแม่น'))]);
+      if(info.months !== undefined && info.months !== null){
+        rows.push([zh ? '备孕时长' : 'ระยะเวลาวางแผน', zh ? (info.months >= 1 ? '约 ' + info.months + ' 个月' : '不到 1 个月') : (info.months >= 1 ? 'ประมาณ ' + info.months + ' เดือน' : 'ไม่ถึง 1 เดือน')]);
+      }
+      // Luna 建议（一句话，规则）
+      var adv;
+      if(st === 'before') adv = zh ? '易孕期从 ' + md(w.fStart, zh) + ' 开始，先把作息和叶酸安排好' : 'ช่วงเจริญพันธุ์เริ่ม ' + md(w.fStart, zh) + ' เตรียมพักผ่อนและกรดโฟลิกให้พร้อม';
+      else if(st === 'fertile') adv = zh ? '已进入易孕期，建议每 1–2 天同房一次' + (sexWin === 0 ? '（窗口内还没有记录）' : '') : 'เข้าช่วงเจริญพันธุ์แล้ว แนะนำมีเพศสัมพันธ์ทุก 1–2 วัน' + (sexWin === 0 ? ' (ยังไม่มีบันทึกในช่วงนี้)' : '');
+      else if(st === 'peak') adv = zh ? '怀孕机会最高的几天，建议今明两天重点把握' : 'ช่วงที่มีโอกาสสูงสุด แนะนำให้ใช้เวลาด้วยกันในวันนี้และพรุ่งนี้';
+      else if(st === 'wait') adv = zh ? '从 ' + md(w.nextStart, zh) + ' 起验孕更准，之前保持规律作息' : 'ตรวจครรภ์แม่นยำขึ้นตั้งแต่ ' + md(w.nextStart, zh) + ' ก่อนหน้านั้นพักผ่อนให้เพียงพอ';
+      else if(st === 'late') adv = zh ? '建议用晨尿验孕' : 'แนะนำตรวจครรภ์ด้วยปัสสาวะตอนเช้า';
+      else if(st === 'period') adv = zh ? '好好休息，易孕期将在 ' + md(w.fStart, zh) + ' 开始' : 'พักผ่อนให้เต็มที่ ช่วงเจริญพันธุ์จะเริ่ม ' + md(w.fStart, zh);
+      else adv = zh ? '先补记最近一次月经' : 'บันทึกประจำเดือนครั้งล่าสุดก่อน';
+      rows.push([zh ? 'Luna 建议' : 'คำแนะนำจาก Luna', adv]);
+      sections.push({ icon: '🌷', title: zh ? '备孕分析' : 'วิเคราะห์การวางแผนตั้งครรภ์', rows: rows });
+
+      // 🤰 怀孕相关
+      var r2 = [];
+      r2.push([zh ? '当前周期阶段' : 'ระยะของรอบเดือน', zh ? '第 ' + cd + ' 天 · ' + stageShort : 'วันที่ ' + cd + ' · ' + stageShort]);
+      r2.push([zh ? '是否记录同房' : 'บันทึกการมีเพศสัมพันธ์', sexAll ? (zh ? '已记录 ' + sexAll + ' 次（最近一次 ' + md(lastSex, zh) + '）' : 'บันทึกแล้ว ' + sexAll + ' ครั้ง (ล่าสุด ' + md(lastSex, zh) + ')') : (zh ? '本周期还没有同房记录' : 'รอบนี้ยังไม่มีบันทึก')]);
+      r2.push([zh ? '预计下次月经' : 'คาดว่าประจำเดือนครั้งถัดไป', md(nextKey, zh)]);
+      var testTxt;
+      if(st === 'late' || (st === 'wait' && m.daysToTest <= 0)) testTxt = zh ? '现在就可以验孕' : 'ตรวจครรภ์ได้เลยตอนนี้';
+      else testTxt = zh ? md(nextKey, zh) + ' 起（月经推迟第 1 天验孕更准）' : 'ตั้งแต่ ' + md(nextKey, zh) + ' (ตรวจหลังประจำเดือนเลยกำหนดจะแม่นกว่า)';
+      r2.push([zh ? '预计可检测时间' : 'ตรวจครรภ์ได้ตั้งแต่', testTxt]);
+      if(lastPreg && U.diffDays(U.parseKey(lastPreg.k), U.parseKey(today)) <= 21){
+        var PL = { neg: [zh ? '阴性' : 'ลบ'], faint: [zh ? '弱阳' : 'เส้นจาง'], pos: [zh ? '阳性' : 'บวก'] };
+        r2.push([zh ? '最近验孕记录' : 'ผลตรวจครรภ์ล่าสุด', PL[lastPreg.v][0] + '（' + md(lastPreg.k, zh) + '）']);
+      }
+      var remind;
+      if(st === 'late') remind = m.lateDays === 0 ? (zh ? '今天月经没来的话 → 可以验孕了' : 'ถ้าวันนี้ประจำเดือนไม่มา → ตรวจครรภ์ได้เลย') : (zh ? '月经已推迟 ' + m.lateDays + ' 天 → 建议现在验孕' : 'ประจำเดือนเลยกำหนด ' + m.lateDays + ' วัน → แนะนำตรวจครรภ์ตอนนี้');
+      else if(st === 'stale') remind = zh ? '先补记月经，Luna 才能提醒你验孕时间' : 'บันทึกประจำเดือนก่อน Luna จึงจะเตือนเวลาตรวจครรภ์ได้';
+      else remind = zh ? '如果 ' + md(nextKey, zh) + ' 月经还没来 → 提醒你验孕' : 'ถ้าถึง ' + md(nextKey, zh) + ' แล้วประจำเดือนยังไม่มา → Luna จะเตือนให้ตรวจครรภ์';
+      r2.push([zh ? '月经推迟时' : 'ถ้าประจำเดือนเลยกำหนด', remind]);
+      sections.push({ icon: '🤰', title: zh ? '怀孕相关' : 'เกี่ยวกับการตั้งครรภ์', rows: r2 });
+
+      // ─ 收尾话术（模板 + 用户数据；同一状态有 2 种说法，按日期轮换，不会天天一样）─
+      var T = {
+        before: [
+          ['你离易孕期只剩 {n} 天啦。这几天先把作息、睡眠和叶酸安排好，{fs} 开始留意身体的信号就好，不用太紧绷～',
+           'อีก {n} วันก็จะถึงช่วงเจริญพันธุ์แล้วค่ะ ช่วงนี้ดูแลการนอนและกรดโฟลิกให้พร้อม แล้วเริ่มสังเกตสัญญาณจากร่างกายตั้งแต่ {fs} ก็พอ ไม่ต้องเครียดนะคะ~'],
+          ['好的开始是从容：易孕期会在 {fs} 到来。提前做好准备，到时候顺其自然、保持轻松的心情，对备孕同样重要 🌿',
+           'จุดเริ่มต้นที่ดีคือความสบายใจ ช่วงเจริญพันธุ์จะมาถึงวันที่ {fs} เตรียมตัวไว้ล่วงหน้า แล้วถึงเวลาก็ปล่อยให้เป็นไปตามธรรมชาติ ใจสบาย ๆ สำคัญไม่แพ้กันค่ะ 🌿']],
+        fertile: [
+          ['你已经进入易孕期啦，接下来到 {ovu} 是最值得把握的几天。{sx}别让压力占满这段时间，放松最重要～',
+           'คุณเข้าสู่ช่วงเจริญพันธุ์แล้วค่ะ ถึงวันที่ {ovu} คือช่วงที่ควรให้ความสำคัญที่สุด {sx}อย่าปล่อยให้ความเครียดมาแทนที่ ผ่อนคลายไว้นะคะ~'],
+          ['现在是备孕路上很关键的时间。{sx}和伴侣好好相处，比盯着数字更重要 💗',
+           'ตอนนี้เป็นช่วงสำคัญบนเส้นทางวางแผนตั้งครรภ์ {sx}ใช้เวลาดี ๆ ร่วมกับคู่ของคุณ สำคัญกว่าการจ้องตัวเลขค่ะ 💗']],
+        peak: [
+          ['现在正是怀孕机会最高的时候（{ovu} 前后）。{sx}今明两天多留一点二人时间，放松心情最重要 💗',
+           'ตอนนี้คือช่วงที่มีโอกาสตั้งครรภ์สูงที่สุด (ช่วงวันที่ {ovu}) {sx}วันนี้และพรุ่งนี้ลองให้เวลากับคู่ของคุณมากขึ้น ผ่อนคลายไว้นะคะ 💗'],
+          ['排卵日就在眼前（{ovu}）。{sx}尽力而为，剩下的交给时间，你已经做得很好了 🌙',
+           'วันตกไข่ใกล้แล้ว ({ovu}) {sx}ทำเต็มที่แล้วที่เหลือให้เวลาจัดการ คุณทำได้ดีมากแล้วค่ะ 🌙']],
+        wait: [
+          ['排卵已经过去，现在是两周的等待期，这段时间最考验耐心。{test}在那之前，规律作息、均衡饮食，别给自己太大压力 🌿',
+           'วันตกไข่ผ่านไปแล้ว ตอนนี้เป็นช่วงรอผลสองสัปดาห์ ซึ่งต้องใช้ความอดทนที่สุด {test}ก่อนถึงตอนนั้น พักผ่อนให้พอ กินอาหารครบหมู่ และอย่ากดดันตัวเองมากเกินไปนะคะ 🌿'],
+          ['等待的日子不容易。{test}无论结果如何，你都已经很努力了，Luna 会一直陪着你 💗',
+           'ช่วงรอไม่ง่ายเลยค่ะ {test}ไม่ว่าผลจะเป็นอย่างไร คุณพยายามเต็มที่แล้ว Luna อยู่ตรงนี้เสมอ 💗']],
+        late: [
+          ['{late}现在可以用晨尿验孕了。如果结果是阴性但月经还是没来，3 天后再测一次；如果是阳性，恭喜你！记得尽快预约产检 💗',
+           '{late}ตอนนี้ตรวจครรภ์ด้วยปัสสาวะตอนเช้าได้แล้วค่ะ ถ้าผลเป็นลบแต่ประจำเดือนยังไม่มา ให้ตรวจซ้ำอีกครั้งใน 3 วัน ถ้าเป็นบวก ยินดีด้วยนะคะ! อย่าลืมนัดฝากครรภ์โดยเร็ว 💗'],
+          ['{late}不管是期待还是紧张都很正常。晨尿验孕最准；如果迟迟不来又测不出，也可以去医院抽血确认 🌿',
+           '{late}จะตื่นเต้นหรือกังวลก็เป็นเรื่องปกติค่ะ ตรวจด้วยปัสสาวะตอนเช้าจะแม่นที่สุด ถ้าประจำเดือนยังไม่มาและตรวจไม่พบ สามารถไปตรวจเลือดที่โรงพยาบาลเพื่อยืนยันได้ค่ะ 🌿']],
+        period: [
+          ['这是新一轮的开始。经期是身体的重置，好好休息；{fs} 起会进入下一个易孕期，到时候 Luna 陪你一起留意 🌙',
+           'นี่คือจุดเริ่มต้นของรอบใหม่ ช่วงมีประจำเดือนคือการรีเซ็ตของร่างกาย พักผ่อนให้เต็มที่นะคะ ตั้งแต่ {fs} จะเข้าสู่ช่วงเจริญพันธุ์ถัดไป Luna จะอยู่ด้วยกันค่ะ 🌙'],
+          ['没怀上也不是失败，每一个周期都是在更了解自己的身体。{fs} 开始是下一个易孕期，我们再一起来 💗',
+           'ไม่ตั้งครรภ์ในรอบนี้ไม่ใช่ความล้มเหลวค่ะ ทุกรอบคือการเรียนรู้ร่างกายตัวเองมากขึ้น ช่วงเจริญพันธุ์ถัดไปเริ่ม {fs} เรามาเริ่มด้วยกันอีกครั้งนะคะ 💗']],
+        stale: [
+          ['再记录一次最近的月经，Luna 才能算出更准的排卵日和易孕期。有记录，才有更好的陪伴 🌙',
+           'บันทึกประจำเดือนครั้งล่าสุดอีกครั้ง Luna จึงจะคำนวณวันตกไข่และช่วงเจริญพันธุ์ได้แม่นขึ้น มีข้อมูล ก็ดูแลกันได้ดีขึ้นค่ะ 🌙']]
+      };
+      var key = (st === 'nodata') ? 'stale' : st, pair = pick(T[key] || T.stale, seed);
+      var sx = '';
+      if(st === 'fertile' || st === 'peak') sx = sexWin === 0 ? (zh ? '目前窗口内还没有同房记录，' : 'ตอนนี้ยังไม่มีบันทึกในช่วงนี้ ') : (zh ? '窗口内已经记录了 ' + sexWin + ' 次同房，做得很好，' : 'บันทึกในช่วงนี้แล้ว ' + sexWin + ' ครั้ง ทำได้ดีมากค่ะ ');
+      var lateTxt = '';
+      if(st === 'late') lateTxt = m.lateDays === 0 ? (zh ? '今天是预计月经日，如果月经没来，' : 'วันนี้คือวันที่คาดว่าประจำเดือนจะมา ถ้าประจำเดือนไม่มา ') : (zh ? '月经已经推迟 ' + m.lateDays + ' 天，' : 'ประจำเดือนเลยกำหนด ' + m.lateDays + ' วันแล้ว ');
+      var o = { n: m.daysToFertile, fs: md(w.fStart, zh), ovu: md(up.ovu, zh), sx: sx, late: lateTxt, test: (st === 'wait' && m.daysToTest > 0) ? (zh ? '从 ' + md(w.nextStart, zh) + ' 起验孕会更准。' : 'ตั้งแต่ ' + md(w.nextStart, zh) + ' ตรวจครรภ์จะแม่นขึ้น ') : '' };
+      var closing = fill(zh ? pair[0] : pair[1], o);
+      // 补一句"怎么让分析更准"（只在确实缺数据时）
+      if(st !== 'stale' && bbtN < 5 && (st === 'before' || st === 'period' || st === 'fertile')) closing += zh ? '\n\n小提示：每天早上起床先量体温并记录，坚持两三个周期，Luna 就能更准确地确认你的排卵日。' : '\n\nเคล็ดลับ: วัดอุณหภูมิทุกเช้าก่อนลุกจากเตียงแล้วบันทึกไว้ ทำต่อเนื่องสองสามรอบ Luna จะยืนยันวันตกไข่ได้แม่นขึ้นค่ะ';
+      // 备孕久了：温和提醒就医（<35 岁满 12 个月；≥35 岁满 6 个月）
+      var need = info.over35 ? 6 : 12;
+      if(info.months >= need) closing += zh ? '\n\n你已经备孕约 ' + info.months + ' 个月了，建议和医生聊聊，做一次检查，也能更安心 💗' : '\n\nคุณวางแผนมาประมาณ ' + info.months + ' เดือนแล้ว แนะนำให้ปรึกษาแพทย์และตรวจร่างกาย จะได้สบายใจขึ้นค่ะ 💗';
+      return { sections: sections, closing: closing, disclaimer: true, noAi: (st === 'late' || st === 'stale' || st === 'nodata') };
+    }
+
+    // ═════════════ 怀孕报告 ═════════════
+    var MILESTONES = [
+      { a: 11, b: 14, zh: 'NT 颈项透明层超声（早期排畸 / 唐筛的一部分）', th: 'อัลตราซาวด์วัด NT (ความหนาของต้นคอทารก)' },
+      { a: 18, b: 25, zh: '大排畸系统超声', th: 'อัลตราซาวด์ตรวจโครงสร้างทารกละเอียด' },
+      { a: 24, b: 29, zh: '妊娠糖尿病筛查（糖耐量）', th: 'ตรวจคัดกรองเบาหวานขณะตั้งครรภ์ (OGTT)' },
+      { a: 28, b: 41, zh: '开始每天数胎动', th: 'เริ่มนับลูกดิ้นทุกวัน' },
+      { a: 35, b: 38, zh: 'B 族链球菌（GBS）筛查', th: 'ตรวจคัดกรองเชื้อ GBS' },
+      { a: 36, b: 41, zh: '准备待产包，了解临产征兆', th: 'เตรียมกระเป๋าไปคลอด และเรียนรู้สัญญาณใกล้คลอด' }
+    ];
+    function pregReport(ctx, zh){
+      var pi = ctx.pregInfo, today = ctx.todayKey, seed = ctx.seed, s = ctx.pregState || {}, sections = [];
+      var triTxt = zh ? ['', '孕早期', '孕中期', '孕晚期'][pi.trimester] : ['', 'ไตรมาสที่ 1', 'ไตรมาสที่ 2', 'ไตรมาสที่ 3'][pi.trimester];
+      var weeksTxt = zh ? pi.weeks + ' 周' + (pi.days ? ' + ' + pi.days + ' 天' : '') : pi.weeks + ' สัปดาห์' + (pi.days ? ' + ' + pi.days + ' วัน' : '');
+      var r1 = [];
+      r1.push([zh ? '当前孕周' : 'อายุครรภ์', weeksTxt + '（' + triTxt + '）']);
+      r1.push([zh ? '预产期' : 'กำหนดคลอด', md(pi.dueKey, zh) + (pi.daysToDue >= 0 ? (zh ? '（还有 ' + pi.daysToDue + ' 天）' : ' (อีก ' + pi.daysToDue + ' วัน)') : (zh ? '（已超过 ' + (-pi.daysToDue) + ' 天）' : ' (เลยมา ' + (-pi.daysToDue) + ' วัน)'))]);
+      r1.push([zh ? '已怀孕' : 'ตั้งครรภ์มาแล้ว', Math.max(0, pi.gaDays) + (zh ? ' 天' : ' วัน')]);
+      r1.push([zh ? '孕期进度' : 'ความคืบหน้า', Math.max(0, Math.min(100, Math.round(pi.gaDays / 280 * 100))) + '%']);
+      sections.push({ icon: '🤰', title: zh ? '孕期概况' : 'ภาพรวมการตั้งครรภ์', rows: r1, bar: Math.max(0, Math.min(100, Math.round(pi.gaDays / 280 * 100))) });
+
+      var ws = ctx.weights || [], r2 = [], wnote = '';
+      if(!ws.length){
+        r2.push([zh ? '体重记录' : 'บันทึกน้ำหนัก', zh ? '还没有记录。每周记一次，Luna 才能看出变化趋势' : 'ยังไม่มีบันทึก บันทึกสัปดาห์ละครั้ง Luna จะเห็นแนวโน้มได้']);
+      } else {
+        var first = ws[0], last = ws[ws.length - 1], tot = Math.round((last.kg - first.kg) * 10) / 10;
+        r2.push([zh ? '记录次数' : 'จำนวนบันทึก', ws.length + (zh ? ' 次' : ' ครั้ง')]);
+        r2.push([zh ? '最新体重' : 'น้ำหนักล่าสุด', last.kg + ' kg（' + md(last.date, zh) + '）']);
+        if(ws.length >= 2) r2.push([zh ? '累计变化' : 'เปลี่ยนแปลงสะสม', (tot > 0 ? '+' : '') + tot + ' kg' + (zh ? '（自 ' + md(first.date, zh) + ' 起）' : ' (ตั้งแต่ ' + md(first.date, zh) + ')')]);
+        // 近 28 天的每周速度
+        var win = [], i, tLast = U.parseKey(last.date);
+        for(i = 0; i < ws.length; i++) if(U.diffDays(U.parseKey(ws[i].date), tLast) <= 28) win.push(ws[i]);
+        if(win.length >= 2){
+          var span = U.diffDays(U.parseKey(win[0].date), tLast);
+          if(span >= 7){
+            var rate = Math.round((last.kg - win[0].kg) / (span / 7) * 100) / 100;
+            r2.push([zh ? '近期趋势' : 'แนวโน้มล่าสุด', (zh ? '每周约 ' : 'ประมาณสัปดาห์ละ ') + (rate > 0 ? '+' : '') + rate + ' kg']);
+            if(pi.trimester >= 2){
+              if(rate > 0.7) wnote = zh ? '最近每周增长略快于常见范围（约 0.3–0.5 kg），下次产检时可以和医生聊聊饮食。' : 'น้ำหนักขึ้นเร็วกว่าที่พบบ่อยเล็กน้อย (ประมาณ 0.3–0.5 กก. ต่อสัปดาห์) ครั้งหน้าที่ไปตรวจครรภ์ลองปรึกษาแพทย์เรื่องอาหารนะคะ';
+              else if(rate < -0.5) wnote = zh ? '体重在下降，如果伴有严重呕吐或不舒服，请联系医生。' : 'น้ำหนักลดลง ถ้ามีอาการอาเจียนมากหรือไม่สบาย ควรติดต่อแพทย์ค่ะ';
+              else if(rate >= 0.1) wnote = zh ? '孕中晚期每周增加 0.3–0.5 kg 比较常见，个体差异大，以医生建议为准。' : 'ช่วงไตรมาส 2–3 น้ำหนักขึ้นประมาณสัปดาห์ละ 0.3–0.5 กก. เป็นเรื่องที่พบบ่อย แต่แต่ละคนต่างกัน ให้ยึดตามคำแนะนำของแพทย์ค่ะ';
+              else wnote = zh ? '体重变化不大，具体是否合适，以产检医生的建议为准。' : 'น้ำหนักเปลี่ยนแปลงไม่มาก ว่าเหมาะสมหรือไม่ให้ยึดตามคำแนะนำของแพทย์ค่ะ';
+            }
+          }
+        }
+        if(wnote) r2.push([zh ? '小结' : 'สรุป', wnote]);
+      }
+      sections.push({ icon: '⚖️', title: zh ? '体重变化' : 'น้ำหนักตัว', rows: r2 });
+
+      var r3 = [], nv = ctx.nextVisit, vs = ctx.visitCount || 0;
+      if(nv){
+        var dd = U.diffDays(U.parseKey(today), U.parseKey(nv.date));
+        r3.push([zh ? '下次产检' : 'นัดตรวจครรภ์ครั้งถัดไป', md(nv.date, zh) + (nv.time ? ' ' + nv.time : '') + (dd === 0 ? (zh ? '（今天）' : ' (วันนี้)') : (zh ? '（' + dd + ' 天后）' : ' (อีก ' + dd + ' วัน)'))]);
+      } else r3.push([zh ? '下次产检' : 'นัดตรวจครรภ์ครั้งถัดไป', zh ? '还没有安排，可以在"产检"里添加' : 'ยังไม่ได้นัดหมาย เพิ่มได้ในหน้า "นัดตรวจครรภ์"']);
+      if(ctx.who && ctx.who.length){
+        var wk = ctx.who[0];
+        r3.push([zh ? '常规产检节点' : 'ช่วงตรวจครรภ์ตามปกติ', zh ? '第 ' + wk.week + ' 周' + (wk.upTo ? '前' : '前后') + '（约 ' + md(wk.dateKey, zh) + '）' : 'สัปดาห์ที่ ' + wk.week + (wk.upTo ? ' (ก่อน)' : '') + ' (ประมาณ ' + md(wk.dateKey, zh) + ')']);
+      }
+      if(vs) r3.push([zh ? '已记录的产检' : 'การนัดที่บันทึกไว้', vs + (zh ? ' 次' : ' ครั้ง')]);
+      sections.push({ icon: '🏥', title: zh ? '产检安排' : 'การตรวจครรภ์', rows: r3 });
+
+      // 接下来的关键节点（距现在最近的 2 项）
+      var r4 = [], ms = [], l = U.parseKey(ctx.lmpKey), j;
+      for(j = 0; j < MILESTONES.length; j++){
+        if(pi.weeks < MILESTONES[j].b) ms.push(MILESTONES[j]);
+      }
+      ms.sort(function(x, y){ return x.a - y.a; });
+      for(j = 0; j < Math.min(2, ms.length); j++){
+        var mm = ms[j], inNow = pi.weeks >= mm.a;
+        var sd = U.fmtKey(U.addDays(l, mm.a * 7));
+        r4.push([zh ? mm.zh : mm.th, inNow ? (zh ? '现在就在这个时间段（第 ' + mm.a + '–' + (mm.b - 1) + ' 周）' : 'อยู่ในช่วงเวลานี้ (สัปดาห์ที่ ' + mm.a + '–' + (mm.b - 1) + ')') : (zh ? '第 ' + mm.a + '–' + (mm.b - 1) + ' 周（约 ' + md(sd, zh) + ' 起）' : 'สัปดาห์ที่ ' + mm.a + '–' + (mm.b - 1) + ' (ประมาณ ' + md(sd, zh) + ')')]);
+      }
+      if(r4.length){ r4.push([zh ? '说明' : 'หมายเหตุ', zh ? '各医院的安排可能不同，以你的产检医生为准' : 'แต่ละโรงพยาบาลอาจนัดต่างกัน ให้ยึดตามแพทย์ของคุณ']); sections.push({ icon: '📌', title: zh ? '接下来的关键节点' : 'หมุดหมายที่กำลังจะมาถึง', rows: r4 }); }
+
+      // 收尾话术
+      var tri = pi.trimester, nvTxt = '';
+      if(nv){ var d2 = U.diffDays(U.parseKey(today), U.parseKey(nv.date)); nvTxt = zh ? '下次产检在 ' + (d2 === 0 ? '今天' : d2 + ' 天后') + '（' + md(nv.date, zh) + '），别忘了带上这份记录。' : 'นัดตรวจครรภ์ครั้งถัดไป' + (d2 === 0 ? 'วันนี้' : 'อีก ' + d2 + ' วัน') + ' (' + md(nv.date, zh) + ') อย่าลืมพกบันทึกนี้ไปด้วยนะคะ'; }
+      else nvTxt = zh ? '还没有安排产检的话，可以先在"产检"里添加一个日期。' : 'ถ้ายังไม่ได้นัดตรวจครรภ์ ลองเพิ่มวันนัดในหน้า "นัดตรวจครรภ์" ได้เลยค่ะ';
+      var cl;
+      if(pi.daysToDue < 0) cl = zh ? '你已经过了预产期，请尽快和医生确认接下来的检查和计划，不要一个人硬撑。' : 'คุณเลยกำหนดคลอดแล้ว กรุณาปรึกษาแพทย์เรื่องการตรวจและแผนต่อไปโดยเร็ว อย่าอยู่คนเดียวนะคะ';
+      else if(tri === 1){
+        cl = pick([
+          zh ? '你已经走到孕 ' + weeksTxt + ' 啦。这个阶段身体和情绪起伏都很正常，按时休息、补充叶酸；如果有出血或剧烈腹痛，请先联系医生。' : 'คุณตั้งครรภ์ถึง ' + weeksTxt + ' แล้วค่ะ ช่วงนี้ร่างกายและอารมณ์แปรปรวนเป็นเรื่องปกติ พักผ่อนให้พอ กินกรดโฟลิก ถ้ามีเลือดออกหรือปวดท้องรุนแรงให้ติดต่อแพทย์ก่อนนะคะ',
+          zh ? '孕早期是宝宝打地基的阶段，也是你最需要被照顾的阶段。吃不下就少量多餐，别勉强自己 🌿' : 'ไตรมาสแรกคือช่วงวางรากฐานของลูก และเป็นช่วงที่คุณต้องการการดูแลมากที่สุด กินไม่ลงก็แบ่งกินทีละน้อยหลายมื้อ อย่าฝืนตัวเองนะคะ 🌿'
+        ], seed);
+      } else if(tri === 2){
+        cl = pick([
+          zh ? '来到孕中期了，这通常是整个孕期相对舒服的阶段。继续按自己的节奏吃好、睡好、适度活动，宝宝会感受到你的好心情 💗' : 'เข้าสู่ไตรมาสที่ 2 แล้วค่ะ ซึ่งมักเป็นช่วงที่สบายที่สุดของการตั้งครรภ์ กินดี นอนพอ ออกกำลังกายเบา ๆ ตามจังหวะของตัวเอง ลูกรับรู้ได้ถึงความสบายใจของคุณนะคะ 💗',
+          zh ? '孕中期是做各项重要筛查的时候，按医生的安排一项一项来，不用焦虑，你已经做得很好了 🌙' : 'ไตรมาสที่ 2 เป็นช่วงที่ต้องตรวจคัดกรองสำคัญหลายอย่าง ทำตามที่แพทย์นัดทีละอย่าง ไม่ต้องกังวล คุณทำได้ดีมากแล้วค่ะ 🌙'
+        ], seed);
+      } else {
+        cl = pick([
+          zh ? '距离预产期只剩 ' + pi.daysToDue + ' 天了，你和宝宝都辛苦啦。留意胎动、准备好待产包，出现规律宫缩、破水或出血时，及时去医院。' : 'อีก ' + pi.daysToDue + ' วันก็ถึงกำหนดคลอดแล้ว คุณและลูกเหนื่อยมากแล้วนะคะ สังเกตลูกดิ้น เตรียมกระเป๋าไปคลอด ถ้ามีการหดตัวสม่ำเสมอ น้ำเดิน หรือเลือดออก ให้รีบไปโรงพยาบาลค่ะ',
+          zh ? '快要见面了。这段时间多休息、别一个人扛，有任何不对劲的感觉，随时联系医生 💗' : 'ใกล้ได้เจอกันแล้วค่ะ ช่วงนี้พักผ่อนให้มาก อย่าแบกไว้คนเดียว ถ้ารู้สึกผิดปกติอะไร ติดต่อแพทย์ได้ทุกเมื่อ 💗'
+        ], seed);
+      }
+      return { sections: sections, closing: cl + '\n\n' + nvTxt, disclaimer: true, noAi: (pi.daysToDue < 0) };
+    }
+
+    // ═════════════ 读数据 ═════════════
+    function mode(){
+      try{
+        if(L.post && L.post.isActive()){ var pi0 = L.post.info(); return (pi0 && pi0.kind === 'ended') ? 'ppEnded' : 'pp'; }
+        if(L.isActive()) return 'preg';
+        if(X.isActive()) return 'ttc';
+      }catch(e){}
+      return 'normal';
+    }
+    function gather(){
+      var today = U.todayDate(), tk = U.fmtKey(today), md0 = mode(), seed = Math.floor(today.getTime() / 86400000);
+      var keys = [];
+      try{ if(typeof periodSet !== 'undefined' && periodSet) keys = Array.from(periodSet); }catch(e){}
+      if(!keys.length){ try{ keys = JSON.parse(localStorage.getItem(U.acctKey('luna_period_days')) || '[]'); }catch(e){ keys = []; } }
+      var ctx = { mode: md0, todayKey: tk, seed: seed, ps: periodStats(keys, tk) };
+      if(md0 === 'ttc'){
+        try{ ctx.model = X.view.readModel(); }catch(e){ ctx.model = null; }
+        try{ ctx.logs = X.logs.map(); }catch(e){ ctx.logs = {}; }
+        try{ ctx.ttcInfo = X.info(); }catch(e){ ctx.ttcInfo = {}; }
+      } else if(md0 === 'preg'){
+        try{ ctx.pregInfo = L.info(); ctx.pregState = L.get(); ctx.lmpKey = ctx.pregState && ctx.pregState.lmp; }catch(e){}
+        try{ ctx.weights = L.track.weights(); }catch(e){ ctx.weights = []; }
+        try{ ctx.nextVisit = L.track.nextVisit(); ctx.visitCount = L.track.visits().length; }catch(e){}
+        try{ ctx.who = L.track._pure.whoSchedule(ctx.lmpKey, tk); }catch(e){ ctx.who = []; }
+      }
+      else if(md0 === 'pp' || md0 === 'ppEnded'){
+        try{ ctx.pp = L.post.info(); }catch(e){}
+        if(ctx.pp){
+          var from = U.fmtKey(U.addDays(today, -14)); if(from < ctx.pp.eventDate) from = ctx.pp.eventDate;
+          ctx.ss = symStats({ has: false }, 28, 5, tk, from);
+          ctx.fever = recentFlag(tk, 7, function(c){ return c === 'ไข้' || c === '发烧'; });
+        }
+      }
+      return ctx;
+    }
+    function build(){
+      var c = gather(), zh = zhL();
+      if(c.mode === 'ttc') return ttcReport(c, zh);
+      if(c.mode === 'preg' && c.pregInfo && c.lmpKey) return pregReport(c, zh);
+      if(c.mode === 'pp' && c.pp) return ppReport(c, zh);
+      if(c.mode === 'ppEnded' && c.pp) return endedReport(c, zh);
+      if(c.mode === 'normal') return normalReport(c, zh);
+      return null;
+    }
+
+    // ═════════════ 次数 / 保存 ═════════════
+    function K(n){ try{ return U.acctKey(n); }catch(e){ return n; } }
+    function used(){ try{ return parseInt(localStorage.getItem(K('luna_modeai_used')) || '0', 10) || 0; }catch(e){ return 0; } }
+    function leftFree(){ return Math.max(0, FREE_TIMES - used()); }
+    function lastSaved(){ try{ var o = JSON.parse(localStorage.getItem(K('luna_modeai_last')) || 'null'); return (o && typeof o.html === 'string') ? o : null; }catch(e){ return null; } }
+
+
+    // ═════════════ AI 写收尾（仅会员 · 备孕/怀孕/月经；失败自动重试一次，再退回固定模版）═════════════
+    var CLOSING_URL = 'https://asia-southeast1-sasomboon.cloudfunctions.net/generateReportClosing';
+    function aiMode(m){ return m === 'ttc' || m === 'preg' || m === 'normal'; }
+    function factsOf(r){
+      var out = [], i, j, sc, row, v;
+      for(i = 0; i < r.sections.length; i++){
+        sc = r.sections[i];
+        for(j = 0; j < sc.rows.length; j++){
+          row = sc.rows[j]; v = String(row[1]);
+          if(v.length > 70) continue;                       // 长篇说明（就医信号等）不发给 AI
+          out.push((sc.title + '·' + row[0] + '：' + v).slice(0, 90));
+        }
+      }
+      return out.slice(0, 14);
+    }
+    function getAuth(){ try{ return window.auth || (typeof auth !== 'undefined' ? auth : null); }catch(e){ return null; } }
+    function fetchClosing(mode, facts, zh){
+      return new Promise(function(resolve){
+        var tried = 0;
+        function once(){
+          tried++;
+          var done = false, ctl = null, tm;
+          try{ ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null; }catch(e){}
+          function fin(v, retry){ if(done) return; done = true; clearTimeout(tm); if(v) return resolve(v); if(retry && tried < 2) return once(); resolve(null); }
+          tm = setTimeout(function(){ try{ if(ctl) ctl.abort(); }catch(e){} fin(null, true); }, 9000);
+          try{
+            var a = getAuth(); if(!a || !a.currentUser) return fin(null, false);
+            a.currentUser.getIdToken().then(function(tok){
+              return fetch(CLOSING_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ mode: mode, lang: zh ? 'zh' : 'th', facts: facts }), signal: ctl ? ctl.signal : undefined });
+            }).then(function(rs){
+              if(rs.ok) return rs.json().then(function(d){ fin(d && typeof d.text === 'string' && d.text.length >= 20 ? d.text : null, true); });
+              fin(null, rs.status >= 500);                   // 502/5xx 重试一次；403/429/400 不重试，直接用模版
+            }).catch(function(){ fin(null, true); });
+          }catch(e){ fin(null, false); }
+        }
+        once();
+      });
+    }
+    function applyAi(r, text){
+      var parts = String(r.closing || '').split('\n\n'); parts[0] = text;       // 只换第一段；后面的小提示/就医提醒保留
+      var o = {}, k; for(k in r) o[k] = r[k]; o.closing = parts.join('\n\n'); o.ai = true; return o;
+    }
+    function wantAi(r, md0){ return ff('modeAnalysis') && ff('reportAiClosing') && pro() && aiMode(md0) && r && !r.noAi && r.sections && r.sections.length >= 1; }
+    function getAiClosing(r, md0, zh){
+      var facts = factsOf(r); if(facts.length < 4) return Promise.resolve(null);
+      return fetchClosing(md0, facts, zh);
+    }
+    function hsh(t){ var h = 5381, i; for(i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h); }
+    function clKey(md0, zh, facts){ return U.fmtKey(U.todayDate()) + '|' + md0 + '|' + (zh ? 'zh' : 'th') + '|' + hsh(facts.join('|')); }
+    function readCl(md0, zh, facts){ try{ var o = JSON.parse(localStorage.getItem(K('luna_modeai_cl')) || 'null'); return (o && o.k === clKey(md0, zh, facts) && typeof o.text === 'string') ? o.text : null; }catch(e){ return null; } }
+    function saveCl(md0, zh, facts, text){ try{ localStorage.setItem(K('luna_modeai_cl'), JSON.stringify({ k: clKey(md0, zh, facts), text: text })); }catch(e){} }
+
+    // 免费用户：报告下面的"了解更多"
+    function moreHtml(zh){
+      return '<button class="lpg-btn2" id="lpgAnaMore" style="margin-top:2px;">✨ ' + (zh ? '了解更多：会员的专属寄语' : 'ดูเพิ่มเติม: ข้อความเฉพาะสำหรับสมาชิก') + '</button>';
+    }
+    function openMore(){
+      var zh = zhL(), o = document.getElementById('lpgAnaMoreSheet'); if(o) o.remove();
+      var m = document.createElement('div'); m.id = 'lpgAnaMoreSheet';
+      m.style.cssText = 'position:fixed;inset:0;z-index:185;background:rgba(20,12,40,.45);display:flex;align-items:flex-end;justify-content:center;';
+      m.innerHTML = '<div style="width:100%;max-width:520px;background:var(--stat-surface-bg,#fff);border-radius:24px 24px 0 0;padding:22px 22px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.18);">'
+        + '<div style="font-size:17px;font-weight:700;color:var(--stat-fg,#2d2640);margin-bottom:10px;">🌙 ' + (zh ? '会员的"Luna 想对你说"' : 'ข้อความ “Luna อยากบอกคุณ” สำหรับสมาชิก') + '</div>'
+        + '<div style="font-size:13.5px;line-height:1.85;color:var(--stat-fg,#2d2640);margin-bottom:10px;">'
+        + (zh ? '你现在看到的是通用寄语。会员的报告，最后这一段话会由 Luna 根据你这一次的具体数据专门写：结合你现在所处的阶段、周期的规律、记录里的变化，给你一段只属于你的话和一个马上能做的小建议。<br><br>每次重新生成，都会是不一样的一段。'
+              : 'ตอนนี้คุณเห็นข้อความทั่วไป สำหรับสมาชิก ข้อความตอนท้ายของรายงานจะถูกเขียนโดย Luna จากข้อมูลของคุณในครั้งนั้นโดยเฉพาะ ทั้งช่วงที่คุณอยู่ ความสม่ำเสมอของรอบ และความเปลี่ยนแปลงในบันทึก พร้อมคำแนะนำเล็ก ๆ ที่ทำได้ทันที<br><br>ทุกครั้งที่สร้างใหม่ จะได้ข้อความที่ต่างออกไป')
+        + '</div>'
+        + '<div style="font-size:12px;line-height:1.7;color:var(--stat-fg-muted,#8b84a0);margin-bottom:16px;">' + (zh ? '报告里的数字和日期仍然完全由 App 按你的记录计算，AI 只负责写这最后一段话。' : 'ตัวเลขและวันที่ในรายงานยังคงคำนวณจากบันทึกของคุณโดยแอปทั้งหมด AI เขียนเฉพาะข้อความตอนท้าย') + '</div>'
+        + '<button id="lpgMoreGo" style="display:block;width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:8px;">' + (zh ? '了解会员' : 'ดูสิทธิ์สมาชิก') + '</button>'
+        + '<button id="lpgMoreX" style="display:block;width:100%;padding:14px;border:none;border-radius:16px;background:transparent;color:var(--stat-fg-muted,#8b84a0);font-size:14px;cursor:pointer;font-family:inherit;">' + (zh ? '先不用' : 'ไว้ก่อน') + '</button></div>';
+      m.onclick = function(e){ if(e.target === m) m.remove(); };
+      document.body.appendChild(m);
+      document.getElementById('lpgMoreX').onclick = function(){ m.remove(); };
+      document.getElementById('lpgMoreGo').onclick = function(){ m.remove(); try{ if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} };
+      try{ if(typeof window.trackEvent === 'function') window.trackEvent('mode_analysis_more', { mode: mode() }); }catch(e){}
+    }
+
+    // ═════════════ 界面 ═════════════
+    function css(){
+      if(document.getElementById('lpgAnaCss')) return;
+      var s = document.createElement('style'); s.id = 'lpgAnaCss';
+      s.textContent =
+        '#lpgAnaPanel{position:fixed;inset:0;z-index:170;display:none;flex-direction:column;background:var(--stat-bg,#f4effa);overflow:hidden;}'
+        + '#lpgAnaPanel .lpg-hd{display:flex;align-items:center;gap:6px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px 8px;background:var(--stat-bg,#f4effa);flex-shrink:0;}'
+        + '#lpgAnaPanel .lpg-back{width:44px;height:44px;border:none;background:transparent;font-size:30px;line-height:1;color:var(--stat-fg,#2d2640);cursor:pointer;}'
+        + '#lpgAnaPanel .lpg-ttl{font-size:18px;font-weight:700;color:var(--stat-fg,#2d2640);}'
+        + '#lpgAnaPanel .lpg-sub{font-size:12px;color:var(--stat-fg-muted,#8b84a0);}'
+        + '#lpgAnaBody{flex:1;overflow-y:auto;padding:4px 16px calc(28px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch;}'
+        + '.lpg-card{background:var(--stat-surface-bg,#fff);border-radius:22px;padding:6px 18px 8px;margin-bottom:12px;box-shadow:var(--stat-surface-shadow,0 4px 16px rgba(124,92,191,.10));border:1px solid rgba(124,92,191,.10);}'
+        + '.lpg-sec{padding:14px 0 4px;}'
+        + '.lpg-sec2{border-top:1px solid rgba(124,92,191,.16);margin-top:8px;}'
+        + '.lpg-closebox{padding-bottom:12px;}'
+        + '.lpg-closetxt{font-size:14px;line-height:1.85;color:var(--stat-fg,#2d2640);white-space:pre-line;padding-top:2px;}'
+        + '.lpg-ct{font-size:16px;font-weight:700;color:var(--stat-fg,#2d2640);margin-bottom:6px;}'
+        + '.lpg-row{display:flex;gap:12px;padding:10px 0;border-top:1px solid rgba(124,92,191,.10);font-size:13.5px;line-height:1.55;}'
+        + '.lpg-ct + .lpg-row,.lpg-bar + .lpg-row{border-top:none;}'
+        + '.lpg-k{flex:0 0 38%;color:var(--stat-fg-muted,#8b84a0);}'
+        + '.lpg-v{flex:1;color:var(--stat-fg,#2d2640);font-weight:600;word-break:break-word;}'
+        + '.lpg-bar{height:8px;border-radius:8px;background:rgba(124,92,191,.12);margin:2px 0 10px;overflow:hidden;}'
+        + '.lpg-bar i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,#9d7bd6,#e98ab0);}'
+        + '.lpg-note{font-size:11.5px;line-height:1.7;color:var(--stat-fg-muted,#8b84a0);text-align:center;padding:4px 10px 10px;}'
+        + '#lpgAnaBody .lpg-btn{display:block;width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin:6px 0 10px;}'
+        + '#lpgAnaBody .lpg-btn2{display:block;width:100%;padding:13px;border:1px solid rgba(124,92,191,.3);border-radius:16px;background:transparent;color:#7c5cbf;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px;}'
+        + '#lpgAnaBody .lpg-intro{text-align:center;padding:26px 12px 8px;}'
+        + '#lpgAnaBody .lpg-spin{width:42px;height:42px;border-radius:50%;border:4px solid rgba(124,92,191,.18);border-top-color:#7c5cbf;margin:0 auto 16px;animation:lpgSpin 0.9s linear infinite;}'
+        + '@keyframes lpgSpin{to{transform:rotate(360deg)}}'
+        + '#lpgAnaTile .lpg-badge{font-size:9px;font-weight:700;background:linear-gradient(135deg,#9d7bd6,#e98ab0);color:#fff;padding:2px 7px;border-radius:20px;flex-shrink:0;}';
+      document.head.appendChild(s);
+    }
+    function ensurePanel(){
+      var p = document.getElementById('lpgAnaPanel'); if(p) return p;
+      p = document.createElement('div'); p.id = 'lpgAnaPanel';
+      p.innerHTML = '<div class="lpg-hd"><button class="lpg-back" aria-label="back">‹</button><div><div class="lpg-ttl" id="lpgAnaTtl"></div><div class="lpg-sub" id="lpgAnaSub"></div></div></div><div id="lpgAnaBody"></div>';
+      document.body.appendChild(p);
+      p.querySelector('.lpg-back').onclick = closePanel;
+      return p;
+    }
+    function reportHtml(r, zh){
+      var h = '<div class="lpg-card">', i, j, sc, row;
+      for(i = 0; i < r.sections.length; i++){
+        sc = r.sections[i];
+        h += '<div class="lpg-sec' + (i ? ' lpg-sec2' : '') + '"><div class="lpg-ct">' + sc.icon + ' ' + esc(sc.title) + '</div>';
+        if(sc.bar !== undefined) h += '<div class="lpg-bar"><i style="width:' + sc.bar + '%"></i></div>';
+        for(j = 0; j < sc.rows.length; j++){ row = sc.rows[j]; h += '<div class="lpg-row"><div class="lpg-k">' + esc(row[0]) + '</div><div class="lpg-v">' + esc(row[1]) + '</div></div>'; }
+        h += '</div>';
+      }
+      h += '<div class="lpg-sec lpg-sec2 lpg-closebox"><div class="lpg-ct">🌙 ' + (zh ? 'Luna 想对你说' : 'Luna อยากบอกคุณ') + '</div><div class="lpg-closetxt">' + esc(r.closing) + '</div></div>';
+      h += '</div>';
+      h += '<div class="lpg-note">' + (zh ? '以上分析由你记录的数据计算得出，是估计值，可能有 1–2 天误差，不能用来避孕，也不能代替医生的诊断。' : 'การวิเคราะห์นี้คำนวณจากข้อมูลที่คุณบันทึก เป็นค่าประมาณ อาจคลาดเคลื่อน 1–2 วัน ใช้คุมกำเนิดไม่ได้ และไม่สามารถแทนการวินิจฉัยของแพทย์ได้') + '</div>';
+      return h;
+    }
+    var MI = {
+      ttc:  { icon: '🌷', t: ['备孕分析', 'วิเคราะห์การวางแผนตั้งครรภ์'], s: ['周期 · 排卵 · 易孕期 · 验孕时间', 'รอบเดือน · ตกไข่ · ช่วงเจริญพันธุ์ · ตรวจครรภ์'], d: ['月经规律、排卵日、易孕期、验孕时间，\n再加一段只写给你的话。', 'ความสม่ำเสมอของรอบ วันตกไข่ ช่วงเจริญพันธุ์ เวลาตรวจครรภ์\nพร้อมข้อความที่เขียนถึงคุณโดยเฉพาะ'] },
+      preg: { icon: '🤰', t: ['孕期分析', 'วิเคราะห์การตั้งครรภ์'], s: ['孕周 · 体重 · 产检 · 关键节点', 'อายุครรภ์ · น้ำหนัก · ตรวจครรภ์ · หมุดหมาย'], d: ['孕周、体重变化、产检安排、接下来的关键节点，\n再加一段只写给你的话。', 'อายุครรภ์ น้ำหนัก การตรวจครรภ์ และหมุดหมายต่อไป\nพร้อมข้อความที่เขียนถึงคุณโดยเฉพาะ'] },
+      pp:   { icon: '🤱', t: ['产后分析', 'วิเคราะห์หลังคลอด'], s: ['恢复 · 恶露 · 情绪 · 复查', 'การฟื้นตัว · น้ำคาวปลา · อารมณ์ · ตรวจหลังคลอด'], d: ['产后第几天、恢复提示、情绪状态、复查时间，\n再加一段只写给你的话。', 'หลังคลอดวันที่เท่าไร ข้อควรรู้ อารมณ์ และเวลาตรวจหลังคลอด\nพร้อมข้อความที่เขียนถึงคุณโดยเฉพาะ'] },
+      ppEnded: { icon: '🌿', t: ['恢复分析', 'วิเคราะห์การฟื้นตัว'], s: ['身体 · 心情 · 复查', 'ร่างกาย · ความรู้สึก · ตรวจติดตาม'], d: ['身体恢复提示、什么时候需要就医、复查，\n再加一段只写给你的话。', 'ข้อควรรู้ด้านร่างกาย เมื่อไรควรไปพบแพทย์ และการตรวจติดตาม\nพร้อมข้อความที่เขียนถึงคุณโดยเฉพาะ'] }
+    };
+    function modeOk(m){ return !!MI[m] && ff('modeAnalysis'); }
+    function headerTexts(){
+      var zh = zhL(), m = MI[mode()] || MI.ttc, i = zh ? 0 : 1;
+      return { t: m.t[i], s: m.s[i], icon: m.icon, d: m.d[i] };
+    }
+    function quotaText(zh){ return pro() ? (zh ? '会员不限次数' : 'สมาชิกใช้ได้ไม่จำกัด') : (leftFree() > 0 ? (zh ? '免费剩余 ' + leftFree() + ' 次' : 'ใช้ฟรีเหลือ ' + leftFree() + ' ครั้ง') : (zh ? '免费次数已用完' : 'ใช้สิทธิ์ฟรีครบแล้ว')); }
+    function renderIntro(){
+      var zh = zhL(), body = document.getElementById('lpgAnaBody'), sv = lastSaved(), h = '';
+      var hh = headerTexts();
+      h += '<div class="lpg-intro"><div style="font-size:48px;margin-bottom:10px;">' + hh.icon + '</div>'
+        + '<div style="font-size:17px;font-weight:700;color:var(--stat-fg,#2d2640);margin-bottom:8px;">' + (zh ? 'Luna 帮你把记录整理成一份分析' : 'ให้ Luna สรุปบันทึกของคุณเป็นรายงาน') + '</div>'
+        + '<div style="font-size:13.5px;line-height:1.8;color:var(--stat-fg-muted,#8b84a0);margin-bottom:18px;">' + hh.d.replace(/\n/g, '<br>') + '</div>'
+        + '<div style="font-size:12.5px;color:#7c5cbf;font-weight:600;margin-bottom:8px;">' + quotaText(zh) + '</div></div>';
+      h += '<button class="lpg-btn" id="lpgAnaGo">' + (sv ? (zh ? '✨ 重新生成分析' : '✨ สร้างรายงานใหม่') : (zh ? '✨ 生成我的分析' : '✨ สร้างรายงานของฉัน')) + '</button>';
+      if(sv) h += '<button class="lpg-btn2" id="lpgAnaLast">' + (zh ? '查看上次报告（' + esc(sv.date || '') + '，不扣次数）' : 'ดูรายงานครั้งก่อน (' + esc(sv.date || '') + ' ไม่หักสิทธิ์)') + '</button>';
+      h += '<div class="lpg-note">' + (zh ? '分析完全根据你自己记录的数据计算，不会上传给 AI。' : 'วิเคราะห์จากข้อมูลที่คุณบันทึกเท่านั้น ไม่ส่งข้อมูลให้ AI') + '</div>';
+      body.innerHTML = h;
+      document.getElementById('lpgAnaGo').onclick = generate;
+      var lb = document.getElementById('lpgAnaLast'); if(lb) lb.onclick = function(){ showSaved(sv); };
+    }
+    function showSaved(sv){
+      var zh = zhL(), body = document.getElementById('lpgAnaBody');
+      body.innerHTML = sv.html + (!pro() && !sv.ai && aiMode(sv.mode) && ff('reportAiClosing') ? moreHtml(zh) : '') + '<button class="lpg-btn2" id="lpgAnaBack2">' + (zh ? '返回' : 'กลับ') + '</button>';
+      document.getElementById('lpgAnaBack2').onclick = renderIntro; body.scrollTop = 0;
+      var mb = document.getElementById('lpgAnaMore'); if(mb) mb.onclick = openMore;
+    }
+    function generate(){
+      var zh = zhL(), body = document.getElementById('lpgAnaBody');
+      if(!pro() && leftFree() <= 0){
+        try{ if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){}
+        return;
+      }
+      body.innerHTML = '<div class="lpg-intro" style="padding-top:60px;"><div class="lpg-spin"></div><div style="font-size:14px;color:var(--stat-fg-muted,#8b84a0);">' + (pro() && aiMode(mode()) && ff('reportAiClosing') ? (zh ? 'Luna 正在整理记录，并写下想对你说的话…' : 'Luna กำลังดูบันทึกและเขียนข้อความถึงคุณ…') : (zh ? 'Luna 正在整理你的记录…' : 'Luna กำลังดูบันทึกของคุณ…')) + '</div></div>';
+      var md0 = mode(), r0 = null; try{ r0 = build(); }catch(e){ r0 = null; }
+      var minWait = new Promise(function(res){ setTimeout(res, 1100); });
+      var aiP = wantAi(r0, md0) ? getAiClosing(r0, md0, zh) : Promise.resolve(null);
+      Promise.all([minWait, aiP]).then(function(rs){
+        var r = r0, aiText = rs[1];
+        if(!r){ body.innerHTML = '<div class="lpg-intro"><div style="font-size:14px;color:var(--stat-fg-muted,#8b84a0);">' + (zh ? '暂时无法生成，请稍后再试' : 'ยังสร้างรายงานไม่ได้ ลองใหม่อีกครั้งนะคะ') + '</div></div><button class="lpg-btn2" id="lpgAnaBack2">' + (zh ? '返回' : 'กลับ') + '</button>'; document.getElementById('lpgAnaBack2').onclick = renderIntro; return; }
+        if(aiText){ saveCl(md0, zh, factsOf(r), aiText); r = applyAi(r, aiText); }
+        if(!pro()){ try{ localStorage.setItem(K('luna_modeai_used'), String(used() + 1)); }catch(e){} }
+        var html = reportHtml(r, zh), d = U.todayDate(), ds = zh ? ((d.getMonth() + 1) + '月' + d.getDate() + '日') : (d.getDate() + ' ' + TH_M[d.getMonth()]);
+        try{ localStorage.setItem(K('luna_modeai_last'), JSON.stringify({ html: html, date: ds, mode: md0, t: Date.now(), ai: !!aiText })); }catch(e){}
+        try{ if(typeof window.trackEvent === 'function') window.trackEvent('mode_analysis_generated', { mode: md0, ai: !!aiText }); }catch(e){}
+        body.innerHTML = '<div style="text-align:center;font-size:12px;color:var(--stat-fg-muted,#8b84a0);margin:2px 0 12px;">' + ds + ' · ' + quotaText(zh) + '</div>' + html
+          + (!pro() && aiMode(md0) && ff('reportAiClosing') ? moreHtml(zh) : '')
+          + '<button class="lpg-btn2" id="lpgAnaBack2">' + (zh ? '返回' : 'กลับ') + '</button>';
+        document.getElementById('lpgAnaBack2').onclick = renderIntro; body.scrollTop = 0; refreshTile();
+        var mb = document.getElementById('lpgAnaMore'); if(mb) mb.onclick = openMore;
+      });
+    }
+    function openPanel(){
+      if(!ff('modeAnalysis')) return;
+      css(); var p = ensurePanel(), h = headerTexts();
+      document.getElementById('lpgAnaTtl').textContent = h.t; document.getElementById('lpgAnaSub').textContent = h.s;
+      renderIntro(); p.style.display = 'flex'; document.getElementById('lpgAnaBody').scrollTop = 0;
+      try{ if(typeof window.trackEvent === 'function') window.trackEvent('mode_analysis_open', { mode: mode() }); }catch(e){}
+    }
+    function closePanel(){ var p = document.getElementById('lpgAnaPanel'); if(p) p.style.display = 'none'; }
+
+    // ═════════════ 统计页入口卡 ═════════════
+    function refreshTile(){
+      var tile = document.getElementById('lpgAnaTile'), md0 = mode(), anchor = document.getElementById('insightCard');
+      if(!modeOk(md0)){ if(tile) tile.style.display = 'none'; return; }
+      if(!anchor || !anchor.parentNode) return;
+      css();
+      var zh = zhL();
+      if(!tile){
+        tile = document.createElement('div'); tile.id = 'lpgAnaTile'; tile.className = 'stat-tile';
+        tile.style.cssText = 'background:var(--stat-insight-bg);border:1px solid rgba(var(--purple-rgb),0.18);';
+        tile.innerHTML = '<span id="lpgAnaIcon" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(var(--purple-rgb),0.10);"></span>'
+          + '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span id="lpgAnaTitle" style="font-size:15px;font-weight:700;color:var(--stat-fg);"></span><span class="lpg-badge" id="lpgAnaBadge"></span></div>'
+          + '<div id="lpgAnaSubT" style="font-size:12px;color:var(--stat-fg-muted);margin-top:2px;"></div></div>'
+          + '<span style="font-size:22px;color:var(--stat-fg-muted);">›</span>';
+        tile.onclick = openPanel;
+        anchor.parentNode.insertBefore(tile, anchor);
+      }
+      var h = headerTexts();
+      tile.style.display = '';
+      document.getElementById('lpgAnaIcon').textContent = h.icon;
+      document.getElementById('lpgAnaTitle').textContent = h.t;
+      document.getElementById('lpgAnaSubT').textContent = h.s;
+      document.getElementById('lpgAnaBadge').textContent = pro() ? 'VIP' : (leftFree() > 0 ? (zh ? '免费 ' + leftFree() + ' 次' : 'ฟรี ' + leftFree() + ' ครั้ง') : 'VIP');
+    }
+    var _iv = setInterval(function(){ try{ refreshTile(); var p = document.getElementById('lpgAnaPanel'); if(p && p.style.display === 'flex' && !modeOk(mode())) closePanel(); }catch(e){} }, 800);
+
+    // ═════════════ "Luna 智能健康洞察"面板（会员）：顶部放同一份报告，原来那一长串统计卡折叠到"查看详细图表与趋势"里 ═════════════
+    (function insightHook(){
+      var orig = window.openInsightPanel; if(typeof orig !== 'function') return;
+      function inject(){
+        try{
+          var ib0 = document.getElementById('insightBody'), panel = document.getElementById('insightPanel'), wrap = document.getElementById('insightScrollWrap') || panel, host = ib0;
+          while(host && host.parentNode && host.parentNode !== wrap) host = host.parentNode;     // 往上找到面板里那一层带边距的容器（安卓有滚动层、iOS 没有，两种结构都认）
+          if(!host || !host.parentNode) return;
+          var o1 = document.getElementById('lpgInsightReport'); if(o1) o1.remove();
+          var o2 = document.getElementById('lpgInsightToggle'); if(o2) o2.remove();
+          var ib = document.getElementById('insightBody');
+          if(!pro() || !ff('modeAnalysis')){ if(ib) ib.style.display = ''; return; }          // 非会员 / 后台关闭智能分析：保持原来的洞察页
+          var r = build(); if(!r){ if(ib) ib.style.display = ''; return; }          // 产后等：保持原样
+          css();
+          var zh = zhL(), box = document.createElement('div'); box.id = 'lpgInsightReport'; box.style.cssText = 'margin-bottom:6px;';
+          box.innerHTML = reportHtml(r, zh);
+          host.insertBefore(box, host.firstChild);
+          var md0 = mode();
+          if(wantAi(r, md0)){
+            var fx = factsOf(r), cached = readCl(md0, zh, fx);
+            if(cached) box.innerHTML = reportHtml(applyAi(r, cached), zh);
+            else getAiClosing(r, md0, zh).then(function(t){ if(!t) return; saveCl(md0, zh, fx, t); if(box.isConnected) box.innerHTML = reportHtml(applyAi(r, t), zh); });
+          }
+          if(ib && ib.parentNode){
+            ib.style.display = 'none';
+            var t = document.createElement('button'); t.id = 'lpgInsightToggle';
+            t.style.cssText = 'display:block;width:100%;padding:13px;margin:4px 0 12px;border:1px solid rgba(124,92,191,.3);border-radius:16px;background:transparent;color:#7c5cbf;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;';
+            var lab = function(open){ return open ? (zh ? '收起详细图表与趋势 ▴' : 'ซ่อนกราฟและแนวโน้มโดยละเอียด ▴') : (zh ? '📊 查看详细图表与趋势 ▾' : '📊 ดูกราฟและแนวโน้มโดยละเอียด ▾'); };
+            t.textContent = lab(false);
+            t.onclick = function(){ var open = ib.style.display === 'none'; ib.style.display = open ? '' : 'none'; t.textContent = lab(open); };
+            ib.parentNode.insertBefore(t, ib);
+          }
+        }catch(e){}
+      }
+      window.openInsightPanel = function(){ var rv = orig.apply(this, arguments); setTimeout(inject, 0); return rv; };
+      window.LunaModeAnalysis_injectInsight = inject;
+    })();
+    window.LunaModeAnalysis = { _ai: { factsOf: factsOf, applyAi: applyAi, wantAi: wantAi }, build: build, gather: gather, open: openPanel, close: closePanel, used: used, left: leftFree, mode: mode, _pure: { periodStats: periodStats, ttcReport: ttcReport, pregReport: pregReport, normalReport: normalReport, symStats: symStats } };
+  }catch(e){ try{ console.warn('lunaModeAnalysis', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🌿 怀孕 / 产后 / 怀孕已结束 · 首页"拼成一整页"（只追加，不改原来任何一行）。
+     ① 这三种模式下，首页那几张白色卡片去掉边框、阴影、白底、圆角，连成一整页，只用一条淡淡的细线分隔；
+     ② 原来的「记录 / 日历 / 统计」三格大图标卡藏起来，换成页面最底部一个整行按钮「记录今天」（点它就是调用原来「记录」按钮的 openModal()）；
+        日历、统计在底部导航里本来就有，所以不再重复放；
+     ③ 其他一切不动：数据、按钮（调整日期 / 宝宝出生了 / 月经来了…）、计算逻辑、付费与试用，都没碰。
+     备孕模式和普通模式的首页完全不受影响。
+     关掉方法：Firebase 的 remoteConfig/featureFlags 里写 homeFlow:false，已装的 App 下次打开就恢复原样（后台页面暂时没做这个勾选框）。 -->
+<style id="lpgFlowCss">
+body.lpg-flow .phone > .card.actions-card{display:none !important;}
+body.lpg-flow .phone > .card:not(#cycleCard){
+  background:transparent !important;box-shadow:none !important;border:none !important;border-radius:0 !important;
+  -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  margin:0 34px !important;padding:22px 0 20px !important;
+  border-top:1px solid var(--home-card-border,rgba(124,92,191,.14)) !important;
+}
+body.lpg-flow .phone > #cycleCard{background:transparent !important;box-shadow:none !important;border:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;margin-bottom:6px !important;}
+body.lpg-flow #lpgRecBar{display:block;order:50;margin:6px 34px 0;padding-top:20px;border-top:1px solid var(--home-card-border,rgba(124,92,191,.14));}
+#lpgRecBar{display:none;}
+#lpgRecBar button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:54px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--purple,#7c5cbf),rgb(180,157,224));box-shadow:0 6px 16px rgba(var(--purple-rgb,124,92,191),.28);-webkit-tap-highlight-color:transparent;}
+#lpgRecBar button:active{transform:scale(.985);}
+</style>
+<script>
+(function(){
+  if(window.__lunaHomeFlow) return; window.__lunaHomeFlow = true;
+  try{
+    function zh(){ try{ return window._appLang === 'zh'; }catch(e){ return false; } }
+    function active(){
+      try{
+        if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('homeFlow')) return false;
+        var L = window.LunaPreg; if(!L) return false;
+        if(L.isActive && L.isActive()) return true;
+        if(L.post && L.post.isActive && L.post.isActive()) return true;
+      }catch(e){}
+      return false;
+    }
+    function ensureBar(){
+      var bar = document.getElementById('lpgRecBar');
+      var phone = document.querySelector('.phone');
+      if(!phone) return null;
+      if(!bar){
+        bar = document.createElement('div'); bar.id = 'lpgRecBar';
+        bar.innerHTML = '<button type="button" id="lpgRecBtn"><svg width="22" height="22" viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M23 6l7 7-15 15-7 1 1-7L23 6z" stroke="#fff" stroke-width="2.8" stroke-linejoin="round" fill="none"/><path d="M8 31h20" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/></svg><span id="lpgRecTxt"></span></button>';
+        phone.appendChild(bar);
+        document.getElementById('lpgRecBtn').onclick = function(){ try{ openModal(); }catch(e){} };
+      }
+      var t = document.getElementById('lpgRecTxt'), s = zh() ? '记录今天' : 'บันทึกวันนี้';
+      if(t && t.textContent !== s) t.textContent = s;
+      return bar;
+    }
+    function setFlow(on){
+      if(on) ensureBar();
+      if(document.body.classList.contains('lpg-flow') !== on) document.body.classList.toggle('lpg-flow', on);
+    }
+    function tick(){ try{ setFlow(active()); }catch(e){} }
+    document.addEventListener('luna-preg-change', function(){ setTimeout(tick, 50); });
+    setInterval(tick, 800); tick();
+    window.LunaHomeFlow = { set: setFlow, active: active };
+  }catch(e){ try{ console.warn('lunaHomeFlow', e); }catch(_){} }
+})();
+</script>

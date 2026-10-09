@@ -27249,6 +27249,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
     function aiAvailable(){
       try{
         if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('aiAssistant')) return false;
+        if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('navAi')) return false;   // 后台单独关「底部中间的 AI 按钮」：只改回「记录」，AI 小助手其他入口不受影响
         if(typeof isAgeRestricted === 'function' && isAgeRestricted()) return false;
         return typeof window._openAiPanel === 'function';
       }catch(e){ return false; }
@@ -28559,6 +28560,20 @@ body.lpg-flow .phone > .card:not(#cycleCard){
 }
 body.lpg-flow .phone > #cycleCard{background:transparent !important;box-shadow:none !important;border:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;margin-bottom:6px !important;}
 body.lpg-flow #lpgRecBar{display:block;order:50;margin:6px 34px 0;padding-top:20px;border-top:1px solid var(--home-card-border,rgba(124,92,191,.14));}
+/* 孕周那一段里的「体重 / 产检」两个带边框的小方块：也去掉边框，两块之间只留一条细竖线 */
+body.lpg-flow .preg-trk-tile{border:none !important;border-radius:0 !important;background:transparent !important;box-shadow:none !important;padding:6px 0 !important;}
+body.lpg-flow .preg-trk-tile + .preg-trk-tile{border-left:1px solid var(--home-card-border,rgba(124,92,191,.14)) !important;padding-left:18px !important;}
+body.lpg-flow .preg-trk-tile:active{opacity:.55;}
+/* 备孕模式：同样的无边框连成一页（只处理这三张卡；底部「记录 / 日历 / 统计」那张和所有按钮保持原样） */
+body.lpg-flow-ttc .phone > #nextPeriodCard,body.lpg-flow-ttc .phone > #ttcHomeCard{
+  background:transparent !important;box-shadow:none !important;border:none !important;border-radius:0 !important;
+  -webkit-backdrop-filter:none !important;backdrop-filter:none !important;
+  margin:0 34px !important;padding:22px 0 20px !important;
+  border-top:1px solid var(--home-card-border,rgba(124,92,191,.14)) !important;
+}
+body.lpg-flow-ttc .phone > #cycleCard{background:transparent !important;box-shadow:none !important;border:none !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;margin-bottom:6px !important;}
+#ttcHomeCard .ttc-strip{-webkit-mask-image:linear-gradient(to right,transparent 0,transparent 18px,#000 30px,#000 calc(100% - 30px),transparent calc(100% - 18px),transparent 100%);mask-image:linear-gradient(to right,transparent 0,transparent 18px,#000 30px,#000 calc(100% - 30px),transparent calc(100% - 18px),transparent 100%);}
+.lpg-sa{position:absolute;z-index:2;width:16px;height:28px;display:flex;align-items:center;justify-content:center;opacity:.5;pointer-events:none;color:var(--purple,#7c5cbf);font-size:22px;font-weight:700;line-height:1;}
 #lpgRecBar{display:none;}
 #lpgRecBar button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:54px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:#fff;
   background:linear-gradient(135deg,var(--purple,#7c5cbf),rgb(180,157,224));box-shadow:0 6px 16px rgba(var(--purple-rgb,124,92,191),.28);-webkit-tap-highlight-color:transparent;}
@@ -28578,6 +28593,12 @@ body.lpg-flow #lpgRecBar{display:block;order:50;margin:6px 34px 0;padding-top:20
       }catch(e){}
       return false;
     }
+    function activeTtc(){
+      try{
+        if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('homeFlow')) return false;
+        var T = window.LunaTtc; return !!(T && T.isActive && T.isActive());
+      }catch(e){} return false;
+    }
     function ensureBar(){
       var bar = document.getElementById('lpgRecBar');
       var phone = document.querySelector('.phone');
@@ -28596,10 +28617,1358 @@ body.lpg-flow #lpgRecBar{display:block;order:50;margin:6px 34px 0;padding-top:20
       if(on) ensureBar();
       if(document.body.classList.contains('lpg-flow') !== on) document.body.classList.toggle('lpg-flow', on);
     }
-    function tick(){ try{ setFlow(active()); }catch(e){} }
+    function arrows(){
+      var st = document.getElementById('ttcHomeStrip'), card = document.getElementById('ttcHomeCard');
+      if(!st || !card) return;
+      var show = st.style.display !== 'none' && st.offsetHeight > 0;
+      var L = document.getElementById('lpgSaL'), R = document.getElementById('lpgSaR');
+      if(!L){
+        if(getComputedStyle(card).position === 'static') card.style.position = 'relative';
+        L = document.createElement('span'); L.id = 'lpgSaL'; L.className = 'lpg-sa'; L.textContent = '\u2039'; L.setAttribute('aria-hidden','true');
+        R = document.createElement('span'); R.id = 'lpgSaR'; R.className = 'lpg-sa'; R.textContent = '\u203A'; R.setAttribute('aria-hidden','true');
+        card.appendChild(L); card.appendChild(R);
+      }
+      L.style.display = R.style.display = show ? 'flex' : 'none';
+      if(!show) return;
+      var top = (st.offsetTop + st.offsetHeight/2 - 14) + 'px';
+      L.style.top = R.style.top = top; L.style.left = (st.offsetLeft + 2) + 'px'; R.style.left = (st.offsetLeft + st.offsetWidth - 18) + 'px';
+    }
+    function tick(){ try{ setFlow(active()); var t = !active() && activeTtc(); if(document.body.classList.contains('lpg-flow-ttc') !== t) document.body.classList.toggle('lpg-flow-ttc', t); arrows(); }catch(e){} }
     document.addEventListener('luna-preg-change', function(){ setTimeout(tick, 50); });
     setInterval(tick, 800); tick();
     window.LunaHomeFlow = { set: setFlow, active: active };
   }catch(e){ try{ console.warn('lunaHomeFlow', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🍐 孕期小百科 · 「宝宝这周」卡片里加一张小水果图（只追加，不改原来任何一行）。
+     原来卡片里有一行「宝宝约 10 厘米，就像梨那么大」，这里在它上面放一个对应水果的小插画，带很轻的"呼吸"动画（慢慢放大一点点再回来）。
+     ① 只认原来那行文字里的水果名（中文/泰文都认），认不出来（例如第 1–5 周没有水果）就什么都不放，原样显示；
+     ② 手机设置了"减少动画"时，不播放动画，图是静止的；
+     ③ 关掉方法：Firebase remoteConfig/featureFlags 里写 babyFruit:false；插画是内嵌的小 SVG，没有外部图片，不联网，也不影响数据、付费、试用。 -->
+<style id="lpgFruitCss">
+.lpg-fruit{display:flex;align-items:center;justify-content:center;margin:2px auto 12px;width:116px;height:116px;border-radius:50%;
+  background:radial-gradient(circle at 50% 42%,rgba(var(--purple-rgb,124,92,191),.12),rgba(var(--purple-rgb,124,92,191),.04) 70%,transparent 72%);}
+.lpg-fruit svg{width:84px;height:84px;display:block;transform-origin:50% 60%;animation:lpgBreathe 4.2s ease-in-out infinite;}
+@keyframes lpgBreathe{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+@media (prefers-reduced-motion:reduce){.lpg-fruit svg{animation:none;}}
+</style>
+<script>
+(function(){
+  if(window.__lunaBabyFruit) return; window.__lunaBabyFruit = true;
+  try{
+    var HL = '<ellipse cx="38" cy="34" rx="7" ry="4" fill="#fff" opacity=".35" transform="rotate(-30 38 34)"/>';
+    var LEAF = function(x,y,r){ return '<path d="M0 0C6-9 16-9 20-4C14 3 6 4 0 0z" fill="#6fb36a" transform="translate('+x+' '+y+') rotate('+r+')"/>'; };
+    var S = {
+      pea: '<path d="M14 54c0-14 14-22 36-22s36 8 36 22-14 22-36 22-36-8-36-22z" fill="#8cc972"/><path d="M20 54c0-9 12-15 30-15s30 6 30 15" fill="none" stroke="#6fb36a" stroke-width="2.5" stroke-linecap="round"/><circle cx="31" cy="55" r="9" fill="#b9e29c"/><circle cx="50" cy="55" r="10" fill="#c6eaa9"/><circle cx="69" cy="55" r="9" fill="#b9e29c"/><path d="M80 40c6-6 10-8 14-8" fill="none" stroke="#6fb36a" stroke-width="3" stroke-linecap="round"/>',
+      blueberry: '<circle cx="50" cy="55" r="30" fill="#5b6bbf"/><circle cx="50" cy="55" r="30" fill="#8a96dc" opacity=".25"/><path d="M50 32l5 7 8-2-2 8 7 4-8 3-1 8-7-5-7 5-1-8-8-3 7-4-2-8 8 2z" fill="#3d4a96"/>'+HL,
+      raspberry: '<g fill="#d9456a"><circle cx="38" cy="46" r="9"/><circle cx="56" cy="44" r="9"/><circle cx="46" cy="60" r="9"/><circle cx="64" cy="60" r="9"/><circle cx="34" cy="62" r="8"/><circle cx="52" cy="74" r="8"/><circle cx="68" cy="46" r="7"/></g><g fill="#ef7f98" opacity=".6"><circle cx="35" cy="43" r="3"/><circle cx="53" cy="41" r="3"/><circle cx="43" cy="57" r="3"/><circle cx="61" cy="57" r="3"/></g><path d="M40 36c4-8 14-10 22-4-4 7-14 9-22 4z" fill="#5fae60"/>',
+      grape: '<g fill="#8c5fc4"><circle cx="38" cy="46" r="11"/><circle cx="62" cy="46" r="11"/><circle cx="50" cy="60" r="11"/><circle cx="36" cy="70" r="10"/><circle cx="64" cy="70" r="10"/><circle cx="50" cy="80" r="9"/></g><g fill="#fff" opacity=".3"><circle cx="34" cy="42" r="3"/><circle cx="58" cy="42" r="3"/><circle cx="46" cy="56" r="3"/></g><path d="M50 36v-12" stroke="#7a5a3a" stroke-width="3" stroke-linecap="round"/>'+LEAF(52,26,-20),
+      kumquat: '<ellipse cx="50" cy="57" rx="27" ry="24" fill="#f5a623"/><ellipse cx="50" cy="57" rx="27" ry="24" fill="#ffd27a" opacity=".25"/><circle cx="50" cy="35" r="3.5" fill="#d98512"/>'+LEAF(52,32,-30)+HL,
+      fig: '<path d="M50 28c14 0 28 18 28 38 0 10-10 16-28 16S22 76 22 66c0-20 14-38 28-38z" fill="#8a4f9e"/><path d="M50 40c-6 12-8 24-4 38M50 40c6 12 8 24 4 38" fill="none" stroke="#b784c8" stroke-width="2.5" stroke-linecap="round" opacity=".7"/><path d="M50 28v-8" stroke="#7a5a3a" stroke-width="4" stroke-linecap="round"/>',
+      lime: '<path d="M14 56c4-18 20-28 36-28s32 10 36 28c-4 18-20 28-36 28S18 74 14 56z" fill="#8fc84a"/><path d="M14 56c4-18 20-28 36-28s32 10 36 28" fill="#b6e069" opacity=".35"/><circle cx="50" cy="56" r="14" fill="#d6f08f" opacity=".5"/>'+LEAF(48,26,-35),
+      peach: '<path d="M50 30c-20-6-34 8-34 28 0 18 14 28 34 28s34-10 34-28c0-20-14-34-34-28z" fill="#ff9d7a"/><path d="M50 32c-2 14-2 34 2 52" fill="none" stroke="#e5775a" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M50 30c-20-6-34 8-34 28 0 8 3 14 8 19 4-26 14-40 26-47z" fill="#ffc2a8" opacity=".5"/>'+LEAF(52,28,-20),
+      lemon: '<path d="M10 56c0-4 4-6 8-8 6-14 18-22 32-22s26 8 32 22c4 2 8 4 8 8s-4 6-8 8c-6 14-18 22-32 22s-26-8-32-22c-4-2-8-4-8-8z" fill="#f7d94a"/><path d="M26 44c6-8 14-12 24-12" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".4"/>',
+      pear: '<path d="M50 26c10 0 14 10 14 18 0 6 4 10 10 16 6 6 8 12 8 18 0 10-12 14-32 14S18 88 18 78c0-6 2-12 8-18 6-6 10-10 10-16 0-8 4-18 14-18z" fill="#bcd45a"/><path d="M36 46c-2 8-8 14-14 22" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".35"/><path d="M50 26c0-6 2-10 6-14" stroke="#7a5a3a" stroke-width="3.5" stroke-linecap="round" fill="none"/>'+LEAF(54,16,-15),
+      avocado: '<path d="M50 14c10 0 15 12 15 22 0 8 6 14 12 22 6 8 8 14 8 20 0 10-14 16-35 16S15 88 15 78c0-6 2-12 8-20 6-8 12-14 12-22 0-10 5-22 15-22z" fill="#3f7d3f"/><path d="M50 22c8 0 11 9 11 17 0 9 6 15 11 22 5 7 7 12 7 17 0 8-12 13-29 13S21 85 21 78c0-5 2-10 7-17 5-7 11-13 11-22 0-8 3-17 11-17z" fill="#d9e48a"/><circle cx="50" cy="68" r="14" fill="#8a5a3a"/><ellipse cx="45" cy="63" rx="4" ry="3" fill="#fff" opacity=".3"/>'
+    };
+    var NAME = {
+      '豌豆':'pea','เม็ดถั่วลันเตา':'pea','蓝莓':'blueberry','บลูเบอร์รี':'blueberry','覆盆子':'raspberry','ราสเบอร์รี':'raspberry',
+      '葡萄':'grape','องุ่น':'grape','金桔':'kumquat','ส้มจี๊ด':'kumquat','无花果':'fig','มะเดื่อ':'fig','青柠':'lime','มะนาว':'lime',
+      '桃子':'peach','ลูกพีช':'peach','柠檬':'lemon','เลมอน':'lemon','梨':'pear','ลูกแพร์':'pear','牛油果':'avocado','อะโวคาโด':'avocado'
+    };
+    function fruitOf(txt){
+      var m = txt.match(/就像(.+?)那么大/) || txt.match(/ขนาดประมาณ\s*(\S+)/);
+      return m ? NAME[m[1].replace(/\s+/g,'')] || null : null;
+    }
+    function scan(){
+      var p = document.getElementById('pregWeekPanel'); if(!p) return;
+      if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('babyFruit')){ var old = p.querySelectorAll('.lpg-fruit'); for(var q=0;q<old.length;q++) old[q].parentNode.removeChild(old[q]); return; }
+      var nodes = p.querySelectorAll('div[style*="font-weight:700"][style*="font-size:13px"]');
+      for(var i=0;i<nodes.length;i++){
+        var n = nodes[i], k = fruitOf(n.textContent || '');
+        if(!k) continue;
+        var prev = n.previousElementSibling;
+        if(prev && prev.className === 'lpg-fruit' && prev.getAttribute('data-k') === k) continue;
+        if(prev && prev.className === 'lpg-fruit') prev.parentNode.removeChild(prev);
+        var d = document.createElement('div'); d.className = 'lpg-fruit'; d.setAttribute('data-k', k); d.setAttribute('aria-hidden','true');
+        d.innerHTML = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' + S[k] + '</svg>';
+        n.style.textAlign = 'center';
+        n.parentNode.insertBefore(d, n);
+      }
+    }
+    var p0 = document.getElementById('pregWeekPanel');
+    if(p0 && window.MutationObserver) new MutationObserver(function(){ scan(); }).observe(p0, {childList:true, subtree:true});
+    setInterval(scan, 1500); scan();
+    window.LunaBabyFruit = { scan: scan, kinds: Object.keys(S) };
+  }catch(e){ try{ console.warn('lunaBabyFruit', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🍼 产后小提示 · 最上面加一张「宝宝这周」卡片（只追加，不改原来任何一行）。
+     只在「产后」（宝宝已出生）模式、宝宝出生后约 13 周内显示；「怀孕已结束」模式不会出现任何宝宝内容。
+     内容分 7 段：第 1 周 / 第 2 周 / 第 3 周 / 第 4 周 / 第 5–8 周 / 第 9–13 周；每段 3 句话：宝宝的样子、常见现象、给你的小提醒，
+     下面固定一句「什么时候联系医生」。只写常见情况，不诊断、不写药名和剂量、不做"正常/不正常"的判断。
+     宝宝小插画带很轻的"呼吸"动画；手机开了"减少动画"就静止。关掉方法：Firebase remoteConfig/featureFlags 里写 babyWeeks:false。没有外部图片、不联网，不碰数据 / 付费 / 试用。
+     ⚠️ 上线前：中文建议请儿科医生或助产士过目；泰文是我写的，请泰语母语者看一眼。 -->
+<style id="lpgBabyWeeksCss">
+.lpg-bw-ill{display:flex;align-items:center;justify-content:center;margin:0 auto 10px;width:104px;height:104px;border-radius:50%;background:radial-gradient(circle at 50% 42%,rgba(var(--purple-rgb,124,92,191),.12),rgba(var(--purple-rgb,124,92,191),.04) 70%,transparent 72%);}
+.lpg-bw-ill svg{width:78px;height:78px;display:block;transform-origin:50% 62%;animation:lpgBw 4.4s ease-in-out infinite;}
+@keyframes lpgBw{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+@media (prefers-reduced-motion:reduce){.lpg-bw-ill svg{animation:none;}}
+.lpg-bw-row{margin-top:10px;font-size:14px;line-height:1.8;color:var(--stat-fg);}
+.lpg-bw-row b{color:var(--purple);font-weight:700;}
+.lpg-bw-doc{margin-top:12px;padding-top:10px;border-top:1px solid var(--stat-surface-border,rgba(124,92,191,.14));font-size:12.5px;line-height:1.75;color:var(--stat-fg-muted,#8a7fa8);}
+</style>
+<script>
+(function(){
+  if(window.__lunaBabyWeeks) return; window.__lunaBabyWeeks = true;
+  try{
+    var L = window.LunaPreg; if(!L || !L.post || !L._u) return;
+    var U = L._u;
+    function lg(){ try{ return U.lang(); }catch(e){ return 'zh'; } }
+    function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    var SLEEP = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M16 96c0-24 14-34 34-34s34 10 34 34z" fill="#c9b6ea"/><path d="M16 96c0-8 2-15 6-20 8 10 20 14 28 14s20-4 28-14c4 5 6 12 6 20z" fill="#b39ddb"/><circle cx="50" cy="44" r="27" fill="#ffd9c2"/><path d="M44 18c2-6 8-8 12-4-4 0-6 2-7 5z" fill="#6b4a3a"/><path d="M36 46c3 3 8 3 11 0M53 46c3 3 8 3 11 0" fill="none" stroke="#6b4a3a" stroke-width="2.6" stroke-linecap="round"/><circle cx="33" cy="54" r="5" fill="#ff9d9d" opacity=".45"/><circle cx="67" cy="54" r="5" fill="#ff9d9d" opacity=".45"/><path d="M45 58c3 3 7 3 10 0" fill="none" stroke="#c0605a" stroke-width="2.4" stroke-linecap="round"/></svg>';
+    var SMILE = '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M16 96c0-24 14-34 34-34s34 10 34 34z" fill="#c9b6ea"/><path d="M16 96c0-8 2-15 6-20 8 10 20 14 28 14s20-4 28-14c4 5 6 12 6 20z" fill="#b39ddb"/><circle cx="50" cy="44" r="27" fill="#ffd9c2"/><path d="M42 17c3-7 10-8 14-3-4 0-7 2-8 6z" fill="#6b4a3a"/><circle cx="40" cy="44" r="3.4" fill="#4a3a36"/><circle cx="60" cy="44" r="3.4" fill="#4a3a36"/><circle cx="41" cy="43" r="1" fill="#fff"/><circle cx="61" cy="43" r="1" fill="#fff"/><circle cx="32" cy="54" r="5" fill="#ff9d9d" opacity=".45"/><circle cx="68" cy="54" r="5" fill="#ff9d9d" opacity=".45"/><path d="M42 56c4 7 12 7 16 0z" fill="#c0605a"/></svg>';
+    var ST = [
+      { title:{zh:'出生第 1 周',th:'สัปดาห์ที่ 1 หลังคลอด'}, ill:SLEEP,
+        look:{zh:'皮肤可能偏红、有点皱，头形可能暂时有点尖或不对称，身上可能还有一层白色的胎脂。这些都很常见，会慢慢变化。',th:'ผิวอาจแดงและเหี่ยวเล็กน้อย รูปศีรษะอาจดูแหลมหรือไม่สมมาตรชั่วคราว และอาจมีคราบไขสีขาวติดอยู่ ทั้งหมดนี้พบได้บ่อยและจะค่อย ๆ เปลี่ยนไป'},
+        common:{zh:'大部分时间在睡，吃奶很频繁，一天要吃很多次。头几天体重略微下降比较常见，之后会慢慢回升。胎便是黑绿色的，几天后会变黄。脐带残端会慢慢变干，自己脱落。',th:'นอนเป็นส่วนใหญ่ และกินนมบ่อยมาก วันละหลายครั้ง น้ำหนักลดลงเล็กน้อยในช่วงสองสามวันแรกพบได้บ่อย หลังจากนั้นจะค่อย ๆ เพิ่มขึ้น ขี้เทาเป็นสีเขียวเข้มเกือบดำ และจะเปลี่ยนเป็นสีเหลืองใน 2–3 วัน ตอสายสะดือจะค่อย ๆ แห้งและหลุดเอง'},
+        tip:{zh:'饿了、尿布湿了、想要抱抱，宝宝都会哭。多抱一抱、多贴贴皮肤是可以的。你也在恢复，宝宝睡的时候你也尽量休息。',th:'เด็กร้องเพราะหิว ผ้าอ้อมเปียก หรืออยากให้อุ้ม การอุ้มและสัมผัสเนื้อแนบเนื้อบ่อย ๆ ทำได้เลย คุณเองก็กำลังฟื้นตัว เมื่อลูกหลับ พยายามพักไปพร้อมกัน'} },
+      { title:{zh:'出生第 2 周',th:'สัปดาห์ที่ 2 หลังคลอด'}, ill:SLEEP,
+        look:{zh:'头形慢慢变圆，胎脂和脱皮会减少。有些宝宝脸上会冒出小疹子，通常会自己好。',th:'รูปศีรษะค่อย ๆ กลมขึ้น ไขและผิวลอกจะลดลง เด็กบางคนมีผื่นเม็ดเล็ก ๆ ขึ้นที่หน้า ซึ่งมักหายเอง'},
+        common:{zh:'很多宝宝在出生后两周左右回到出生时的体重。脐带残端通常在 1～2 周内脱落。每次醒着的时间还是很短，吃了睡、睡了吃。',th:'เด็กหลายคนน้ำหนักกลับมาเท่าแรกเกิดเมื่ออายุประมาณสองสัปดาห์ ตอสายสะดือมักหลุดภายใน 1–2 สัปดาห์ ช่วงที่ตื่นยังสั้นมาก กินแล้วหลับ หลับแล้วกิน'},
+        tip:{zh:'每个宝宝的节奏不一样，不用和别人比。累了就找人帮忙，你不需要一个人扛着。',th:'เด็กแต่ละคนมีจังหวะของตัวเอง ไม่ต้องเทียบกับใคร เหนื่อยก็ขอให้คนอื่นช่วย คุณไม่ต้องแบกทุกอย่างคนเดียว'} },
+      { title:{zh:'出生第 3 周',th:'สัปดาห์ที่ 3 หลังคลอด'}, ill:SLEEP,
+        look:{zh:'宝宝的眼睛能短暂看清近处的东西，大约二三十厘米，差不多是被抱在怀里时看到你脸的距离。',th:'ดวงตาของลูกเริ่มมองเห็นของใกล้ได้ชั่วครู่ ประมาณ 20–30 เซนติเมตร ซึ่งก็คือระยะที่ลูกเห็นหน้าคุณเวลาอุ้ม'},
+        common:{zh:'有些宝宝会出现一段特别爱哭、不太好哄的时间，常在傍晚，大约 6 周前后最明显，之后会慢慢好转。',th:'เด็กบางคนจะมีช่วงที่ร้องไห้มากและปลอบยาก มักเป็นช่วงเย็น ชัดที่สุดราว 6 สัปดาห์ แล้วจะค่อย ๆ ดีขึ้น'},
+        tip:{zh:'宝宝一直哭、你快撑不住的时候，可以把宝宝安全地放在婴儿床上，离开一会儿，深呼吸几次。任何时候都不要摇晃宝宝。',th:'เมื่อลูกร้องไม่หยุดและคุณรู้สึกเกือบทนไม่ไหว ให้วางลูกลงในเปลอย่างปลอดภัย แล้วเดินออกไปหายใจลึก ๆ สักครู่ได้ และห้ามเขย่าตัวลูกไม่ว่ากรณีใด'} },
+      { title:{zh:'出生第 4 周',th:'สัปดาห์ที่ 4 หลังคลอด'}, ill:SLEEP,
+        look:{zh:'一个月的宝宝通常比出生时重了不少，也长高了几厘米，具体因人而异。',th:'เมื่ออายุหนึ่งเดือน เด็กส่วนใหญ่ตัวหนักและสูงขึ้นจากแรกเกิดพอสมควร ขึ้นกับแต่ละคน'},
+        common:{zh:'趴着的时候，有的宝宝能把头短暂抬起一会儿（要有人在旁边看着）。醒着的时间会比刚出生时多一点点。',th:'เวลานอนคว่ำ เด็กบางคนยกศีรษะได้ชั่วครู่ (ต้องมีคนดูอยู่ข้าง ๆ เสมอ) ช่วงที่ตื่นจะนานขึ้นเล็กน้อยกว่าตอนแรกเกิด'},
+        tip:{zh:'一个月了，你们都辛苦了。吃得好、睡一点、有人陪你说话，对你的恢复和心情都很重要。',th:'ครบหนึ่งเดือนแล้ว ทั้งคุณและลูกเก่งมาก การกินให้พอ นอนบ้าง และมีคนคุยด้วย สำคัญกับทั้งร่างกายและใจของคุณ'} },
+      { title:{zh:'出生第 5–8 周',th:'สัปดาห์ที่ 5–8 หลังคลอด'}, ill:SMILE,
+        look:{zh:'宝宝开始更多地看着你的脸，会发出“咕咕”的声音，有些宝宝会第一次笑出来。',th:'ลูกเริ่มมองหน้าคุณมากขึ้น ส่งเสียงอู้อี้ในลำคอ และเด็กบางคนจะยิ้มให้เป็นครั้งแรก'},
+        common:{zh:'有些宝宝夜里能睡得稍微长一点，但差别很大，没有“应该几点睡”的标准。',th:'เด็กบางคนเริ่มหลับกลางคืนได้ยาวขึ้นเล็กน้อย แต่แตกต่างกันมาก ไม่มีเกณฑ์ตายตัวว่าต้องหลับกี่ชั่วโมง'},
+        tip:{zh:'产后 6～8 周前后，通常是安排产后检查的时间，你和宝宝都可以让医生看一看，有什么想问的先记下来。',th:'ช่วงประมาณ 6–8 สัปดาห์หลังคลอดมักเป็นเวลานัดตรวจหลังคลอด ทั้งคุณและลูกให้แพทย์ตรวจดูได้ มีอะไรอยากถามจดไว้ก่อน'} },
+      { title:{zh:'出生第 9–13 周',th:'สัปดาห์ที่ 9–13 หลังคลอด'}, ill:SMILE,
+        look:{zh:'宝宝的头颈更有力，趴着时能抬头更久。手会开始抓东西，也喜欢把东西放进嘴里。',th:'คอและศีรษะของลูกแข็งแรงขึ้น นอนคว่ำแล้วยกศีรษะได้นานขึ้น เริ่มคว้าจับของ และชอบเอาของเข้าปาก'},
+        common:{zh:'笑得更多，会追着你的脸或小玩具看，也会咿咿呀呀地回应你说话。',th:'ยิ้มบ่อยขึ้น มองตามหน้าคุณหรือของเล่น และส่งเสียงอ้อแอ้ตอบเวลาคุณพูดด้วย'},
+        tip:{zh:'宝宝的疫苗和成长检查，按当地儿童保健的安排来，不确定的话可以问医生或护士。',th:'การฉีดวัคซีนและตรวจพัฒนาการของลูก ให้ทำตามนัดของสถานพยาบาลในพื้นที่ หากไม่แน่ใจ สอบถามแพทย์หรือพยาบาลได้'} }
+    ];
+    var LBL = { look:{zh:'宝宝的样子：',th:'ลักษณะของลูก: '}, common:{zh:'常见情况：',th:'สิ่งที่พบได้บ่อย: '}, tip:{zh:'给你的小提醒：',th:'เตือนใจเล็ก ๆ: '} };
+    var DOC = { zh:'宝宝出生后头三个月：发烧（38 °C 或以上）、很难叫醒、吃奶明显变差、呼吸很快或很费力、皮肤或眼白发黄、脐带残端红肿流脓，请立刻联系医生或去急诊。每个宝宝发育的速度不同，以上只是常见情况，不能代替医生的判断。',
+                th:'ในช่วงสามเดือนแรกหลังคลอด หากมีไข้ (38 °C ขึ้นไป) ปลุกให้ตื่นยาก กินนมน้อยลงชัดเจน หายใจเร็วหรือหายใจลำบาก ผิวหรือตาขาวเหลือง หรือตอสายสะดือแดง บวม มีหนอง ให้รีบติดต่อแพทย์หรือไปห้องฉุกเฉิน เด็กแต่ละคนพัฒนาไม่เท่ากัน ข้อมูลข้างต้นเป็นเพียงสิ่งที่พบได้บ่อย ไม่สามารถแทนการตัดสินของแพทย์ได้' };
+    function stageOf(weeks){ return weeks <= 3 ? weeks : (weeks <= 7 ? 4 : (weeks <= 12 ? 5 : -1)); }
+    function cardHtml(s, l){
+      var g = function(o){ return o[l] || o.zh; };
+      return '<div class="stat-card" id="lpgBwCard" data-s="' + s + '" data-l="' + l + '" style="background:var(--stat-surface-bg);border-radius:20px;box-shadow:var(--stat-surface-shadow);border:1px solid var(--stat-surface-border);padding:18px 16px;margin-bottom:12px;">' +
+        '<div style="font-size:15px;font-weight:700;color:var(--stat-fg);margin-bottom:8px;text-align:center;">👶 ' + esc(l === 'zh' ? '宝宝这周' : 'ลูกน้อยสัปดาห์นี้') + ' · ' + esc(g(ST[s].title)) + '</div>' +
+        '<div class="lpg-bw-ill" aria-hidden="true">' + ST[s].ill + '</div>' +
+        '<div class="lpg-bw-row"><b>' + esc(g(LBL.look)) + '</b>' + esc(g(ST[s].look)) + '</div>' +
+        '<div class="lpg-bw-row"><b>' + esc(g(LBL.common)) + '</b>' + esc(g(ST[s].common)) + '</div>' +
+        '<div class="lpg-bw-row"><b>' + esc(g(LBL.tip)) + '</b>' + esc(g(ST[s].tip)) + '</div>' +
+        '<div class="lpg-bw-doc">🩺 ' + esc(g(DOC)) + '</div></div>';
+    }
+    function scan(){
+      var b = document.getElementById('ppInfoBody'); if(!b) return;
+      var cur = document.getElementById('lpgBwCard');
+      if(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('babyWeeks')){ if(cur && cur.parentNode) cur.parentNode.removeChild(cur); return; }
+      var pi = null; try{ pi = L.post.isActive() ? L.post.info() : null; }catch(e){ pi = null; }
+      var s = (pi && pi.kind === 'birth') ? stageOf(pi.weeks) : -1, l = lg();
+      if(s < 0){ if(cur && cur.parentNode) cur.parentNode.removeChild(cur); return; }
+      if(cur && cur.getAttribute('data-s') === String(s) && cur.getAttribute('data-l') === l && cur.parentNode === b && b.firstChild === cur) return;
+      if(cur && cur.parentNode) cur.parentNode.removeChild(cur);
+      var d = document.createElement('div'); d.innerHTML = cardHtml(s, l);
+      b.insertBefore(d.firstChild, b.firstChild);
+    }
+    var b0 = document.getElementById('ppInfoBody');
+    if(b0 && window.MutationObserver) new MutationObserver(function(){ scan(); }).observe(b0, {childList:true});
+    setInterval(scan, 1500); scan();
+    window.LunaBabyWeeks = { scan: scan, stageOf: stageOf, stages: ST.length };
+  }catch(e){ try{ console.warn('lunaBabyWeeks', e); }catch(_){} }
+})();
+</script>
+
+<!-- 👣 数胎动（只追加，不改原来任何一行）。
+     ① 怀孕模式、孕 28 周起，孕期卡片「体重 / 产检」下面多一行「数胎动 ›」，点开是一个全屏小页；
+     ② 小页里：大按钮「宝宝动了一下」+1、计时、撤销、重新开始、「结束并保存」；下面是最近的记录（日期 · 次数 · 用时，带一条长短条），可以删除；
+     ③ 只做"记录和回看"：不判断正常 / 不正常，不出红黄绿提示，不推送；只固定写一段话：觉得比平时明显变少、或一直没感觉到动，不要等，马上联系医生 / 去医院；
+     ④ 记录跟体重 / 产检一样：存在本机（按账号分开），登录后同步到云端 userdata/<uid>/pregKicks（谁的时间新用谁，删除是"墓碑"）；正在数的那一次只存在本机；
+     ⑤ 只在「怀孕中」出现；产后 / 怀孕已结束 / 备孕 / 普通模式都看不到。付费、试用、其他数据都没碰。
+     关掉方法：Firebase remoteConfig/featureFlags 里写 kickCount:false（后台页面暂时没做这个勾选框），已装的 App 下次打开后「数胎动」入口就不再出现。
+     ⚠️ 上线前：中文建议请产科医生 / 助产士看一遍「说明文字」；泰文是我写的，请泰语母语者看一眼。 -->
+<style id="lpgKickCss">
+.lpg-kick-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;border:1.5px solid var(--home-fg-muted);border-radius:16px;padding:10px 12px;cursor:pointer;color:var(--home-fg);font-size:14px;font-weight:700;-webkit-tap-highlight-color:transparent;}
+.lpg-kick-row .k-r{font-weight:600;font-size:12.5px;color:var(--home-fg-muted);white-space:nowrap;}
+.lpg-kick-row:active{opacity:.6;}
+body.lpg-flow .lpg-kick-row{border:none !important;border-radius:0 !important;border-top:1px solid var(--home-card-border,rgba(124,92,191,.14)) !important;padding:12px 0 !important;margin-top:8px !important;}
+#lpgKickPanel{display:none;position:fixed;inset:0;background:var(--stat-bg);z-index:170;overflow-y:auto;padding-bottom:calc(30px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));}
+#lpgKickPanel .k-card{background:var(--stat-surface-bg);border-radius:20px;box-shadow:var(--stat-surface-shadow);border:1px solid var(--stat-surface-border);padding:18px 16px;margin-bottom:12px;color:var(--stat-fg);}
+#lpgKickPanel .k-p{font-size:14px;line-height:1.8;}
+#lpgKickPanel .k-num{font-size:64px;font-weight:700;line-height:1;color:var(--purple);font-family:Georgia,'Songti SC',serif;text-align:center;}
+#lpgKickPanel .k-sub{text-align:center;font-size:13px;color:var(--stat-fg-muted,#8a7fa8);margin-top:6px;min-height:20px;}
+#lpgKickPanel .k-big{display:block;margin:16px auto 10px;width:150px;height:150px;border-radius:50%;border:none;cursor:pointer;font-family:inherit;font-size:17px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--purple,#7c5cbf),rgb(180,157,224));box-shadow:0 10px 24px rgba(var(--purple-rgb,124,92,191),.32);-webkit-tap-highlight-color:transparent;}
+#lpgKickPanel .k-big:active{transform:scale(.96);}
+#lpgKickPanel .k-ops{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px;}
+#lpgKickPanel .k-op{background:transparent;border:1.5px solid var(--stat-fg-muted,#8a7fa8);color:var(--stat-fg);border-radius:999px;padding:8px 16px;font-size:13px;font-family:inherit;cursor:pointer;}
+#lpgKickPanel .k-op.k-main{background:var(--purple,#7c5cbf);border-color:var(--purple,#7c5cbf);color:#fff;font-weight:700;}
+#lpgKickPanel .k-op[disabled]{opacity:.4;cursor:default;}
+#lpgKickPanel .k-warn{font-size:13px;line-height:1.75;font-weight:600;color:var(--purple);}
+#lpgKickPanel .k-his{padding:10px 0;border-top:1px solid var(--stat-surface-border,rgba(124,92,191,.14));}
+#lpgKickPanel .k-his:first-of-type{border-top:none;}
+#lpgKickPanel .k-hr{display:flex;justify-content:space-between;align-items:center;font-size:14px;gap:8px;}
+#lpgKickPanel .k-del{background:transparent;border:none;color:var(--stat-fg-muted,#8a7fa8);font-size:12.5px;cursor:pointer;font-family:inherit;padding:4px 0 4px 8px;}
+#lpgKickPanel .k-bar{height:6px;border-radius:3px;background:rgba(var(--purple-rgb,124,92,191),.14);margin-top:7px;overflow:hidden;}
+#lpgKickPanel .k-bar i{display:block;height:100%;border-radius:3px;background:var(--purple,#7c5cbf);opacity:.55;}
+</style>
+<script>
+(function(){
+  if(window.__lunaKick) return; window.__lunaKick = true;
+  try{
+    var L = window.LunaPreg; if(!L || !L._u || !L.get || !L.info) return;
+    var U = L._u, K = 'luna_preg_kicks', KC = 'luna_preg_kick_cur', FROM_WEEK = 28;
+    var TH_M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    function lg(){ try{ return U.lang(); }catch(e){ return 'zh'; } }
+    function T(zh, th){ return lg() === 'zh' ? zh : th; }
+    function el(id){ return document.getElementById(id); }
+    function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function flagOn(){ try{ return !(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('kickCount')); }catch(e){ return true; } }
+    function todayKey(){ return U.fmtKey(U.todayDate()); }
+    function pid(){ var s = L.get(); return (s && s.active === true) ? s.startedAt : null; }
+    function md(key){ var d = U.parseKey(key); if(!d) return ''; return lg() === 'zh' ? (d.getMonth() + 1) + '月' + d.getDate() + '日' : d.getDate() + ' ' + TH_M[d.getMonth()]; }
+    function okEntry(e){ return !!(e && typeof e === 'object' && typeof e.ts === 'number'); }
+    function readMap(){ try{ var m = JSON.parse(localStorage.getItem(U.acctKey(K)) || 'null'); return (m && typeof m === 'object' && Object.prototype.toString.call(m) !== '[object Array]') ? m : {}; }catch(e){ return {}; } }
+    function cloudSet(val){ var code = U.uid(); if(!code || !window._fb) return; try{ if(typeof _fbSetWithRetry === 'function') _fbSetWithRetry('userdata/' + code + '/pregKicks', val); else window._fb.set('userdata/' + code + '/pregKicks', val).catch(function(){}); }catch(e){} }
+    function writeMap(m){ try{ localStorage.setItem(U.acctKey(K), JSON.stringify(m)); }catch(e){} cloudSet(m); }
+    function merge(a, b){ var o = {}, k; for(k in a) if(okEntry(a[k])) o[k] = a[k]; for(k in b){ if(!okEntry(b[k])) continue; if(!o[k] || b[k].ts > o[k].ts) o[k] = b[k]; } return o; }
+    function same(a, b){ var ka = Object.keys(a), kb = Object.keys(b), i; if(ka.length !== kb.length) return false; for(i = 0; i < ka.length; i++){ var x = a[ka[i]], y = b[ka[i]]; if(!y || x.ts !== y.ts || x.del !== y.del) return false; } return true; }
+    function syncCloud(){ var code = U.uid(); if(!code || !window._fb) return; try{ window._fb.get('userdata/' + code + '/pregKicks').then(function(r){ r = (r && typeof r === 'object') ? r : {}; var loc = readMap(), mg = merge(loc, r); if(!same(mg, loc)){ try{ localStorage.setItem(U.acctKey(K), JSON.stringify(mg)); }catch(e){} } if(!same(mg, r)) cloudSet(mg); renderRow(); if(open) renderPanel(); }).catch(function(){}); }catch(e){} }
+    function list(){ var p = pid(), m = readMap(), out = [], k, e; if(p === null) return out; for(k in m){ e = m[k]; if(!okEntry(e) || e.del === true || e.p !== p || !U.parseKey(e.date)) continue; out.push(e); } out.sort(function(a, b){ return a.date === b.date ? b.ts - a.ts : (a.date < b.date ? 1 : -1); }); return out; }
+    function newId(){ return 'k' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
+    function save(n, secs){ var p = pid(); if(p === null || n < 1) return false; var m = readMap(), id = newId(); m[id] = { id: id, date: todayKey(), n: n, secs: Math.max(0, Math.round(secs)), ts: U.nowTs(), p: p, del: false }; writeMap(m); return true; }
+    function remove(id){ var m = readMap(), e = m[id]; if(!okEntry(e)) return; m[id] = { id: id, date: e.date, n: e.n, secs: e.secs, ts: U.nowTs(), p: e.p, del: true }; writeMap(m); }
+    // 正在数的这一次（只存本机）
+    function getCur(){ try{ var c = JSON.parse(localStorage.getItem(U.acctKey(KC)) || 'null'); if(c && c.p === pid() && typeof c.n === 'number' && (Date.now() - (c.t0 || 0)) < 12 * 3600 * 1000) return c; }catch(e){} return null; }
+    function setCur(c){ try{ if(c) localStorage.setItem(U.acctKey(KC), JSON.stringify(c)); else localStorage.removeItem(U.acctKey(KC)); }catch(e){} }
+    function fmtDur(secs){ var m = Math.floor(secs / 60), s = secs % 60; return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s; }
+    function minTxt(secs){ var m = Math.max(1, Math.round(secs / 60)); return lg() === 'zh' ? m + ' 分钟' : m + ' นาที'; }
+
+    // ── 首页入口 ──
+    function renderRow(){
+      var anchor = el('pregTrkWt'), row = el('lpgKickRow');
+      var weeks = null, i = null; try{ i = L.isActive && L.isActive() ? L.info() : null; weeks = i ? i.weeks : null; }catch(e){}
+      var show = flagOn() && anchor && weeks !== null && weeks >= FROM_WEEK;
+      if(!show){ if(row) row.style.display = 'none'; return; }
+      if(!row){
+        row = document.createElement('div'); row.id = 'lpgKickRow'; row.className = 'lpg-kick-row';
+        row.onclick = function(){ openPanel(); };
+        row.innerHTML = '<span id="lpgKickRowL"></span><span class="k-r" id="lpgKickRowR"></span>';
+        var host = anchor.parentNode; host.parentNode.insertBefore(row, host.nextSibling);
+      }
+      row.style.display = 'flex';
+      var t = todayKey(), l = list(), today = 0, j;
+      for(j = 0; j < l.length; j++) if(l[j].date === t){ today = l[j].n; break; }
+      var L1 = '👣 ' + T('数胎动', 'นับลูกดิ้น'), R1 = (today ? T('今天 ' + today + ' 次', 'วันนี้ ' + today + ' ครั้ง') : T('还没记录', 'ยังไม่ได้บันทึก')) + ' ›';
+      if(el('lpgKickRowL').textContent !== L1) el('lpgKickRowL').textContent = L1;
+      if(el('lpgKickRowR').textContent !== R1) el('lpgKickRowR').textContent = R1;
+    }
+
+    // ── 全屏小页 ──
+    var open = false, tmr = null;
+    function ensurePanel(){
+      var p = el('lpgKickPanel'); if(p) return p;
+      p = document.createElement('div'); p.id = 'lpgKickPanel';
+      p.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:52px 20px 12px;"><button type="button" class="back-btn" id="lpgKickBack">‹</button><span style="font-size:20px;font-weight:600;color:var(--stat-fg);font-family:Georgia,\'Songti SC\',serif;" id="lpgKickTitle"></span></div><div style="padding:8px 16px 0;" id="lpgKickBody"></div>';
+      document.body.appendChild(p);
+      el('lpgKickBack').onclick = closePanel;
+      p.addEventListener('click', function(ev){
+        var t = ev.target; while(t && t !== p && !(t.getAttribute && t.getAttribute('data-a'))) t = t.parentNode;
+        if(!t || t === p) return;
+        var a = t.getAttribute('data-a');
+        if(a === 'tap') tap(1); else if(a === 'undo') tap(-1); else if(a === 'reset') reset(); else if(a === 'save') finish();
+        else if(a === 'del'){ var id = t.getAttribute('data-id'); if(window.confirm(T('删除这条记录？', 'ลบบันทึกนี้?'))){ remove(id); renderPanel(); renderRow(); } }
+      });
+      return p;
+    }
+    function tap(d){
+      var c = getCur();
+      if(!c){ if(d < 0) return; c = { p: pid(), t0: Date.now(), n: 0 }; }
+      c.n = Math.max(0, c.n + d);
+      if(c.n === 0 && d < 0) c = null;
+      setCur(c); renderPanel();
+    }
+    function reset(){ var c = getCur(); if(c && c.n > 0 && !window.confirm(T('重新开始会清掉现在数的这一次，确定吗？', 'เริ่มใหม่จะล้างครั้งที่กำลังนับอยู่ ยืนยันหรือไม่?'))) return; setCur(null); renderPanel(); }
+    function finish(){ var c = getCur(); if(!c || c.n < 1) return; if(save(c.n, (Date.now() - c.t0) / 1000)){ setCur(null); renderPanel(); renderRow(); } }
+    function renderPanel(){
+      var b = el('lpgKickBody'); if(!b) return;
+      var zh = lg() === 'zh', c = getCur(), n = c ? c.n : 0, secs = c ? Math.floor((Date.now() - c.t0) / 1000) : 0;
+      el('lpgKickTitle').textContent = T('数胎动', 'นับลูกดิ้น');
+      var h = '';
+      h += '<div class="k-card"><div class="k-p">' + esc(T('找一个安静舒服的时间，侧躺着或靠着。宝宝每动一下，就点一下下面的大按钮。没有统一的“正常次数”，重要的是慢慢熟悉宝宝平时的节奏。',
+        'หาเวลาที่เงียบและสบาย นอนตะแคงหรือพิงเอนตัว ลูกดิ้นหนึ่งครั้ง ก็กดปุ่มใหญ่ด้านล่างหนึ่งครั้ง ไม่มี “จำนวนปกติ” ที่ตายตัว สิ่งสำคัญคือค่อย ๆ รู้จักจังหวะปกติของลูกคุณ')) + '</div></div>';
+      h += '<div class="k-card"><div class="k-num">' + n + '</div><div class="k-sub">' + (c ? esc(T('已用时 ', 'ใช้เวลา ') + fmtDur(secs)) : esc(T('点按钮开始计时', 'กดปุ่มเพื่อเริ่มจับเวลา'))) +
+        (n >= 10 ? '<br>' + esc(T('已经数到 10 次，用了 ' + minTxt(secs) + '。可以保存这次记录了。', 'นับถึง 10 ครั้งแล้ว ใช้เวลา ' + minTxt(secs) + ' บันทึกครั้งนี้ได้เลย')) : '') + '</div>' +
+        '<button type="button" class="k-big" data-a="tap">' + esc(T('宝宝动了一下', 'ลูกดิ้น 1 ครั้ง')) + '</button>' +
+        '<div class="k-ops"><button type="button" class="k-op" data-a="undo"' + (n > 0 ? '' : ' disabled') + '>' + esc(T('撤销 −1', 'ย้อนกลับ −1')) + '</button>' +
+        '<button type="button" class="k-op" data-a="reset"' + (c ? '' : ' disabled') + '>' + esc(T('重新开始', 'เริ่มใหม่')) + '</button>' +
+        '<button type="button" class="k-op k-main" data-a="save"' + (n > 0 ? '' : ' disabled') + '>' + esc(T('结束并保存', 'จบและบันทึก')) + '</button></div></div>';
+      h += '<div class="k-card"><div class="k-warn">🩺 ' + esc(T('如果你觉得宝宝动得比平时明显变少，或者一直没有感觉到动，不要等，请马上联系医生或去医院。这个页面只是帮你记录，不能用来判断宝宝是否正常。',
+        'หากรู้สึกว่าลูกดิ้นน้อยลงกว่าปกติอย่างชัดเจน หรือไม่รู้สึกว่าลูกดิ้นเลย อย่ารอ ให้รีบติดต่อแพทย์หรือไปโรงพยาบาลทันที หน้านี้ใช้บันทึกเท่านั้น ไม่สามารถใช้ตัดสินว่าลูกปกติหรือไม่')) + '</div></div>';
+      var l = list().slice(0, 10), i, mx = 1;
+      for(i = 0; i < l.length; i++) if(l[i].secs > mx) mx = l[i].secs;
+      h += '<div class="k-card"><div style="font-size:15px;font-weight:700;margin-bottom:6px;">📒 ' + esc(T('最近的记录', 'บันทึกล่าสุด')) + '</div>';
+      if(!l.length) h += '<div class="k-p" style="color:var(--stat-fg-muted,#8a7fa8);">' + esc(T('还没有记录。', 'ยังไม่มีบันทึก')) + '</div>';
+      for(i = 0; i < l.length; i++){
+        var e = l[i], w = Math.max(6, Math.round(e.secs / mx * 100));
+        h += '<div class="k-his"><div class="k-hr"><span>' + esc(md(e.date)) + ' · ' + esc(zh ? e.n + ' 次' : e.n + ' ครั้ง') + ' · ' + esc(minTxt(e.secs)) + '</span><button type="button" class="k-del" data-a="del" data-id="' + esc(e.id) + '">' + esc(T('删除', 'ลบ')) + '</button></div><div class="k-bar"><i style="width:' + w + '%"></i></div></div>';
+      }
+      h += '</div><div style="font-size:11.5px;line-height:1.7;color:var(--stat-fg-muted,#8a7fa8);padding:4px 6px 12px;">' + esc(T('说明文字参考孕期保健的一般建议整理，只作一般性参考，不能代替医生的判断。',
+        'เนื้อหาเรียบเรียงจากคำแนะนำทั่วไปเกี่ยวกับการดูแลครรภ์ ใช้เป็นข้อมูลทั่วไปเท่านั้น ไม่สามารถแทนการตัดสินของแพทย์ได้')) + '</div>';
+      b.innerHTML = h;
+    }
+    function openPanel(){
+      if(!flagOn() || pid() === null) return;
+      var p = ensurePanel(); open = true; p.style.display = 'block'; p.scrollTop = 0; renderPanel(); syncCloud();
+      if(!tmr) tmr = setInterval(function(){ if(open && getCur()) renderPanel(); }, 1000);
+    }
+    function closePanel(){ open = false; var p = el('lpgKickPanel'); if(p) p.style.display = 'none'; if(tmr){ clearInterval(tmr); tmr = null; } renderRow(); }
+
+    document.addEventListener('luna-preg-change', function(){ setTimeout(function(){ renderRow(); if(open && pid() === null) closePanel(); }, 80); });
+    setInterval(renderRow, 1500); renderRow(); setTimeout(syncCloud, 4000);
+    window.LunaKick = { open: openPanel, close: closePanel, list: list, render: renderRow, fromWeek: FROM_WEEK };
+  }catch(e){ try{ console.warn('lunaKick', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🤰 孕期小百科 · 第 17–40 周内容 + 页面底部固定声明（只追加，不改原来任何一行）。
+     ① 原来的孕期小百科只做到第 16 周；这里把第 17–40 周补上，并让上一周 / 下一周能一直翻到第 40 周。
+        17–27 周：👶 本周宝宝发育信息 / 🤰 孕妈妈身体变化 / 📝 本周产检提醒 / 💡 日常注意事项 / ⚠️ 异常情况提示（如有明显不适，请咨询医生）
+        28–40 周：👶 宝宝发育 / 🤰 妈妈身体变化 / 📅 产检·检查提醒 / 👜 待产准备 / 🚨 需要及时联系医生的情况
+        每周还有身长、水果比喻和一张带"呼吸"动画的小插画；首页「本周」卡片也跟着显示这一周的内容；超过第 40 周显示一段过渡语。
+     ② 孕期小百科每一周（第 1–40 周）最底部固定放一张明显但不吓人的声明卡：「本内容仅供健康信息参考，不能替代医生的诊断或治疗」，并写明 AI 小助手也不是医生；
+     ③ AI 小助手（怀孕 / 产后模式）输入栏上方多一行「AI 小助手不是医生」提示，写出几种要直接联系医生的情况；
+     ④ 只写有公开依据、各来源比较一致的说法（WHO、英国 NHS、Mayo Clinic 等），语气用"可能 / 通常 / 很多人"，不下诊断、不给药名和剂量、不说"正常 / 不用担心"；
+     ⑤ 不碰数据、付费、试用。关掉方法：Firebase remoteConfig/featureFlags 里写 week17_40:false，已装的 App 下次打开就恢复到只显示 16 周（声明卡和 AI 提示不受这个开关影响，始终显示）。
+     ⚠️ 上线前：中文建议请产科医生 / 助产士完整看一遍；泰文是我写的，请泰语母语者看一遍。 -->
+<style id="lpgW40Css">
+.lpg-wk-ill{display:flex;align-items:center;justify-content:center;margin:2px auto 10px;width:112px;height:112px;border-radius:50%;background:radial-gradient(circle at 50% 42%,rgba(var(--purple-rgb,124,92,191),.12),rgba(var(--purple-rgb,124,92,191),.04) 70%,transparent 72%);}
+.lpg-wk-ill svg{width:82px;height:82px;display:block;transform-origin:50% 62%;animation:lpgWk 4.2s ease-in-out infinite;}
+@keyframes lpgWk{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+@media (prefers-reduced-motion:reduce){.lpg-wk-ill svg{animation:none;}}
+.lpg-wk-disc{background:var(--purple-pale,rgba(124,92,191,.1));border:1px solid var(--stat-surface-border,rgba(124,92,191,.18));border-radius:18px;padding:14px 16px;margin:4px 0 14px;color:var(--stat-fg);}
+.lpg-wk-disc b{display:block;font-size:14px;line-height:1.7;font-weight:700;color:var(--purple,#7c5cbf);}
+.lpg-wk-disc div{margin-top:6px;font-size:12.5px;line-height:1.75;color:var(--stat-fg);}
+.lpg-aidoc{margin:0 12px 6px;padding:8px 12px;border-radius:12px;background:rgba(124,92,191,.1);font-size:11.5px;line-height:1.6;color:#6b5a99;text-align:left;}
+.lpg-aidoc b{font-weight:700;}
+</style>
+<script>
+(function(){
+  if(window.__lunaW40) return; window.__lunaW40 = true;
+  try{
+    var L = window.LunaPreg; if(!L || !L.week || !L._u) return;
+    var U = L._u, MAXW = 40;
+    var HLC = function(x,y,r){ return '<ellipse cx="'+x+'" cy="'+y+'" rx="'+r+'" ry="'+(r*.55)+'" fill="#fff" opacity=".32" transform="rotate(-35 '+x+' '+y+')"/>'; };
+var LF = function(x,y,r){ return '<path d="M0 0C6-9 16-9 20-4C14 3 6 4 0 0z" fill="#5fae60" transform="translate('+x+' '+y+') rotate('+r+')"/>'; };
+var CLOUD = function(c1,c2){ return '<g fill="'+c1+'"><circle cx="34" cy="54" r="17"/><circle cx="52" cy="42" r="19"/><circle cx="68" cy="56" r="16"/><circle cx="44" cy="68" r="15"/><circle cx="60" cy="70" r="14"/></g><g fill="'+c2+'" opacity=".5"><circle cx="46" cy="38" r="5"/><circle cx="32" cy="50" r="4"/><circle cx="66" cy="52" r="4"/></g>'; };
+var SV = {
+ pomegranate:'<circle cx="50" cy="58" r="31" fill="#d6404f"/><path d="M38 28l5 7 7-6 7 6 5-7-3 14H41z" fill="#b7303d"/><circle cx="50" cy="58" r="31" fill="#f58a8a" opacity=".18"/>'+HLC(38,48,8),
+ sweetpotato:'<path d="M14 64c2-18 28-26 50-30 14-2 22 6 20 16-4 16-34 32-54 30-10-1-17-6-16-16z" fill="#a2486f"/><path d="M26 64c10-6 24-12 40-16" fill="none" stroke="#c9739a" stroke-width="3" stroke-linecap="round" opacity=".6"/>'+HLC(40,52,7),
+ mango:'<path d="M24 42c4-14 22-18 38-10 16 8 20 26 12 40-8 14-26 18-38 8-12-10-16-26-12-38z" fill="#f6a43a"/><path d="M60 32c16 8 20 26 12 40-4 6-10 10-16 12 10-14 12-34 4-52z" fill="#ee6a4a" opacity=".5"/><path d="M40 28c2-8 8-12 14-12" stroke="#7a5a3a" stroke-width="3" stroke-linecap="round" fill="none"/>'+LF(44,22,-15)+HLC(38,52,7),
+ banana:'<path d="M18 28c2 30 22 54 56 58 6 0 8-7 2-9C52 68 40 50 38 24z" fill="#f7d94a"/><path d="M38 24c-2-6-1-10 3-12 2 4 3 8 3 12z" fill="#7a5a3a"/><path d="M72 78c4 0 6 6 2 8" stroke="#7a5a3a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M24 36c4 20 14 34 30 42" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".4"/>',
+ carrot:'<path d="M30 34c12-8 28-8 40 0L55 92c-1 3-9 3-10 0z" fill="#f08a2d"/><path d="M38 52h12M52 64h10M42 74h9" stroke="#c96a18" stroke-width="2.5" stroke-linecap="round"/><path d="M42 34c-6-12-2-20 3-22 2 8 3 14 0 22zM52 34c0-12 4-20 9-22 2 10 0 16-5 22z" fill="#5fae60"/>',
+ papaya:'<path d="M50 10c18 6 28 28 24 52-3 18-14 30-24 30S29 80 26 62C22 38 32 16 50 10z" fill="#f59a3c"/><path d="M50 22c8 12 10 38 0 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".35"/><path d="M44 12h12" stroke="#7a5a3a" stroke-width="4" stroke-linecap="round"/>',
+ grapefruit:'<circle cx="50" cy="56" r="34" fill="#f2c63e"/><circle cx="50" cy="56" r="34" fill="#fff" opacity=".1"/><g fill="#d9a826" opacity=".5"><circle cx="34" cy="64" r="1.6"/><circle cx="58" cy="72" r="1.6"/><circle cx="66" cy="50" r="1.6"/><circle cx="44" cy="46" r="1.6"/></g><path d="M48 22c2-5 6-7 10-6" stroke="#7a5a3a" stroke-width="3" stroke-linecap="round" fill="none"/>'+LF(52,22,-10)+HLC(34,44,9),
+ corn:'<path d="M50 12c14 8 20 26 18 48-2 14-8 24-18 24S34 74 32 60C30 38 36 20 50 12z" fill="#f7d44a"/><path d="M40 28v52M50 20v62M60 28v52M34 44h32M33 58h34M36 72h28" stroke="#e0b030" stroke-width="1.8" opacity=".7"/><path d="M34 92C24 70 22 46 32 26c2 22 8 50 18 66zM66 92c10-22 12-46 2-66-2 22-8 50-18 66z" fill="#6fb36a"/>',
+ cauliflower:CLOUD('#f4ecd4','#fff')+'<path d="M20 70c8 18 24 24 30 24s22-6 30-24c-12 6-20 8-30 8s-18-2-30-8z" fill="#6fb36a"/>',
+ lettuce:CLOUD('#8fd16a','#dff5c6')+'<path d="M26 74c8 12 18 18 24 18s16-6 24-18c-10 5-16 6-24 6s-14-1-24-6z" fill="#5fae60"/>',
+ broccoli:'<rect x="43" y="62" width="14" height="28" rx="6" fill="#9ccf7a"/>'+CLOUD('#4f9d4a','#9ad48a'),
+ eggplant:'<path d="M42 32c-6 14-6 28-2 40 4 12 14 20 26 16 12-4 14-20 6-34-6-10-10-16-12-24z" fill="#6a3d8f"/><path d="M38 28c6-8 16-8 24-2l-5 12c-6-3-12-3-17 1z" fill="#4f9d4a"/><path d="M48 26c0-6 2-10 6-12" stroke="#4f9d4a" stroke-width="4" stroke-linecap="round" fill="none"/>'+HLC(48,58,6),
+ butternut:'<path d="M42 12c10 0 14 8 14 18 0 8 6 12 12 22 8 14 4 38-18 38S14 70 22 56c6-10 12-14 12-24 0-10 2-20 8-20z" fill="#eec58a"/><path d="M42 12c2-4 8-4 10 0" stroke="#7a5a3a" stroke-width="4" stroke-linecap="round" fill="none"/>'+HLC(34,66,7),
+ cabbage:'<circle cx="50" cy="56" r="33" fill="#8fcf6a"/><path d="M50 24c-9 14-9 46 0 64M50 24c10 14 10 46 0 64M24 46c20-6 32-6 52 0M22 62c22 6 34 6 56 0" fill="none" stroke="#c9ebab" stroke-width="2.5" stroke-linecap="round"/>',
+ coconut:'<circle cx="50" cy="56" r="33" fill="#8a5a3a"/><circle cx="50" cy="56" r="33" fill="#c9a07a" opacity=".2"/><g fill="#4a2f1e"><circle cx="42" cy="46" r="3.6"/><circle cx="58" cy="46" r="3.6"/><circle cx="50" cy="58" r="3.6"/></g>'+HLC(34,40,8),
+ radish:'<path d="M34 34c-6 22-2 44 16 56 18-12 22-34 16-56-10-6-22-6-32 0z" fill="#f4f1ea"/><path d="M40 34c-4-12-2-20 4-24 2 8 2 16 0 24zM52 34c0-12 4-20 10-22 0 10-2 18-6 22z" fill="#6fb36a"/><path d="M42 50c6 10 10 24 8 36" fill="none" stroke="#e1dccf" stroke-width="3" stroke-linecap="round"/>',
+ pineapple:'<ellipse cx="50" cy="64" rx="27" ry="30" fill="#f2b630"/><path d="M30 46l40 36M44 36l32 28M26 62l30 28M70 46L32 82M56 36L26 64M72 62L44 90" stroke="#c98e14" stroke-width="2" opacity=".7"/><path d="M50 36c-8-10-12-18-8-26 4 6 6 10 8 14 2-4 4-8 8-14 4 8 0 16-8 26z" fill="#4f9d4a"/>',
+ cantaloupe:'<circle cx="50" cy="56" r="33" fill="#e9c387"/><path d="M50 24c-12 16-12 48 0 64M50 24c12 16 12 48 0 64M24 44c18 6 34 6 52 0M22 62c20 6 36 6 56 0" fill="none" stroke="#c9a064" stroke-width="2" opacity=".7"/>'+HLC(34,40,8),
+ honeydew:'<circle cx="50" cy="56" r="33" fill="#cfe7a1"/><circle cx="50" cy="56" r="33" fill="#fff" opacity=".1"/><path d="M48 24c2-4 6-6 10-5" stroke="#7a8a3a" stroke-width="3" stroke-linecap="round" fill="none"/>'+HLC(34,42,9),
+ napa:'<path d="M34 90c-6-20-6-46 0-62 10-8 22-8 32 0 6 16 6 42 0 62z" fill="#eaf1c4"/><path d="M28 42c4-18 40-18 44 0-8-5-36-5-44 0z" fill="#8fc65a"/><path d="M50 36v52M42 40c-2 16-2 32 0 48M58 40c2 16 2 32 0 48" stroke="#cfe0a0" stroke-width="2" fill="none"/>',
+ wintermelon:'<ellipse cx="50" cy="56" rx="25" ry="37" fill="#8fb78a"/><ellipse cx="50" cy="56" rx="25" ry="37" fill="#e8f1e4" opacity=".45"/><path d="M48 18c2-5 6-6 8-4" stroke="#6f8a5a" stroke-width="3" stroke-linecap="round" fill="none"/>'+HLC(40,40,8),
+ leek:'<rect x="40" y="50" width="20" height="42" rx="7" fill="#f4f6ea"/><path d="M40 54c-2-22 0-36 5-44 4 8 6 20 3 44zM52 54c0-20 2-34 9-44 2 14 0 32-2 44z" fill="#6fb36a"/><path d="M44 70h12M44 82h12" stroke="#dfe5c9" stroke-width="2" stroke-linecap="round"/>',
+ watermelon:'<circle cx="50" cy="56" r="33" fill="#4f9d4a"/><path d="M50 24c-14 12-14 52 0 64M50 24c14 12 14 52 0 64M30 34c-6 14-6 40 0 52M70 34c6 14 6 40 0 52" fill="none" stroke="#2f6e36" stroke-width="5" stroke-linecap="round" opacity=".7"/>'+HLC(36,40,8),
+ pumpkin:'<ellipse cx="50" cy="60" rx="37" ry="29" fill="#f28a2e"/><path d="M50 32c-14 10-14 48 0 56M50 32c14 10 14 48 0 56M32 38c-8 12-8 38 0 50M68 38c8 12 8 38 0 50" fill="none" stroke="#d96d14" stroke-width="3" opacity=".6"/><path d="M46 32c0-8 2-12 6-14" stroke="#5a7a3a" stroke-width="5" stroke-linecap="round" fill="none"/>'+LF(54,26,-30)
+};
+
+    // 每周：cm 身长(厘米，约)、fruit 名字(zh/th)、svg 键、baby 宝宝发育
+var WK = {
+ 17:{cm:13,k:'pomegranate',f:['石榴','ทับทิม'],b:['骨骼在慢慢变硬，身上开始长出脂肪层。宝宝在羊水里翻身、伸展，动作越来越多。','กระดูกค่อย ๆ แข็งขึ้น และเริ่มมีไขมันสะสม ลูกพลิกตัวและบิดตัวอยู่ในน้ำคร่ำมากขึ้น']},
+ 18:{cm:14,k:'sweetpotato',f:['红薯','มันเทศ'],b:['耳朵的结构基本成形，宝宝可能开始能听到你的心跳和说话声。偶尔会打嗝，你可能会感觉到轻轻的节律跳动。','โครงสร้างหูพัฒนาเกือบครบ ลูกอาจเริ่มได้ยินเสียงหัวใจและเสียงพูดของคุณ และอาจสะอึกเป็นครั้งคราว']},
+ 19:{cm:15,k:'mango',f:['芒果','มะม่วง'],b:['皮肤表面开始覆盖一层白色的胎脂，保护宝宝的皮肤。感觉器官在快速发育。','ผิวเริ่มมีไขสีขาวเคลือบเพื่อปกป้องผิว ประสาทสัมผัสต่าง ๆ พัฒนาอย่างรวดเร็ว']},
+ 20:{cm:25,k:'banana',f:['香蕉','กล้วย'],h:1,b:['已经走到孕期的一半了。从这一周起，宝宝的长度改为从头量到脚，所以数字比上周大了不少。宝宝会吞咽羊水，动作也更有力。','ถึงครึ่งทางของการตั้งครรภ์แล้ว ตั้งแต่สัปดาห์นี้จะวัดความยาวจากศีรษะถึงปลายเท้า ตัวเลขจึงมากขึ้นกว่าสัปดาห์ก่อนมาก ลูกกลืนน้ำคร่ำได้และเคลื่อนไหวแรงขึ้น']},
+ 21:{cm:27,k:'carrot',f:['胡萝卜','แครอท'],h:1,b:['眉毛和眼睑已经长出来，动作越来越协调。如果还没感觉到胎动，也不用着急，每个人感觉到的时间不一样。','คิ้วและเปลือกตาขึ้นแล้ว การเคลื่อนไหวประสานกันมากขึ้น หากยังไม่รู้สึกว่าลูกดิ้น ไม่ต้องรีบร้อน แต่ละคนรู้สึกไม่พร้อมกัน']},
+ 22:{cm:28,k:'papaya',f:['木瓜','มะละกอ'],h:1,b:['宝宝的触觉在发展，会摸摸自己的脸、抓抓脐带。睡觉和醒着的节奏开始慢慢形成。','ประสาทสัมผัสการสัมผัสพัฒนา ลูกอาจจับใบหน้าหรือสายสะดือ และเริ่มมีรอบหลับและตื่น']},
+ 23:{cm:29,k:'grapefruit',f:['柚子','ส้มโอ'],h:1,b:['宝宝对外界的声音有反应，突然的大声音可能让宝宝动一下。肺部在继续发育。','ลูกตอบสนองต่อเสียงภายนอก เสียงดังกะทันหันอาจทำให้ลูกสะดุ้งหรือดิ้น ปอดยังคงพัฒนาต่อเนื่อง']},
+ 24:{cm:30,k:'corn',f:['玉米','ข้าวโพด'],h:1,b:['脸部轮廓更清楚了，肺里的小气囊在继续发育。宝宝的动作更有力，你可能能感觉到明显的踢动。','โครงหน้าชัดเจนขึ้น ถุงลมเล็ก ๆ ในปอดกำลังพัฒนาต่อ ลูกเคลื่อนไหวแรงขึ้น คุณอาจรู้สึกถึงการถีบได้ชัดเจน']},
+ 25:{cm:34,k:'cauliflower',f:['花椰菜','ดอกกะหล่ำ'],h:1,b:['宝宝的头发在长出来，手的抓握更有力，对你的声音和触摸都有反应。','ผมของลูกกำลังงอก มือกำแน่นขึ้น ตอบสนองต่อเสียงและการสัมผัสของคุณ']},
+ 26:{cm:35,k:'lettuce',f:['生菜','ผักกาดหอม'],h:1,b:['眼睛开始能睁开，宝宝可能对强光有反应。肺部继续成熟，吸气和呼气的动作在练习。','ดวงตาเริ่มลืมได้ ลูกอาจตอบสนองต่อแสงจ้า ปอดพัฒนาต่อเนื่อง และเริ่มฝึกการหายใจเข้าออก']},
+ 27:{cm:37,k:'broccoli',f:['西兰花','บร็อกโคลี'],h:1,b:['大脑发育很快，宝宝有了自己的睡眠和活动节奏，你可能发现宝宝在某些时段特别爱动。孕中期到这里就结束了。','สมองพัฒนาเร็ว ลูกมีจังหวะหลับและตื่นเป็นของตัวเอง คุณอาจสังเกตว่าลูกดิ้นมากเป็นพิเศษในบางช่วงเวลา ไตรมาสที่สองสิ้นสุดลงที่สัปดาห์นี้']},
+ 28:{cm:38,k:'eggplant',f:['茄子','มะเขือม่วง'],h:1,b:['眼睛能睁开、眨眼，大脑的沟回在增多。这个阶段起，可以开始留意宝宝平时一般什么时候比较爱动。','ลืมตาและกะพริบตาได้ รอยหยักของสมองเพิ่มขึ้น ตั้งแต่ช่วงนี้ลองสังเกตว่าปกติลูกดิ้นเมื่อไรบ้าง']},
+ 29:{cm:39,k:'butternut',f:['笋瓜','ฟักทองบัตเตอร์นัต'],h:1,b:['骨骼和肌肉继续变得结实。宝宝的活动空间在变小，动作会从“踢腾”变成更多的伸展和翻滚。','กระดูกและกล้ามเนื้อแข็งแรงขึ้น พื้นที่ให้ลูกขยับน้อยลง การเคลื่อนไหวจะเปลี่ยนจากการถีบเป็นการยืดตัวและกลิ้งตัวมากขึ้น']},
+ 30:{cm:40,k:'cabbage',f:['卷心菜','กะหล่ำปลี'],h:1,b:['大脑发育加快。宝宝在储存更多脂肪，为出生后调节体温做准备。','สมองพัฒนาเร็วขึ้น ลูกสะสมไขมันมากขึ้นเพื่อเตรียมควบคุมอุณหภูมิร่างกายหลังคลอด']},
+ 31:{cm:41,k:'coconut',f:['椰子','มะพร้าว'],h:1,b:['五种感官都已经能工作了，体重在快速增加。','ประสาทสัมผัสทั้งห้าเริ่มทำงานแล้ว น้ำหนักตัวเพิ่มขึ้นอย่างรวดเร็ว']},
+ 32:{cm:42,k:'radish',f:['白萝卜','หัวไชเท้า'],h:1,b:['指甲已经长到指尖。大多数宝宝在这个阶段开始头朝下，但也有的还没转过来，之后还有机会。','เล็บยาวถึงปลายนิ้วแล้ว ลูกส่วนใหญ่เริ่มกลับหัวลงในช่วงนี้ แต่บางคนยังไม่กลับ ยังมีโอกาสกลับได้อีก']},
+ 33:{cm:44,k:'pineapple',f:['菠萝','สับปะรด'],h:1,b:['骨骼在变硬，不过头骨还是软的、没有完全合拢，这是为了顺利出生。免疫系统也在发展。','กระดูกแข็งขึ้น แต่กะโหลกยังอ่อนและยังไม่ติดกันสนิทเพื่อให้คลอดได้สะดวก ระบบภูมิคุ้มกันกำลังพัฒนา']},
+ 34:{cm:45,k:'cantaloupe',f:['哈密瓜','แคนตาลูป'],h:1,b:['肺和中枢神经继续成熟，胎脂变得更厚。','ปอดและระบบประสาทส่วนกลางพัฒนาต่อเนื่อง ไขที่เคลือบผิวหนาขึ้น']},
+ 35:{cm:46,k:'honeydew',f:['蜜瓜','เมลอนน้ำผึ้ง'],h:1,b:['肾脏已经发育完成。子宫里越来越挤，宝宝的动作会变成更多的扭动和伸展，而不是大幅度的踢腿。','ไตพัฒนาเสร็จสมบูรณ์ มดลูกเริ่มคับแคบ การเคลื่อนไหวของลูกจะเป็นการบิดตัวและยืดตัวมากกว่าการถีบแรง ๆ']},
+ 36:{cm:47,k:'napa',f:['大白菜','ผักกาดขาว'],h:1,b:['很多宝宝已经头朝下，并开始往骨盆里降。体重继续增加。再过一周就算足月了（满 37 周）。','ลูกหลายคนกลับหัวลงและเริ่มเคลื่อนต่ำลงสู่อุ้งเชิงกราน น้ำหนักเพิ่มต่อเนื่อง อีกหนึ่งสัปดาห์ก็จะครบกำหนด (ครบ 37 สัปดาห์)']},
+ 37:{cm:48,k:'wintermelon',f:['冬瓜','ฟักเขียว'],h:1,b:['从这一周起算足月。宝宝的器官基本已经能应付出生后的生活，还在继续长肉、长脂肪。','ตั้งแต่สัปดาห์นี้ถือว่าครบกำหนดแล้ว อวัยวะต่าง ๆ พร้อมสำหรับชีวิตหลังคลอดเป็นส่วนใหญ่ ลูกยังสะสมเนื้อและไขมันต่อไป']},
+ 38:{cm:49,k:'leek',f:['大葱','ต้นหอมญี่ปุ่น'],h:1,b:['宝宝已经足月，随时准备好出生。头发、指甲还在长，胎脂在慢慢变少。','ลูกครบกำหนดและพร้อมจะเกิดได้ทุกเมื่อ ผมและเล็บยังยาวขึ้น ไขที่เคลือบผิวค่อย ๆ ลดลง']},
+ 39:{cm:50,k:'watermelon',f:['小西瓜','แตงโมลูกเล็ก'],h:1,b:['宝宝在为出生做最后的准备，还在继续增加体重。每个宝宝的出生时间都不一样，提前或晚几天都很常见。','ลูกกำลังเตรียมตัวขั้นสุดท้ายก่อนเกิด น้ำหนักยังเพิ่มต่อไป เวลาเกิดของลูกแต่ละคนไม่เหมือนกัน ก่อนหรือหลังกำหนดไม่กี่วันเป็นเรื่องปกติ']},
+ 40:{cm:51,k:'pumpkin',f:['小南瓜','ฟักทองลูกเล็ก'],h:1,b:['到预产期这一周了，宝宝已经准备好了。真正在预产期当天出生的宝宝并不多，早几天或晚几天都很常见。','ถึงสัปดาห์กำหนดคลอดแล้ว ลูกพร้อมแล้ว เด็กที่เกิดตรงวันกำหนดมีไม่มาก เร็วหรือช้ากว่ากำหนดไม่กี่วันเป็นเรื่องที่พบได้บ่อย']}
+};
+
+    function lang(){ try{ return U.lang(); }catch(e){ return 'zh'; } }
+    function zhOf(){ return lang() === 'zh'; }
+    function pk(a){ return zhOf() ? a[0] : a[1]; }
+    function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function flagOn(){ try{ return !(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('week17_40')); }catch(e){ return true; } }
+    function el(id){ return document.getElementById(id); }
+    function curWeeks(){ try{ var i = L.isActive && L.isActive() ? L.info() : null; return i ? i.weeks : null; }catch(e){ return null; } }
+
+    // ── 分段文案（按周段）。每项 [中文, 泰文] ──
+    var MOM = [
+      [17,19,['肚子开始明显凸出来，食欲可能变好。有些人会感觉到下腹两侧一阵一阵牵拉着痛（圆韧带痛），换个姿势通常会缓解。也可能鼻塞、牙龈容易出血，起身太快会头晕。很多人这时第一次感觉到胎动，像小气泡或轻轻的扑动。','หน้าท้องเริ่มนูนชัด อาจอยากอาหารมากขึ้น บางคนรู้สึกตึงหรือปวดเป็นช่วง ๆ ที่ท้องน้อยสองข้าง (ปวดเอ็นยึดมดลูก) ซึ่งมักดีขึ้นเมื่อเปลี่ยนท่า อาจคัดจมูก เหงือกเลือดออกง่าย ลุกเร็วแล้วเวียนหัว หลายคนเริ่มรู้สึกลูกดิ้นครั้งแรกในช่วงนี้ คล้ายฟองอากาศหรือการสะกิดเบา ๆ']],
+      [20,23,['肚子越来越大，可能腰背酸、小腿抽筋、脚踝轻微水肿、皮肤变干或发痒。胎动更明显了。偶尔出现不规则、不痛的肚子发紧（假性宫缩）比较常见。','ท้องใหญ่ขึ้นเรื่อย ๆ อาจปวดหลัง ตะคริวที่น่อง ข้อเท้าบวมเล็กน้อย ผิวแห้งหรือคัน ลูกดิ้นชัดขึ้น การที่ท้องแข็งเป็นพัก ๆ แบบไม่สม่ำเสมอและไม่เจ็บ (การหดรัดตัวของมดลูกเทียม) พบได้บ่อย']],
+      [24,27,['体重继续增加，腰背酸、胃灼热、便秘、睡不好都比较常见。有些人会觉得气短，这是子宫在往上顶。','น้ำหนักเพิ่มต่อเนื่อง ปวดหลัง แสบร้อนกลางอก ท้องผูก นอนไม่หลับพบได้บ่อย บางคนรู้สึกหายใจไม่เต็มอิ่มเพราะมดลูกดันขึ้นด้านบน']],
+      [28,31,['肚子变得更大更重，容易疲倦、气短、胃灼热、尿频、腿肿。假性宫缩可能变多，一般不规律，休息、喝水、换姿势会缓解。睡觉可以侧卧，膝盖之间夹个枕头会舒服些。','ท้องใหญ่และหนักขึ้น เหนื่อยง่าย หายใจไม่เต็มอิ่ม แสบร้อนกลางอก ปัสสาวะบ่อย ขาบวม การหดรัดตัวของมดลูกเทียมอาจมากขึ้น มักไม่สม่ำเสมอ และดีขึ้นเมื่อพัก ดื่มน้ำ หรือเปลี่ยนท่า เวลานอนลองนอนตะแคง วางหมอนไว้ระหว่างเข่าจะสบายขึ้น']],
+      [32,35,['宝宝下降可能让你觉得下腹坠胀，尿频更明显。可能出现耻骨或骨盆酸痛、手脚浮肿、睡眠差。乳房可能渗出少量淡黄色的初乳，这很常见。','เมื่อลูกเคลื่อนต่ำลง คุณอาจรู้สึกหน่วงท้องน้อยและปัสสาวะบ่อยขึ้น อาจปวดบริเวณหัวหน่าวหรืออุ้งเชิงกราน มือเท้าบวม นอนไม่ดี เต้านมอาจมีน้ำนมเหลืองใส (หัวน้ำนม) ซึมออกมาเล็กน้อย พบได้บ่อย']],
+      [36,37,['胎头可能已经入盆，呼吸反而轻松一些，但下坠感和尿频更明显。假性宫缩更多，分泌物也可能增多。','ศีรษะลูกอาจลงสู่อุ้งเชิงกรานแล้ว ทำให้หายใจสะดวกขึ้น แต่รู้สึกหน่วงและปัสสาวะบ่อยมากขึ้น การหดรัดตัวของมดลูกเทียมมากขึ้น และอาจมีตกขาวมากขึ้น']],
+      [38,40,['随时可能临产。可能出现见红（带血的黏液）、越来越规律且越来越强的宫缩，或者破水。很多人这时会紧张或睡不好，这很常见，可以和家人、医生聊聊。','อาจเข้าสู่ระยะคลอดได้ทุกเมื่อ อาจมีมูกปนเลือด (เลือดแสดง) ปวดท้องที่สม่ำเสมอและแรงขึ้นเรื่อย ๆ หรือน้ำเดิน หลายคนรู้สึกตื่นเต้นหรือนอนไม่หลับในช่วงนี้ ซึ่งพบได้บ่อย คุยกับครอบครัวหรือแพทย์ได้']]
+    ];
+    var VISIT = [
+      [17,19,['产检按医生约的时间来，常规项目有量血压、体重、测宫高、听胎心。如果还没约孕中期的详细超声检查（常在 18–22 周），可以现在问一下医院。','ไปตรวจครรภ์ตามนัดของแพทย์ โดยทั่วไปจะวัดความดัน ชั่งน้ำหนัก วัดความสูงยอดมดลูก และฟังเสียงหัวใจลูก หากยังไม่ได้นัดอัลตราซาวนด์ละเอียดช่วงกลางการตั้งครรภ์ (มักช่วง 18–22 สัปดาห์) สอบถามโรงพยาบาลได้ตอนนี้']],
+      [20,20,['20 周前后是 WHO 建议的产检时间点之一。很多医院会在 18–22 周安排详细的胎儿超声检查，请按医院的安排来。','ราว 20 สัปดาห์เป็นหนึ่งในจุดตรวจครรภ์ที่ WHO แนะนำ โรงพยาบาลหลายแห่งนัดอัลตราซาวนด์ละเอียดช่วง 18–22 สัปดาห์ โปรดไปตามนัด']],
+      [21,23,['按医院约的时间产检，常规项目有血压、体重、宫高、胎心。如果还没做详细超声，请问医生什么时候做。','ไปตรวจตามนัดของโรงพยาบาล โดยทั่วไปจะวัดความดัน น้ำหนัก ยอดมดลูก และฟังหัวใจลูก หากยังไม่ได้อัลตราซาวนด์ละเอียด ถามแพทย์ว่าจะทำเมื่อไร']],
+      [24,27,['很多医院会在 24–28 周安排妊娠糖尿病筛查（喝糖水后抽血），具体做法和时间请按医院通知。26 周前后是 WHO 建议的产检时间点之一。','โรงพยาบาลหลายแห่งนัดคัดกรองเบาหวานขณะตั้งครรภ์ช่วง 24–28 สัปดาห์ (ดื่มน้ำตาลแล้วเจาะเลือด) วิธีและเวลาให้ทำตามที่โรงพยาบาลแจ้ง ราว 26 สัปดาห์เป็นหนึ่งในจุดตรวจครรภ์ที่ WHO แนะนำ']],
+      [28,31,['28 周前后很多地方会复查血常规等，具体项目因医院而异。30 周前后是 WHO 建议的产检时间点之一。如果你是 Rh 阴性血型，请向医生确认需要的检查和安排。疫苗（如百白破）是否接种、何时接种，请按医生建议。','ราว 28 สัปดาห์หลายแห่งจะตรวจเลือดซ้ำ รายการตรวจแตกต่างกันตามโรงพยาบาล ราว 30 สัปดาห์เป็นหนึ่งในจุดตรวจครรภ์ที่ WHO แนะนำ หากคุณมีหมู่เลือด Rh ลบ ควรสอบถามแพทย์เรื่องการตรวจและการดูแล ส่วนวัคซีน (เช่น ไอกรน) จะฉีดหรือไม่ และเมื่อไร ให้ปรึกษาแพทย์']],
+      [32,35,['34 周前后是 WHO 建议的产检时间点之一，之后产检通常会变密。35–37 周很多医院会做 B 族链球菌（GBS）筛查，请按医生安排。','ราว 34 สัปดาห์เป็นหนึ่งในจุดตรวจครรภ์ที่ WHO แนะนำ หลังจากนั้นมักนัดถี่ขึ้น ช่วง 35–37 สัปดาห์โรงพยาบาลหลายแห่งตรวจคัดกรองเชื้อสเตรปโตคอกคัสกลุ่มบี (GBS) ให้ทำตามที่แพทย์นัด']],
+      [36,37,['36 周前后是 WHO 建议的产检时间点之一，产检可能每周或每两周一次。医生会看宝宝的位置和你的情况，也会和你聊生产方式和住院安排。','ราว 36 สัปดาห์เป็นหนึ่งในจุดตรวจครรภ์ที่ WHO แนะนำ อาจนัดทุกสัปดาห์หรือสองสัปดาห์ แพทย์จะดูท่าของลูกและสภาพของคุณ รวมถึงคุยเรื่องวิธีคลอดและการเข้าโรงพยาบาล']],
+      [38,40,['38、40 周前后是 WHO 建议的产检时间点之一。如果过了预产期还没发动，医生会安排额外的检查，并和你讨论接下来怎么办，请按医生的安排来。','ราว 38 และ 40 สัปดาห์เป็นจุดตรวจครรภ์ที่ WHO แนะนำ หากเลยกำหนดคลอดแล้วยังไม่เจ็บท้อง แพทย์จะนัดตรวจเพิ่มและคุยกับคุณว่าจะดำเนินการอย่างไรต่อ ให้ทำตามที่แพทย์นัด']]
+    ];
+    var DAILYTIP = [
+      [17,19,['起身慢一点，避免突然站起头晕；穿宽松、支撑好的鞋；多喝水，多吃蔬果和粗纤维，预防便秘；可以保持温和的活动，比如散步。','ลุกช้า ๆ เพื่อไม่ให้เวียนหัว สวมรองเท้าที่รองรับเท้าได้ดี ดื่มน้ำมาก ๆ กินผักผลไม้และอาหารที่มีใยอาหารเพื่อป้องกันท้องผูก ออกกำลังเบา ๆ เช่น เดิน']],
+      [20,23,['腿抽筋时可以轻轻拉伸小腿、热敷；睡觉可以侧卧，两腿之间夹个枕头；皮肤干痒可以涂温和的保湿霜；不要自己吃药或涂药膏，先问医生。','เมื่อเป็นตะคริวที่น่อง ลองยืดน่องเบา ๆ หรือประคบอุ่น นอนตะแคงและวางหมอนไว้ระหว่างขา ผิวแห้งคันใช้ครีมบำรุงอ่อนโยน อย่าซื้อยากินหรือยาทาเอง ควรถามแพทย์ก่อน']],
+      [24,27,['睡觉尽量侧卧；少量多餐可以缓解胃灼热；要做糖筛的话，按医院的要求准备；保持适度活动，适合你的运动请先问医生。','พยายามนอนตะแคง กินน้อยแต่บ่อยครั้งช่วยให้แสบร้อนกลางอกดีขึ้น หากต้องตรวจคัดกรองเบาหวานให้เตรียมตัวตามที่โรงพยาบาลบอก ออกกำลังพอเหมาะ และถามแพทย์ว่าแบบไหนเหมาะกับคุณ']]
+    ];
+    var PREP = [
+      [28,31,['可以开始了解你要去的医院：怎么去、夜里怎么去、需不需要提前登记。想一想产假、陪产的人，以及谁来帮忙照顾家里。','เริ่มทำความรู้จักโรงพยาบาลที่จะไปคลอด เดินทางอย่างไร ตอนกลางคืนไปอย่างไร ต้องลงทะเบียนล่วงหน้าหรือไม่ คิดเรื่องการลาคลอด คนที่จะอยู่เป็นเพื่อน และใครจะช่วยดูแลที่บ้าน']],
+      [32,35,['可以慢慢准备待产包：证件、病历和产检本、手机充电器、你和宝宝的衣物、产后用品等。医院通常会给建议清单，以医院的为准。也可以了解产前课程，学习临产的信号。','เริ่มทยอยเตรียมกระเป๋าเข้าโรงพยาบาล เช่น บัตรประจำตัว สมุดฝากครรภ์ ที่ชาร์จมือถือ เสื้อผ้าของคุณและลูก ของใช้หลังคลอด โรงพยาบาลมักมีรายการแนะนำ ให้ยึดตามของโรงพยาบาล และอาจเรียนคลาสเตรียมคลอดเพื่อเรียนรู้สัญญาณใกล้คลอด']],
+      [36,37,['待产包最好这周前收拾好，放在容易拿的地方。确认交通方式、联系人，以及谁陪你去医院。把医院和医生的电话存好。','ควรเตรียมกระเป๋าให้เสร็จภายในสัปดาห์นี้และวางไว้ในที่หยิบง่าย ตรวจสอบการเดินทาง คนที่จะติดต่อ และคนที่จะไปโรงพยาบาลกับคุณ บันทึกเบอร์โทรโรงพยาบาลและแพทย์ไว้']],
+      [38,40,['随时可能要去医院，包和证件放在门口附近。了解什么情况下要马上出发：规律且越来越强的宫缩、破水、阴道出血、胎动明显减少。如果不确定，先打电话问医院。','อาจต้องไปโรงพยาบาลได้ทุกเมื่อ ให้วางกระเป๋าและเอกสารไว้ใกล้ประตู รู้ว่าเมื่อไรต้องรีบไป: เจ็บท้องสม่ำเสมอและแรงขึ้นเรื่อย ๆ น้ำเดิน เลือดออกทางช่องคลอด ลูกดิ้นน้อยลงชัดเจน หากไม่แน่ใจ โทรถามโรงพยาบาลก่อน']]
+    ];
+    var URG_MID = {
+      zh:['阴道出血，哪怕只有一点','剧烈腹痛，或者规律的腹痛、肚子越来越紧','有液体从阴道流出','一直吐，24 小时喝不进水','头晕得站不住，或者晕倒','发烧、发冷','严重头痛、视线模糊','一条腿疼痛、肿胀，或者胸痛、呼吸困难','已经能感觉到胎动后，觉得宝宝动得明显变少或一直没动'],
+      th:['มีเลือดออกทางช่องคลอด แม้เพียงเล็กน้อย','ปวดท้องรุนแรง หรือปวดท้องเป็นจังหวะสม่ำเสมอ ท้องแข็งถี่ขึ้น','มีน้ำหรือของเหลวไหลออกจากช่องคลอด','อาเจียนไม่หยุด ดื่มน้ำไม่ได้นาน 24 ชั่วโมง','เวียนศีรษะจนยืนไม่ไหวหรือเป็นลม','มีไข้ หนาวสั่น','ปวดศีรษะรุนแรง ตามัว','ปวดหรือบวมที่ขาข้างเดียว เจ็บหน้าอก หรือหายใจลำบาก','เมื่อเคยรู้สึกลูกดิ้นแล้ว แต่รู้สึกว่าดิ้นน้อยลงชัดเจนหรือไม่ดิ้นเลย']
+    };
+    var URG_LATE = {
+      zh:['宝宝动得比平时明显变少，或者一直没有感觉到动','规律的宫缩（37 周以前出现更要马上联系）','破水：有液体不受控制地流出','阴道出血','严重头痛、视线模糊、上腹疼痛','脸和手突然明显肿起来','剧烈腹痛，或者肚子一直是硬的','发烧、发冷','一条腿疼痛、肿胀，或者胸痛、呼吸困难','头晕得站不住，或者晕倒'],
+      th:['ลูกดิ้นน้อยลงกว่าปกติชัดเจน หรือไม่รู้สึกว่าลูกดิ้นเลย','เจ็บท้องสม่ำเสมอ (หากเกิดก่อน 37 สัปดาห์ ให้รีบติดต่อทันที)','น้ำเดิน: มีของเหลวไหลออกจากช่องคลอดโดยควบคุมไม่ได้','มีเลือดออกทางช่องคลอด','ปวดศีรษะรุนแรง ตามัว ปวดจุกลิ้นปี่','ใบหน้าและมือบวมขึ้นมากอย่างกะทันหัน','ปวดท้องรุนแรง หรือท้องแข็งตลอดเวลา','มีไข้ หนาวสั่น','ปวดหรือบวมที่ขาข้างเดียว เจ็บหน้าอก หรือหายใจลำบาก','เวียนศีรษะจนยืนไม่ไหวหรือเป็นลม']
+    };
+    var FOOT = ['如果不确定，宁可多问一次。情况紧急请立刻去最近医院的急诊。','หากไม่แน่ใจ สอบถามไว้ก่อนดีกว่า หากฉุกเฉินให้รีบไปห้องฉุกเฉินของโรงพยาบาลที่ใกล้ที่สุดทันที'];
+    var OVER = ['你已经过了预产期。请按医生的安排产检；如果还没发动，医生会和你讨论接下来怎么做。有出血、破水、规律宫缩、宝宝动得明显变少等情况，请马上联系医生或去医院。','คุณเลยกำหนดคลอดแล้ว ให้ไปตรวจตามนัดของแพทย์ หากยังไม่เจ็บท้องคลอด แพทย์จะคุยกับคุณว่าจะทำอย่างไรต่อ หากมีเลือดออก น้ำเดิน เจ็บท้องสม่ำเสมอ หรือลูกดิ้นน้อยลงชัดเจน ให้รีบติดต่อแพทย์หรือไปโรงพยาบาลทันที'];
+    var DISC = ['本内容仅供健康信息参考，不能替代医生的诊断或治疗。如有健康问题，请咨询专业医疗人员。','เนื้อหานี้เป็นข้อมูลเพื่อสุขภาพเท่านั้น ไม่สามารถทดแทนการวินิจฉัยหรือการรักษาของแพทย์ หากมีปัญหาสุขภาพ โปรดปรึกษาบุคลากรทางการแพทย์'];
+    var DISC2 = ['Luna 的 AI 小助手也一样：它不是医生，不能诊断，也不能替你决定要不要就医。出现明显不适，请直接联系医生或去医院。内容参考 WHO、英国 NHS、Mayo Clinic 等公开的孕期资料整理；宝宝的大小是大概值，水果只是帮助想象，每个宝宝都不完全一样。','AI ผู้ช่วยของ Luna ก็เช่นกัน: ไม่ใช่แพทย์ ไม่สามารถวินิจฉัย และไม่สามารถตัดสินแทนคุณว่าควรไปพบแพทย์หรือไม่ หากรู้สึกไม่สบายชัดเจน โปรดติดต่อแพทย์หรือไปโรงพยาบาลโดยตรง เนื้อหาเรียบเรียงจากข้อมูลสาธารณะของ WHO, NHS (สหราชอาณาจักร) และ Mayo Clinic ขนาดของลูกเป็นค่าประมาณ ผลไม้ช่วยให้นึกภาพเท่านั้น เด็กแต่ละคนไม่เหมือนกัน'];
+    function band(arr, n){ for(var i = 0; i < arr.length; i++) if(n >= arr[i][0] && n <= arr[i][1]) return arr[i][2]; return null; }
+
+    // ── 组装 ──
+    function sizeText(n){
+      var w = WK[n]; if(!w) return '';
+      if(zhOf()) return '宝宝' + (w.h ? '身长' : '') + '约 ' + w.cm + ' 厘米' + (w.h ? '（头到脚）' : '') + '，就像' + w.f[0] + '那么大';
+      return 'ทารกยาวประมาณ ' + w.cm + ' ซม.' + (w.h ? ' (จากศีรษะถึงเท้า)' : '') + ' ขนาดประมาณ' + w.f[1];
+    }
+    function sect(icon, title, body){
+      return '<div class="stat-card" style="background:var(--stat-surface-bg);border-radius:20px;box-shadow:var(--stat-surface-shadow);border:1px solid var(--stat-surface-border);padding:18px 16px;margin-bottom:12px;"><div style="font-size:15px;font-weight:700;color:var(--stat-fg);margin-bottom:8px;">' + icon + ' ' + esc(title) + '</div>' + body + '</div>';
+    }
+    function para(t){ return '<div style="font-size:14px;line-height:1.8;color:var(--stat-fg);">' + esc(t) + '</div>'; }
+    function list(items){ var h = '', i; for(i = 0; i < items.length; i++) h += '<div style="display:flex;gap:8px;font-size:14px;line-height:1.8;color:var(--stat-fg);"><span style="color:var(--purple);">•</span><span>' + esc(items[i]) + '</span></div>'; return h; }
+    function baseDaily(){ try{ var d = L.week._daily; return d && d.items ? (d.items[lang()] || d.items.zh) : []; }catch(e){ return []; } }
+    function panelHtml(n){
+      var w = WK[n], zh = zhOf(), mom = band(MOM, n), visit = band(VISIT, n), h = '';
+      if(!w || !mom) return '';
+      var babyBody = '<div class="lpg-wk-ill" aria-hidden="true"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' + SV[w.k] + '</svg></div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:6px;text-align:center;">' + esc(sizeText(n)) + '</div>' + para(pk(w.b));
+      if(n <= 27){
+        h += sect('👶', zh ? '本周宝宝发育信息' : 'พัฒนาการของลูกสัปดาห์นี้', babyBody);
+        h += sect('🤰', zh ? '孕妈妈身体变化' : 'การเปลี่ยนแปลงของร่างกายคุณแม่', para(pk(mom)));
+        h += sect('📝', zh ? '本周产检提醒' : 'การตรวจครรภ์สัปดาห์นี้', para(pk(visit)));
+        h += sect('💡', zh ? '日常注意事项' : 'ข้อควรระวังในชีวิตประจำวัน', para(pk(band(DAILYTIP, n))) + '<div style="height:6px"></div>' + list(baseDaily()));
+        h += sect('⚠️', zh ? '异常情况提示' : 'อาการผิดปกติที่ควรระวัง', '<div style="font-size:13.5px;line-height:1.7;margin-bottom:4px;color:var(--stat-fg);">' + esc(zh ? '如有明显不适，请咨询医生。下面这些情况，请尽快联系医生：' : 'หากรู้สึกไม่สบายชัดเจน ควรปรึกษาแพทย์ กรณีต่อไปนี้ให้รีบติดต่อแพทย์:') + '</div>' + list(URG_MID[lang()]) + '<div style="margin-top:8px;font-size:13px;line-height:1.7;font-weight:600;color:var(--purple);">' + esc(pk(FOOT)) + '</div>');
+      } else {
+        h += sect('👶', zh ? '宝宝发育' : 'พัฒนาการของลูก', babyBody);
+        h += sect('🤰', zh ? '妈妈身体变化' : 'การเปลี่ยนแปลงของร่างกายคุณแม่', para(pk(mom)));
+        h += sect('📅', zh ? '产检/检查提醒' : 'การตรวจครรภ์และการตรวจต่าง ๆ', para(pk(visit)));
+        h += sect('👜', zh ? '待产准备' : 'เตรียมตัวก่อนคลอด', para(pk(band(PREP, n))));
+        h += sect('🚨', zh ? '需要及时联系医生的情况' : 'เมื่อไรควรรีบติดต่อแพทย์', list(URG_LATE[lang()]) + '<div style="margin-top:8px;font-size:13px;line-height:1.7;font-weight:600;color:var(--purple);">' + esc(pk(FOOT)) + '</div>');
+      }
+      return h;
+    }
+    function discHtml(){ return '<div class="lpg-wk-disc" id="lpgWkDisc"><b>🩺 ' + esc(pk(DISC)) + '</b><div>' + esc(pk(DISC2)) + '</div></div>'; }
+
+    // ── 周切换：接管 show / open / step，最多翻到第 40 周 ──
+    var oShow = L.week.show, oOpen = L.week.open, oStep = L.week.step;
+    var shown = 1;
+    function clamp(n){ n = parseInt(n, 10); if(isNaN(n)) n = 1; return Math.max(1, Math.min(MAXW, n)); }
+    function panelOpen(){ var p = el('pregWeekPanel'); return !!p && p.style.display === 'block'; }
+    function apply(){
+      if(!panelOpen()) return;
+      var body = el('pregWeekPanelBody'); if(!body) return;
+      var zh = zhOf(), w = curWeeks(), ext = flagOn() && shown > 16 && shown <= MAXW;
+      if(ext){
+        var key = shown + (zh ? 'z' : 't');
+        var mk = body.firstChild;
+        if(!(mk && mk.getAttribute && mk.getAttribute('data-w') === key)){
+          body.innerHTML = '<div data-w="' + key + '" style="display:none"></div>' + panelHtml(shown);
+          var sc = el('pregWeekPanel'); if(sc) sc.scrollTop = 0;
+        }
+        var lab = el('pregWeekNavLabel');
+        if(lab){ var t = (zh ? '孕' + shown + '周' : 'ตั้งครรภ์ ' + shown + ' สัปดาห์') + ((w !== null && shown === Math.max(1, w)) ? (zh ? '（本周）' : ' (สัปดาห์นี้)') : ''); if(lab.textContent !== t) lab.textContent = t; }
+      }
+      if(flagOn()){
+        var nx = el('pregWeekNavNext'); if(nx){ var dis = shown >= MAXW; if(nx.disabled !== dis) nx.disabled = dis; var op = dis ? '.3' : '1'; if(nx.style.opacity !== op) nx.style.opacity = op; }
+        var over = el('pregWeekOver');
+        if(over){
+          if(w !== null && w > MAXW){ var tx = pk(OVER); if(over.style.display === 'none') over.style.display = ''; if(over.textContent !== tx) over.textContent = tx; }
+          else if(over.style.display !== 'none') over.style.display = 'none';
+        }
+      }
+      if(!el('lpgWkDisc')) body.insertAdjacentHTML('beforeend', discHtml());
+      else { var d = el('lpgWkDisc'); if(d.parentNode !== body || d !== body.lastChild){ body.appendChild(d); } var want = pk(DISC); if(d.firstChild && d.firstChild.textContent.indexOf(want) < 0){ d.outerHTML = discHtml(); } }
+    }
+    L.week.show = function(n){
+      if(!flagOn()){ return oShow(n); }
+      shown = clamp(n); oShow(shown <= 16 ? shown : 16); apply();
+    };
+    L.week.open = function(n){
+      if(!flagOn()){ return oOpen(n); }
+      var i = null; try{ i = L.info(); }catch(e){}
+      var start = (n === undefined || n === null) ? (i ? Math.min(MAXW, Math.max(1, i.weeks)) : 1) : n;
+      shown = clamp(start); oOpen(shown <= 16 ? shown : 16); apply();
+    };
+    L.week.step = function(d){ if(!flagOn()) return oStep(d); L.week.show(shown + d); };
+    L.week._w40 = { panelHtml: panelHtml, data: WK, band: band };
+    var pb = el('pregWeekPanel');
+    if(pb && window.MutationObserver){ new MutationObserver(function(){ apply(); }).observe(pb, {childList:true, subtree:true, attributes:true, attributeFilter:['style']}); }
+
+    // ── 首页「本周」卡片：第 17–40 周显示这一周的内容；超过第 40 周显示过渡语 ──
+    function fixCard(){
+      var i = null; try{ i = L.isActive && L.isActive() ? L.info() : null; }catch(e){}
+      if(!i || !flagOn()) return;
+      var n = Math.max(1, i.weeks), zh = zhOf();
+      function setT(id, t){ var e = el(id); if(e && e.textContent !== t) e.textContent = t; }
+      function disp(id, v){ var e = el(id); if(e && e.style.display !== v) e.style.display = v; }
+      if(n >= 17 && n <= MAXW && WK[n]){
+        setT('pregWeekSize', sizeText(n)); disp('pregWeekSize', '');
+        disp('pregWeekBody', ''); disp('pregWeekLater', 'none');
+        setT('pregWeekBabyLbl', '👶'); setT('pregWeekBaby', pk(WK[n].b));
+        setT('pregWeekMomLbl', '🤰'); setT('pregWeekMom', pk(band(MOM, n)));
+        setT('pregWeekBtn', zh ? '查看本周详情 ›' : 'ดูรายละเอียดสัปดาห์นี้ ›');
+      } else if(n > MAXW){
+        disp('pregWeekBody', 'none'); disp('pregWeekSize', 'none'); disp('pregWeekLater', '');
+        setT('pregWeekLater', pk(OVER));
+      }
+    }
+    var cd = el('pregWeekCard');
+    if(cd && window.MutationObserver){ new MutationObserver(function(){ fixCard(); }).observe(cd, {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['style']}); }
+    document.addEventListener('luna-preg-change', function(){ setTimeout(fixCard, 80); });
+    setInterval(function(){ fixCard(); apply(); }, 1500); fixCard();
+
+    // ── AI 小助手：怀孕 / 产后模式，输入栏上方多一行「AI 小助手不是医生」──
+    var AID = {
+      preg:['🩺 <b>AI 小助手不是医生</b>，不能诊断，也不能替你判断要不要就医。出现出血、剧烈腹痛、破水、宝宝动得明显变少等情况，请直接联系医生或去医院，不要等 AI 回复。','🩺 <b>AI ผู้ช่วยไม่ใช่แพทย์</b> ไม่สามารถวินิจฉัยหรือตัดสินแทนคุณว่าควรไปพบแพทย์หรือไม่ หากมีเลือดออก ปวดท้องรุนแรง น้ำเดิน หรือลูกดิ้นน้อยลงชัดเจน ให้ติดต่อแพทย์หรือไปโรงพยาบาลทันที ไม่ต้องรอคำตอบจาก AI'],
+      post:['🩺 <b>AI 小助手不是医生</b>，不能诊断，也不能替你判断要不要就医。出血突然变多、发烧、剧烈疼痛，或者情绪撑不住时，请直接联系医生或去医院，不要等 AI 回复。','🩺 <b>AI ผู้ช่วยไม่ใช่แพทย์</b> ไม่สามารถวินิจฉัยหรือตัดสินแทนคุณว่าควรไปพบแพทย์หรือไม่ หากเลือดออกมากขึ้นกะทันหัน มีไข้ ปวดรุนแรง หรือรู้สึกใจไม่ไหว ให้ติดต่อแพทย์หรือไปโรงพยาบาลทันที ไม่ต้องรอคำตอบจาก AI']
+    };
+    function aiMode(){ try{ if(L.isActive && L.isActive()) return 'preg'; if(L.post && L.post.isActive && L.post.isActive()) return 'post'; }catch(e){} return null; }
+    function aiTick(){
+      var panel = el('aiPanel'); if(!panel) return;
+      var m = aiMode(), bar = el('lpgAiDoc');
+      if(!m){ if(bar && bar.style.display !== 'none') bar.style.display = 'none'; return; }
+      var span = panel.querySelector('[data-i18n="ai_disclaimer"]'); if(!span) return;
+      var host = span.parentNode;
+      if(!bar){ bar = document.createElement('div'); bar.id = 'lpgAiDoc'; bar.className = 'lpg-aidoc'; host.parentNode.insertBefore(bar, host); }
+      var t = pk(AID[m]); if(bar.getAttribute('data-t') !== t){ bar.innerHTML = t; bar.setAttribute('data-t', t); }
+      if(bar.style.display === 'none') bar.style.display = '';
+    }
+    setInterval(aiTick, 1500); aiTick();
+    window.LunaW40 = { show: L.week.show, shown: function(){ return shown; }, apply: apply, aiTick: aiTick };
+  }catch(e){ try{ console.warn('lunaW40', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🚦 「什么时候要联系医生」改成按轻重缓急分三级（只追加，不改原来任何一行）。
+     🔴 立刻就医 / 立即联系医生（可能是紧急情况）   🟠 尽快联系医生（今天内）   🟢 建议咨询医生（下次产检 / 检查时问，或打电话问）
+     替换的地方：孕期小百科第 1–40 周的「异常情况提示 / 需要及时联系医生的情况」、产后小提示 / 恢复小提示里的「什么时候要尽快联系医生」、产后「宝宝这周」卡片底部的就医信号。
+     文案的写法：🔴 写得直接，不加"可能 / 也许"；🟢 才是"可以问问"。每一条都不下诊断、不说"正常"，没有药名和剂量。
+     关掉方法：Firebase remoteConfig/featureFlags 里写 triage:false，下次打开恢复成原来那种一整列的写法。
+     ⚠️ 上线前：请医生确认每一级里放的情况是否合适（尤其 🔴 和 🟠 的分界）；泰文请母语者看一遍。 -->
+<style id="lpgTriageCss">
+.lpg-tri{margin-top:2px;}
+.lpg-tri .tr-h{display:flex;align-items:center;gap:8px;margin:12px 0 4px;padding:7px 10px;border-radius:12px;font-size:13.5px;font-weight:700;line-height:1.5;color:var(--stat-fg);}
+.lpg-tri .tr-h:first-child{margin-top:4px;}
+.lpg-tri .tr-r{background:rgba(224,72,72,.12);}
+.lpg-tri .tr-o{background:rgba(240,150,40,.14);}
+.lpg-tri .tr-g{background:rgba(60,170,110,.13);}
+.lpg-tri .tr-i{display:flex;gap:8px;font-size:14px;line-height:1.75;color:var(--stat-fg);padding:1px 4px;}
+.lpg-tri .tr-i span:first-child{color:var(--stat-fg-muted,#8a7fa8);}
+.lpg-tri .tr-f{margin-top:10px;font-size:13px;line-height:1.7;font-weight:600;color:var(--purple,#7c5cbf);}
+</style>
+<script>
+(function(){
+  if(window.__lunaTriage) return; window.__lunaTriage = true;
+  try{
+    var L = window.LunaPreg; if(!L || !L._u) return;
+    var U = L._u;
+    function lang(){ try{ return U.lang(); }catch(e){ return 'zh'; } }
+    function zhOf(){ return lang() === 'zh'; }
+    function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+    function flagOn(){ try{ return !(typeof window._isFeatureEnabled === 'function' && !window._isFeatureEnabled('triage')); }catch(e){ return true; } }
+    function el(id){ return document.getElementById(id); }
+    var HEAD = {
+      r:['🔴 立刻就医 / 立即联系医生（可能是紧急情况）','🔴 รีบไปพบแพทย์ทันที / ติดต่อแพทย์ทันที (อาจเป็นภาวะฉุกเฉิน)'],
+      o:['🟠 尽快联系医生（今天内）','🟠 รีบติดต่อแพทย์ (ภายในวันนี้)'],
+      g:['🟢 建议咨询医生（下次检查时问，或打电话问）','🟢 ควรปรึกษาแพทย์ (ถามในนัดครั้งถัดไป หรือโทรสอบถาม)']
+    };
+    var FOOT = ['如果不确定属于哪一级，就按高一级处理。情况紧急请立刻去最近医院的急诊。','หากไม่แน่ใจว่าอยู่ระดับไหน ให้ถือว่าเป็นระดับที่สูงกว่า หากฉุกเฉินให้รีบไปห้องฉุกเฉินของโรงพยาบาลที่ใกล้ที่สุดทันที'];
+    // 每套：{r:[[zh,th]...], o:[...], g:[...]}
+    var T = {
+      early:{
+        r:[['大量阴道出血（比月经量还多），或者出血的同时剧烈腹痛','เลือดออกทางช่องคลอดมาก (มากกว่าประจำเดือน) หรือมีเลือดออกร่วมกับปวดท้องรุนแรง'],['一侧腹部剧烈疼痛，或者肩膀疼痛、晕倒','ปวดท้องรุนแรงข้างใดข้างหนึ่ง หรือปวดที่ไหล่ หรือเป็นลม'],['胸痛、呼吸困难','เจ็บหน้าอก หายใจลำบาก']],
+        o:[['阴道有出血，哪怕只有一点','มีเลือดออกทางช่องคลอด แม้เพียงเล็กน้อย'],['腹痛一直不缓解','ปวดท้องและไม่ดีขึ้น'],['发烧、发冷','มีไข้ หนาวสั่น'],['一直吐，24 小时喝不进水，或者 8 小时以上没有小便','อาเจียนไม่หยุด ดื่มน้ำไม่ได้นาน 24 ชั่วโมง หรือไม่ปัสสาวะเกิน 8 ชั่วโมง'],['有液体从阴道流出','มีของเหลวไหลออกจากช่องคลอด'],['一条腿疼痛、肿胀','ปวดหรือบวมที่ขาข้างเดียว'],['头晕得站不住','เวียนศีรษะจนยืนไม่ไหว']],
+        g:[['孕吐、疲倦、乳房胀痛、情绪起伏','แพ้ท้อง เหนื่อยล้า เจ็บคัดเต้านม อารมณ์แปรปรวน'],['便秘、胃灼热','ท้องผูก แสบร้อนกลางอก'],['不确定某种药、保健品或食物能不能吃','ไม่แน่ใจว่ายา อาหารเสริม หรืออาหารบางอย่างกินได้หรือไม่'],['任何让你担心、但不严重的事','เรื่องที่ทำให้คุณกังวลแต่ไม่รุนแรง']]
+      },
+      mid:{
+        r:[['大量阴道出血，或者出血的同时腹痛','เลือดออกทางช่องคลอดมาก หรือมีเลือดออกร่วมกับปวดท้อง'],['剧烈、持续的腹痛','ปวดท้องรุนแรงและต่อเนื่อง'],['破水：有液体不受控制地流出','น้ำเดิน: มีของเหลวไหลออกโดยควบคุมไม่ได้'],['严重头痛，并且视线模糊','ปวดศีรษะรุนแรงและตามัว'],['胸痛、呼吸困难','เจ็บหน้าอก หายใจลำบาก'],['抽搐，或者晕倒','ชัก หรือเป็นลม']],
+        o:[['阴道有少量出血','มีเลือดออกทางช่องคลอดเล็กน้อย'],['规律的腹痛，或者肚子一阵一阵发紧','ปวดท้องเป็นจังหวะสม่ำเสมอ หรือท้องแข็งเป็นพัก ๆ'],['发烧、发冷','มีไข้ หนาวสั่น'],['一直吐，喝不进水','อาเจียนไม่หยุด ดื่มน้ำไม่ได้'],['一条腿疼痛、肿胀','ปวดหรือบวมที่ขาข้างเดียว'],['已经能感觉到胎动后，觉得明显变少','เมื่อเคยรู้สึกลูกดิ้นแล้ว แต่รู้สึกว่าดิ้นน้อยลงชัดเจน'],['头晕得站不住','เวียนศีรษะจนยืนไม่ไหว']],
+        g:[['腰背酸、胃灼热、便秘、睡不好、脚踝轻微水肿','ปวดหลัง แสบร้อนกลางอก ท้องผูก นอนไม่หลับ ข้อเท้าบวมเล็กน้อย'],['偶尔不规律、休息后会缓解的肚子发紧','ท้องแข็งเป็นครั้งคราวแบบไม่สม่ำเสมอ และดีขึ้นเมื่อพัก'],['情绪低落、焦虑，或者对检查、用药有疑问','อารมณ์ซึม วิตกกังวล หรือมีข้อสงสัยเรื่องการตรวจและการใช้ยา']]
+      },
+      late:{
+        r:[['宝宝动得明显变少，或者一直没有感觉到动（不要等到明天）','ลูกดิ้นน้อยลงชัดเจน หรือไม่รู้สึกว่าลูกดิ้นเลย (อย่ารอถึงพรุ่งนี้)'],['破水：有液体不受控制地流出','น้ำเดิน: มีของเหลวไหลออกโดยควบคุมไม่ได้'],['大量出血，或者出血的同时腹痛','เลือดออกมาก หรือมีเลือดออกร่วมกับปวดท้อง'],['剧烈腹痛，或者肚子一直发硬、放不松','ปวดท้องรุนแรง หรือท้องแข็งตลอดไม่คลาย'],['严重头痛、视线模糊、上腹疼痛','ปวดศีรษะรุนแรง ตามัว ปวดจุกลิ้นปี่'],['抽搐，或者晕倒','ชัก หรือเป็นลม'],['胸痛、呼吸困难','เจ็บหน้าอก หายใจลำบาก'],['37 周以前出现规律的宫缩','เจ็บท้องสม่ำเสมอก่อน 37 สัปดาห์']],
+        o:[['有少量出血（不确定是不是见红）','มีเลือดออกเล็กน้อย (ไม่แน่ใจว่าเป็นมูกเลือดหรือไม่)'],['发烧、发冷','มีไข้ หนาวสั่น'],['脸和手突然明显肿起来','ใบหน้าและมือบวมขึ้นมากอย่างกะทันหัน'],['一条腿疼痛、肿胀','ปวดหรือบวมที่ขาข้างเดียว'],['37 周以后出现规律的宫缩（先打电话给医院，按医院的指示出发）','เจ็บท้องสม่ำเสมอหลัง 37 สัปดาห์ (โทรหาโรงพยาบาลก่อน แล้วไปตามที่โรงพยาบาลแนะนำ)'],['一直吐，或者明显头晕','อาเจียนไม่หยุด หรือเวียนศีรษะมาก']],
+        g:[['腰背酸、胃灼热、尿频、睡不好、轻微水肿','ปวดหลัง แสบร้อนกลางอก ปัสสาวะบ่อย นอนไม่หลับ บวมเล็กน้อย'],['偶尔不规律、休息后会缓解的肚子发紧','ท้องแข็งเป็นครั้งคราวแบบไม่สม่ำเสมอ และดีขึ้นเมื่อพัก'],['紧张、焦虑、害怕生产','ตื่นเต้น วิตกกังวล กลัวการคลอด']]
+      },
+      birth:{
+        r:[['出血突然变多：一小时内湿透一片或更多卫生巾，或者排出鸡蛋大小的血块','เลือดออกมากขึ้นกะทันหัน: ผ้าอนามัยชุ่มตั้งแต่หนึ่งชิ้นขึ้นไปภายในหนึ่งชั่วโมง หรือมีก้อนเลือดขนาดเท่าไข่ไก่'],['胸痛、呼吸困难','เจ็บหน้าอก หายใจลำบาก'],['严重头痛，或者视线模糊、呕吐','ปวดศีรษะรุนแรง หรือตามัว อาเจียน'],['抽搐，或者晕倒','ชัก หรือเป็นลม'],['有伤害自己或宝宝的想法','มีความคิดที่จะทำร้ายตัวเองหรือลูก']],
+        o:[['发烧（体温超过 38 °C）或发冷','มีไข้ (อุณหภูมิเกิน 38 °C) หรือหนาวสั่น'],['腹部剧烈疼痛，或者阴道分泌物有异味','ปวดท้องรุนแรง หรือมีตกขาวกลิ่นผิดปกติ'],['一条腿疼痛、红肿、发热','ปวด บวมแดง หรืออุ่นที่ขาข้างเดียว'],['脸和手突然明显肿起来','ใบหน้าและมือบวมขึ้นมากอย่างกะทันหัน'],['头晕得快要晕倒，或者心跳很快','เวียนศีรษะมากจนเกือบเป็นลม หรือหัวใจเต้นเร็ว'],['情绪低落一直没有好转，觉得撑不住','อารมณ์ซึมไม่ดีขึ้นและรู้สึกเกือบทนไม่ไหว']],
+        g:[['疲倦、睡不好、乳房胀痛、伤口轻微不适','เหนื่อยล้า นอนไม่พอ เจ็บคัดเต้านม แผลไม่สบายเล็กน้อย'],['哺乳、带宝宝上有疑问','มีข้อสงสัยเรื่องการให้นมและการเลี้ยงลูก'],['有些情绪低落、爱哭，但还撑得住','รู้สึกซึมและร้องไห้ง่ายแต่ยังพอไหว']]
+      },
+      ended:{
+        r:[['出血突然变多：一小时内湿透一片或更多卫生巾，或者排出鸡蛋大小的血块','เลือดออกมากขึ้นกะทันหัน: ผ้าอนามัยชุ่มตั้งแต่หนึ่งชิ้นขึ้นไปภายในหนึ่งชั่วโมง หรือมีก้อนเลือดขนาดเท่าไข่ไก่'],['胸痛、呼吸困难','เจ็บหน้าอก หายใจลำบาก'],['晕倒','เป็นลม']],
+        o:[['发烧（体温超过 38 °C）或发冷','มีไข้ (อุณหภูมิเกิน 38 °C) หรือหนาวสั่น'],['腹部剧烈疼痛，或者阴道分泌物有异味','ปวดท้องรุนแรง หรือมีตกขาวกลิ่นผิดปกติ'],['头晕得快要晕倒','เวียนศีรษะมากจนเกือบเป็นลม'],['难过、空落的感觉太重，撑不住','ความเศร้าหรือความว่างเปล่าที่หนักจนเกือบทนไม่ไหว']],
+        g:[['疲倦，轻微的腹痛或出血在慢慢减少','เหนื่อยล้า ปวดท้องเล็กน้อยหรือเลือดออกที่ค่อย ๆ ลดลง'],['想找人聊聊，或者不知道怎么面对','อยากหาคนคุย หรือไม่รู้จะรับมืออย่างไร']]
+      },
+      baby:{
+        r:[['呼吸很快或很费力，嘴唇发青','หายใจเร็วหรือหายใจลำบาก ริมฝีปากเขียว'],['发烧（38 °C 或以上）','มีไข้ (38 °C ขึ้นไป)'],['很难叫醒，或者软绵绵的没有力气','ปลุกให้ตื่นยากมาก หรืออ่อนปวกเปียกไม่มีแรง'],['抽搐','ชัก']],
+        o:[['吃奶明显变差，或者尿布明显变少','กินนมน้อยลงชัดเจน หรือผ้าอ้อมเปียกน้อยลงชัดเจน'],['皮肤或眼白发黄','ผิวหรือตาขาวเหลือง'],['脐带残端红肿、流脓或有异味','ตอสายสะดือแดง บวม มีหนอง หรือมีกลิ่น']],
+        g:[['偶尔吐奶、打嗝、胀气、小疹子','แหวะนมเป็นครั้งคราว สะอึก ท้องอืด ผื่นเล็ก ๆ'],['哭闹比较多，或者睡得多、睡得少','ร้องไห้บ่อย หรือหลับมาก/หลับน้อย']]
+      }
+    };
+    function tierHtml(set){
+      var l = lang(), k = zhOf() ? 0 : 1, h = '<div class="lpg-tri">', tiers = ['r','o','g'], i, j, a;
+      for(i = 0; i < 3; i++){
+        a = set[tiers[i]]; if(!a || !a.length) continue;
+        h += '<div class="tr-h tr-' + tiers[i] + '">' + esc(HEAD[tiers[i]][k]) + '</div>';
+        for(j = 0; j < a.length; j++) h += '<div class="tr-i"><span>•</span><span>' + esc(a[j][k]) + '</span></div>';
+      }
+      return h + '<div class="tr-f">' + esc(FOOT[k]) + '</div></div>';
+    }
+    function setFor(w){ return w <= 16 ? T.early : (w <= 27 ? T.mid : T.late); }
+    function weekShown(){
+      var lab = el('pregWeekNavLabel'); if(!lab) return null;
+      var m = (lab.textContent || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : null;
+    }
+    function titleOf(card){ var t = card.firstElementChild; return t ? (t.textContent || '') : ''; }
+    function doCard(card, set){
+      var tag = (flagOn() ? 'on' : 'off');
+      var key = (zhOf() ? 'z' : 't') + '|' + set.__k;
+      if(card.getAttribute('data-tri') === key) return;
+      if(!card.__orig) card.__orig = card.innerHTML;
+      var title = card.firstElementChild ? card.firstElementChild.outerHTML : '';
+      card.innerHTML = title + tierHtml(set); card.setAttribute('data-tri', key);
+    }
+    var K = 0; Object.keys(T).forEach(function(n){ T[n].__k = n; });
+    function scan(){
+      if(!flagOn()) return;
+      // ① 孕期小百科
+      var pb = el('pregWeekPanelBody'), p = el('pregWeekPanel');
+      if(pb && p && p.style.display === 'block'){
+        var w = weekShown();
+        if(w !== null){
+          var cs = pb.querySelectorAll('.stat-card');
+          for(var i = 0; i < cs.length; i++){ var t = titleOf(cs[i]); if(t.indexOf('⚠️') === 0 || t.indexOf('🚨') === 0) doCard(cs[i], setFor(w)); }
+        }
+      }
+      // ② 产后 / 恢复小提示
+      var ib = el('ppInfoBody'), ip = el('ppInfoPanel');
+      if(ib && ip && ip.style.display === 'block'){
+        var pi = null; try{ pi = L.post && L.post.isActive() ? L.post.info() : null; }catch(e){}
+        if(pi){
+          var cs2 = ib.querySelectorAll('.stat-card');
+          for(var j = 0; j < cs2.length; j++){ if(titleOf(cs2[j]).indexOf('🚨') === 0) doCard(cs2[j], pi.kind === 'ended' ? T.ended : T.birth); }
+        }
+        // ③ 宝宝这周卡片底部
+        var d = ib.querySelector('.lpg-bw-doc');
+        if(d){
+          var key = (zhOf() ? 'z' : 't') + '|baby';
+          if(d.getAttribute('data-tri') !== key){
+            d.innerHTML = '<div style="font-weight:700;color:var(--stat-fg);margin-bottom:2px;">' + esc(zhOf() ? '宝宝出生后头三个月，什么时候要联系医生：' : 'ในสามเดือนแรกหลังคลอด เมื่อไรควรติดต่อแพทย์:') + '</div>' + tierHtml(T.baby) + '<div style="margin-top:8px;">' + esc(zhOf() ? '每个宝宝发育的速度不同，以上只是常见情况，不能代替医生的判断。' : 'เด็กแต่ละคนพัฒนาไม่เท่ากัน ข้อมูลข้างต้นเป็นเพียงสิ่งที่พบได้บ่อย ไม่สามารถแทนการตัดสินของแพทย์ได้') + '</div>';
+            d.setAttribute('data-tri', key);
+          }
+        }
+      }
+    }
+    ['pregWeekPanelBody','ppInfoBody'].forEach(function(id){ var e = el(id); if(e && window.MutationObserver) new MutationObserver(function(){ scan(); }).observe(e, {childList:true}); });
+    var pw = el('pregWeekPanel'); if(pw && window.MutationObserver) new MutationObserver(function(){ scan(); }).observe(pw, {attributes:true, attributeFilter:['style']});
+    setInterval(scan, 1200); scan();
+    window.LunaTriage = { scan: scan, sets: T, html: tierHtml };
+  }catch(e){ try{ console.warn('lunaTriage', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🔗 游客记录并入账号（只追加，不改原来任何一行）。
+     游客（没登录）时记的东西存在"没带账号后缀"的本地 key 里；登录后 App 读的是带账号后缀的 key，所以游客记录看起来"没了"。
+     这里：登录后检测到本机还有游客记录、而且账号里还没有 → 弹一个确认框，点"并入"把记录合并进这个账号（经期日/症状取并集，
+     备孕/怀孕/产后状态只在账号里没有时才带过来），点"不并入"就不动。每个账号只问一次。 -->
+<style>
+#lpgGmMask{position:fixed;inset:0;z-index:2147483000;background:rgba(40,30,60,.5);display:flex;align-items:center;justify-content:center;padding:24px;}
+#lpgGmBox{background:var(--card-bg,#fff);color:var(--text,#3a2f4f);border-radius:20px;max-width:340px;width:100%;padding:22px 20px 16px;box-shadow:0 12px 40px rgba(0,0,0,.25);text-align:center;font-family:inherit;}
+#lpgGmBox .gm-t{font-size:17px;font-weight:700;margin-bottom:8px;}
+#lpgGmBox .gm-b{font-size:13.5px;line-height:1.65;opacity:.85;margin-bottom:6px;}
+#lpgGmBox .gm-l{font-size:12.5px;line-height:1.7;text-align:left;background:rgba(160,130,200,.12);border-radius:12px;padding:8px 12px;margin:8px 0 14px;}
+#lpgGmBox button{display:block;width:100%;border:0;border-radius:14px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}
+#lpgGmBox .gm-y{background:linear-gradient(135deg,#c9a7f0,#f0a7c9);color:#fff;margin-bottom:8px;}
+#lpgGmBox .gm-n{background:transparent;color:inherit;opacity:.65;font-weight:500;font-size:13.5px;}
+</style>
+<script>
+(function(){
+  if(window.__lunaGuestMerge) return; window.__lunaGuestMerge = true;
+  try{
+    var LS = localStorage;
+    function lang(){ var l = window._appLang || LS.getItem('luna_lang') || 'th'; return l === 'zh' ? 'zh' : 'th'; }
+    function T(zh, th){ return lang() === 'zh' ? zh : th; }
+    function rd(k){ try{ var v = LS.getItem(k); return v === null ? null : JSON.parse(v); }catch(e){ return null; } }
+    function wr(k, v){ try{ LS.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+    function isObj(x){ return !!x && typeof x === 'object' && Object.prototype.toString.call(x) !== '[object Array]'; }
+    function nonEmptyObj(x){ return isObj(x) && Object.keys(x).length > 0; }
+    function liveCount(m){ var n = 0, k; if(!isObj(m)) return 0; for(k in m){ if(m[k] && m[k].del !== true) n++; } return n; }
+    function activeState(s){ return isObj(s) && s.active === true; }
+    function uidNow(){ try{ return LS.getItem('luna_uid') || ''; }catch(e){ return ''; } }
+    function ak(b, u){ return u ? b + '_' + u : b; }
+    function doneKey(u){ return ak('luna_gm_done', u); }
+    function flagOn(){ try{ return !(typeof window._isFeatureEnabled === 'function' && window._isFeatureEnabled('guestMerge') === false); }catch(e){ return true; } }
+
+    // 云端路径 / 本地 base 对照
+    var MAPS = [ ['luna_ttc_logs','ttcLogs'], ['luna_preg_weights','pregWeights'], ['luna_preg_visits','pregVisits'], ['luna_preg_kicks','pregKicks'] ];
+
+    function snapshot(u){
+      var g = {
+        days: rd('luna_period_days'), logs: rd('luna_logs'),
+        ttc: rd('luna_ttc_state'), preg: rd('luna_preg_state'), pp: rd('luna_postpartum'), arch: rd('luna_period_archive'),
+        maps: {}
+      };
+      MAPS.forEach(function(m){ g.maps[m[0]] = rd(m[0]); });
+      var a = {
+        days: rd(ak('luna_period_days', u)), logs: rd(ak('luna_logs', u)),
+        ttc: rd(ak('luna_ttc_state', u)), preg: rd(ak('luna_preg_state', u)), pp: rd(ak('luna_postpartum', u)), arch: rd(ak('luna_period_archive', u)),
+        maps: {}
+      };
+      MAPS.forEach(function(m){ a.maps[m[0]] = rd(ak(m[0], u)); });
+      return { g: g, a: a };
+    }
+    // 游客那边有哪些"账号里还没有"的东西
+    function diff(sn){
+      var g = sn.g, a = sn.a, o = { days: [], logs: [], ttc: false, preg: false, pp: false, arch: false, maps: {} };
+      if(Array.isArray(g.days)){
+        var have = {}; (Array.isArray(a.days) ? a.days : []).forEach(function(d){ have[d] = 1; });
+        o.days = g.days.filter(function(d){ return typeof d === 'string' && !have[d]; });
+      }
+      if(Array.isArray(g.logs)){
+        var hl = {}; (Array.isArray(a.logs) ? a.logs : []).forEach(function(l){ if(l && l.date) hl[l.date] = 1; });
+        o.logs = g.logs.filter(function(l){ return l && l.date && !hl[l.date]; });
+      }
+      var accHasMode = activeState(a.ttc) || activeState(a.preg) || activeState(a.pp);
+      if(!accHasMode){
+        if(activeState(g.ttc)) o.ttc = true;
+        if(activeState(g.preg)) o.preg = true;
+        else if(isObj(g.pp) && g.pp.active === true) o.pp = true;
+      }
+      if(o.pp === false && !accHasMode && isObj(g.pp) && g.pp.active === true && !o.preg) o.pp = true;
+      if(nonEmptyObj(g.arch)){
+        var ak = isObj(a.arch) ? a.arch : {};
+        for(var k in g.arch){ if(!ak[k]){ o.arch = true; break; } }
+      }
+      MAPS.forEach(function(m){
+        var gm = g.maps[m[0]], am = isObj(a.maps[m[0]]) ? a.maps[m[0]] : {};
+        if(!nonEmptyObj(gm)) return;
+        if(m[0] !== 'luna_ttc_logs' && !(o.preg) && !(activeState(a.preg) && activeState(g.preg) && a.preg.startedAt === g.preg.startedAt)) return; // 体重/产检/胎动只跟着怀孕状态一起带过来
+        var add = false;
+        for(var k in gm){ if(gm[k] && gm[k].ts && (!am[k] || gm[k].ts > am[k].ts)){ add = true; break; } }
+        if(add) o.maps[m[0]] = true;
+      });
+      return o;
+    }
+    function hasAny(o){
+      return o.days.length > 0 || o.logs.length > 0 || o.ttc || o.preg || o.pp || o.arch || Object.keys(o.maps).length > 0;
+    }
+    function cloudSet(u, path, val){
+      if(!u) return;
+      var full = 'userdata/' + u + '/' + path;
+      // 先记进"待同步"队列：上传成功会自动清掉；如果上传中途页面重新载入被打断，下次打开会自动补传
+      try{ var q0 = JSON.parse(LS.getItem('luna_pending_sync') || '{}'); q0[full] = { value: val, ts: Date.now() }; LS.setItem('luna_pending_sync', JSON.stringify(q0)); }catch(e){}
+      try{
+        if(typeof _fbSetWithRetry === 'function'){ _fbSetWithRetry(full, val); return; }
+      }catch(e){}
+      try{
+        if(window._fb && window._fb.set){ window._fb.set(full, val).catch(function(){}); return; }
+      }catch(e){}
+      try{ var q = JSON.parse(LS.getItem('luna_pending_sync') || '{}'); q[full] = { value: val, ts: Date.now() }; LS.setItem('luna_pending_sync', JSON.stringify(q)); }catch(e){}
+    }
+    function merge(u, sn, o){
+      var g = sn.g, a = sn.a, k;
+      if(o.days.length){
+        var days = Array.from(new Set((Array.isArray(a.days) ? a.days : []).concat(o.days))).sort();
+        wr(ak('luna_period_days', u), days); cloudSet(u, 'periodDays', days);
+      }
+      if(o.logs.length){
+        var logs = (Array.isArray(a.logs) ? a.logs : []).concat(o.logs);
+        wr(ak('luna_logs', u), logs); cloudSet(u, 'logs', logs);
+      }
+      if(o.ttc){ wr(ak('luna_ttc_state', u), g.ttc); cloudSet(u, 'ttc', g.ttc); }
+      if(o.preg){ wr(ak('luna_preg_state', u), g.preg); cloudSet(u, 'pregnancy', g.preg); }
+      if(o.pp){ wr(ak('luna_postpartum', u), g.pp); cloudSet(u, 'postpartum', g.pp); }
+      if(o.arch){
+        var ar = isObj(a.arch) ? a.arch : {}; for(k in g.arch) if(!ar[k]) ar[k] = g.arch[k];
+        wr(ak('luna_period_archive', u), ar); cloudSet(u, 'periodArchive', ar);
+      }
+      MAPS.forEach(function(m){
+        if(!o.maps[m[0]]) return;
+        var am = isObj(a.maps[m[0]]) ? a.maps[m[0]] : {}, gm = g.maps[m[0]], out = {}, kk;
+        for(kk in am) out[kk] = am[kk];
+        for(kk in gm){ if(gm[kk] && gm[kk].ts && (!out[kk] || gm[kk].ts > out[kk].ts)) out[kk] = gm[kk]; }
+        wr(ak(m[0], u), out); cloudSet(u, m[1], out);
+      });
+      if(o.preg){ var cur = (g.kickCur !== undefined) ? g.kickCur : LS.getItem('luna_preg_kick_cur'); if(cur !== null && typeof cur === 'object') cur = JSON.stringify(cur); if(cur !== null && cur !== undefined && LS.getItem(ak('luna_preg_kick_cur', u)) === null) LS.setItem(ak('luna_preg_kick_cur', u), cur); }
+    }
+    function summary(o){
+      var L = [];
+      if(o.days.length) L.push(T('🩸 经期记录 ' + o.days.length + ' 天', '🩸 บันทึกประจำเดือน ' + o.days.length + ' วัน'));
+      if(o.logs.length) L.push(T('📝 症状/心情记录 ' + o.logs.length + ' 条', '📝 บันทึกอาการ/อารมณ์ ' + o.logs.length + ' รายการ'));
+      if(o.ttc) L.push(T('🌱 备孕模式和记录', '🌱 โหมดเตรียมตั้งครรภ์และบันทึก'));
+      if(o.preg) L.push(T('🤰 怀孕模式和记录', '🤰 โหมดตั้งครรภ์และบันทึก'));
+      if(o.pp) L.push(T('👶 产后模式和记录', '👶 โหมดหลังคลอดและบันทึก'));
+      if(!o.ttc && o.maps.luna_ttc_logs) L.push(T('🌱 备孕记录', '🌱 บันทึกเตรียมตั้งครรภ์'));
+      return L;
+    }
+    var shown = false;
+    function ask(u, sn, o){
+      if(shown || document.getElementById('lpgGmMask')) return; shown = true;
+      var m = document.createElement('div'); m.id = 'lpgGmMask';
+      var items = summary(o).map(function(s){ return '<div>' + s + '</div>'; }).join('');
+      m.innerHTML = '<div id="lpgGmBox" role="dialog" aria-modal="true"><div class="gm-t">' + T('检测到你登录前的记录', 'พบบันทึกก่อนเข้าสู่ระบบ') + '</div>' +
+        '<div class="gm-b">' + T('这台手机上有你以游客身份记下的内容，要并入现在登录的账号吗？并入后换手机也能看到。', 'มีข้อมูลที่คุณบันทึกไว้ตอนยังไม่ได้เข้าสู่ระบบ ต้องการรวมเข้ากับบัญชีนี้ไหม? รวมแล้วเปลี่ยนเครื่องก็ยังเห็น') + '</div>' +
+        '<div class="gm-l">' + items + '</div>' +
+        '<button class="gm-y" id="lpgGmYes">' + T('并入这个账号', 'รวมเข้าบัญชีนี้') + '</button>' +
+        '<button class="gm-n" id="lpgGmNo">' + T('不并入', 'ไม่รวม') + '</button></div>';
+      document.body.appendChild(m);
+      function close(){ try{ m.remove(); }catch(e){} }
+      document.getElementById('lpgGmYes').onclick = function(){
+        var btn = this; btn.disabled = true;
+        try{ merge(u, sn, o); }catch(e){ try{ console.warn('guestMerge merge', e); }catch(_){} }
+        try{ LS.setItem(doneKey(u), 'merged'); }catch(e){}
+        // 清掉游客的那份，免得下次又问；然后重新载入，让各个模块重新读账号里的数据
+        ['luna_period_days','luna_logs','luna_ttc_state','luna_preg_state','luna_postpartum','luna_period_archive','luna_ttc_logs','luna_preg_weights','luna_preg_visits','luna_preg_kicks','luna_preg_kick_cur'].forEach(function(k){ try{ LS.removeItem(k); }catch(e){} });
+        close();
+        setTimeout(function(){ try{ location.reload(); }catch(e){} }, 2500);
+      };
+      document.getElementById('lpgGmNo').onclick = function(){
+        try{ LS.setItem(doneKey(u), 'declined'); }catch(e){}
+        close();
+      };
+    }
+    var firstSeen = 0, seenUid = '';
+    function tick(){
+      try{
+        var u = uidNow();
+        if(!u || !flagOn()) { firstSeen = 0; return; }
+        if(LS.getItem(doneKey(u))) return;
+        if(seenUid !== u){ seenUid = u; firstSeen = Date.now(); }
+        var waited = Date.now() - firstSeen;
+        var gate = document.getElementById('codeGate');
+        if(gate && waited < 30000){ var gs = window.getComputedStyle(gate); if(gs.display !== 'none' && gs.pointerEvents !== 'none' && gs.visibility !== 'hidden') return; }
+        if(document.getElementById('lpgGmMask') || !document.body) return;
+        var loaded = window._lunaLoadedDataFor === u;
+        if(waited < (loaded ? 2500 : 12000)) return; // 等云端数据合并进来之后再比较，避免把"账号里本来就有"的当成新的
+        var sn = snapshot(u), o = diff(sn);
+        if(!hasAny(o)){ LS.setItem(doneKey(u), 'none'); return; }
+        ask(u, sn, o);
+      }catch(e){ try{ console.warn('guestMerge', e); }catch(_){} }
+    }
+
+    // ── 登录前提醒：游客第一次点"Google / Apple 登录"时，先提醒备份 ──
+    function guestHasData(){
+      var d = rd('luna_period_days'), l = rd('luna_logs');
+      return (Array.isArray(d) && d.length > 0) || (Array.isArray(l) && l.length > 0) ||
+             activeState(rd('luna_ttc_state')) || activeState(rd('luna_preg_state')) || activeState(rd('luna_postpartum'));
+    }
+    function remind(go){
+      if(document.getElementById('lpgGmMask')) return;
+      var m = document.createElement('div'); m.id = 'lpgGmMask';
+      m.innerHTML = '<div id="lpgGmBox" role="dialog" aria-modal="true"><div class="gm-t">' + T('登录前，建议先备份一份', 'ก่อนเข้าสู่ระบบ แนะนำให้สำรองข้อมูลก่อน') + '</div>' +
+        '<div class="gm-b">' + T('你现在是游客，记录只存在这台手机上。登录后我们会问你要不要把这些记录并入账号；为了保险，建议先导出一份备份文件。', 'ตอนนี้คุณเป็นผู้เยี่ยมชม ข้อมูลเก็บอยู่ในเครื่องนี้เท่านั้น หลังเข้าสู่ระบบเราจะถามว่าต้องการรวมข้อมูลเข้ากับบัญชีไหม เพื่อความปลอดภัย แนะนำให้ส่งออกไฟล์สำรองไว้ก่อน') + '</div>' +
+        '<div class="gm-l">' + T('备份文件会包含你的全部记录（经期、症状，以及备孕 / 怀孕 / 产后）。', 'ไฟล์สำรองจะรวมบันทึกทั้งหมดของคุณ (ประจำเดือน อาการ เตรียมตั้งครรภ์ / ตั้งครรภ์ / หลังคลอด)') + '</div>' +
+        '<button class="gm-y" id="lpgGmBk">' + T('先导出备份', 'ส่งออกไฟล์สำรองก่อน') + '</button>' +
+        '<button class="gm-y" id="lpgGmGo" style="background:#8f7bd1;">' + T('继续登录', 'ดำเนินการเข้าสู่ระบบต่อ') + '</button>' +
+        '<button class="gm-n" id="lpgGmCx">' + T('取消', 'ยกเลิก') + '</button></div>';
+      document.body.appendChild(m);
+      function close(){ try{ m.remove(); }catch(e){} }
+      document.getElementById('lpgGmBk').onclick = function(){
+        try{ if(typeof window.exportData === 'function') window.exportData(); }catch(e){}
+        this.textContent = T('已导出 ✓ 可以继续登录了', 'ส่งออกแล้ว ✓ เข้าสู่ระบบต่อได้เลย');
+        try{ LS.setItem('luna_gm_exported', String(Date.now())); }catch(e){}
+      };
+      document.getElementById('lpgGmGo').onclick = function(){ try{ LS.setItem('luna_gm_warned', '1'); }catch(e){} close(); go(true); };
+      document.getElementById('lpgGmCx').onclick = function(){ close(); go(false); };
+    }
+    function wrapLogin(name){
+      var orig = window[name];
+      if(typeof orig !== 'function' || orig.__lpgGm) return false;
+      var w = function(){
+        var args = arguments, self = this;
+        try{
+          if(flagOn() && !uidNow() && !LS.getItem('luna_gm_warned') && guestHasData() && document.body){
+            return new Promise(function(res){
+              remind(function(go){ if(go){ try{ res(orig.apply(self, args)); }catch(e){ res(); } } else res(); });
+            });
+          }
+        }catch(e){}
+        return orig.apply(self, args);
+      };
+      w.__lpgGm = true; window[name] = w; return true;
+    }
+    var wt = 0, wi = setInterval(function(){
+      var a = wrapLogin('signInWithGoogle'), b = wrapLogin('signInWithApple');
+      if(++wt > 120 || (window.signInWithGoogle && window.signInWithGoogle.__lpgGm && window.signInWithApple && window.signInWithApple.__lpgGm)) clearInterval(wi);
+    }, 500);
+    window.LunaGuestMerge = { check: tick, _snapshot: snapshot, _diff: diff, _merge: merge, _hasAny: hasAny, _ak: ak, _maps: MAPS };
+    setInterval(tick, 1000);
+  }catch(e){ try{ console.warn('lunaGuestMerge', e); }catch(_){} }
+})();
+</script>
+
+<!-- ☁️ 完整导出/导入 + 「我的」页云端备份区块（只追加，不改原来任何一行）。
+     ① 导出：除了原来的经期/症状，再带上备孕/怀孕/产后状态、备孕记录、体重、产检、胎动、经期存档（旧版导入文件仍然能读）；
+        导入：读到新版文件时，除了原来的合并，再把这些记录补回来（只补缺的，不删现有记录）。
+     ② 「我的」页「数据」上面多一块「云端备份」：自动备份开关 / 最后同步时间 / 立即备份 / 恢复云端数据 / 删除云端备份。
+        游客点任何一项，都提示"需要登录后才能使用"。云端一份快照存在 cloudBackups/<uid>（登录用户本人才读得到；放在 userdata 之外，不会拖慢读取整个 userdata 的云函数）。
+        清除数据 / 删除账号（remove userdata/<uid>）时一并删除这份备份。 -->
+<style>
+#lpgCbT{margin-top:18px;}
+.lpg-cb-ic{flex-shrink:0;width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:18px;background:var(--purple-pale,#f4effb);}
+.lpg-cb-ic.red{background:#fdeced;}
+.lpg-cb-busy{opacity:.55;pointer-events:none;}
+</style>
+<script>
+(function(){
+  if(window.__lunaCloudBackup) return; window.__lunaCloudBackup = true;
+  try{
+    var LS = localStorage, GM = function(){ return window.LunaGuestMerge; };
+    function zh(){ return (window._appLang || LS.getItem('luna_lang') || 'th') === 'zh'; }
+    function T(a, b){ return zh() ? a : b; }
+    function uid(){ return LS.getItem('luna_uid') || ''; }
+    function ak(b, u){ return u ? b + '_' + u : b; }
+    function rd(k){ try{ var v = LS.getItem(k); return v === null ? null : JSON.parse(v); }catch(e){ return null; } }
+    function isObj(x){ return !!x && typeof x === 'object' && Object.prototype.toString.call(x) !== '[object Array]'; }
+    function toast(m){ try{ if(typeof window.showToast === 'function') return window.showToast(m); }catch(e){} try{ if(typeof showToast === 'function') return showToast(m); }catch(e){} alert(m); }
+    function flagOn(){ try{ return !(typeof window._isFeatureEnabled === 'function' && window._isFeatureEnabled('cloudBackup') === false); }catch(e){ return true; } }
+    function confirmBox(msg, opts, ok){ if(typeof window._lunaConfirm === 'function') window._lunaConfirm(msg, opts || {}, ok, function(){}); else if(confirm(msg)) ok(); }
+    var MAPS = [ ['luna_ttc_logs','ttcLogs','ttcLogs'], ['luna_preg_weights','pregWeights','pregWeights'], ['luna_preg_visits','pregVisits','pregVisits'], ['luna_preg_kicks','pregKicks','pregKicks'] ];
+
+    // ── 收集本机全部记录 ──
+    function collect(u){
+      var d = { periodDays: rd(ak('luna_period_days', u)) || [], logs: rd(ak('luna_logs', u)) || [], extra: {} };
+      var e = d.extra;
+      e.ttc = rd(ak('luna_ttc_state', u)); e.preg = rd(ak('luna_preg_state', u)); e.pp = rd(ak('luna_postpartum', u)); e.arch = rd(ak('luna_period_archive', u));
+      MAPS.forEach(function(m){ e[m[2]] = rd(ak(m[0], u)); });
+      return d;
+    }
+    function count(d){
+      var n = (d.periodDays || []).length + (d.logs || []).length, e = d.extra || {};
+      MAPS.forEach(function(m){ if(isObj(e[m[2]])) n += Object.keys(e[m[2]]).length; });
+      if(isObj(e.arch)) n += Object.keys(e.arch).length;
+      ['ttc','preg','pp'].forEach(function(k){ if(isObj(e[k]) && e[k].active === true) n += 1; });
+      return n;
+    }
+    // 把"导出文件 / 云端备份"里的 extra 转成合并用的 g，再合并进当前账号（只补缺，不删）
+    function mergeIn(data, u){
+      var G = GM(); if(!G || !G._merge) return { ok: false };
+      var e = data.extra || {};
+      var g = { days: Array.isArray(data.periodDays) ? data.periodDays : [], logs: Array.isArray(data.logs) ? data.logs : [], ttc: e.ttc || null, preg: e.preg || null, pp: e.pp || null, arch: e.arch || null, maps: {}, kickCur: null };
+      MAPS.forEach(function(m){ g.maps[m[0]] = e[m[2]] || null; });
+      var a = { days: rd(ak('luna_period_days', u)), logs: rd(ak('luna_logs', u)), ttc: rd(ak('luna_ttc_state', u)), preg: rd(ak('luna_preg_state', u)), pp: rd(ak('luna_postpartum', u)), arch: rd(ak('luna_period_archive', u)), maps: {} };
+      MAPS.forEach(function(m){ a.maps[m[0]] = rd(ak(m[0], u)); });
+      var sn = { g: g, a: a }, o = G._diff(sn);
+      G._merge(u, sn, o);
+      return { ok: true, any: G._hasAny(o), o: o };
+    }
+    function reloadSoon(){ setTimeout(function(){ try{ location.reload(); }catch(e){} }, 2200); }
+
+    // ── ① 完整导出 ──
+    async function exportFull(){
+      var code = uid() || 'unknown', nickname = LS.getItem('luna_nickname') || '', d = collect(uid());
+      var thDate = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Bangkok'});
+      var payload = { exportAt: thDate, version: '2.0.0', code: code, nickname: nickname, periodDays: d.periodDays, logs: d.logs, extra: d.extra };
+      var jsonStr = JSON.stringify(payload, null, 2), fileName = 'luna_backup_' + code + '_' + thDate + '.json';
+      var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      function b64(s){ return btoa(unescape(encodeURIComponent(s))); }
+      function cancelled(err){ var m = ((err && (err.message || err.code)) || String(err) || '').toUpperCase(); return m.indexOf('CANCEL') !== -1; }
+      if(isNative){
+        try{
+          var FS = window.Capacitor.Plugins && window.Capacitor.Plugins.FileSharer;
+          if(!FS || typeof FS.save !== 'function') throw new Error('FileSharer plugin not found');
+          await FS.save({ filename: fileName, contentType: 'application/json', base64Data: b64(jsonStr), android: { saveDirectory: 'downloads' } });
+          toast(T('📤 已保存到"下载"文件夹', '📤 บันทึกลงโฟลเดอร์ดาวน์โหลดแล้ว')); return;
+        }catch(e1){
+          if(cancelled(e1)) return;
+          try{
+            var FSy = window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem, Sh = window.Capacitor.Plugins && window.Capacitor.Plugins.Share;
+            if(!FSy || !Sh) throw new Error('Share/Filesystem native plugin not found');
+            await FSy.writeFile({ path: fileName, data: jsonStr, directory: 'CACHE', encoding: 'utf8' });
+            var ur = await FSy.getUri({ path: fileName, directory: 'CACHE' });
+            await Sh.share({ title: T('Luna 数据备份', 'ไฟล์สำรองข้อมูล Luna'), files: [ur.uri] });
+          }catch(e2){ if(cancelled(e2)) return; toast(T('导出失败，请重试或联系客服', 'ส่งออกไม่สำเร็จ กรุณาลองใหม่หรือติดต่อฝ่ายบริการ')); }
+        }
+      }else{
+        try{
+          var blob = new Blob([jsonStr], {type:'application/json'}), a = document.createElement('a');
+          a.href = URL.createObjectURL(blob); a.download = fileName; a.click();
+          toast(T('📤 数据已导出', '📤 ส่งออกข้อมูลแล้ว'));
+        }catch(e3){ toast(T('导出失败，请重试', 'ส่งออกไม่สำเร็จ กรุณาลองใหม่')); }
+      }
+    }
+    window.exportData = exportFull;
+
+    // ── ① 导入：原流程照走，确认通过后再把额外的记录补回来 ──
+    var pend = null, pendTs = 0;
+    (function(){
+      var origImport = window.importData, origConfirm = null;
+      if(typeof origImport !== 'function') return;
+      window.importData = function(input){
+        pend = null;
+        try{
+          var f = input && input.files && input.files[0];
+          if(f){
+            var r = new FileReader();
+            r.onload = function(ev){
+              try{
+                var data = JSON.parse(ev.target.result);
+                if(data && isObj(data.extra)){ pend = data; pendTs = Date.now(); }
+              }catch(e){}
+              hookConfirm();
+              origImport(input);
+            };
+            r.readAsText(f); return;
+          }
+        }catch(e){}
+        return origImport(input);
+      };
+      function hookConfirm(){
+        if(!pend) return;
+        var oc = window._lunaConfirm; if(typeof oc !== 'function' || oc.__lpgCb) return;
+        var w = function(msg, opts, ok, cancel){
+          if(pend && Date.now() - pendTs < 120000){
+            var data = pend; pend = null; window._lunaConfirm = oc;
+            var m2 = String(msg) + '\n\n' + T('包含：备孕 / 怀孕 / 产后等全部记录', 'รวมบันทึกเตรียมตั้งครรภ์ / ตั้งครรภ์ / หลังคลอดทั้งหมด');
+            return oc(m2, opts, function(){
+              try{ ok(); }catch(e){}
+              try{ var res = mergeIn(data, uid()); if(res.ok && res.any) reloadSoon(); }catch(e){ try{ console.warn('importExtra', e); }catch(_){} }
+            }, cancel);
+          }
+          window._lunaConfirm = oc; return oc(msg, opts, ok, cancel);
+        };
+        w.__lpgCb = true; window._lunaConfirm = w;
+      }
+    })();
+
+    // ── ② 云端备份 ──
+    var BP = function(u){ return 'cloudBackups/' + u; };   // 故意放在 userdata 之外：每日推送的云函数会一次性读整个 userdata，备份快照放里面会拖慢它
+    var st = { last: null, busy: false, info: '' };
+    function autoOn(u){ return LS.getItem(ak('luna_cb_auto', u)) !== '0'; }
+    function lastLocal(u){ var v = parseInt(LS.getItem(ak('luna_cb_last', u)) || '0', 10); return v > 0 ? v : null; }
+    function fmt(ts){ if(!ts) return ''; var d = new Date(ts), p = function(n){ return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+    function fbReady(){ return !!(window._fb && window._fb.get && window._fb.set); }
+    function needLogin(){
+      toast(T('☁️ 云端备份需要登录后才能使用', '☁️ ต้องเข้าสู่ระบบก่อนจึงจะใช้การสำรองข้อมูลบนคลาวด์ได้'));
+      setTimeout(function(){ try{ if(typeof window.showGuestLoginModal === 'function') window.showGuestLoginModal(); }catch(e){} }, 700);
+    }
+    async function doBackup(manual){
+      var u = uid(); if(!u || !fbReady()) { if(manual) toast(T('网络未就绪，请稍后再试', 'เครือข่ายยังไม่พร้อม กรุณาลองใหม่')); return false; }
+      var d = collect(u), n = count(d);
+      if(n === 0){ if(manual) toast(T('现在还没有任何记录可以备份', 'ยังไม่มีบันทึกให้สำรอง')); return false; }
+      var cur = null; try{ cur = await window._fb.get(BP(u)); }catch(e){}
+      if(!manual && cur && cur.data && count(cur.data) >= 10 && n < count(cur.data) * 0.5){
+        st.info = T('检测到本机记录明显变少，为保护云端备份，已暂停自动备份', 'พบว่าบันทึกในเครื่องลดลงมาก เพื่อปกป้องข้อมูลสำรอง ระบบหยุดสำรองอัตโนมัติชั่วคราว');
+        return false;
+      }
+      var at = Date.now();
+      await window._fb.set(BP(u), { v: 2, at: at, n: n, data: d });
+      try{ LS.setItem(ak('luna_cb_last', u), String(at)); }catch(e){}
+      st.last = at; st.info = '';
+      return true;
+    }
+    async function loadLast(){
+      var u = uid(); if(!u || !fbReady()) return;
+      try{ var cur = await window._fb.get(BP(u)); st.last = cur && cur.at ? cur.at : null; if(st.last) LS.setItem(ak('luna_cb_last', u), String(st.last)); else LS.removeItem(ak('luna_cb_last', u)); render(); }catch(e){}
+    }
+    function run(fn){ if(st.busy) return; st.busy = true; render(); Promise.resolve().then(fn).catch(function(e){ try{ console.warn('cloudBackup', e); }catch(_){} toast(T('操作失败，请检查网络后重试', 'ไม่สำเร็จ กรุณาตรวจสอบเครือข่ายแล้วลองใหม่')); }).then(function(){ st.busy = false; render(); }); }
+
+    function onToggle(){
+      if(!uid()) return needLogin();
+      var u = uid(), on = autoOn(u);
+      try{ LS.setItem(ak('luna_cb_auto', u), on ? '0' : '1'); }catch(e){}
+      toast(on ? T('已关闭云端自动备份', 'ปิดการสำรองอัตโนมัติแล้ว') : T('已开启云端自动备份（每天一次）', 'เปิดการสำรองอัตโนมัติแล้ว (วันละครั้ง)'));
+      render(); if(!on) setTimeout(tickAuto, 300);
+    }
+    function onNow(){
+      if(!uid()) return needLogin();
+      run(async function(){ var ok = await doBackup(true); if(ok) toast(T('✅ 已备份到云端', '✅ สำรองข้อมูลขึ้นคลาวด์แล้ว')); });
+    }
+    function onRestore(){
+      if(!uid()) return needLogin();
+      run(async function(){
+        var u = uid(); if(!fbReady()) return toast(T('网络未就绪，请稍后再试', 'เครือข่ายยังไม่พร้อม'));
+        var cur = await window._fb.get(BP(u));
+        if(!cur || !cur.data){ st.last = null; return toast(T('云端还没有备份', 'ยังไม่มีข้อมูลสำรองบนคลาวด์')); }
+        var d = cur.data;
+        st.busy = false; render();
+        confirmBox(T('恢复云端数据？\n备份时间：' + fmt(cur.at) + '\n共 ' + count(d) + ' 条记录\n\n只会把这台手机上缺少的记录补回来，不会删除现有记录。', 'กู้คืนข้อมูลจากคลาวด์?\nเวลาสำรอง: ' + fmt(cur.at) + '\nรวม ' + count(d) + ' รายการ\n\nจะเติมเฉพาะรายการที่เครื่องนี้ไม่มี ไม่ลบข้อมูลที่มีอยู่'),
+          { okText: T('恢复', 'กู้คืน') }, function(){
+            try{
+              // 先在本机留一份恢复前的快照，万一不满意，客服还能帮忙找回
+              try{ LS.setItem(ak('luna_cb_prerestore', u), JSON.stringify({ at: Date.now(), data: collect(u) })); }catch(e){}
+              var res = mergeIn(d, u);
+              if(res.ok && res.any){ toast(T('✅ 已恢复，正在刷新…', '✅ กู้คืนแล้ว กำลังรีเฟรช…')); reloadSoon(); }
+              else toast(T('本机已经包含这份备份里的全部记录', 'เครื่องนี้มีบันทึกในข้อมูลสำรองครบแล้ว'));
+            }catch(e){ toast(T('恢复失败，请重试', 'กู้คืนไม่สำเร็จ กรุณาลองใหม่')); }
+          });
+      });
+    }
+    function onDelete(){
+      if(!uid()) return needLogin();
+      var u = uid();
+      confirmBox(T('删除云端备份？\n只删除云端的这份备份快照，这台手机上的记录不受影响。', 'ลบข้อมูลสำรองบนคลาวด์?\nลบเฉพาะสแนปช็อตสำรองบนคลาวด์ บันทึกในเครื่องนี้ไม่ได้รับผลกระทบ'),
+        { danger: true, okText: T('删除', 'ลบ') }, function(){
+          run(async function(){
+            if(!fbReady()) return toast(T('网络未就绪，请稍后再试', 'เครือข่ายยังไม่พร้อม'));
+            await window._fb.remove(BP(u));
+            try{ LS.removeItem(ak('luna_cb_last', u)); }catch(e){}
+            st.last = null; toast(T('🗑️ 已删除云端备份', '🗑️ ลบข้อมูลสำรองบนคลาวด์แล้ว'));
+          });
+        });
+    }
+    function onLast(){ if(!uid()) return needLogin(); loadLast(); toast(T('已刷新', 'รีเฟรชแล้ว')); }
+
+    // ── 「我的」页区块 ──
+    function item(id, ic, redCls, onclick, extra){
+      return '<div class="s-item" id="' + id + '"><span class="lpg-cb-ic ' + redCls + '">' + ic + '</span><div class="s-info"><div class="s-label"></div><div class="s-val"></div></div>' + (extra || '<span class="s-arrow">›</span>') + '</div>';
+    }
+    function build(anchor){
+      var t = document.createElement('div'); t.className = 's-title'; t.id = 'lpgCbT';
+      var g = document.createElement('div'); g.className = 's-group'; g.id = 'lpgCbG';
+      g.innerHTML = item('lpgCbAuto', '☁️', '', null, '<div class="s-toggle" id="lpgCbTog"></div>') + item('lpgCbLast', '🔄', '') + item('lpgCbNow', '📦', '') + item('lpgCbRes', '♻️', '') + item('lpgCbDel', '🗑️', 'red');
+      anchor.parentNode.insertBefore(t, anchor); anchor.parentNode.insertBefore(g, anchor);
+      g.querySelector('#lpgCbAuto').onclick = onToggle; g.querySelector('#lpgCbLast').onclick = onLast;
+      g.querySelector('#lpgCbNow').onclick = onNow; g.querySelector('#lpgCbRes').onclick = onRestore; g.querySelector('#lpgCbDel').onclick = onDelete;
+    }
+    function setTxt(id, label, val, danger){
+      var el = document.getElementById(id); if(!el) return;
+      var l = el.querySelector('.s-label'), v = el.querySelector('.s-val');
+      if(l && l.textContent !== label) l.textContent = label;
+      if(v && v.textContent !== val){ v.textContent = val; }
+      if(v) v.style.color = danger ? 'var(--mine-danger-fg,#d9534f)' : '';
+    }
+    var lastLoadedFor = '';
+    function render(){
+      try{
+        var t = document.getElementById('lpgCbT'), g = document.getElementById('lpgCbG');
+        var show = flagOn();
+        if(!show){ if(t) t.style.display = 'none'; if(g) g.style.display = 'none'; return; }
+        if(!g){
+          var sp = document.querySelector('.s-title [data-i18n="data_section"]'); var anchor = sp && sp.closest('.s-title');
+          if(!anchor) return; build(anchor); t = document.getElementById('lpgCbT'); g = document.getElementById('lpgCbG');
+        }
+        t.style.display = ''; g.style.display = '';
+        t.innerHTML = '☁️ ' + T('云端备份', 'สำรองข้อมูลบนคลาวด์');
+        var u = uid(), guest = !u;
+        var lastTs = st.last || (u ? lastLocal(u) : null);
+        setTxt('lpgCbAuto', T('云端自动备份', 'สำรองข้อมูลอัตโนมัติ'), guest ? T('登录后可用', 'ต้องเข้าสู่ระบบก่อน') : (autoOn(u) ? T('已开启 · 每天自动备份一次', 'เปิดอยู่ · สำรองวันละครั้ง') : T('已关闭', 'ปิดอยู่')));
+        var tg = document.getElementById('lpgCbTog'); if(tg) tg.classList.toggle('on', !guest && autoOn(u));
+        setTxt('lpgCbLast', T('最后同步时间', 'ซิงค์ล่าสุด'), guest ? T('登录后可用', 'ต้องเข้าสู่ระบบก่อน') : (lastTs ? fmt(lastTs) : T('尚未备份', 'ยังไม่เคยสำรอง')) + (st.info ? '\n' + st.info : ''));
+        var lv = document.querySelector('#lpgCbLast .s-val'); if(lv) lv.style.whiteSpace = 'pre-line';
+        setTxt('lpgCbNow', T('立即备份', 'สำรองข้อมูลตอนนี้'), guest ? T('登录后可用', 'ต้องเข้าสู่ระบบก่อน') : (st.busy ? T('处理中…', 'กำลังดำเนินการ…') : T('把现在的全部记录存到云端', 'บันทึกข้อมูลทั้งหมดขึ้นคลาวด์')));
+        setTxt('lpgCbRes', T('恢复云端数据', 'กู้คืนข้อมูลจากคลาวด์'), guest ? T('登录后可用', 'ต้องเข้าสู่ระบบก่อน') : T('把云端备份里缺少的记录补回来', 'เติมบันทึกที่ขาดจากข้อมูลสำรอง'));
+        setTxt('lpgCbDel', T('删除云端备份', 'ลบข้อมูลสำรองบนคลาวด์'), guest ? T('登录后可用', 'ต้องเข้าสู่ระบบก่อน') : T('只删云端这份快照，手机里的记录不动', 'ลบเฉพาะสแนปช็อตบนคลาวด์'), !guest);
+        g.classList.toggle('lpg-cb-busy', st.busy);
+        if(u && lastLoadedFor !== u && fbReady()){ lastLoadedFor = u; loadLast(); }
+        if(!u) lastLoadedFor = '';
+      }catch(e){ try{ console.warn('cbRender', e); }catch(_){} }
+    }
+
+    // ── 自动备份：登录、数据载入后，距离上次超过 24 小时就备一次 ──
+    var autoRunning = false;
+    function tickAuto(){
+      try{
+        var u = uid(); if(!u || !flagOn() || !autoOn(u) || autoRunning || st.busy || !fbReady()) return;
+        if(window._lunaLoadedDataFor !== u) return;
+        if(document.getElementById('lpgGmMask')) return; // 游客记录并入的确认框还开着，先别备份
+        var done = LS.getItem('luna_gm_done_' + u); if(!done) return; // 并入检查还没走完
+        var last = st.last || lastLocal(u);
+        if(last && Date.now() - last < 24 * 3600 * 1000) return;
+        autoRunning = true;
+        doBackup(false).catch(function(){}).then(function(){ autoRunning = false; render(); });
+      }catch(e){ autoRunning = false; }
+    }
+    setInterval(render, 1500); setInterval(tickAuto, 30000); setTimeout(tickAuto, 8000); render();
+
+    // ── 清除数据 / 删除账号会 remove('userdata/<uid>')：顺手把本机的胎动、云备份记账也一起清掉 ──
+    (function(){
+      var tries = 0, iv = setInterval(function(){
+        if(++tries > 60){ clearInterval(iv); return; }
+        var fb = window._fb; if(!fb || typeof fb.remove !== 'function' || fb.remove.__lpgCb) return;
+        clearInterval(iv);
+        var orig = fb.remove;
+        fb.remove = function(path){
+          var extra = null;
+          try{
+            var u = uid();
+            if(u && path === 'userdata/' + u){
+              try{ extra = Promise.resolve(orig.call(this, 'cloudBackups/' + u)).catch(function(){}); }catch(e){}
+              ['luna_preg_kicks','luna_preg_kick_cur','luna_cb_auto','luna_cb_last','luna_cb_prerestore','luna_gm_done'].forEach(function(b){ [b, b + '_' + u].forEach(function(k){ try{ LS.removeItem(k); }catch(e){} }); });
+              st.last = null;
+            }
+          }catch(e){}
+          var r = orig.apply(this, arguments);
+          return extra ? Promise.resolve(r).then(function(v){ return extra.then(function(){ return v; }); }) : r;
+        };
+        fb.remove.__lpgCb = true;
+      }, 500);
+    })();
+    window.LunaCloudBackup = { collect: collect, count: count, backup: function(){ return doBackup(true); }, mergeIn: mergeIn, render: render, _st: st };
+  }catch(e){ try{ console.warn('lunaCloudBackup', e); }catch(_){} }
+})();
+</script>
+
+<!-- 🔐 会员状态·服务端校验的客户端部分（只追加，不改原来任何一行）。
+     数据库规则已禁止客户端自己写 users/<uid>/activated、expiry、vipPlan（否则任何人都能给自己开会员）。
+     原来 Android 在"RevenueCat SDK 说已生效"时会直接写这三个字段——这里把那几次写入拦下来，
+     改成通知云函数 syncEntitlement：由服务端用密钥去 RevenueCat 查实后再写。
+     另外，刚购买成功（luna_last_purchase_at 变化）时也敲一次门，让后台尽快跟上，不用干等 webhook。
+     本机的会员解锁（luna_activated）完全不受影响，仍然由 SDK 当场判断。 -->
+<script>
+(function(){
+  if(window.__lunaEntSync) return; window.__lunaEntSync = true;
+  try{
+    var LS = localStorage;
+    var URL_SYNC = 'https://asia-southeast1-sasomboon.cloudfunctions.net/syncEntitlement';
+    var timer = null, inflight = false, tries = 0, lastPurchase = null;
+    function uid(){ try{ return LS.getItem('luna_uid') || ''; }catch(e){ return ''; } }
+    function schedule(ms){ try{ clearTimeout(timer); }catch(e){} timer = setTimeout(sync, ms || 1500); }
+    async function sync(){
+      if(inflight) return;
+      var u = uid(); if(!u) return;
+      var auth = window.auth;
+      if(!auth || !auth.currentUser){ if(++tries <= 6) schedule(3000); return; }
+      inflight = true;
+      try{
+        var tok = await auth.currentUser.getIdToken();
+        var r = await fetch(URL_SYNC, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: '{}' });
+        if(r && r.ok){ try{ LS.removeItem('luna_ent_sync_pending'); }catch(e){} tries = 0; }
+        else { try{ LS.setItem('luna_ent_sync_pending', '1'); }catch(e){} }
+      }catch(e){ try{ LS.setItem('luna_ent_sync_pending', '1'); }catch(_){} }
+      inflight = false;
+    }
+    // 拦截客户端对 activated / expiry / vipPlan 的直接写入 → 改成通知服务端
+    (function(){
+      var n = 0, iv = setInterval(function(){
+        if(++n > 120){ clearInterval(iv); return; }
+        var fb = window._fb; if(!fb || typeof fb.set !== 'function' || fb.set.__lpgEnt) return;
+        clearInterval(iv);
+        var orig = fb.set;
+        fb.set = function(path){
+          try{
+            var m = /^users\/([^\/]+)\/(activated|expiry|vipPlan)$/.exec(String(path));
+            if(m && m[1] === uid()){ schedule(1500); return Promise.resolve(); }
+          }catch(e){}
+          return orig.apply(this, arguments);
+        };
+        fb.set.__lpgEnt = true;
+      }, 500);
+    })();
+    // 刚购买成功：敲门（服务端幂等，重复敲没有副作用）；上一次没敲成功的，隔一会儿补敲
+    setInterval(function(){
+      try{
+        var p = LS.getItem('luna_last_purchase_at');
+        if(lastPurchase === null){ lastPurchase = p; }
+        else if(p && p !== lastPurchase){ lastPurchase = p; tries = 0; schedule(2500); setTimeout(sync, 20000); }
+        if(LS.getItem('luna_ent_sync_pending') === '1' && uid() && !inflight) schedule(500);
+      }catch(e){}
+    }, 5000);
+    window.LunaEntSync = { sync: sync };
+  }catch(e){ try{ console.warn('lunaEntSync', e); }catch(_){} }
+})();
+</script>
+
+<style id="ttcKnowStickyCss">
+/* 备孕小知识页：标题栏（‹ 备孕小知识）固定在顶部，内容在下面滚动 */
+#ttcKnowPanel > div:first-child{
+  position: sticky; top: 0; z-index: 5;
+  background: var(--stat-bg);
+  padding-bottom: 12px;
+}
+#ttcKnowPanel [id^="ttcKnow_"]{ scroll-margin-top: 128px; }
+</style>
+
+<script>
+/* ═══ 🛡️ 试用保护·本机同步（追加模块，不改任何原有代码）═══
+   服务端（functions/trialGuard.js）会在"删号后重新登录"时，把新档案的 firstLogin 改回当初的时间。
+   这里只做一件事：新档案建好几秒后，回读一次 users/<uid>.firstLogin，跟本机存的不一样就以服务器为准，
+   这样"试用还剩几天"马上显示对，不用等下次打开 App。读不到、报错、没变化都什么也不做。 */
+(function(){
+  try{
+    if(window.__lunaTrialGuardSync) return; window.__lunaTrialGuardSync = true;
+    function curUid(){ try{ return localStorage.getItem('luna_uid'); }catch(e){ return null; } }
+    function pull(u){
+      try{
+        if(!window._fb || !u || curUid() !== u) return;
+        window._fb.get('users/' + u).then(function(r){
+          try{
+            if(!r || typeof r !== 'object' || typeof r.firstLogin !== 'number') return;
+            var cur = parseInt(localStorage.getItem('luna_first_login') || '0', 10);
+            if(r.firstLogin === cur) return;
+            localStorage.setItem('luna_first_login', String(r.firstLogin));
+            try{ if(window.LunaDB && window.LunaDB.set) window.LunaDB.set('luna_first_login', r.firstLogin); }catch(e){}
+            try{ if(typeof showTrialBanner === 'function') showTrialBanner(); }catch(e){}
+            try{ if(typeof initProBadge === 'function') initProBadge(); }catch(e){}
+          }catch(e){}
+        }).catch(function(){});
+      }catch(e){}
+    }
+    var o = window._createNewUserProfile;
+    if(typeof o !== 'function' || o.__tg) return;
+    var w = function(u){
+      var p = o.apply(this, arguments);
+      try{ Promise.resolve(p).then(function(){ [3000, 9000, 20000].forEach(function(ms){ setTimeout(function(){ pull(u); }, ms); }); }).catch(function(){}); }catch(e){}
+      return p;
+    };
+    w.__tg = true;
+    window._createNewUserProfile = w;
+    window.LunaTrialGuardSync = { pull: pull };
+  }catch(e){ try{ console.warn('trialGuardSync', e); }catch(_){} }
 })();
 </script>

@@ -30530,3 +30530,245 @@ body.pp-mode.lpg-flow #nextCardIconWrap{top:12px !important;}
   }catch(e){ try{ console.warn('overlayScrollLock', e); }catch(_){} }
 })();
 </script>
+<script id="lpgConsentV2">
+/* 隐私同意 v2（追加式，不改原有 consentOverlay / acceptConsent）：
+   在原同意框里追加「敏感健康数据 / 境外处理 / AI」说明 + 必须勾选的明确同意；老用户首次升级后也会被请求一次。
+   远程开关：featureFlags.consentV2 === false 即整体关闭。同意时间沿用 users/<uid>/consentAt（规则里唯一允许用户写的字段）。 */
+(function(){
+  if (window.__lpgConsentV2) return; window.__lpgConsentV2 = true;
+  try{
+    var VER = 'v2';
+    function on(){ try{ return !(window._isFeatureEnabled && window._isFeatureEnabled('consentV2') === false); }catch(e){ return true; } }
+    function lang(){ try{ return (typeof _appLang !== 'undefined' && _appLang === 'zh') ? 'zh' : 'th'; }catch(e){ return 'th'; } }
+    function uid(){ try{ return localStorage.getItem('luna_uid') || ''; }catch(e){ return ''; } }
+    function key(){ var u = uid(); return u ? ('luna_consent_' + VER + '_' + u) : ''; }
+    function done(){ try{ return localStorage.getItem(key()) === '1'; }catch(e){ return false; } }
+    var T = {
+      zh: {
+        upd: '隐私政策已更新，请重新确认',
+        h: '请注意以下几点：',
+        p1: '🩺 你记录的经期、症状、心情，以及备孕、怀孕、产后的体重、产检、胎动、体温等，属于<b>敏感健康数据</b>，仅用于为你提供功能，不用于广告',
+        p2: '🌏 数据保存在 Google Firebase（新加坡）。使用 AI 小助手时，你输入的文字和必要的周期摘要会发送给 Google Gemini 处理；会员订阅由 RevenueCat 核验。这些服务可能在泰国境外（包括美国）处理数据',
+        p3: '☁️ 点击“立即备份”后，备份保存在云端，仅你本人和系统管理员可访问',
+        p4: '🗑 你可以随时在 我的 中删除数据或永久删除账号',
+        cb: '我已阅读并同意<a href="javascript:void(0)" data-l="p">《隐私政策》</a>和<a href="javascript:void(0)" data-l="t">《服务条款》</a>，并明确同意按上述方式处理我的敏感健康数据，包括传输至泰国境外',
+        hint: '请先勾选上方的同意选项'
+      },
+      th: {
+        upd: 'นโยบายความเป็นส่วนตัวมีการอัปเดต กรุณายืนยันอีกครั้ง',
+        h: 'โปรดทราบ:',
+        p1: '🩺 ข้อมูลรอบเดือน อาการ อารมณ์ และข้อมูลเตรียมตั้งครรภ์ ตั้งครรภ์ หลังคลอด เช่น น้ำหนัก การตรวจครรภ์ การดิ้น อุณหภูมิ เป็น<b>ข้อมูลสุขภาพที่อ่อนไหว</b> ใช้เพื่อให้บริการฟีเจอร์เท่านั้น ไม่ใช้เพื่อโฆษณา',
+        p2: '🌏 ข้อมูลเก็บบน Google Firebase (สิงคโปร์) เมื่อใช้ผู้ช่วย AI ข้อความของคุณและสรุปข้อมูลรอบเดือนที่จำเป็นจะถูกส่งไปยัง Google Gemini และการสมัครสมาชิกตรวจสอบโดย RevenueCat บริการเหล่านี้อาจประมวลผลข้อมูลนอกประเทศไทย (รวมถึงสหรัฐอเมริกา)',
+        p3: '☁️ เมื่อกด "สำรองข้อมูลทันที" ข้อมูลสำรองจะเก็บบนคลาวด์ เข้าถึงได้เฉพาะคุณและผู้ดูแลระบบ',
+        p4: '🗑 คุณลบข้อมูลหรือลบบัญชีถาวรได้ทุกเมื่อที่หน้าโปรไฟล์',
+        cb: 'ฉันได้อ่านและยอมรับ<a href="javascript:void(0)" data-l="p">นโยบายความเป็นส่วนตัว</a>และ<a href="javascript:void(0)" data-l="t">ข้อกำหนดการใช้งาน</a> และให้ความยินยอมโดยชัดแจ้งในการประมวลผลข้อมูลสุขภาพที่อ่อนไหวของฉันตามที่ระบุ รวมถึงการส่งไปนอกประเทศไทย',
+        hint: 'กรุณาติ๊กช่องยินยอมก่อน'
+      }
+    };
+    var css = document.createElement('style'); css.id = 'lpgConsentV2Css';
+    css.textContent = '#lpgCv2{margin:0 0 16px;font-size:12px;line-height:1.75;color:#6a6480}' +
+      '#lpgCv2 .u{background:#fff4e5;color:#b25e00;border-radius:10px;padding:7px 12px;margin-bottom:10px;font-weight:600;font-size:12.5px}' +
+      '#lpgCv2 .h{font-weight:700;color:#2d2640;margin-bottom:4px}' +
+      '#lpgCv2 .p{margin:3px 0}' +
+      '#lpgCv2 label{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:11px 12px;border:1.5px solid #e4def5;border-radius:12px;background:#faf8ff;cursor:pointer;color:#4a4060}' +
+      '#lpgCv2 label.warn{border-color:#e05a5a;background:#fff3f3;animation:lpgCvShake .35s}' +
+      '#lpgCv2 input{flex:none;width:20px;height:20px;margin-top:2px;accent-color:#7c5cbf}' +
+      '#lpgCv2 a{color:#7c5cbf;font-weight:600;text-decoration:underline}' +
+      '#lpgCv2 .hint{display:none;color:#e05a5a;font-weight:600;margin-top:6px}' +
+      '#consentOverlay.lpg-cv2-off button[onclick*="acceptConsent"]{opacity:.45}' +
+      '@keyframes lpgCvShake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}';
+    document.head.appendChild(css);
+
+    function btn(ov){ return ov.querySelector('button[onclick*="acceptConsent"]'); }
+    function build(ov, upd){
+      var L = T[lang()];
+      var box = document.getElementById('lpgCv2');
+      if (!box){
+        box = document.createElement('div'); box.id = 'lpgCv2';
+        var b = btn(ov); if (!b || !b.parentNode) return;
+        b.parentNode.insertBefore(box, b);
+      }
+      var checked = false; try{ var o = box.querySelector('input'); checked = !!(o && o.checked); }catch(e){}
+      box.setAttribute('data-lang', lang());
+      box.innerHTML = (upd ? '<div class="u">' + L.upd + '</div>' : '') + '<div class="h">' + L.h + '</div>' +
+        '<div class="p">' + L.p1 + '</div><div class="p">' + L.p2 + '</div><div class="p">' + L.p3 + '</div><div class="p">' + L.p4 + '</div>' +
+        '<label id="lpgCv2Lb"><input type="checkbox" id="lpgCv2Cb"' + (checked ? ' checked' : '') + '><span>' + L.cb + '</span></label><div class="hint" id="lpgCv2Hint">' + L.hint + '</div>';
+      var cb = box.querySelector('#lpgCv2Cb');
+      function sync(){ ov.classList.toggle('lpg-cv2-off', !cb.checked); box.querySelector('#lpgCv2Hint').style.display = 'none'; box.querySelector('#lpgCv2Lb').classList.remove('warn'); }
+      cb.addEventListener('change', sync); sync();
+      Array.prototype.forEach.call(box.querySelectorAll('a[data-l]'), function(a){
+        a.addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); try{ (a.getAttribute('data-l') === 'p' ? window.showPrivacy : window.showTerms)(); }catch(e){} });
+      });
+    }
+    // 拦截“同意”按钮：未勾选 → 不放行；勾选 → 记录 v2 后放行给原 acceptConsent
+    document.addEventListener('click', function(e){
+      try{
+        var ov = document.getElementById('consentOverlay'); if (!ov || !on()) return;
+        var b = e.target && e.target.closest ? e.target.closest('button[onclick*="acceptConsent"]') : null;
+        if (!b || !ov.contains(b)) return;
+        var cb = document.getElementById('lpgCv2Cb');
+        if (!cb) return;
+        if (!cb.checked){
+          e.stopImmediatePropagation(); e.preventDefault();
+          var lb = document.getElementById('lpgCv2Lb'), h = document.getElementById('lpgCv2Hint');
+          if (lb){ lb.classList.remove('warn'); void lb.offsetWidth; lb.classList.add('warn'); lb.scrollIntoView({block:'center'}); }
+          if (h) h.style.display = 'block';
+          return;
+        }
+        var k = key(); if (k) localStorage.setItem(k, '1');
+        try{ localStorage.setItem('luna_consent_v2_at', String(Date.now())); }catch(_){}
+      }catch(err){}
+    }, true);
+
+    function tick(){
+      try{
+        if (!on()) return;
+        var ov = document.getElementById('consentOverlay'); if (!ov) return;
+        var u = uid(); if (!u) return;
+        var shown = ov.style.display === 'flex';
+        var v1 = localStorage.getItem('luna_consent_' + u) === '1' || localStorage.getItem('luna_consent') === '1';
+        var needUpgrade = v1 && !done() && localStorage.getItem('luna_onboard_seen') === '1';
+        if (!shown && needUpgrade){
+          // 老用户：不与其它全屏层抢（语言选择/引导/付费页打开时先等一等）
+          var busy = document.querySelector('#legalOverlay.show, #legalOverlay[style*="flex"]');
+          if (busy) return;
+          ov.style.display = 'flex'; shown = true;
+        }
+        if (shown && !done()){
+          var box = document.getElementById('lpgCv2');
+          if (!box || box.getAttribute('data-lang') !== lang()) build(ov, v1);
+        } else if (shown && done() && !v1){ /* 新用户已勾选同意：原逻辑会自己关闭 */ }
+      }catch(e){}
+    }
+    setInterval(tick, 800); setTimeout(tick, 300);
+    window.LunaConsentV2 = { tick: tick, done: done, reset: function(){ try{ localStorage.removeItem(key()); }catch(e){} } };
+  }catch(e){ try{ console.warn('consentV2', e); }catch(_){} }
+})();
+</script>
+<script id="lpgYoungModes">
+/* 未满 13 岁（引导页年龄 < 13，luna_age_under_13==='1'）：不开放「备孕 / 怀孕」入口（产后跟随怀孕入口）。
+   已经开着这些模式的人不受影响（保证他们还能看到并退出）。追加式、出错保持原样。 */
+(function(){
+  if (window.__lpgYoungModes) return; window.__lpgYoungModes = true;
+  try{
+    var st = document.createElement('style'); st.id = 'lpgYoungCss';
+    st.textContent = 'body.lpg-young:not(.preg-mode):not(.ttc-mode) #pregSettingSection,body.lpg-young:not(.preg-mode):not(.ttc-mode) #ttcSettingSection{display:none !important;}';
+    document.head.appendChild(st);
+    function young(){ try{ return typeof window.isAgeRestricted === 'function' && window.isAgeRestricted(); }catch(e){ return false; } }
+    var wrapped = false;
+    function tick(){
+      try{
+        document.body.classList.toggle('lpg-young', young());
+        var T = window.LunaTtc;
+        if (!wrapped && T && typeof T.entryVisible === 'function'){
+          var orig = T.entryVisible; wrapped = true;
+          T.entryVisible = function(){ try{ if (young() && !(T.isActive && T.isActive())) return false; }catch(e){} return orig.apply(this, arguments); };
+        }
+      }catch(e){}
+    }
+    setInterval(tick, 1000); setTimeout(tick, 200);
+    window.LunaYoungModes = { tick: tick };
+  }catch(e){ try{ console.warn('youngModes', e); }catch(_){} }
+})();
+</script>
+<script id="lpgModeDiscover">
+/* 备孕/怀孕入口的“可发现性”（追加式，出错保持原样）：
+   ① 月经晚了 ≥7 天（沿用日历页“已迟到 N 天”那套算法/条件）→ 回到干净的首页时弹一个小弹窗，引导开启怀孕模式；同一次迟到关掉后不再出现。
+   ② 日历页齿轮旁一句文字提示“备孕/怀孕模式在这里”，最多出现 3 次（每次打开日历页算 1 次），用户点开过齿轮（或点这句提示）后立即永久不再显示。
+   两项都：未满13岁不出现、已开启怀孕/备孕模式不出现；远程开关 featureFlags.lateNudge / modeHint === false 即关闭。 */
+(function(){
+  if (window.__lpgModeDiscover) return; window.__lpgModeDiscover = true;
+  try{
+    var K_LATE = 'luna_late_nudge', K_GEAR = 'luna_gear_hint_seen', K_GEARN = 'luna_gear_hint_n', MIN_LATE = 7, MAX_GEAR = 3;
+    function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){} return null; }
+    function ff(n){ try{ return !(window._isFeatureEnabled && window._isFeatureEnabled(n) === false); }catch(e){ return true; } }
+    function lang(){ try{ return (typeof _appLang !== 'undefined' && _appLang === 'zh') ? 'zh' : 'th'; }catch(e){ return 'th'; } }
+    function young(){ try{ return typeof window.isAgeRestricted === 'function' && window.isAgeRestricted(); }catch(e){ return false; } }
+    function normal(){ var c = document.body.classList; return !c.contains('preg-mode') && !c.contains('ttc-mode') && !c.contains('pp-mode'); }
+    function ymd(d){ var m = d.getMonth()+1, dd = d.getDate(); return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(dd<10?'0':'')+dd; }
+    var T = {
+      zh: { gear: '🌱 备孕 · 🤰 怀孕模式，在这里开启', lt: function(n){ return '月经已经比预测晚了 ' + n + ' 天'; },
+            lb: '压力、熬夜、体重变化都可能让月经晚几天，不用太紧张。如果你有可能怀孕了，可以开启怀孕模式来记录和了解接下来的变化（是否怀孕请以验孕或医生检查为准）。',
+            go: '开启怀孕模式', ok: '我知道了' },
+      th: { gear: '🌱 โหมดเตรียมตั้งครรภ์ · 🤰 ตั้งครรภ์ เปิดได้ที่นี่', lt: function(n){ return 'ประจำเดือนช้ากว่าที่คาดไว้ ' + n + ' วัน'; },
+            lb: 'ความเครียด การนอนดึก หรือน้ำหนักที่เปลี่ยนไป ทำให้ประจำเดือนช้าได้ ไม่ต้องกังวลมากนัก หากคุณอาจตั้งครรภ์ สามารถเปิดโหมดตั้งครรภ์เพื่อบันทึกและติดตามได้ (การยืนยันการตั้งครรภ์ควรใช้ชุดตรวจครรภ์หรือพบแพทย์)',
+            go: 'เปิดโหมดตั้งครรภ์', ok: 'รับทราบ' }
+    };
+    var css = document.createElement('style'); css.id = 'lpgModeDiscoverCss';
+    css.textContent =
+      '#lpgLateMask{position:fixed;inset:0;z-index:100000;background:rgba(45,38,64,.5);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:24px}' +
+      '#lpgLate{width:100%;max-width:340px;max-height:86vh;overflow-y:auto;padding:24px 22px 20px;border-radius:24px;background:#fff;color:var(--purple,#7c5cbf);box-shadow:0 20px 60px rgba(0,0,0,.25);text-align:center}' +
+      '#lpgLate .e{font-size:38px;margin-bottom:6px}' +
+      '#lpgLate .t{font-size:17px;font-weight:700;margin-bottom:10px;color:#2d2640}' +
+      '#lpgLate .b{font-size:13px;line-height:1.85;color:#6a6480;margin-bottom:18px;text-align:left}' +
+      '#lpgLate .r{display:flex;flex-direction:column;gap:10px}' +
+      '#lpgLate button{border:none;border-radius:999px;padding:13px 12px;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer}' +
+      '#lpgLate .go{background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;box-shadow:0 4px 14px rgba(124,92,191,.3)}' +
+      '#lpgLate .ok{background:#f4f2f9;color:#8a849e}' +
+      '#lpgGearHint{position:absolute;right:12px;top:calc(100% - 4px);z-index:6;max-width:240px;padding:8px 12px;border-radius:12px;background:var(--purple,#7c5cbf);color:#fff;font-size:12px;font-weight:600;line-height:1.5;box-shadow:0 6px 18px rgba(var(--purple-rgb,124,92,191),.35);cursor:pointer}' +
+      '#lpgGearHint::before{content:"";position:absolute;right:16px;top:-6px;border:6px solid transparent;border-top:0;border-bottom-color:var(--purple,#7c5cbf)}';
+    document.head.appendChild(css);
+
+    // ── ② 齿轮提示 ──
+    function seenGear(){ ls(K_GEAR, '1'); var h = document.getElementById('lpgGearHint'); if (h) h.remove(); }
+    document.addEventListener('click', function(e){
+      try{ if (e.target && e.target.closest && e.target.closest('.cal-gear-btn')) seenGear(); }catch(_){}
+    }, true);
+    function gearTick(){
+      var h = document.getElementById('lpgGearHint');
+      var panel = document.getElementById('calPanel');
+      var cnt = parseInt(ls(K_GEARN) || '0', 10) || 0;
+      var want = ff('modeHint') && ls(K_GEAR) !== '1' && (h || cnt < MAX_GEAR) && !young() && normal() && panel && panel.style.display !== 'none' && getComputedStyle(panel).display !== 'none';
+      if (!want){ if (h) h.remove(); return; }
+      var head = panel.querySelector(':scope > div');
+      if (!head) return;
+      if (!h){
+        h = document.createElement('div'); h.id = 'lpgGearHint';
+        h.addEventListener('click', function(){ seenGear(); try{ window.openCalSettings(); }catch(_){} });
+        head.appendChild(h); ls(K_GEARN, String(cnt + 1));      // 每次打开日历页出现一次算 1 次，最多 3 次
+      }
+      var txt = T[lang()].gear; if (h.textContent !== txt) h.textContent = txt;
+    }
+
+    // ── ① 月经迟了卡片 ──
+    function lateDays(){
+      var row = document.getElementById('calLateRow'), val = document.getElementById('calLateVal');
+      if (!row || !val || row.style.display === 'none') return 0;
+      var m = (val.textContent || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0;
+    }
+    var stable = 0;
+    function homeClear(){
+      try{
+        var oc = document.getElementById('consentOverlay'); if (oc && oc.style.display === 'flex') return false;
+        var el = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
+        return !!(el && el.closest && el.closest('.phone')) && !document.getElementById('lpgLateMask');
+      }catch(e){ return false; }
+    }
+    function lateTick(){
+      var n = lateDays(), pred = '';
+      if (n){ var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - n); pred = ymd(d); }
+      var want = ff('lateNudge') && n >= MIN_LATE && normal() && !young() && ls(K_LATE) !== pred;
+      var mask = document.getElementById('lpgLateMask');
+      if (!want){ stable = 0; if (mask) mask.remove(); return; }
+      if (mask) return;
+      if (!homeClear()){ stable = 0; return; }
+      if (++stable < 2) return;                                   // 首页稳定出现 ≥2 次检查（约 2.4 秒）才弹，避免和别的弹窗/动画撞
+      stable = 0;
+      var L = T[lang()];
+      mask = document.createElement('div'); mask.id = 'lpgLateMask';
+      mask.innerHTML = '<div id="lpgLate"><div class="e">🌸</div><div class="t"></div><div class="b"></div><div class="r"><button class="go"></button><button class="ok"></button></div></div>';
+      var card = mask.firstChild;
+      function close(){ ls(K_LATE, pred); mask.remove(); }
+      card.querySelector('.t').textContent = L.lt(n); card.querySelector('.b').textContent = L.lb;
+      card.querySelector('.go').textContent = L.go; card.querySelector('.ok').textContent = L.ok;
+      card.querySelector('.go').addEventListener('click', function(){ close(); try{ if (typeof window.openPregSetting === 'function') window.openPregSetting(); }catch(_){} });
+      card.querySelector('.ok').addEventListener('click', close);
+      mask.addEventListener('touchmove', function(e){ if (e.target === mask) e.preventDefault(); }, { passive: false });
+      document.body.appendChild(mask);
+    }
+    function tick(){ try{ gearTick(); }catch(e){} try{ lateTick(); }catch(e){} }
+    setInterval(tick, 1200); setTimeout(tick, 500);
+    window.LunaModeDiscover = { tick: tick, resetGear: function(){ try{ localStorage.removeItem(K_GEAR); }catch(e){} }, resetLate: function(){ try{ localStorage.removeItem(K_LATE); }catch(e){} } };
+  }catch(e){ try{ console.warn('modeDiscover', e); }catch(_){} }
+})();
+</script>

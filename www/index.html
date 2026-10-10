@@ -30085,7 +30085,9 @@ body{--lg-card:#221c3c;--lg-ink:#f6efdc;--lg-sub:#b6aed2;--lg-mute:#8d86ad;--lg-
 /* 记录今天 */
 #lpgRec1{display:none;}
 /* 三格记录卡保留显示（普通记录月经功能）；「记录今天」按钮只在订阅区块出现期间显示——点 X / 下次再说后，按钮就换回三格卡 */
-body:not(.lpg-sub-norm).lpg-rec1 #lpgRec1, body:not(.lpg-sub-norm) #lpgRec1{display:none !important;}
+body:not(.lpg-sub-norm):not(.lpg-flow-ttc):not(.ttc-mode).lpg-rec1 #lpgRec1, body:not(.lpg-sub-norm):not(.lpg-flow-ttc):not(.ttc-mode) #lpgRec1{display:none !important;}
+/* 备孕模式：保持原来的样子——只有「记录今天」按钮，三格卡不显示 */
+body.lpg-rec1.lpg-flow-ttc .phone > .card.actions-card, body.lpg-rec1.ttc-mode .phone > .card.actions-card{display:none !important;}
 body.lpg-rec1 #lpgRec1{display:block;margin:0 12px 16px;}
 #lpgRec1 button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:56px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:#fff;
   background:linear-gradient(135deg,var(--purple,#7c5cbf),var(--purple-light,#b49de0));box-shadow:0 6px 16px rgba(var(--purple-rgb,124,92,191),.28);-webkit-tap-highlight-color:transparent;}
@@ -30304,6 +30306,7 @@ body.lpg-sub #lpgSub{display:block;}
 #lpgSub .lt{display:block;margin:10px auto 0;background:none;border:none;color:var(--home-fg-muted,#8a849e);font-size:13px;font-family:inherit;cursor:pointer;padding:6px 12px;}
 body.lpg-sub-norm .phone > .card.actions-card{display:none !important;}
 #lpgSub .sl b.bt{position:static;transform:none;display:block;margin:0;padding:2px 12px 14px;font-size:13.5px;}
+#lpgSub .sl b.cp{left:50%;right:auto;width:max-content;max-width:78%;transform:translate(-50%,-50%);padding:6px 14px;border-radius:999px;color:#a3295f;text-shadow:none;font-size:13px;line-height:1.3;background:#fff1f6;border:1.5px solid #f4a6c0;box-shadow:0 3px 10px rgba(236,106,149,.25);}
 </style>
 <script id="lpgSubJs">
 (function lunaSubBlock(){
@@ -30399,7 +30402,7 @@ body.lpg-sub-norm .phone > .card.actions-card{display:none !important;}
         + '<div class="dc">' + (zh()?DZ:DT) + '<span onclick="showTerms()">' + T('使用条款','ข้อกำหนดการใช้งาน') + '</span>' + T(' 与 ',' และ ') + '<span onclick="showPrivacy()">' + T('隐私政策','นโยบายความเป็นส่วนตัว') + '</span></div>'
         + '<button type="button" class="rs" id="lpgSubRs">' + T('已购买过？恢复购买','เคยซื้อแล้ว? กู้คืนการซื้อ') + '</button>'
         + (nm ? '<button type="button" class="lt" id="lpgSubLt">' + T('下次再说','ไว้ครั้งหน้า') + '</button>' : '')
-        + '<div class="car" id="lpgSubCar">' + (nm ? NSLIDES : SLIDES).map(function(s){ var cap = (zh()?s.zh:s.th); return '<div class="sl"><img src="' + s.img + '" alt="" draggable="false">' + (s.y == null ? '<b class="bt">' + cap + '</b>' : '<b style="top:' + (s.y*100).toFixed(1) + '%">' + cap + '</b>') + '</div>'; }).join('') + '</div>'
+        + '<div class="car" id="lpgSubCar">' + (nm ? NSLIDES : SLIDES).map(function(s){ var cap = (zh()?s.zh:s.th); return '<div class="sl"><img src="' + s.img + '" alt="" draggable="false">' + (s.y == null ? '<b class="bt">' + cap + '</b>' : '<b' + (nm ? ' class="cp"' : '') + ' style="top:' + (s.y*100).toFixed(1) + '%">' + cap + '</b>') + '</div>'; }).join('') + '</div>'
         + '<div class="dots" id="lpgSubDots">' + SLIDES.map(function(s,i){ return '<i' + (i===0?' class="on"':'') + '></i>'; }).join('') + '</div></div>';
       host.innerHTML = h; lastLang = zh() ? 'zh' : 'th'; lastNorm = nm; built = true;
       var bx = document.getElementById('lpgSubX'), bl = document.getElementById('lpgSubLt'); if(bx) bx.addEventListener('click', dismissN); if(bl) bl.addEventListener('click', dismissN);

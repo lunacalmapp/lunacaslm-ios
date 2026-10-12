@@ -149,6 +149,12 @@
       </div>
     </div>
 
+    <!-- 健康信息来源（医疗器械避险：健康内容需标注可查证来源，帮助页也放一份，方便找到）-->
+    <div class="section">
+      <div class="section-title">📚 <span id="healthRefTitle">แหล่งข้อมูลสุขภาพ</span></div>
+      <div class="faq-a" id="healthRefBody" style="line-height:1.9;"></div>
+    </div>
+
     <button class="back-btn" id="backBtn" onclick="goBack()">← กลับ</button>
   </div>
 
@@ -189,6 +195,16 @@ const CONTENT = {
     contactTitle: 'ยังมีคำถาม?',
     contactBody: 'หากยังไม่พบคำตอบ หรือมีปัญหาการใช้งาน ติดต่อแอดมินได้ทาง LINE (ตอบกลับ 9:00–21:00 น.)',
     lineBtnTxt: 'ติดต่อทาง LINE',
+    healthRefTitle: 'แหล่งข้อมูลสุขภาพ',
+    healthRefBody: '<strong>Luna Calm ไม่ใช่อุปกรณ์ทางการแพทย์ (Medical Device)</strong> เนื้อหาสุขภาพในแอป (คำตอบของ Luna ผู้ช่วยน้อย, บทวิเคราะห์ AI, การทำนายรอบเดือน/การตกไข่) มีไว้เพื่อการอ้างอิงเท่านั้น ไม่สามารถใช้แทนคำแนะนำทางการแพทย์ การวินิจฉัย หรือการคุมกำเนิดได้<br><br>' +
+      'เนื้อหาดังกล่าวจัดทำโดยอ้างอิงข้อมูลสาธารณะจากหน่วยงานทางการแพทย์ที่น่าเชื่อถือดังต่อไปนี้:' +
+      '<ul style="margin:8px 0 0 18px;padding:0;">' +
+      '<li style="margin-bottom:4px;"><a href="https://www.who.int/news-room/fact-sheets/detail/menstrual-health" target="_blank" rel="noopener" style="color:#7c5cbf;">World Health Organization (WHO)</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186" target="_blank" rel="noopener" style="color:#7c5cbf;">Mayo Clinic – Menstrual cycle</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034" target="_blank" rel="noopener" style="color:#7c5cbf;">Mayo Clinic – Iron deficiency anemia</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.cdc.gov/uti/about/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – Urinary Tract Infection</a></li>' +
+      '<li><a href="https://www.cdc.gov/hpv/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – HPV and HPV Vaccine</a></li>' +
+      '</ul><br>หากมีอาการผิดปกติหรือกังวลเรื่องสุขภาพ โปรดปรึกษาแพทย์โดยตรง',
     backBtn: '← กลับ',
   },
   zh: {
@@ -217,6 +233,16 @@ const CONTENT = {
     contactTitle: '还有问题?',
     contactBody: '如果没找到答案,或使用中遇到问题,可通过 LINE 联系管理员(回复时间 9:00–21:00)。',
     lineBtnTxt: '通过 LINE 联系',
+    healthRefTitle: '健康信息来源',
+    healthRefBody: '<strong>Luna Calm 不是医疗器械（Medical Device）</strong>。App 内的健康内容（Luna 小助手的回复、AI 深度分析、经期/排卵预测）仅供参考，不能替代专业医疗建议、诊断或避孕措施。<br><br>' +
+      '这些内容参考以下权威医疗机构的公开资料整理：' +
+      '<ul style="margin:8px 0 0 18px;padding:0;">' +
+      '<li style="margin-bottom:4px;"><a href="https://www.who.int/news-room/fact-sheets/detail/menstrual-health" target="_blank" rel="noopener" style="color:#7c5cbf;">世界卫生组织（WHO）</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186" target="_blank" rel="noopener" style="color:#7c5cbf;">妙佑医疗国际（Mayo Clinic）– 月经周期</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034" target="_blank" rel="noopener" style="color:#7c5cbf;">Mayo Clinic – 缺铁性贫血</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.cdc.gov/uti/about/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">美国疾控中心（CDC）– 尿路感染</a></li>' +
+      '<li><a href="https://www.cdc.gov/hpv/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – HPV 与 HPV 疫苗</a></li>' +
+      '</ul><br>如有异常症状或健康方面的顾虑，请直接咨询医生',
     backBtn: '← 返回',
   }
 };

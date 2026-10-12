@@ -11278,8 +11278,8 @@ window.setLang = setLang;
       const others=[];
       for(const k in SUGGEST_CATS){ if(k!==cat) others.push(...SUGGEST_CATS[k][lang]); }
       shuffle(others);
-      for(const o of others){ if(result.length>=5) break; if(!result.includes(o)) result.push(o); }
-      return shuffle(result).slice(0,5);
+      for(const o of others){ if(result.length>=3) break; if(!result.includes(o)) result.push(o); }
+      return shuffle(result).slice(0,3);
     }
 
     function norm(s){
@@ -11302,7 +11302,7 @@ window.setLang = setLang;
       // 第二轮：用户输入较短时，反向匹配（输入是某关键词的一部分，如"เมนไม่ปกติ"⊂"เมนมาไม่ปกติ"）
       if(s.length>=4){
         for(const item of KB){
-          for(const k of item.kw){ const nk=norm(k); if(nk.length>=4 && nk.includes(s)) return item; }
+          for(const k of item.kw){ const nk=norm(k); if(nk.length>=4 && nk.includes(s) && nk.length-s.length<=2) return item; }
         }
       }
       return null;
@@ -11407,7 +11407,7 @@ window.setLang = setLang;
           chatHistory.push({role:'assistant', content:r.text});
           // 冒泡5个推荐：2个与刚问话题相近 + 3个其他，全部能答
           showFollowUp(pickSuggest(q), q);
-        }, 500+Math.random()*400);
+        }, 1400+Math.random()*1000+Math.min(String(r.text||'').length*6,1400));
       } else {
         // 库里没有：交给真AI（这一步才会真正消耗月光点数）
         askRealAI(q);
@@ -11425,7 +11425,7 @@ window.setLang = setLang;
       }
       if(!auth || !auth.currentUser){
         const t=document.getElementById('aiTyping'); if(t) t.remove();
-        bubble(isTh?'กรุณาเข้าสู่ระบบก่อนนะคะ':'请先登录哦', 'luna');
+        bubble((typeof window.__lpgAiPhr==='function')?window.__lpgAiPhr('login',isTh):(isTh?'กรุณาเข้าสู่ระบบก่อนนะคะ':'请先登录哦'), 'luna');
         return;
       }
       try{
@@ -11479,7 +11479,7 @@ window.setLang = setLang;
           return;
         }
         if(!resp.ok || !data.reply){
-          bubble(isTh?'ตอนนี้ Luna ตอบไม่ได้ ลองใหม่อีกครั้งนะคะ':'Luna 现在暂时无法回应，稍后再试试吧', 'luna');
+          bubble((typeof window.__lpgAiPhr==='function')?window.__lpgAiPhr('fail',isTh):(isTh?'ตอนนี้ Luna ตอบไม่ได้ ลองใหม่อีกครั้งนะคะ':'Luna 现在暂时无法回应，稍后再试试吧'), 'luna');
           return;
         }
         bubble(data.reply, 'luna');
@@ -11493,7 +11493,7 @@ window.setLang = setLang;
         }
       }catch(e){
         const t=document.getElementById('aiTyping'); if(t) t.remove();
-        bubble(isTh?'ตอนนี้ Luna ตอบไม่ได้ ลองใหม่อีกครั้งนะคะ':'Luna 现在暂时无法回应，稍后再试试吧', 'luna');
+        bubble((typeof window.__lpgAiPhr==='function')?window.__lpgAiPhr('fail',isTh):(isTh?'ตอนนี้ Luna ตอบไม่ได้ ลองใหม่อีกครั้งนะคะ':'Luna 现在暂时无法回应，稍后再试试吧'), 'luna');
       }
     }
 
@@ -31439,28 +31439,39 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 (function(){
   if (window.__lpgAiFix) return; window.__lpgAiFix = true;
   try{
-    /* ── ① 长回复从头开始看 ── */
-    var raf = 0;
-    function lastBot(body){
-      var kids = body.children;
-      for (var i = kids.length - 1; i >= 0; i--){
-        var k = kids[i]; var st = k.getAttribute && k.getAttribute('style') || '';
-        if (st.indexOf('aiBubbleIn') >= 0 && st.indexOf('flex-start') >= 0) return k;
-      }
-      return null;
-    }
+    /* ── ① 长回复从头开始看：只在"一条新的 Luna 回复正在出现"时生效；用户自己点按钮/话题菜单时完全不干预 ── */
+    var raf = 0, pin = null;
+    function st(k){ return (k && k.getAttribute && k.getAttribute('style')) || ''; }
+    function isBot(k){ var s = st(k); return s.indexOf('aiBubbleIn') >= 0 && s.indexOf('flex-start') >= 0; }
+    function isMe(k){ var s = st(k); return s.indexOf('aiBubbleIn') >= 0 && s.indexOf('flex-end') >= 0; }
     function fixScroll(){
       raf = 0;
       try{
-        var body = document.getElementById('aiBody'); if (!body) return;
-        var lb = lastBot(body); if (!lb) return;
-        var d = lb.getBoundingClientRect().top - body.getBoundingClientRect().top;
-        if (d < -2) body.scrollTop = body.scrollTop + d - 10;        // 这条回复的开头在上面被切掉了 → 把开头拉回来
+        var body = document.getElementById('aiBody'); if (!body || !pin || !pin.isConnected) return;
+        var d = pin.getBoundingClientRect().top - body.getBoundingClientRect().top;
+        if (d < -2) body.scrollTop = body.scrollTop + d - 10;        // 回复的开头在上面被切掉了 → 拉回来
       }catch(e){}
     }
+    function later(){ if (!raf) raf = requestAnimationFrame(fixScroll); clearTimeout(window.__lpgFixT); window.__lpgFixT = setTimeout(fixScroll, 480); }
     function bindBody(){
       var body = document.getElementById('aiBody'); if (!body) return false;
-      new MutationObserver(function(){ if (!raf) raf = requestAnimationFrame(fixScroll); clearTimeout(window.__lpgFixT); window.__lpgFixT = setTimeout(fixScroll, 480); }).observe(body, { childList: true, subtree: true, characterData: true });
+      new MutationObserver(function(recs){
+        try{
+          var go = false;
+          recs.forEach(function(r){
+            if (r.type === 'childList' && r.target === body){
+              Array.prototype.forEach.call(r.addedNodes, function(n){
+                if (n.nodeType !== 1) return;
+                if (isBot(n)){ pin = n; go = true; }                                     // 新回复出现：开始盯着它的开头
+                else if (isMe(n) || n.id === 'aiTopicMenu') pin = null;                   // 用户自己的操作：不再干预
+                else if (pin && n.className && String(n.className).indexOf('aiFuWrap') >= 0){ go = true; setTimeout(function(){ fixScroll(); pin = null; }, 520); }   // 回复末尾的追问按钮：最后对齐一次就收手
+              });
+            } else if (pin && pin.contains(r.target)) go = true;                          // 回复正在逐字出现
+          });
+          if (go && pin) later();
+        }catch(e){}
+      }).observe(body, { childList: true, subtree: true, characterData: true });
+      body.addEventListener('touchstart', function(){ pin = null; }, { passive: true });  // 用户一上手滑动就不再干预
       return true;
     }
     if (!bindBody()){ var t1 = setInterval(function(){ if (bindBody()) clearInterval(t1); }, 500); }
@@ -31493,5 +31504,161 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     });
     document.addEventListener('focusout', function(e){ if (e.target && e.target.id === 'aiInput') setTimeout(fitPanel, 150); });
   }catch(e){ try{ console.warn('lpgAiFix', e); }catch(_){} }
+})();
+</script>
+
+<script>
+/* 小助手聊天记录保留：每条消息按"发送当天"（泰国时间）算一天，只保留今天 + 前 2 天（共 3 天），更早的每次打开 App 时清掉。
+   原来只放在 sessionStorage（彻底退出 App 就清空）；现在额外在本机 localStorage 留一份副本，下次打开 App 时放回去，
+   原来的恢复逻辑照常把对话画出来。只在本机，不上传；按账号分开；在小助手里删除气泡会同步删除副本。 */
+(function(){
+  if (window.__lpgAiKeep) return; window.__lpgAiKeep = true;
+  try{
+    var BASE = 'luna_ai_session_v1', KEEP = 'luna_ai_keep_v1_', DAYS = 3;
+    var SS = window.sessionStorage, LS = window.localStorage;
+    function today(){ return Math.floor((Date.now() + 7 * 3600000) / 86400000); }   // 泰国时间的"第几天"
+    function uid(){ try{ return LS.getItem('luna_uid') || ''; }catch(e){ return ''; } }
+    function skey(){ var u = uid(); return u ? (BASE + '_' + u) : ''; }
+    function kkey(){ var u = uid(); return u ? (KEEP + u) : ''; }
+    function readK(kk){ try{ var o = JSON.parse(LS.getItem(kk) || 'null'); return (o && Array.isArray(o.list)) ? o.list : []; }catch(e){ return []; } }
+    function fresh(list){ var min = today() - (DAYS - 1); return list.filter(function(m){ return m && typeof m.d === 'number' && m.d >= min; }); }
+    function restore(){
+      try{
+        var sk = skey(), kk = kkey(); if (!sk || !kk) return;
+        if (SS.getItem(sk)) return;                                   // 这次打开期间已经有了，不动
+        var all = readK(kk); if (!all.length) return;
+        var keep = fresh(all);
+        if (keep.length !== all.length){                              // 清掉超过 3 天的消息
+          if (keep.length) LS.setItem(kk, JSON.stringify({ list: keep })); else LS.removeItem(kk);
+        }
+        if (keep.length) SS.setItem(sk, JSON.stringify(keep.map(function(m){ return { w: m.w, t: m.t }; })));
+      }catch(e){}
+    }
+    var last = '';
+    function mirror(){
+      try{
+        var sk = skey(), kk = kkey(); if (!sk || !kk) return;
+        var v = SS.getItem(sk);
+        if (!v || v === last) return;
+        last = v;
+        var cur = JSON.parse(v); if (!Array.isArray(cur)) return;
+        var pool = {};                                                // 已有消息沿用原来的日期，新消息记为今天
+        readK(kk).forEach(function(m){ if (m && typeof m.d === 'number'){ var k = m.w + '|' + m.t; (pool[k] = pool[k] || []).push(m.d); } });
+        var td = today(), out = cur.map(function(m){
+          var q = pool[m.w + '|' + m.t]; var d = (q && q.length) ? q.shift() : td;
+          return { w: m.w, t: m.t, d: d };
+        });
+        LS.setItem(kk, JSON.stringify({ list: fresh(out) }));
+      }catch(e){}
+    }
+    // 原代码清空对话时会 removeItem(sessionStorage 的键)：副本一起删，不然删了的又会回来
+    var _rm = Storage.prototype.removeItem;
+    Storage.prototype.removeItem = function(k){
+      var rv = _rm.apply(this, arguments);
+      try{ if (this === SS && typeof k === 'string' && k.indexOf(BASE + '_') === 0){ last = ''; LS.removeItem(KEEP + k.slice(BASE.length + 1)); } }catch(e){}
+      return rv;
+    };
+    restore();
+    setTimeout(restore, 1500);          // 登录信息稍晚才就绪时再试一次
+    setInterval(mirror, 1500);
+  }catch(e){ try{ console.warn('lpgAiKeep', e); }catch(_){} }
+})();
+</script>
+
+<style id="lpgAiBadgeCss">
+/* 顶部状态点：灰 = 预设回答；绿 + "AI" = 刚刚这条是真 AI 回的 */
+#aiStatus .lpg-dot{color:#c9c5d3 !important;text-shadow:none !important;}
+#aiStatus[data-lpg-ai="1"] .lpg-dot{color:#22c55e !important;text-shadow:0 0 6px rgba(34,197,94,.7) !important;}
+#aiStatus[data-lpg-ai="1"] .lpg-dot::after{content:" AI";font-weight:800;color:#16a34a;text-shadow:none;}
+</style>
+<script>
+(function(){
+  if (window.__lpgAiBadge) return; window.__lpgAiBadge = true;
+  try{
+    var pending = false, pendTs = 0;
+    function set(on){ try{ var s = document.getElementById('aiStatus'); if(s){ if(on) s.setAttribute('data-lpg-ai','1'); else s.removeAttribute('data-lpg-ai'); } }catch(e){} }
+    // 真 AI = 请求了 lunaChatReply 且返回了 reply；只做旁听（clone），不改请求和返回
+    var _f = window.fetch;
+    if (typeof _f === 'function'){
+      window.fetch = function(u){
+        var p = _f.apply(this, arguments);
+        try{
+          var url = (typeof u === 'string') ? u : (u && u.url) || '';
+          if (url.indexOf('lunaChatReply') >= 0){
+            p.then(function(r){ try{ if(r && r.ok) r.clone().json().then(function(d){ if(d && d.reply){ pending = true; pendTs = Date.now(); } }).catch(function(){}); }catch(e){} }, function(){});
+          }
+        }catch(e){}
+        return p;
+      };
+    }
+    // 对话区每出现一个新的机器人气泡：刚收到真 AI 回复 → 绿；否则（预设/本地回答/欢迎语）→ 灰
+    function isBot(k){ var s = (k.getAttribute && k.getAttribute('style')) || ''; return !k.id && s.indexOf('aiBubbleIn') >= 0 && s.indexOf('flex-start') >= 0; }
+    function onBubble(){
+      setTimeout(function(){ var on = pending && (Date.now() - pendTs < 15000); pending = false; set(on); }, 150);
+    }
+    function bind(){
+      var b = document.getElementById('aiBody'); if(!b) return false;
+      new MutationObserver(function(ms){
+        for (var i = 0; i < ms.length; i++) for (var j = 0; j < ms[i].addedNodes.length; j++){ var n = ms[i].addedNodes[j]; if(n.nodeType === 1 && isBot(n)){ onBubble(); return; } }
+      }).observe(b, { childList: true });
+      return true;
+    }
+    if(!bind()){ var t = setInterval(function(){ if(bind()) clearInterval(t); }, 500); }
+    window.__lpgAiBadgeTest = function(){ pending = true; pendTs = Date.now(); };
+  }catch(e){ try{ console.warn('lpgAiBadge', e); }catch(_){} }
+})();
+</script>
+
+<script>
+/* 小助手"没法用 AI 时"的回复话术：预设库没命中又没有 AI 可用（没登录 / AI 出错 / 没网）时，
+   从各 6 句里随机挑一句（不连续重复上一句），原来的固定一句改为调用这里。 */
+(function(){
+  if (window.__lpgAiPhr) return; window.__lpgAiPhr = true;
+  try{
+    var P = {
+      fail: {
+        th: [
+          '🌙 ตอนนี้ Luna ยังตอบเรื่องนี้ไม่ได้ค่ะ ลองพิมพ์คำสั้น ๆ เช่น "ปวดท้อง" หรือเลือกหัวข้อด้านล่างดูนะคะ 👇',
+          '🌙 ขอโทษนะคะ Luna ยังไม่เข้าใจเรื่องนี้ ลองเปลี่ยนคำถามให้ง่ายขึ้น หรือแตะหัวข้อแนะนำด้านล่างได้เลยค่ะ',
+          '🌙 เรื่องนี้ Luna ยังหาคำตอบให้ไม่ได้ในตอนนี้ค่ะ ลองถามเรื่องประจำเดือน อารมณ์ หรือการใช้แอปดูไหมคะ',
+          '🌙 อืม... Luna ยังตอบไม่ได้เลยค่ะ ลองใหม่อีกครั้งในอีกสักครู่ หรือเลือกหัวข้อที่แนะนำด้านล่างก่อนนะคะ',
+          '🌙 ตอนนี้ Luna จับใจความไม่ครบค่ะ ลองพิมพ์เป็นคำสั้น ๆ เช่น "เมนมาช้า" หรือ "เครียด" ดูนะคะ',
+          '🌙 ขอโทษที่ตอบไม่ตรงใจนะคะ ตอนนี้ Luna ตอบคำถามนี้ไม่ได้ ลองเลือกหัวข้อด้านล่างหรือถามใหม่อีกครั้งได้เลยค่ะ 💜'
+        ],
+        zh: [
+          '🌙 这个问题 Luna 现在还回答不了呢，试试输入短一点的词，比如“肚子痛”，或者点下面的话题看看 👇',
+          '🌙 抱歉呀，Luna 还没听懂这个问题，可以换个简单点的说法，或者直接点下面推荐的话题哦',
+          '🌙 这个问题 Luna 暂时还找不到答案，试试问问月经、心情或者 App 怎么用吧？',
+          '🌙 嗯…… Luna 现在还答不上来，过一会儿再试一次，或者先选下面推荐的话题吧',
+          '🌙 Luna 现在没能完全抓住你的意思，试着输入简短的词，比如“月经推迟”或“压力大”吧',
+          '🌙 抱歉没能答到你心里去，Luna 现在回答不了这个问题，可以点下面的话题，或者重新问一次哦 💜'
+        ]
+      },
+      login: {
+        th: [
+          '🌙 กรุณาเข้าสู่ระบบก่อนนะคะ แล้วคุยกับ Luna ต่อได้เลย',
+          '🌙 ต้องเข้าสู่ระบบก่อนนะคะ ถึงจะคุยเรื่องนี้กับ Luna ได้ค่ะ',
+          '🌙 เข้าสู่ระบบสักนิดนะคะ แล้ว Luna จะช่วยตอบเรื่องนี้ให้ค่ะ 💜',
+          '🌙 เรื่องนี้ Luna ต้องให้คุณเข้าสู่ระบบก่อนถึงจะตอบได้ค่ะ ลองเข้าสู่ระบบแล้วถามใหม่อีกครั้งนะคะ',
+          '🌙 ยังไม่ได้เข้าสู่ระบบนะคะ เข้าสู่ระบบก่อน แล้วมาคุยกันต่อได้เลยค่ะ',
+          '🌙 รบกวนเข้าสู่ระบบก่อนนะคะ Luna อยากช่วยตอบให้เต็มที่ค่ะ'
+        ],
+        zh: [
+          '🌙 请先登录哦，登录后就可以继续和 Luna 聊啦',
+          '🌙 需要先登录，才能和 Luna 聊这个问题哦',
+          '🌙 先登录一下吧，Luna 就能帮你回答这个问题啦 💜',
+          '🌙 这个问题需要先登录 Luna 才能回答，登录后再问一次吧',
+          '🌙 你还没有登录哦，登录之后我们接着聊',
+          '🌙 麻烦先登录一下，Luna 想好好帮你解答'
+        ]
+      }
+    };
+    var last = { fail: -1, login: -1 };
+    window.__lpgAiPhr = function(kind, isTh){
+      var a = (P[kind] || P.fail)[isTh ? 'th' : 'zh'], i, n = 0;
+      do{ i = Math.floor(Math.random() * a.length); n++; }while(i === last[kind] && n < 10);
+      last[kind] = i; return a[i];
+    };
+  }catch(e){ try{ console.warn('lpgAiPhr', e); }catch(_){} }
 })();
 </script>

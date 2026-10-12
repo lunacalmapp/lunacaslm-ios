@@ -28459,7 +28459,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
       }
       body.innerHTML = '<div class="lpg-intro" style="padding-top:60px;"><div class="lpg-spin"></div><div style="font-size:14px;color:var(--stat-fg-muted,#8b84a0);">' + (pro() && aiMode(mode()) && ff('reportAiClosing') ? (zh ? 'Luna 正在整理记录，并写下想对你说的话…' : 'Luna กำลังดูบันทึกและเขียนข้อความถึงคุณ…') : (zh ? 'Luna 正在整理你的记录…' : 'Luna กำลังดูบันทึกของคุณ…')) + '</div></div>';
       var md0 = mode(), r0 = null; try{ r0 = build(); }catch(e){ r0 = null; }
-      var minWait = new Promise(function(res){ setTimeout(res, 1100); });
+      var minWait = new Promise(function(res){ setTimeout(res, 3500); });
       var aiP = wantAi(r0, md0) ? getAiClosing(r0, md0, zh) : Promise.resolve(null);
       Promise.all([minWait, aiP]).then(function(rs){
         var r = r0, aiText = rs[1];
@@ -31232,7 +31232,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 #lpgModeLoader .ml-t{font-size:16px;font-weight:700;color:#2b2340;text-align:center;padding:0 28px;line-height:1.5;}
 #lpgModeLoader .ml-s{font-size:12.5px;color:#8a82a3;text-align:center;margin-top:-18px;padding:0 28px;}
 #lpgModeLoader .ml-bar{width:150px;height:4px;border-radius:4px;background:rgba(154,123,227,.18);overflow:hidden;margin-top:-6px;}
-#lpgModeLoader .ml-bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#9a7be3,#e88fbd);animation:mlBar 2s cubic-bezier(.4,.1,.3,1) forwards;}
+#lpgModeLoader .ml-bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#9a7be3,#e88fbd);animation:mlBar 3.5s cubic-bezier(.4,.1,.3,1) forwards;}
 @keyframes mlSpin{to{transform:rotate(360deg)}}
 @keyframes mlPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 @keyframes mlOrbit{0%{transform:rotate(0) translateX(66px)}100%{transform:rotate(360deg) translateX(66px)}}
@@ -31268,7 +31268,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       o.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive: false });
       document.body.appendChild(o);
       requestAnimationFrame(function(){ requestAnimationFrame(function(){ o.classList.add('on'); }); });
-      setTimeout(function(){ o.classList.remove('on'); setTimeout(function(){ try{ o.remove(); }catch(e){} busy = false; prev = mode(); }, 300); }, 2000);
+      setTimeout(function(){ o.classList.remove('on'); setTimeout(function(){ try{ o.remove(); }catch(e){} busy = false; prev = mode(); }, 300); }, 3500);
     }
     function onChange(){
       try{
@@ -31351,12 +31351,21 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       Array.prototype.forEach.call(box.children, function(c){ c.style.display = 'none'; });
       box.insertBefore(build('deep', false), box.firstChild);
     }
-    /* ② 情绪健康洞察：按钮在"分析中"、结果还是空的时候，在结果区放动画 */
+    /* ② 情绪健康洞察：按钮在"分析中"、结果还是空的时候，在结果区放动画；结果回来太快的话，动画至少播满 5 秒再显示结果 */
+    var moodStart = 0, holding = false, MIN_MS = 3500;
     function fixMood(){
-      var btn = document.getElementById('moodAnalysisBtn'), res = document.getElementById('moodAnalysisResult'); if(!btn || !res) return;
-      var has = res.querySelector('[data-lpg-think]');
-      if(btn.disabled && !res.textContent.trim() && !has){ res.style.whiteSpace = 'normal'; res.appendChild(build('mood', true)); }
-      else if(has && (!btn.disabled || res.textContent.replace(has.textContent, '').trim())){ has.remove(); res.style.whiteSpace = ''; }
+      var btn = document.getElementById('moodAnalysisBtn'), res = document.getElementById('moodAnalysisResult'); if(!btn || !res || holding) return;
+      var has = res.querySelector('[data-lpg-think]'), txt = res.textContent.trim();
+      if(btn.disabled && !txt && !has){ moodStart = moodStart || Date.now(); res.style.whiteSpace = 'normal'; res.appendChild(build('mood', true)); return; }
+      if(!has && txt && moodStart && Date.now() - moodStart < MIN_MS){
+        holding = true; var keep = res.textContent, left = MIN_MS - (Date.now() - moodStart);
+        res.textContent = ''; res.style.whiteSpace = 'normal'; res.appendChild(build('mood', true));
+        setTimeout(function(){ res.textContent = keep; res.style.whiteSpace = ''; holding = false; moodStart = 0; }, left);
+        return;
+      }
+      if(has && !btn.disabled && !txt.replace(has.textContent, '').trim()){ has.remove(); res.style.whiteSpace = ''; moodStart = 0; }          // 失败：没有结果
+      else if(has && txt.replace(has.textContent, '').trim() && !btn.disabled){ has.remove(); res.style.whiteSpace = ''; moodStart = 0; }
+      if(!btn.disabled && !has && !holding && moodStart && Date.now() - moodStart >= MIN_MS) moodStart = 0;
     }
     /* ③ Luna 智能分析（备孕/怀孕/月经）生成中：把转圈圈换成月亮球 */
     function fixMode(){
@@ -31367,5 +31376,122 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     }
     setInterval(function(){ try{ fixDeep(); fixMood(); fixMode(); }catch(e){} }, 120);
   }catch(e){ try{ console.warn('lpgThink', e); }catch(_){} }
+})();
+</script>
+
+<script>
+/* 设备型号上报：每个设备（每个访客ID / 账号）只发 1 次 device_info 事件，后台「今日新增 / 访客明细」靠它显示型号。
+   只记设备类型：系统、机型、系统版本、屏幕尺寸，不含任何个人信息、不含设备唯一标识。 */
+(function(){
+  if (window.__lpgDevReport) return; window.__lpgDevReport = true;
+  try{
+    function idNow(){ try{ return localStorage.getItem('luna_uid') || localStorage.getItem('luna_anon_id') || ''; }catch(e){ return ''; } }
+    async function gather(){
+      var o = { os: '', model: '', mfr: '', osv: '', sw: 0, sh: 0, dpr: 1 };
+      try{
+        var C = window.Capacitor, p = (C && C.getPlatform && C.getPlatform()) || '';
+        o.os = p === 'android' ? 'android' : (p === 'ios' ? 'ios' : 'web');
+      }catch(e){}
+      try{
+        o.sw = Math.min(screen.width, screen.height); o.sh = Math.max(screen.width, screen.height); o.dpr = window.devicePixelRatio || 1;
+        var ua = navigator.userAgent || '';
+        var v = ua.match(/(?:Android |CPU (?:iPhone )?OS )([\d._]+)/); if (v) o.osv = v[1].replace(/_/g, '.');
+        var m = ua.match(/Android [\d.]+; ([^;)]+?)(?: Build|\))/); if (m && m[1] && m[1] !== 'K') o.model = m[1].trim();
+      }catch(e){}
+      try{    // Chrome / WebView 的新接口：UA 里被隐藏的真实机型从这里拿
+        var uad = navigator.userAgentData;
+        if (uad && uad.getHighEntropyValues){
+          var h = await Promise.race([uad.getHighEntropyValues(['model', 'platformVersion']), new Promise(function(r){ setTimeout(function(){ r(null); }, 1500); })]);
+          if (h && h.model) o.model = String(h.model).trim();
+          if (h && h.platformVersion && !o.osv) o.osv = String(h.platformVersion).trim();
+        }
+      }catch(e){}
+      try{    // 如果装了 Capacitor Device 插件，用它（最准）
+        var D = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Device;
+        if (D && D.getInfo){
+          var i = await D.getInfo();
+          if (i){ if (i.model) o.model = String(i.model); if (i.manufacturer) o.mfr = String(i.manufacturer); if (i.osVersion) o.osv = String(i.osVersion); }
+        }
+      }catch(e){}
+      return o;
+    }
+    async function tick(){
+      try{
+        if (!window._fb || typeof window.trackEvent !== 'function') return;
+        var id = idNow(); if (!id) return;
+        var k = 'luna_devinfo_v1_' + id;
+        if (localStorage.getItem(k)) return;
+        localStorage.setItem(k, '1');                 // 先占位，避免并发重复发送
+        var d = await gather();
+        window.trackEvent('device_info', d);
+      }catch(e){}
+    }
+    setTimeout(tick, 3000);
+    setInterval(tick, 5000);
+  }catch(e){ try{ console.warn('lpgDevReport', e); }catch(_){} }
+})();
+</script>
+
+<script>
+/* Luna 小助手两处体验修复（只追加，不改小助手原来的逻辑）：
+   ① 回复很长时，新消息的开头被滚到画面上面看不到 → 让这条回复的"开头"对齐到可视区顶部（想看后面再往下滑）
+   ② iOS 键盘弹起时输入框被盖住 → 用 visualViewport 把小助手面板的高度/位置跟着"键盘上方的可视区域"走 */
+(function(){
+  if (window.__lpgAiFix) return; window.__lpgAiFix = true;
+  try{
+    /* ── ① 长回复从头开始看 ── */
+    var raf = 0;
+    function lastBot(body){
+      var kids = body.children;
+      for (var i = kids.length - 1; i >= 0; i--){
+        var k = kids[i]; var st = k.getAttribute && k.getAttribute('style') || '';
+        if (st.indexOf('aiBubbleIn') >= 0 && st.indexOf('flex-start') >= 0) return k;
+      }
+      return null;
+    }
+    function fixScroll(){
+      raf = 0;
+      try{
+        var body = document.getElementById('aiBody'); if (!body) return;
+        var lb = lastBot(body); if (!lb) return;
+        var d = lb.getBoundingClientRect().top - body.getBoundingClientRect().top;
+        if (d < -2) body.scrollTop = body.scrollTop + d - 10;        // 这条回复的开头在上面被切掉了 → 把开头拉回来
+      }catch(e){}
+    }
+    function bindBody(){
+      var body = document.getElementById('aiBody'); if (!body) return false;
+      new MutationObserver(function(){ if (!raf) raf = requestAnimationFrame(fixScroll); clearTimeout(window.__lpgFixT); window.__lpgFixT = setTimeout(fixScroll, 480); }).observe(body, { childList: true, subtree: true, characterData: true });
+      return true;
+    }
+    if (!bindBody()){ var t1 = setInterval(function(){ if (bindBody()) clearInterval(t1); }, 500); }
+
+    /* ── ② 键盘弹起：面板跟着可视区域走 ── */
+    var vv = window.visualViewport;
+    function panel(){ return document.getElementById('aiPanel'); }
+    function fitPanel(){
+      try{
+        var p = panel(); if (!p || !vv) return;
+        if (!p.style.display || p.style.display === 'none') { p.style.removeProperty('height'); p.style.removeProperty('top'); return; }
+        var kb = (window.innerHeight - vv.height - vv.offsetTop) > 80;      // 键盘（或别的东西）占掉了底部
+        if (kb){
+          p.style.setProperty('height', vv.height + 'px', 'important');
+          p.style.setProperty('max-height', vv.height + 'px', 'important');
+          p.style.setProperty('top', vv.offsetTop + 'px', 'important');
+          p.style.setProperty('bottom', 'auto', 'important');
+          var b = document.getElementById('aiBody'); if (b) b.scrollTop = b.scrollHeight;
+        } else {
+          ['height','max-height','top','bottom'].forEach(function(k){ p.style.removeProperty(k); });
+        }
+      }catch(e){}
+    }
+    if (vv){ vv.addEventListener('resize', fitPanel); vv.addEventListener('scroll', fitPanel); }
+    document.addEventListener('focusin', function(e){
+      if (e.target && e.target.id === 'aiInput'){
+        setTimeout(fitPanel, 120); setTimeout(fitPanel, 400);
+        setTimeout(function(){ try{ window.scrollTo(0, 0); }catch(_){} try{ e.target.scrollIntoView({ block: 'nearest' }); }catch(_){} }, 450);
+      }
+    });
+    document.addEventListener('focusout', function(e){ if (e.target && e.target.id === 'aiInput') setTimeout(fitPanel, 150); });
+  }catch(e){ try{ console.warn('lpgAiFix', e); }catch(_){} }
 })();
 </script>

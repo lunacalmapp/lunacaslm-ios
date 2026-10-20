@@ -102,6 +102,7 @@
   <div class="lang-switch">
     <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')">🇨🇳 中文</button>
     <button class="lang-btn active"   id="btnTh" onclick="setLang('th')">🇹🇭 ภาษาไทย</button>
+    <button class="lang-btn inactive" id="btnEn" onclick="setLang('en')">🇺🇸 English</button>
   </div>
 </div>
 
@@ -216,7 +217,31 @@ const CONTENT = {
     s6body: '如对删除账号或数据有任何疑问，请通过以下方式联系我们：',
     s6email: 'lunacalm00@gmail.com',
     backBtn: '← 返回',
-  }
+  },
+  en: {
+  "pageTitle": "Delete Account and Data",
+  "pageSubtitle": "Luna Calm · How to delete your account",
+  "updatedTxt": "Last updated: June 2026 (v1)",
+  "s1title": "About this app",
+  "s1body": "This page explains how to delete your data and account in Luna Calm (Luna 月记), an app for tracking your menstrual cycle, symptoms and mood.",
+  "s2title": "How to delete",
+  "s2step1": "<strong>Delete data in the app (data only):</strong> Open Luna Calm and go to \"Me\" (Profile) → \"Delete data\". Your health data and personal records are deleted immediately, but your membership status is kept.",
+  "s2step2": "<strong>Permanently delete your account in the app (recommended):</strong> Open Luna Calm and go to \"Me\" (Profile) → \"Delete account permanently\". After you confirm twice, all your data, your membership and the sign-in account itself are deleted immediately. There is nothing to wait for and no one to contact.",
+  "s2step3": "<strong>If you can't open the app:</strong> Email your request to <strong>lunacalm00@gmail.com</strong> and tell us the email address you sign in with. We will delete the account for you manually (only for cases where you cannot open the app).",
+  "s3title": "What gets deleted",
+  "s3i1": "<strong>Delete data in the app</strong> removes: your period records, symptoms, moods and all other personal data you logged (your membership is kept).",
+  "s3i2": "<strong>Delete account permanently</strong> (in the app or by email) additionally removes: your account information (name, email, profile photo), your membership status and all access rights permanently, and the sign-in account itself.",
+  "s3note": "⚠️ Note: \"Delete data\" in the app only removes your personal/health data. It <strong>does not remove your membership</strong>, so you can't accidentally lose a membership you have paid for. To delete your account together with your membership completely, use \"Delete account permanently\" in the app (step 2 above). It is the fastest way.",
+  "s4title": "Processing time",
+  "s4i1": "Delete data in the app / delete account permanently in the app: takes effect immediately, no waiting.",
+  "s4i2": "Account deletion by email (only if you cannot open the app): completed within 7 business days of receiving your request.",
+  "s5title": "Information we may keep by law",
+  "s5body": "To meet legal requirements (such as transaction audits and fraud prevention), we may keep some payment transaction records for a limited period after your account is deleted. We do not keep your health data or other personal information.",
+  "s6title": "Contact us",
+  "s6body": "If you have any questions about deleting your account or data, contact us at:",
+  "s6email": "lunacalm00@gmail.com",
+  "backBtn": "← Back"
+}
 };
 
 function setLang(lang) {
@@ -225,13 +250,16 @@ function setLang(lang) {
     const el = document.getElementById(id);
     if(el) el.innerHTML = d[id];
   });
-  document.getElementById('btnZh').className = 'lang-btn ' + (lang==='zh' ? 'active' : 'inactive');
-  document.getElementById('btnTh').className = 'lang-btn ' + (lang==='th' ? 'active' : 'inactive');
-  document.documentElement.lang = lang==='zh' ? 'zh-CN' : 'th';
-  localStorage.setItem('luna_lang', lang);
+  ['Zh','Th','En'].forEach(k => { const b = document.getElementById('btn'+k); if(b) b.className = 'lang-btn ' + (lang===k.toLowerCase() ? 'active' : 'inactive'); });
+  document.documentElement.lang = lang==='zh' ? 'zh-CN' : lang;
+  try{
+    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.setItem('luna_lang','zh'); }
+    else { localStorage.removeItem('luna_ui_en'); localStorage.setItem('luna_lang', lang); }
+  }catch(e){}
 }
 
-const savedLang = localStorage.getItem('luna_lang') || 'th';
+let savedLang = 'th';
+try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; }catch(e){}
 setLang(savedLang);
 </script>
 </body>

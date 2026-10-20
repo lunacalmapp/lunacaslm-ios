@@ -113,6 +113,7 @@
       <div class="langmenu" id="langMenu" role="menu">
         <button class="lang-btn active" id="btnTh" onclick="setLang('th')" role="menuitem">ไทย</button>
         <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')" role="menuitem">中文</button>
+        <button class="lang-btn inactive" id="btnEn" onclick="setLang('en')" role="menuitem">English</button>
       </div>
     </div>
     <button onclick="goBack()" aria-label="close" style="position:absolute; top:16px; right:16px; width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,0.25); color:#fff; font-size:18px; cursor:pointer; font-family:inherit; line-height:1; display:flex; align-items:center; justify-content:center;">✕</button>
@@ -244,7 +245,37 @@ const CONTENT = {
       '<li><a href="https://www.cdc.gov/hpv/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – HPV 与 HPV 疫苗</a></li>' +
       '</ul><br>如有异常症状或健康方面的顾虑，请直接咨询医生',
     backBtn: '← 返回',
-  }
+  },
+  en: {
+  "pageTitle": "Help Center",
+  "pageSubtitle": "Luna · Frequently asked questions",
+  "faqTitle": "FAQ",
+  "q1": "❓ How do I become a VIP member?",
+  "a1": "On the Me page, tap the membership card and choose a plan: Weekly, Monthly, or Yearly. Prices are shown in your local currency. Payment goes through Apple's in-app subscription system, directly inside the app.",
+  "q2": "❓ How long until my membership is active?",
+  "a2": "Your membership activates automatically right after the App Store payment succeeds. If it doesn't, tap \"Restore purchase\" on the membership page, or email us.",
+  "q3": "❓ If I change phones or sign in again, will my data still be there?",
+  "a3": "Yes. As long as you sign in with the same Google account, all your data (periods, symptoms, logs) syncs back automatically.",
+  "q4": "❓ What happens if I sign in with a different Google account?",
+  "a4": "Your data is tied to each Google account separately. If you sign in with another account, you won't see the original account's data, so please always use the same Google account.",
+  "q5": "❓ Can I get a refund?",
+  "a5": "There is a 7-day free trial, so please try the app and subscribe only when you're happy with it. Refunds for App Store purchases are handled directly by Apple (not by the developer). See the Terms of Service page for details.",
+  "q6": "❓ How long is the trial? Will my logs stay after it ends?",
+  "a6": "The free trial lasts 7 days. After it ends, everything you've logged is kept. You just can't add new logs until you become a member, and membership restores that.",
+  "q7": "❓ How many themes can I choose from?",
+  "a7": "VIP members can unlock all 7 themes, and you can try every theme during the trial too.",
+  "guideTitle": "How to use the app",
+  "g1": "Log a period: open Calendar and tap a date to mark your period.",
+  "g2": "See predictions and stats: the home screen shows your next period. Tap Stats to see trends.",
+  "g3": "Change theme: go to Me, find the theme section, and pick the color you like.",
+  "g4": "Floating moon 🌙: tap it for a daily message of encouragement.",
+  "contactTitle": "Still have questions?",
+  "contactBody": "If you can't find an answer, or run into a problem, email us at lunacalm00@gmail.com and we'll get back to you as soon as we can.",
+  "lineBtnTxt": "Email us",
+  "healthRefTitle": "Health information sources",
+  "healthRefBody": "<strong>Luna Calm is not a medical device.</strong> The health content in the app (Luna assistant replies, AI in-depth analysis, and period/ovulation predictions) is for reference only and is not a substitute for professional medical advice, diagnosis, or contraception.<br><br>This content is compiled from public information published by the following organizations:<ul style=\"margin:8px 0 0 18px;padding:0;\"><li style=\"margin-bottom:4px;\"><a href=\"https://www.who.int/news-room/fact-sheets/detail/menstrual-health\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">World Health Organization (WHO)</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Menstrual cycle</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Iron deficiency anemia</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.cdc.gov/uti/about/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – Urinary Tract Infection</a></li><li><a href=\"https://www.cdc.gov/hpv/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – HPV and HPV Vaccine</a></li></ul><br>If you have unusual symptoms or health concerns, please talk to a doctor directly",
+  "backBtn": "← Back"
+}
 };
 
 function toggleLangMenu(force) {
@@ -264,17 +295,26 @@ function setLang(lang) {
     const el = document.getElementById(key);
     if (el) el.innerHTML = d[key];
   }
-  document.documentElement.lang = lang;
+  document.documentElement.lang = lang==='zh' ? 'zh-CN' : lang;
   document.getElementById('btnTh').className = 'lang-btn ' + (lang === 'th' ? 'active' : 'inactive');
   document.getElementById('btnZh').className = 'lang-btn ' + (lang === 'zh' ? 'active' : 'inactive');
+  const be = document.getElementById('btnEn'); if(be) be.className = 'lang-btn ' + (lang === 'en' ? 'active' : 'inactive');
   const cur = document.getElementById('langCurrent');
-  if(cur) cur.textContent = lang === 'zh' ? '中文' : 'ไทย';
+  if(cur) cur.textContent = lang === 'zh' ? '中文' : (lang === 'en' ? 'English' : 'ไทย');
+  const lb = document.querySelector('.line-btn');
+  if(lb){ if(!lb.dataset.h) lb.dataset.h = lb.getAttribute('href'); lb.setAttribute('href', lang==='en' ? 'mailto:lunacalm00@gmail.com' : lb.dataset.h); if(lang==='en') lb.removeAttribute('target'); else lb.setAttribute('target','_blank'); }
+  try{
+    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); }
+    else if(lang==='zh' || lang==='th'){ localStorage.removeItem('luna_ui_en'); }
+  }catch(e){}
   toggleLangMenu(false);
 }
 
-// 默认跟随 URL 参数 ?lang=zh，否则泰语
+// 默认跟随 URL 参数 ?lang=zh；英文模式（luna_ui_en=1）下显示英文，否则泰语
 const urlLang = new URLSearchParams(location.search).get('lang');
-setLang(urlLang === 'zh' ? 'zh' : 'th');
+let _l0 = urlLang === 'zh' ? 'zh' : 'th';
+try{ if(urlLang === 'zh' && localStorage.getItem('luna_ui_en') === '1') _l0 = 'en'; }catch(e){}
+setLang(_l0);
 </script>
 </body>
 </html>

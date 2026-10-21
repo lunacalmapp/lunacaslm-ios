@@ -114,6 +114,7 @@
         <button class="lang-btn active" id="btnTh" onclick="setLang('th')" role="menuitem">ไทย</button>
         <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')" role="menuitem">中文</button>
         <button class="lang-btn inactive" id="btnEn" onclick="setLang('en')" role="menuitem">English</button>
+        <button class="lang-btn inactive" id="btnVi" onclick="setLang('vi')" role="menuitem">Tiếng Việt</button>
       </div>
     </div>
     <button onclick="goBack()" aria-label="close" style="position:absolute; top:16px; right:16px; width:34px; height:34px; border-radius:50%; border:none; background:rgba(255,255,255,0.25); color:#fff; font-size:18px; cursor:pointer; font-family:inherit; line-height:1; display:flex; align-items:center; justify-content:center;">✕</button>
@@ -275,6 +276,36 @@ const CONTENT = {
   "healthRefTitle": "Health information sources",
   "healthRefBody": "<strong>Luna Calm is not a medical device.</strong> The health content in the app (Luna assistant replies, AI in-depth analysis, and period/ovulation predictions) is for reference only and is not a substitute for professional medical advice, diagnosis, or contraception.<br><br>This content is compiled from public information published by the following organizations:<ul style=\"margin:8px 0 0 18px;padding:0;\"><li style=\"margin-bottom:4px;\"><a href=\"https://www.who.int/news-room/fact-sheets/detail/menstrual-health\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">World Health Organization (WHO)</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Menstrual cycle</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Iron deficiency anemia</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.cdc.gov/uti/about/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – Urinary Tract Infection</a></li><li><a href=\"https://www.cdc.gov/hpv/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – HPV and HPV Vaccine</a></li></ul><br>If you have unusual symptoms or health concerns, please talk to a doctor directly",
   "backBtn": "← Back"
+},
+  vi: {
+ "pageTitle": "Trung tâm trợ giúp",
+ "pageSubtitle": "Luna · Câu hỏi thường gặp",
+ "faqTitle": "Câu hỏi thường gặp",
+ "q1": "❓ Làm sao để trở thành hội viên VIP?",
+ "a1": "Tại trang \"Tôi\", chạm vào thẻ hội viên và chọn một gói: theo Tuần, theo Tháng hoặc theo Năm. Giá hiển thị theo tiền tệ địa phương của bạn. Thanh toán được thực hiện qua hệ thống đăng ký trong ứng dụng của Apple, ngay trong ứng dụng.",
+ "q2": "❓ Bao lâu thì tư cách hội viên có hiệu lực?",
+ "a2": "Tư cách hội viên được kích hoạt tự động ngay sau khi thanh toán qua App Store thành công. Nếu chưa được, hãy chạm \"Khôi phục giao dịch mua\" trên trang hội viên, hoặc gửi email cho chúng tôi.",
+ "q3": "❓ Nếu tôi đổi điện thoại hoặc đăng nhập lại, dữ liệu của tôi có còn không?",
+ "a3": "Có. Miễn là bạn đăng nhập bằng cùng một tài khoản Google, toàn bộ dữ liệu của bạn (kỳ kinh, triệu chứng, ghi chép) sẽ tự động được đồng bộ lại.",
+ "q4": "❓ Điều gì xảy ra nếu tôi đăng nhập bằng tài khoản Google khác?",
+ "a4": "Dữ liệu của bạn gắn riêng với từng tài khoản Google. Nếu bạn đăng nhập bằng một tài khoản khác, bạn sẽ không thấy dữ liệu của tài khoản ban đầu, vì vậy hãy luôn dùng cùng một tài khoản Google.",
+ "q5": "❓ Tôi có được hoàn tiền không?",
+ "a5": "Có 7 ngày dùng thử miễn phí, vì vậy hãy dùng thử ứng dụng và chỉ đăng ký khi bạn hài lòng. Việc hoàn tiền cho các giao dịch mua trên App Store do Apple trực tiếp xử lý (không phải nhà phát triển). Xem trang Điều khoản dịch vụ để biết chi tiết.",
+ "q6": "❓ Thời gian dùng thử là bao lâu? Các ghi chép của tôi có còn sau khi hết hạn không?",
+ "a6": "Thời gian dùng thử miễn phí là 7 ngày. Sau khi hết hạn, mọi thứ bạn đã ghi vẫn được giữ lại. Bạn chỉ không thể thêm ghi chép mới cho đến khi trở thành hội viên, và việc đăng ký hội viên sẽ khôi phục điều đó.",
+ "q7": "❓ Tôi có thể chọn bao nhiêu giao diện?",
+ "a7": "Hội viên VIP có thể mở khóa cả 7 giao diện, và bạn cũng có thể thử tất cả giao diện trong thời gian dùng thử.",
+ "guideTitle": "Cách sử dụng ứng dụng",
+ "g1": "Ghi kỳ kinh: mở Lịch và chạm vào một ngày để đánh dấu kỳ kinh của bạn.",
+ "g2": "Xem dự đoán và thống kê: màn hình chính hiển thị kỳ kinh tiếp theo của bạn. Chạm vào Thống kê để xem xu hướng.",
+ "g3": "Đổi giao diện: vào \"Tôi\", tìm phần giao diện và chọn màu bạn thích.",
+ "g4": "Mặt trăng nổi 🌙: chạm vào đó để nhận một lời động viên mỗi ngày.",
+ "contactTitle": "Vẫn còn thắc mắc?",
+ "contactBody": "Nếu bạn không tìm thấy câu trả lời hoặc gặp sự cố, hãy gửi email cho chúng tôi tại lunacalm00@gmail.com và chúng tôi sẽ phản hồi sớm nhất có thể.",
+ "lineBtnTxt": "Gửi email cho chúng tôi",
+ "healthRefTitle": "Nguồn thông tin sức khỏe",
+ "healthRefBody": "<strong>Luna Calm không phải là thiết bị y tế.</strong> Nội dung sức khỏe trong ứng dụng (câu trả lời của trợ lý Luna, phân tích chuyên sâu bằng AI và dự đoán kỳ kinh/rụng trứng) chỉ mang tính tham khảo, không thay thế cho tư vấn y tế chuyên môn, chẩn đoán hay biện pháp tránh thai.<br><br>Nội dung này được tổng hợp từ thông tin công khai do các tổ chức sau đây công bố:<ul style=\"margin:8px 0 0 18px;padding:0;\"><li style=\"margin-bottom:4px;\"><a href=\"https://www.who.int/news-room/fact-sheets/detail/menstrual-health\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Tổ chức Y tế Thế giới (WHO)</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Chu kỳ kinh nguyệt</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Thiếu máu do thiếu sắt</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.cdc.gov/uti/about/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – Nhiễm trùng đường tiết niệu</a></li><li><a href=\"https://www.cdc.gov/hpv/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – HPV và vắc-xin HPV</a></li></ul><br>Nếu bạn có triệu chứng bất thường hoặc lo ngại về sức khỏe, hãy trao đổi trực tiếp với bác sĩ.",
+ "backBtn": "← Quay lại"
 }
 };
 
@@ -298,14 +329,16 @@ function setLang(lang) {
   document.documentElement.lang = lang==='zh' ? 'zh-CN' : lang;
   document.getElementById('btnTh').className = 'lang-btn ' + (lang === 'th' ? 'active' : 'inactive');
   document.getElementById('btnZh').className = 'lang-btn ' + (lang === 'zh' ? 'active' : 'inactive');
+  const bvi = document.getElementById('btnVi'); if(bvi) bvi.className = 'lang-btn ' + (lang === 'vi' ? 'active' : 'inactive');
   const be = document.getElementById('btnEn'); if(be) be.className = 'lang-btn ' + (lang === 'en' ? 'active' : 'inactive');
   const cur = document.getElementById('langCurrent');
-  if(cur) cur.textContent = lang === 'zh' ? '中文' : (lang === 'en' ? 'English' : 'ไทย');
+  if(cur) cur.textContent = lang === 'zh' ? '中文' : (lang === 'en' ? 'English' : (lang === 'vi' ? 'Tiếng Việt' : 'ไทย'));
   const lb = document.querySelector('.line-btn');
-  if(lb){ if(!lb.dataset.h) lb.dataset.h = lb.getAttribute('href'); lb.setAttribute('href', lang==='en' ? 'mailto:lunacalm00@gmail.com' : lb.dataset.h); if(lang==='en') lb.removeAttribute('target'); else lb.setAttribute('target','_blank'); }
+  if(lb){ if(!lb.dataset.h) lb.dataset.h = lb.getAttribute('href'); lb.setAttribute('href', (lang==='en'||lang==='vi') ? 'mailto:lunacalm00@gmail.com' : lb.dataset.h); if(lang==='en'||lang==='vi') lb.removeAttribute('target'); else lb.setAttribute('target','_blank'); }
   try{
-    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); }
-    else if(lang==='zh' || lang==='th'){ localStorage.removeItem('luna_ui_en'); }
+    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.removeItem('luna_ui_vi'); }
+    else if(lang==='vi'){ localStorage.setItem('luna_ui_vi','1'); localStorage.removeItem('luna_ui_en'); }
+    else if(lang==='zh' || lang==='th'){ localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_vi'); }
   }catch(e){}
   toggleLangMenu(false);
 }
@@ -313,7 +346,7 @@ function setLang(lang) {
 // 默认跟随 URL 参数 ?lang=zh；英文模式（luna_ui_en=1）下显示英文，否则泰语
 const urlLang = new URLSearchParams(location.search).get('lang');
 let _l0 = urlLang === 'zh' ? 'zh' : 'th';
-try{ if(urlLang === 'zh' && localStorage.getItem('luna_ui_en') === '1') _l0 = 'en'; }catch(e){}
+try{ if(urlLang === 'zh' && localStorage.getItem('luna_ui_en') === '1') _l0 = 'en'; else if(urlLang === 'zh' && localStorage.getItem('luna_ui_vi') === '1') _l0 = 'vi'; }catch(e){}
 setLang(_l0);
 </script>
 </body>

@@ -104,12 +104,13 @@
       <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')" role="menuitem">🇨🇳 中文</button>
       <button class="lang-btn active"   id="btnTh" onclick="setLang('th')" role="menuitem">🇹🇭 ภาษาไทย</button>
       <button class="lang-btn inactive" id="btnEn" onclick="setLang('en')" role="menuitem">🇺🇸 English</button>
+      <button class="lang-btn inactive" id="btnVi" onclick="setLang('vi')" role="menuitem">🇻🇳 Tiếng Việt</button>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: ตุลาคม 2026 (v6)</div>
+  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: ตุลาคม 2026 (v7)</div>
 
   <!-- 1 关于 -->
   <div class="section">
@@ -232,7 +233,7 @@ const CONTENT = {
   th: {
     pageTitle: 'นโยบายความเป็นส่วนตัว',
     pageSubtitle: 'Luna Calm · ข้อมูลของคุณปลอดภัย',
-    updatedTxt: 'อัปเดตล่าสุด: ตุลาคม 2026 (v6)',
+    updatedTxt: 'อัปเดตล่าสุด: ตุลาคม 2026 (v7)',
     s1title: 'เกี่ยวกับแอปนี้',
     s1body: 'Luna Calm เป็นแอปสำหรับบันทึกและติดตามรอบเดือน อาการ และอารมณ์ เราเคารพความเป็นส่วนตัวของคุณ และนโยบายนี้อธิบายว่าเราเก็บ ใช้ และปกป้องข้อมูลของคุณอย่างไร',
     s2title: 'ข้อมูลที่เราเก็บ',
@@ -276,7 +277,7 @@ const CONTENT = {
     s6i2: 'คุณสามารถลบข้อมูลทั้งหมดได้ที่ โปรไฟล์ → ลบข้อมูล',
     s6i3: 'คุณสามารถถอนความยินยอมหรือขอให้ลบข้อมูลได้ โดยติดต่อเราตามอีเมลด้านล่าง',
     s7title: 'ระยะเวลาเก็บข้อมูล',
-    s7body: 'เราเก็บข้อมูลของคุณตราบเท่าที่บัญชียังใช้งานอยู่ หากคุณลบข้อมูลหรือขอให้ลบบัญชี เราจะลบข้อมูลสุขภาพของคุณออกจากระบบ<br><br>ประวัติการสนทนากับ Luna ผู้ช่วยน้อยจะถูกเก็บไว้บนอุปกรณ์ของคุณเท่านั้น ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์ของเรา โดยเก็บไว้สูงสุด 3 วัน (นับตามวันที่ส่งข้อความแต่ละข้อความ) ข้อความที่เก่ากว่านั้นจะถูกลบโดยอัตโนมัติเมื่อเปิดแอป และคุณสามารถลบประวัติการสนทนาได้ทุกเมื่อในหน้าผู้ช่วย',
+    s7body: 'เราเก็บข้อมูลของคุณตราบเท่าที่บัญชียังใช้งานอยู่ หากคุณลบข้อมูลหรือขอให้ลบบัญชี เราจะลบข้อมูลสุขภาพของคุณออกจากระบบ<br><br>ประวัติการสนทนากับ Luna ผู้ช่วยน้อยจะถูกเก็บไว้บนอุปกรณ์ของคุณเท่านั้น ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์ของเรา โดยเก็บไว้สูงสุด 3 วัน (นับตามวันที่ส่งข้อความแต่ละข้อความ) ข้อความที่เก่ากว่านั้นจะถูกลบโดยอัตโนมัติเมื่อเปิดแอป และคุณสามารถลบประวัติการสนทนาได้ทุกเมื่อในหน้าผู้ช่วย<br><br>รายงานสุขภาพและรายงานสำหรับแพทย์ (PDF) ที่คุณกดบันทึก จะมีสำเนาประวัติเก็บไว้บนอุปกรณ์ของคุณเท่านั้น ไม่ถูกอัปโหลดขึ้นเซิร์ฟเวอร์ของเรา โดยเก็บไว้สูงสุด 30 วัน หรือ 5 ฉบับล่าสุด แล้วแต่อย่างใดถึงก่อน และจะถูกลบโดยอัตโนมัติเมื่อครบกำหนด คุณสามารถดูจำนวนวันที่เหลือและลบเองได้ทุกเมื่อที่หน้ารายงานสุขภาพ',
     s8title: 'ผู้เยาว์',
     s8body: 'แอปนี้แนะนำให้ใช้งานภายใต้การรับทราบของผู้ปกครอง หากคุณอายุต่ำกว่า 20 ปี (อายุบรรลุนิติภาวะตามกฎหมายไทย) โปรดใช้งานโดยได้รับความยินยอมจากบิดามารดาหรือผู้ปกครอง หากผู้ใช้ระบุอายุต่ำกว่า 13 ปี แอปจะปิดฟีเจอร์ที่ส่งข้อมูลไปยังบริการ AI (Luna ผู้ช่วยน้อย และการวิเคราะห์ด้วย AI) และโหมดวางแผนตั้งครรภ์/ตั้งครรภ์ ส่วนฟีเจอร์บันทึกอื่นยังใช้งานได้',
     s9title: 'ข้อจำกัดด้านสุขภาพ',
@@ -298,7 +299,7 @@ const CONTENT = {
   zh: {
     pageTitle: '隐私政策',
     pageSubtitle: 'Luna Calm · 您的数据安全有保障',
-    updatedTxt: '最后更新：2026年10月 (v6)',
+    updatedTxt: '最后更新：2026年10月 (v7)',
     s1title: '关于本App',
     s1body: 'Luna Calm 是一款用于记录和追踪月经周期、症状与心情的应用。我们尊重您的隐私，本政策说明我们如何收集、使用和保护您的数据。',
     s2title: '我们收集的数据',
@@ -342,7 +343,7 @@ const CONTENT = {
     s6i2: '您可以在 我的 → 删除数据 中删除所有数据',
     s6i3: '您可以撤回同意或要求删除数据，请通过下方邮箱联系我们',
     s7title: '数据保留期限',
-    s7body: '在您的账号处于活跃状态期间，我们会保留您的数据。如果您删除数据或要求删除账号，我们会将您的健康数据从系统中删除。<br><br>与 Luna 小助手的聊天记录仅保存在您的设备本地，不会上传到我们的服务器，每条消息按发送当天计算，最多保留 3 天，超过后会在打开 App 时自动清除；您也可以随时在小助手中删除聊天记录。',
+    s7body: '在您的账号处于活跃状态期间，我们会保留您的数据。如果您删除数据或要求删除账号，我们会将您的健康数据从系统中删除。<br><br>与 Luna 小助手的聊天记录仅保存在您的设备本地，不会上传到我们的服务器，每条消息按发送当天计算，最多保留 3 天，超过后会在打开 App 时自动清除；您也可以随时在小助手中删除聊天记录。<br><br>你保存过的健康报告和医生报告（PDF）会在你的手机本地保留一份历史记录，不会上传到我们的服务器，最多保留 30 天或最近 5 份，先到的先生效，到期会自动删除。你可以随时在健康报告页查看剩余天数，也可以手动删除。',
     s8title: '未成年人',
     s8body: '本应用建议在监护人知情的情况下使用。若您未满 20 周岁（泰国法定成年年龄），请在父母或监护人同意下使用本服务。若用户填写的年龄未满 13 岁，App 会关闭会把数据发送给 AI 服务的功能（Luna 小助手与 AI 分析）以及备孕、怀孕模式，其他记录类功能仍可使用。',
     s9title: '健康免责声明',
@@ -364,7 +365,7 @@ const CONTENT = {
   en: {
   "pageTitle": "Privacy Policy",
   "pageSubtitle": "Luna Calm · Your data is safe with us",
-  "updatedTxt": "Last updated: October 2026 (v6)",
+  "updatedTxt": "Last updated: October 2026 (v7)",
   "s1title": "About this app",
   "s1body": "Luna Calm is an app for logging and tracking your menstrual cycle, symptoms, and mood. We respect your privacy. This policy explains how we collect, use, and protect your data.",
   "s2title": "Data we collect",
@@ -409,7 +410,7 @@ const CONTENT = {
   "s6i3": "You can withdraw your consent or ask us to delete your data by contacting us at the email below",
   "s6i4": "If you live in the United States (for example, California), you may also ask us what personal data we hold about you, ask us to correct or delete it, and ask us not to sell it. We do not sell your personal data. Contact us at the email below",
   "s7title": "How long we keep data",
-  "s7body": "We keep your data while your account is active. If you delete your data or ask us to delete your account, we remove your health data from our systems.<br><br>Chat history with the Luna assistant is stored only on your device and is not uploaded to our servers. Each message is kept for up to 3 days from the day it was sent and is cleared automatically when you open the app after that. You can also delete the chat history in the assistant at any time.",
+  "s7body": "We keep your data while your account is active. If you delete your data or ask us to delete your account, we remove your health data from our systems.<br><br>Chat history with the Luna assistant is stored only on your device and is not uploaded to our servers. Each message is kept for up to 3 days from the day it was sent and is cleared automatically when you open the app after that. You can also delete the chat history in the assistant at any time.<br><br>Health reports and doctor reports (PDF) that you save keep a history copy on your device only, and they are not uploaded to our servers. They are kept for up to 30 days or the latest 5 reports, whichever comes first, and are deleted automatically afterwards. You can see how many days are left and delete them yourself at any time on the health report page.",
   "s8title": "Minors",
   "s8body": "We recommend that this app be used with a parent or guardian's knowledge. If you are under the age of majority where you live (20 in Thailand, 18 in most U.S. states), please use this service with the consent of a parent or guardian. If the age entered is under 13, the app turns off the features that send data to AI services (Luna assistant and AI analysis) as well as the trying-to-conceive and pregnancy modes. The other logging features remain available.",
   "s9title": "Health disclaimer",
@@ -419,6 +420,65 @@ const CONTENT = {
   "s11title": "Contact us",
   "s11body": "If you have questions about this privacy policy or want to exercise your data rights, contact us by email: <strong>lunacalm00@gmail.com</strong><br><br>Data controller: the developer of the Luna Calm app. We will reply to requests to exercise your rights (access, correction, deletion, withdrawal of consent, objection to processing) within 60 days of receiving them. If you are in Thailand and believe we have not complied with personal data protection law, you have the right to complain to the Office of the Personal Data Protection Committee (PDPC): <a href=\"https://www.pdpc.or.th\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">www.pdpc.or.th</a>",
   "backBtn": "← Back"
+},
+  vi: {
+ "pageTitle": "Chính sách quyền riêng tư",
+ "pageSubtitle": "Luna Calm · Dữ liệu của bạn được an toàn với chúng tôi",
+ "updatedTxt": "Cập nhật lần cuối: tháng 10/2026 (v7)",
+ "s1title": "Về ứng dụng này",
+ "s1body": "Luna Calm là ứng dụng ghi chép và theo dõi chu kỳ kinh nguyệt, triệu chứng và tâm trạng của bạn. Chúng tôi tôn trọng quyền riêng tư của bạn. Chính sách này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn.",
+ "s2title": "Dữ liệu chúng tôi thu thập",
+ "s2i1": "Dữ liệu sức khỏe: ngày hành kinh, triệu chứng, tâm trạng và ghi chú mà bạn nhập",
+ "s2i2": "Thông tin tài khoản: nếu bạn đăng nhập bằng Google, chúng tôi nhận được tên, địa chỉ email và ảnh đại diện của bạn",
+ "s2i3": "Thông tin hội viên: mã hội viên, trạng thái kích hoạt và ngày hết hạn",
+ "s2i4": "Thông tin thiết bị: mã định danh thiết bị dùng cho bảo mật và kiểm soát truy cập",
+ "s2i5": "Mã định danh người dùng: User ID và Firebase UID của bạn, dùng để nhận diện tài khoản của bạn trong hệ thống của chúng tôi",
+ "s2i6": "Thông báo đẩy: mã thông báo của thiết bị (Firebase Cloud Messaging token) dùng để gửi nhắc nhở kỳ kinh và nhắc nhở sức khỏe",
+ "sLumiTitle": "Bạn đồng hành Lumi và dữ liệu tâm trạng",
+ "sLumiI1": "Lumi là nhân vật bạn đồng hành ảo trong ứng dụng. Dựa trên dữ liệu chu kỳ bạn ghi, Lumi thể hiện những tâm trạng và lời nhắn khác nhau để mang lại sự đồng hành nhẹ nhàng về mặt cảm xúc",
+ "sLumiI2": "Nếu bạn viết điều gì đó trong \"Không gian bí mật\" (bí mật, suy nghĩ hoặc ghi chú ngày lễ), nội dung đó được lưu trên thiết bị của bạn và, giống như các dữ liệu khác, được đồng bộ lên Firebase để Lumi có thể \"nhớ\" những gì bạn đã viết và hỏi thăm bạn sau đó",
+ "sLumiI3": "Nội dung được viết dưới dạng \"bí mật\" không bao giờ được dùng để phân tích tâm trạng hay kích hoạt bất kỳ phản hồi nào. Chúng tôi chỉ lưu giữ hộ bạn và không xử lý nó",
+ "sLumiI4": "Câu trả lời của Lumi được tạo tự động theo các quy tắc như khớp từ khóa cài đặt sẵn. Không có người nào xem xét chúng, và chúng không phải là lời khuyên tâm lý hay y tế",
+ "sLumiI5": "Bạn có thể xóa các mục trong Không gian bí mật bất cứ lúc nào, hoặc xóa cùng mọi dữ liệu khác tại Tôi → Xóa dữ liệu",
+ "s3title": "Cách chúng tôi sử dụng dữ liệu của bạn",
+ "s3i1": "Để ghi chép, phân tích và dự đoán chu kỳ kinh nguyệt của bạn",
+ "s3i2": "Để cung cấp phân tích sức khỏe và các tính năng dành cho hội viên",
+ "s3i3": "Chúng tôi không bán dữ liệu của bạn và không chia sẻ cho bên thứ ba vì mục đích quảng cáo",
+ "s4title": "Lưu trữ dữ liệu và dịch vụ của bên thứ ba",
+ "s4i1": "Dữ liệu của bạn được lưu trên thiết bị và đồng bộ lên Google Firebase để sao lưu và dùng trên nhiều thiết bị",
+ "s4i2": "Máy chủ Firebase đặt tại khu vực Singapore (Đông Nam Á)",
+ "s4i3": "Chúng tôi dùng Đăng nhập bằng Google để xác thực và Firebase để lưu dữ liệu. Các dịch vụ này tuân theo chính sách quyền riêng tư của Google",
+ "s4i4": "Quyền truy cập dữ liệu của bạn được bảo vệ bằng xác thực. Chỉ bạn mới truy cập được dữ liệu sức khỏe của chính mình",
+ "s4i5": "Khi sử dụng ứng dụng này, bạn đồng ý rằng dữ liệu của bạn có thể được chuyển đến và lưu trữ trên các máy chủ nằm ngoài quốc gia nơi bạn sinh sống (bao gồm Singapore và Hoa Kỳ)",
+ "s4i6": "Nếu bạn cài đặt ứng dụng này từ Google Play, các khoản thanh toán hội viên được xử lý qua Google Play Billing, tuân theo chính sách quyền riêng tư và thanh toán của Google",
+ "s4i7": "Nếu bạn cài đặt ứng dụng này từ Apple App Store, các khoản thanh toán hội viên được xử lý qua hệ thống Mua hàng trong ứng dụng (In-App Purchase) của Apple, tuân theo chính sách quyền riêng tư và thanh toán của Apple. Nhà phát triển không nhìn thấy thông tin thẻ hay thông tin thanh toán của bạn",
+ "sNewTitle": "Lưu ý bổ sung về các tính năng mới",
+ "sNewI1": "Chế độ chuẩn bị mang thai, thai kỳ và sau sinh: cân nặng, ngày khám thai, số lần thai đạp, nhiệt độ cơ thể và các chi tiết tương tự mà bạn ghi là dữ liệu sức khỏe nhạy cảm. Chúng chỉ được dùng để hiển thị, nhắc nhở và tính toán trong ứng dụng, và không bao giờ dùng cho quảng cáo",
+ "sNewI2": "Sao lưu đám mây: khi bạn chạm \"Sao lưu ngay\", một bản chụp dữ liệu của bạn được lưu trên Firebase. Chỉ bạn và quản trị viên hệ thống (để khắc phục sự cố hoặc hỗ trợ người dùng) mới truy cập được, và bản sao lưu bị xóa cùng với tài khoản của bạn",
+ "sNewI3": "Trợ lý AI (trợ lý Luna và phân tích AI): văn bản bạn nhập, cùng bản tóm tắt dữ liệu chu kỳ cần thiết để trả lời, được gửi qua máy chủ của chúng tôi tới dịch vụ Google Gemini để tạo câu trả lời. Kết quả chỉ mang tính tham khảo và không phải lời khuyên y tế",
+ "sNewI4": "Đăng ký hội viên: chúng tôi dùng RevenueCat để xác minh trạng thái đăng ký và biên nhận mua hàng, liên kết với mã định danh người dùng của bạn. Chúng tôi không bao giờ nhìn thấy số thẻ hay thông tin thanh toán của bạn",
+ "sNewI5": "Xóa tài khoản: bạn có thể tự xóa tài khoản và toàn bộ dữ liệu của mình trong ứng dụng tại Tôi → Xóa vĩnh viễn tài khoản",
+ "sNewI6": "Vị trí dữ liệu và chuyển dữ liệu xuyên biên giới: cơ sở dữ liệu và các hàm đám mây của chúng tôi nằm ở khu vực Google Firebase Singapore. Các yêu cầu gửi tới Google Gemini (trợ lý AI) và RevenueCat (xác minh đăng ký) có thể được xử lý bên ngoài Thái Lan (bao gồm cả tại Hoa Kỳ), tùy thuộc vào vị trí trung tâm dữ liệu của các nhà cung cấp đó. Chúng tôi chỉ gửi những dữ liệu mà một tính năng cần",
+ "sNewI7": "Khi bạn chạm \"Xóa dữ liệu\" hoặc \"Xóa vĩnh viễn tài khoản\" trong ứng dụng, dữ liệu sức khỏe và các bản sao lưu đám mây của bạn sẽ bị xóa khỏi hệ thống của chúng tôi. Các bản ghi đăng ký do Apple, Google và RevenueCat lưu giữ, cũng như nhật ký vận hành máy chủ, được giữ lại theo chính sách riêng của từng nhà cung cấp và nằm ngoài tầm kiểm soát của chúng tôi",
+ "s5title": "Bảo mật",
+ "s5i1": "Quyền truy cập cơ sở dữ liệu được kiểm soát bằng xác thực, và chúng tôi thực hiện các biện pháp hợp lý để bảo vệ dữ liệu của bạn",
+ "s5i2": "Chúng tôi khuyên bạn đặt mật mã hoặc mã PIN cho thiết bị để tăng thêm bảo mật",
+ "s6title": "Quyền của bạn",
+ "s6i1": "Bạn có thể xem và chỉnh sửa dữ liệu của mình trong ứng dụng bất cứ lúc nào",
+ "s6i2": "Bạn có thể xóa toàn bộ dữ liệu của mình tại Tôi → Xóa dữ liệu",
+ "s6i3": "Bạn có thể rút lại sự đồng ý hoặc yêu cầu chúng tôi xóa dữ liệu của bạn bằng cách liên hệ với chúng tôi qua email bên dưới",
+ "s6i4": "Nếu bạn sống tại Hoa Kỳ (ví dụ California), bạn cũng có thể yêu cầu chúng tôi cho biết chúng tôi nắm giữ những dữ liệu cá nhân nào của bạn, yêu cầu chỉnh sửa hoặc xóa chúng, và yêu cầu chúng tôi không bán chúng. Chúng tôi không bán dữ liệu cá nhân của bạn. Hãy liên hệ với chúng tôi qua email bên dưới",
+ "s7title": "Thời gian chúng tôi lưu giữ dữ liệu",
+ "s7body": "Chúng tôi lưu giữ dữ liệu của bạn trong thời gian tài khoản còn hoạt động. Nếu bạn xóa dữ liệu hoặc yêu cầu chúng tôi xóa tài khoản, chúng tôi sẽ xóa dữ liệu sức khỏe của bạn khỏi hệ thống.<br><br>Lịch sử trò chuyện với trợ lý Luna chỉ được lưu trên thiết bị của bạn và không được tải lên máy chủ của chúng tôi. Mỗi tin nhắn được giữ tối đa 3 ngày kể từ ngày gửi và sẽ tự động bị xóa khi bạn mở ứng dụng sau thời gian đó. Bạn cũng có thể xóa lịch sử trò chuyện trong trợ lý bất cứ lúc nào.<br><br>Báo cáo sức khỏe và báo cáo cho bác sĩ (PDF) mà bạn lưu chỉ giữ một bản lịch sử trên thiết bị của bạn và không được tải lên máy chủ của chúng tôi. Chúng được giữ tối đa 30 ngày hoặc 5 báo cáo mới nhất, tùy điều kiện nào đến trước, rồi sẽ tự động bị xóa. Bạn có thể xem còn bao nhiêu ngày và tự xóa chúng bất cứ lúc nào tại trang báo cáo sức khỏe.",
+ "s8title": "Người chưa thành niên",
+ "s8body": "Chúng tôi khuyến nghị ứng dụng này được sử dụng với sự biết của cha mẹ hoặc người giám hộ. Nếu bạn chưa đủ tuổi trưởng thành tại nơi bạn sinh sống (18 tuổi ở Việt Nam, 20 tuổi ở Thái Lan, 18 tuổi ở hầu hết các tiểu bang của Hoa Kỳ), vui lòng sử dụng dịch vụ này với sự đồng ý của cha mẹ hoặc người giám hộ. Nếu độ tuổi được nhập dưới 13, ứng dụng sẽ tắt các tính năng gửi dữ liệu tới dịch vụ AI (trợ lý Luna và phân tích AI) cũng như các chế độ chuẩn bị mang thai và thai kỳ. Các tính năng ghi chép khác vẫn khả dụng.",
+ "s9title": "Tuyên bố miễn trừ trách nhiệm về sức khỏe",
+ "s9body": "Luna Calm không phải là thiết bị y tế và chưa được chứng nhận hay đăng ký để chẩn đoán, điều trị hoặc phòng ngừa bất kỳ bệnh nào. Thông tin và phân tích trong ứng dụng chỉ mang tính tham khảo, không thay thế cho tư vấn y tế chuyên môn, chẩn đoán hay biện pháp tránh thai. Nếu bạn lo ngại về sức khỏe, hãy tham khảo ý kiến bác sĩ.<br><br><strong>📚 Nguồn tham khảo:</strong> Nội dung sức khỏe trong ứng dụng được tổng hợp từ thông tin công khai do các tổ chức sau đây công bố:<ul style=\"margin:8px 0 0 18px;padding:0;\"><li style=\"margin-bottom:4px;\"><a href=\"https://www.who.int/news-room/fact-sheets/detail/menstrual-health\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Tổ chức Y tế Thế giới (WHO)</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Chu kỳ kinh nguyệt</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">Mayo Clinic – Thiếu máu do thiếu sắt</a></li><li style=\"margin-bottom:4px;\"><a href=\"https://www.cdc.gov/uti/about/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – Nhiễm trùng đường tiết niệu</a></li><li><a href=\"https://www.cdc.gov/hpv/index.html\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">CDC – HPV và vắc-xin HPV</a></li></ul>",
+ "s10title": "Thay đổi đối với chính sách này",
+ "s10body": "Chúng tôi có thể cập nhật chính sách này theo thời gian. Mọi thay đổi sẽ được hiển thị trên trang này cùng với ngày cập nhật.",
+ "s11title": "Liên hệ với chúng tôi",
+ "s11body": "Nếu bạn có câu hỏi về chính sách quyền riêng tư này hoặc muốn thực hiện các quyền đối với dữ liệu của mình, hãy liên hệ với chúng tôi qua email: <strong>lunacalm00@gmail.com</strong><br><br>Bên kiểm soát dữ liệu: nhà phát triển ứng dụng Luna Calm. Chúng tôi sẽ phản hồi các yêu cầu thực hiện quyền của bạn (truy cập, chỉnh sửa, xóa, rút lại sự đồng ý, phản đối việc xử lý) trong vòng 60 ngày kể từ khi nhận được. Nếu bạn ở Thái Lan và cho rằng chúng tôi chưa tuân thủ pháp luật về bảo vệ dữ liệu cá nhân, bạn có quyền khiếu nại tới Văn phòng Ủy ban Bảo vệ Dữ liệu Cá nhân (PDPC): <a href=\"https://www.pdpc.or.th\" target=\"_blank\" rel=\"noopener\" style=\"color:#7c5cbf;\">www.pdpc.or.th</a>",
+ "backBtn": "← Quay lại"
 }
 };
 
@@ -443,19 +503,21 @@ function setLang(lang) {
   const bz=document.getElementById('btnZh'), bt=document.getElementById('btnTh'), be=document.getElementById('btnEn');
   if(bz) bz.className = 'lang-btn ' + (lang==='zh' ? 'active' : 'inactive');
   if(bt) bt.className = 'lang-btn ' + (lang==='th' ? 'active' : 'inactive');
+  const bvi=document.getElementById('btnVi'); if(bvi) bvi.className = 'lang-btn ' + (lang==='vi' ? 'active' : 'inactive');
   if(be) be.className = 'lang-btn ' + (lang==='en' ? 'active' : 'inactive');
   const cur = document.getElementById('langCurrent');
-  if(cur) cur.textContent = lang==='zh' ? '中文' : (lang==='en' ? 'English' : 'ไทย');
-  document.documentElement.lang = lang==='zh' ? 'zh-CN' : (lang==='en' ? 'en' : 'th');
+  if(cur) cur.textContent = lang==='zh' ? '中文' : (lang==='en' ? 'English' : (lang==='vi' ? 'Tiếng Việt' : 'ไทย'));
+  document.documentElement.lang = lang==='zh' ? 'zh-CN' : (lang==='en' ? 'en' : (lang==='vi' ? 'vi' : 'th'));
   try{
-    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.setItem('luna_lang','zh'); }
-    else { localStorage.removeItem('luna_ui_en'); localStorage.setItem('luna_lang', lang); }
+    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang','zh'); }
+    else if(lang==='vi'){ localStorage.setItem('luna_ui_vi','1'); localStorage.removeItem('luna_ui_en'); localStorage.setItem('luna_lang','zh'); }
+    else { localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang', lang); }
   }catch(e){}
   toggleLangMenu(false);
 }
 
 let savedLang = 'th';
-try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; }catch(e){}
+try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; else if(localStorage.getItem('luna_ui_vi')==='1' && savedLang==='zh') savedLang='vi'; }catch(e){}
 setLang(savedLang);
 </script>
 </body>

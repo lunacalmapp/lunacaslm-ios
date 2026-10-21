@@ -103,6 +103,7 @@
     <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')">🇨🇳 中文</button>
     <button class="lang-btn active"   id="btnTh" onclick="setLang('th')">🇹🇭 ภาษาไทย</button>
     <button class="lang-btn inactive" id="btnEn" onclick="setLang('en')">🇺🇸 English</button>
+    <button class="lang-btn inactive" id="btnVi" onclick="setLang('vi')">🇻🇳 Tiếng Việt</button>
   </div>
 </div>
 
@@ -241,6 +242,30 @@ const CONTENT = {
   "s6body": "If you have any questions about deleting your account or data, contact us at:",
   "s6email": "lunacalm00@gmail.com",
   "backBtn": "← Back"
+},
+  vi: {
+ "pageTitle": "Xóa tài khoản và dữ liệu",
+ "pageSubtitle": "Luna Calm · Cách xóa tài khoản của bạn",
+ "updatedTxt": "Cập nhật lần cuối: tháng 6/2026 (v1)",
+ "s1title": "Về ứng dụng này",
+ "s1body": "Trang này hướng dẫn cách xóa dữ liệu và tài khoản của bạn trong Luna Calm (Luna 月记), ứng dụng ghi chép và theo dõi chu kỳ kinh nguyệt, triệu chứng và tâm trạng.",
+ "s2title": "Cách xóa",
+ "s2step1": "<strong>Xóa dữ liệu trong ứng dụng (chỉ xóa dữ liệu):</strong> Mở Luna Calm, vào \"Tôi\" (Hồ sơ) → \"Xóa dữ liệu\". Dữ liệu sức khỏe và các ghi chép cá nhân của bạn sẽ bị xóa ngay lập tức, nhưng tư cách hội viên vẫn được giữ lại.",
+ "s2step2": "<strong>Xóa vĩnh viễn tài khoản trong ứng dụng (khuyên dùng):</strong> Mở Luna Calm, vào \"Tôi\" (Hồ sơ) → \"Xóa vĩnh viễn tài khoản\". Sau khi bạn xác nhận hai lần, toàn bộ dữ liệu, tư cách hội viên và chính tài khoản đăng nhập sẽ bị xóa ngay lập tức. Không cần chờ đợi và không cần liên hệ với ai.",
+ "s2step3": "<strong>Nếu bạn không mở được ứng dụng:</strong> Hãy gửi yêu cầu qua email tới <strong>lunacalm00@gmail.com</strong> và cho chúng tôi biết địa chỉ email bạn dùng để đăng nhập. Chúng tôi sẽ xóa tài khoản giúp bạn theo cách thủ công (chỉ áp dụng khi bạn không thể mở ứng dụng).",
+ "s3title": "Những gì sẽ bị xóa",
+ "s3i1": "<strong>Xóa dữ liệu trong ứng dụng</strong> sẽ xóa: các ghi chép kỳ kinh, triệu chứng, tâm trạng và mọi dữ liệu cá nhân khác bạn đã ghi (tư cách hội viên được giữ lại).",
+ "s3i2": "<strong>Xóa vĩnh viễn tài khoản</strong> (trong ứng dụng hoặc qua email) sẽ xóa thêm: thông tin tài khoản (tên, email, ảnh đại diện), trạng thái hội viên cùng mọi quyền truy cập một cách vĩnh viễn, và chính tài khoản đăng nhập.",
+ "s3note": "⚠️ Lưu ý: \"Xóa dữ liệu\" trong ứng dụng chỉ xóa dữ liệu cá nhân/sức khỏe của bạn. Nó <strong>không xóa tư cách hội viên</strong>, để bạn không vô tình mất quyền lợi hội viên đã mua. Để xóa hoàn toàn tài khoản cùng tư cách hội viên, hãy dùng \"Xóa vĩnh viễn tài khoản\" trong ứng dụng (bước 2 ở trên). Đây là cách nhanh nhất.",
+ "s4title": "Thời gian xử lý",
+ "s4i1": "Xóa dữ liệu trong ứng dụng / xóa vĩnh viễn tài khoản trong ứng dụng: có hiệu lực ngay lập tức, không cần chờ.",
+ "s4i2": "Xóa tài khoản qua email (chỉ khi bạn không mở được ứng dụng): hoàn tất trong vòng 7 ngày làm việc kể từ khi chúng tôi nhận được yêu cầu.",
+ "s5title": "Thông tin chúng tôi có thể giữ lại theo quy định pháp luật",
+ "s5body": "Để đáp ứng các yêu cầu pháp lý (như kiểm toán giao dịch và phòng chống gian lận), chúng tôi có thể giữ lại một số bản ghi giao dịch thanh toán trong một thời hạn nhất định sau khi tài khoản của bạn bị xóa. Chúng tôi không giữ dữ liệu sức khỏe hay thông tin cá nhân khác của bạn.",
+ "s6title": "Liên hệ với chúng tôi",
+ "s6body": "Nếu bạn có bất kỳ câu hỏi nào về việc xóa tài khoản hoặc dữ liệu, hãy liên hệ với chúng tôi tại:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Quay lại"
 }
 };
 
@@ -250,16 +275,17 @@ function setLang(lang) {
     const el = document.getElementById(id);
     if(el) el.innerHTML = d[id];
   });
-  ['Zh','Th','En'].forEach(k => { const b = document.getElementById('btn'+k); if(b) b.className = 'lang-btn ' + (lang===k.toLowerCase() ? 'active' : 'inactive'); });
+  ['Zh','Th','En','Vi'].forEach(k => { const b = document.getElementById('btn'+k); if(b) b.className = 'lang-btn ' + (lang===k.toLowerCase() ? 'active' : 'inactive'); });
   document.documentElement.lang = lang==='zh' ? 'zh-CN' : lang;
   try{
-    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.setItem('luna_lang','zh'); }
-    else { localStorage.removeItem('luna_ui_en'); localStorage.setItem('luna_lang', lang); }
+    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang','zh'); }
+    else if(lang==='vi'){ localStorage.setItem('luna_ui_vi','1'); localStorage.removeItem('luna_ui_en'); localStorage.setItem('luna_lang','zh'); }
+    else { localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang', lang); }
   }catch(e){}
 }
 
 let savedLang = 'th';
-try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; }catch(e){}
+try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; else if(localStorage.getItem('luna_ui_vi')==='1' && savedLang==='zh') savedLang='vi'; }catch(e){}
 setLang(savedLang);
 </script>
 </body>

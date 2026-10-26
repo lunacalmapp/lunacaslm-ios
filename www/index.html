@@ -3174,6 +3174,7 @@ window.installPWA = function() {
       <div id="homeAnnounceBannerTitle" style="font-size:13px;font-weight:700;color:var(--home-fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
       <div id="homeAnnounceBannerBody" style="font-size:11.5px;color:var(--home-fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;"></div>
     </div>
+    <span id="homeAnnounceBannerBtn" style="display:none;flex-shrink:0;padding:6px 12px;border-radius:14px;font-size:12px;font-weight:700;color:#fff;background:var(--home-btn-gradient, linear-gradient(135deg,#7c5cbf,#c47ab0));white-space:nowrap;"></span>
     <span onclick="_closeAnnounceBanner(event)" style="font-size:15px;color:var(--home-fg-muted);padding:4px;flex-shrink:0;">✕</span>
   </div>
 
@@ -5066,7 +5067,7 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
 <!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, get, set, remove, onValue, serverTimestamp }
+import { getDatabase, ref, get, set, remove, onValue, serverTimestamp, forceLongPolling }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, initializeAuth, indexedDBLocalPersistence, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential,
   onAuthStateChanged, signOut, signInWithEmailAndPassword }
@@ -5086,6 +5087,9 @@ const firebaseConfig = {
   databaseURL: "https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 const app = initializeApp(firebaseConfig);
+// 🛡️ 连接自愈：有些网络/手机设置会拦住数据库的实时连接（WebSocket），登录正常、数据库却读写不了。
+// 下面的看门狗发现"登录后一直连不上数据库"，会自动改用兼容模式（长轮询）重开一次，用户无感。
+try{ if(localStorage.getItem('luna_rtdb_lp')==='1') forceLongPolling(); }catch(e){}
 const db  = getDatabase(app);
 // 🌙 2026-09-27：免费预览功能要调用 generateFreePreview 这个云函数（onCall 类型），
 // 用 Callable SDK 调用，会自动带上登录token，不用像 analyzeCycle 那样手动拼 Authorization 头
@@ -5374,6 +5378,73 @@ window._fb = { get: async p=>{const s=await get(ref(db,p));return s.exists()?s.v
                remove: async p=>remove(ref(db,p)),
                on:  (p,cb)=>onValue(ref(db,p),s=>cb(s.exists()?s.val():null)) };
 
+
+// ══ lunaConnWatchdog：数据库连接看门狗（只追加，不改原有逻辑）══
+(function(){
+  try{
+    var connected = false, reported = false;
+    onValue(ref(db, '.info/connected'), function(s){
+      connected = (s.val() === true);
+      if(connected){
+        try{ window.__lunaDbConnectedAt = Date.now(); }catch(e){}
+        // 刚连上：补写一次最近登录，并把之前没写成功的记录重新同步
+        try{ if(typeof window._touchLastLoginNow === 'function') window._touchLastLoginNow(); }catch(e){}
+        try{ if(typeof window._flushPendingSync === 'function') window._flushPendingSync(); }catch(e){}
+      }
+    });
+    function report(msg){
+      try{
+        if(reported) return; reported = true;
+        var at = Date.now();
+        var key = 'err_' + at + '_conn' + Math.random().toString(36).slice(2,5);
+        fetch('https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app/errorReports/' + key + '.json', {
+          method:'PUT', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ kind:'rtdb_offline', msg: String(msg).slice(0,300), at: at,
+            uid: (function(){ try{ return localStorage.getItem('luna_uid')||'-'; }catch(e){ return '-'; } })(),
+            ua: (navigator.userAgent||'').slice(0,200),
+            lp: (function(){ try{ return localStorage.getItem('luna_rtdb_lp')||'0'; }catch(e){ return '?'; } })(),
+            online: (typeof navigator.onLine === 'boolean') ? navigator.onLine : null })
+        }).catch(function(){});
+      }catch(e){}
+    }
+    // 后台远程开关：remoteConfig.featureFlags.forceLongPolling = true → 下次启动起全员改用兼容连接（不用发版）
+    setTimeout(function(){
+      try{
+        var ff = window._remoteConfig && window._remoteConfig.featureFlags;
+        if(ff && ff.forceLongPolling === true && localStorage.getItem('luna_rtdb_lp') !== '1') localStorage.setItem('luna_rtdb_lp','1');
+      }catch(e){}
+    }, 6000);
+    setTimeout(function(){
+      try{
+        if(connected) return;
+        if(typeof navigator.onLine === 'boolean' && !navigator.onLine) return;   // 真的没网就不折腾
+        var uid = ''; try{ uid = localStorage.getItem('luna_uid') || ''; }catch(e){}
+        if(!uid) return;                                                         // 没登录不涉及数据同步
+        var lp = ''; try{ lp = localStorage.getItem('luna_rtdb_lp') || ''; }catch(e){}
+        if(lp !== '1'){
+          var done = ''; try{ done = sessionStorage.getItem('luna_rtdb_lp_try') || ''; }catch(e){}
+          if(done) return;                                                       // 本次只自动重开一次，防止循环
+          try{ sessionStorage.setItem('luna_rtdb_lp_try','1'); localStorage.setItem('luna_rtdb_lp','1'); }catch(e){ return; }
+          report('db not connected in 15s, switching to long-polling');
+          setTimeout(function(){ try{ location.reload(); }catch(e){} }, 400);
+        } else {
+          report('db still not connected in long-polling mode');
+        }
+      }catch(e){}
+    }, 15000);
+  }catch(e){}
+})();
+
+// 供看门狗调用：连上数据库的那一刻补写最近登录（不受 10 分钟节流限制，但同一次运行只补一次）
+window._touchLastLoginNow = function(){
+  try{
+    if(window.__lunaTouchedOnConnect) return;
+    var u = localStorage.getItem('luna_uid'); if(!u || !window._fb) return;
+    window.__lunaTouchedOnConnect = true;
+    window._fb.set('users/' + u + '/lastLogin', Date.now()).catch(function(){ window.__lunaTouchedOnConnect = false; });
+  }catch(e){}
+};
+
 // 不再使用匿名登录。登录前 app 不读写 Firebase；身份完全由 Google 登录提供（auth.uid）。
 // 初始化完成即标记就绪，登录后的读写会带上真正的 Google auth.uid。
 function _markFbReady() {
@@ -5522,7 +5593,7 @@ trackEvent('app_open');
             title: isZh ? '需要更新' : 'กรุณาอัปเดต',
             body: (cfg.updateMsg && (isZh ? cfg.updateMsg.zh : cfg.updateMsg.th))
                   || (isZh ? '有新版本可用，请更新后继续使用。' : 'มีเวอร์ชันใหม่ กรุณาอัปเดตเพื่อใช้งานต่อ'),
-            updateUrl: cfg.updateUrl || ''
+            updateUrl: cfg.updateUrl || ((platform === 'ios' ? (window._remoteConfig && window._remoteConfig.appStoreUrl) : (window._remoteConfig && window._remoteConfig.playStoreUrl)) || '') /* lunaRcFallback */
           });
         }
       }catch(e){ /* 拿不到版本号就不强制拦，避免误伤正常用户 */ }
@@ -5541,7 +5612,7 @@ trackEvent('app_open');
               title: isZh ? '发现新版本' : 'มีเวอร์ชันใหม่',
               body: (cfg.recommendMsg && (isZh ? cfg.recommendMsg.zh : cfg.recommendMsg.th))
                     || (isZh ? '新版本带来了一些改进，要不要现在更新一下？' : 'เวอร์ชันใหม่มีการปรับปรุงหลายอย่าง อัปเดตตอนนี้เลยไหม'),
-              updateUrl: cfg.updateUrl || '',
+              updateUrl: cfg.updateUrl || ((platform === 'ios' ? (window._remoteConfig && window._remoteConfig.appStoreUrl) : (window._remoteConfig && window._remoteConfig.playStoreUrl)) || '') /* lunaRcFallback */,
               version: cfg.recommendVersion
             });
           }
@@ -9304,8 +9375,9 @@ window.setLang = setLang;
       if(rc.startAt && now < rc.startAt){ el.style.display='none'; return; } // 还没到开始时间
       if(rc.endAt && now > rc.endAt){ el.style.display='none'; return; }     // 已经过了结束时间
       const isZh = (window._appLang || window._gateLang) === 'zh';
-      const title = (rc.title && (isZh ? rc.title.zh : rc.title.th)) || '';
-      const body = (rc.body && (isZh ? rc.body.zh : rc.body.th)) || '';
+      // lunaRcFallback：本语言那栏没填，就退用另一种语言的文案，避免"后台填了却因为某种语言空着而整条不显示"
+      const title = (rc.title && ((isZh ? rc.title.zh : rc.title.th) || rc.title.zh || rc.title.th)) || '';
+      const body = (rc.body && ((isZh ? rc.body.zh : rc.body.th) || rc.body.zh || rc.body.th)) || '';
       if(!title && !body){ el.style.display='none'; return; } // 内容全是空的，不硬显示一个空壳
       // 同一条公告（用起始时间+标题拼签名）只关一次；后台换了新公告，签名变了就会重新出现
       const sig = String(rc.startAt||'') + '|' + title;
@@ -9314,7 +9386,32 @@ window.setLang = setLang;
       document.getElementById('homeAnnounceBannerTitle').textContent = title;
       document.getElementById('homeAnnounceBannerBody').textContent = body;
       el.dataset.sig = sig;
-      el.dataset.link = rc.link || '';
+      // lunaBannerStore：勾了"跳转应用商店"，或链接本身就是 App Store / Play 商店地址 → 自动按手机系统跳对应商店
+      let lk = rc.link || '';
+      try{
+        const _plat = (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform()) || 'web';
+        const _isStoreLink = /apps\.apple\.com|itunes\.apple\.com|play\.google\.com/i.test(lk);
+        if(rc.store === true || _isStoreLink){
+          const _ios = (_plat === 'ios'), _and = (_plat === 'android');
+          const _u = window._remoteConfig || {};
+          if(_ios) lk = _u.appStoreUrl || lk;
+          else if(_and) lk = _u.playStoreUrl || lk;
+          else lk = (rc.store === true) ? (_u.appStoreUrl || lk) : lk;
+        }
+      }catch(e){}
+      el.dataset.link = lk;
+      // 有跳转链接时，右侧显示一个明显的按钮（文字可在后台自定义，不填就按语言用默认的"去下载"）
+      try{
+        const bt = document.getElementById('homeAnnounceBannerBtn');
+        if(bt){
+          if(lk){
+            let L = ''; try{ L = localStorage.getItem('luna_ui_en')==='1' ? 'en' : (localStorage.getItem('luna_ui_vi')==='1' ? 'vi' : ''); }catch(e){}
+            const def = isZh ? (L==='en' ? 'Download' : L==='vi' ? 'Tải về' : '去下载') : 'ดาวน์โหลด';
+            bt.textContent = (rc.btn && ((isZh ? rc.btn.zh : rc.btn.th) || rc.btn.zh || rc.btn.th)) || def;
+            bt.style.display = 'inline-block';
+          } else { bt.style.display = 'none'; }
+        }
+      }catch(e){}
       el.style.display = 'flex';
     }catch(e){}
   }
@@ -15305,11 +15402,33 @@ window.setLang = setLang;
   // 保持原来的 fire-and-forget，避免这次改动范围扩得太大。
   // 队列结构：{ "userdata/uid/logs": {value:[...], ts:169...}, "userdata/uid/periodDays": {...} }
   // 同一个 path 多次写入只保留最新一次的 value，不会越攒越多。
+  // lunaSyncBanner：记录类数据（logs / periodDays / ttcLogs）保存时，只有数据库真的确认写入了才在顶部提示"已同步"；
+  // 8 秒内没确认（断网/被拦）或报错，就提示"同步失败，请稍后重试"，数据留在待同步队列里，连上后自动补传。其它时候不显示任何东西。
+  function _syncBanner(ok){
+    try{
+      var th = (window._appLang === 'th'), en = false, vi = false;
+      try{ en = localStorage.getItem('luna_ui_en') === '1'; vi = localStorage.getItem('luna_ui_vi') === '1'; }catch(e){}
+      var T = ok
+        ? (th ? 'ซิงค์ข้อมูลแล้ว' : en ? 'Synced' : vi ? 'Đã đồng bộ' : '已同步')
+        : (th ? 'ซิงค์ไม่สำเร็จ ลองใหม่ภายหลังนะคะ' : en ? 'Sync failed — please try again later' : vi ? 'Đồng bộ thất bại, vui lòng thử lại sau' : '同步失败，请稍后重试');
+      var old = document.getElementById('lunaSyncBanner'); if(old) old.remove();
+      var d = document.createElement('div'); d.id = 'lunaSyncBanner';
+      d.textContent = (ok ? '✓ ' : '⚠ ') + T;
+      d.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:100001;pointer-events:none;'
+        + 'padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;max-width:88vw;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.18);'
+        + 'background:' + (ok ? 'rgba(76,175,120,.95)' : 'rgba(214,120,60,.95)') + ';';
+      document.body.appendChild(d);
+      setTimeout(function(){ try{ d.remove(); }catch(e){} }, ok ? 1800 : 3200);
+    }catch(e){}
+  }
   function _fbSetWithRetry(path, value){
-    if(!window._fb){ _queuePendingSync(path, value); return; }
+    var track = /\/(logs|periodDays|ttcLogs)$/.test(String(path));
+    if(!window._fb){ _queuePendingSync(path, value); if(track) _syncBanner(false); return; }
+    var failed = false, settled = false;
+    var timer = track ? setTimeout(function(){ if(!settled){ failed = true; _queuePendingSync(path, value); _syncBanner(false); } }, 8000) : null;
     window._fb.set(path, value)
-      .then(()=>{ _clearPendingSync(path); })
-      .catch(()=>{ _queuePendingSync(path, value); });
+      .then(()=>{ settled = true; if(timer) clearTimeout(timer); _clearPendingSync(path); if(track) _syncBanner(true); })
+      .catch(()=>{ settled = true; if(timer) clearTimeout(timer); _queuePendingSync(path, value); if(track && !failed) _syncBanner(false); });
   }
   function _queuePendingSync(path, value){
     try{
@@ -25215,6 +25334,7 @@ window.lunaTtcMk = function(c, ic){
         font-family:Georgia,serif;letter-spacing:0.5px;"></div>
       <!-- ⚙️ 日历设置入口（精致版）-->
       <!-- ❓ 日历图例说明入口 -->
+      <button id="lunaYearBtn" onclick="LunaYearCal.open()" aria-label="year" class="cal-gear-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cal-fg)" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.6"/></svg></button>
       <button onclick="openCalHelp()" aria-label="help" class="cal-gear-btn cal-help-btn">?</button>
       <button onclick="openCalSettings()" aria-label="settings" class="cal-gear-btn">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--cal-fg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -33892,3 +34012,152 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 })();
 
 </script>
+<style id="lunaRecTtcLight">/* lunaRecTtcLight：备孕模式「记录今天」改成和上面入口行同款的淡色整行（底色跟主题色走，字用主题文字色） */
+body.ttc-mode #lpgRec1 button, body.lpg-flow-ttc #lpgRec1 button,
+body.ttc-mode #lpgRecBar button, body.lpg-flow-ttc #lpgRecBar button{
+  background:rgba(var(--purple-rgb,124,92,191),.15) !important;
+  color:var(--home-fg,#3c2a5a) !important;
+  box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;
+  border-radius:20px !important; height:auto !important; min-height:62px !important;
+  font-size:16px !important; font-weight:600 !important; border:none !important;}
+body.ttc-mode #lpgRec1 button svg path, body.lpg-flow-ttc #lpgRec1 button svg path,
+body.ttc-mode #lpgRecBar button svg path, body.lpg-flow-ttc #lpgRecBar button svg path{stroke:var(--home-fg,#3c2a5a) !important;}
+body.ttc-mode #lpgRec1 button svg, body.lpg-flow-ttc #lpgRec1 button svg,
+body.ttc-mode #lpgRecBar button svg, body.lpg-flow-ttc #lpgRecBar button svg{color:var(--home-fg,#3c2a5a) !important;}
+</style>
+<style id="lunaPregLight">/* lunaPregLight：怀孕模式按钮改成和备孕一样的淡色整行，竖排，颜色跟主题 */
+body.preg-mode #lpgRec1 button, body.preg-mode #lpgRecBar button{
+  background:rgba(var(--purple-rgb,124,92,191),.15) !important;color:var(--home-fg,#3c2a5a) !important;
+  box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;border-radius:20px !important;height:auto !important;
+  min-height:62px !important;font-size:16px !important;font-weight:600 !important;border:none !important;}
+body.preg-mode #lpgRec1 button svg path, body.preg-mode #lpgRecBar button svg path{stroke:var(--home-fg,#3c2a5a) !important;}
+body.preg-mode #lpgRec1 button svg, body.preg-mode #lpgRecBar button svg{color:var(--home-fg,#3c2a5a) !important;}
+body.preg-mode #pregMidContent > div:last-child{display:flex !important;flex-direction:column !important;flex-wrap:nowrap !important;gap:12px !important;}
+body.preg-mode #pregMidContent > div:last-child > button{flex:none !important;min-height:62px !important;border-radius:20px !important;border:none !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;
+  color:var(--home-fg,#3c2a5a) !important;font-size:16px !important;font-weight:600 !important;text-align:left !important;
+  padding:0 44px 0 20px !important;width:100% !important;display:flex !important;align-items:center !important;justify-content:flex-start !important;
+  position:relative !important;cursor:pointer;font-family:inherit;margin:0 !important;height:auto !important;}
+body.preg-mode #pregMidContent > div:last-child > button:nth-child(1){background:rgba(var(--purple-rgb,124,92,191),.15) !important;}
+body.preg-mode #pregMidContent > div:last-child > button:nth-child(2){background:rgba(240,127,160,.15) !important;}
+body.preg-mode #pregMidContent > div:last-child > button::after{content:"›";position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;font-weight:400;opacity:.55;color:var(--home-fg,#3c2a5a);}
+body.preg-mode .preg-trk-tile{min-height:62px !important;border-radius:20px !important;border:none !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;
+  color:var(--home-fg,#3c2a5a) !important;font-size:16px !important;font-weight:600 !important;text-align:left !important;
+  padding:0 44px 0 20px !important;width:100% !important;display:flex !important;align-items:center !important;justify-content:flex-start !important;
+  position:relative !important;cursor:pointer;font-family:inherit;margin:0 !important;height:auto !important;}
+body.preg-mode .preg-trk-tile .preg-trk-lbl{margin:0 !important;white-space:nowrap;}
+body.preg-mode .preg-trk-tile .preg-trk-val{margin:0 0 0 auto !important;opacity:.7;font-weight:500;font-size:14px !important;}
+body.preg-mode #pregTrkWt{background:rgba(250,190,90,.20) !important;}
+body.preg-mode #pregTrkVisit{background:rgba(70,180,131,.17) !important;}
+body.preg-mode .preg-trk-tile::after{content:"›";position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;font-weight:400;opacity:.55;color:var(--home-fg,#3c2a5a);}
+body.preg-mode .preg-trk-tile + .preg-trk-tile{border-left:none !important;padding-left:20px !important;}
+body.preg-mode #pregTrkWt{padding:0 44px 0 20px !important;}
+body.preg-mode .preg-trk-tile{flex:none !important;}
+body.preg-mode #pregTrkWt, body.preg-mode #pregTrkVisit{box-sizing:border-box;}
+body.preg-mode #pregTrkWt{margin-bottom:0 !important;}
+body.preg-mode div:has(> #pregTrkWt){flex-direction:column !important;gap:12px !important;}
+body.preg-mode #pregTrkWt.preg-trk-tile{width:100% !important;}
+body.preg-mode button[onclick="LunaPreg.week.open()"]{min-height:62px !important;border-radius:20px !important;border:none !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;
+  color:var(--home-fg,#3c2a5a) !important;font-size:16px !important;font-weight:600 !important;text-align:left !important;
+  padding:0 44px 0 20px !important;width:100% !important;display:flex !important;align-items:center !important;justify-content:flex-start !important;
+  position:relative !important;cursor:pointer;font-family:inherit;margin:0 !important;height:auto !important;background:rgba(var(--purple-rgb,124,92,191),.15) !important;margin-top:12px !important;}
+body.preg-mode button[onclick="LunaPreg.week.open()"]::after{content:"›";position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;font-weight:400;opacity:.55;color:var(--home-fg,#3c2a5a);}
+body.preg-mode button[onclick="LunaPreg.week.open()"] span{font-size:16px !important;}
+body.preg-mode #lpgBtnRow{flex-direction:column !important;gap:12px !important;align-items:stretch !important;}
+body.preg-mode #lpgBtnRow > button{flex:none !important;width:100% !important;min-height:62px !important;border:none !important;border-radius:20px !important;background:rgba(var(--purple-rgb,124,92,191),.15) !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;justify-content:flex-start !important;text-align:left !important;padding:0 44px 0 20px !important;position:relative !important;color:var(--home-fg,#3c2a5a) !important;}
+body.preg-mode #lpgBtnRow > button span{font-size:16px !important;font-weight:600 !important;}
+body.preg-mode #lpgBtnRow > button::after{content:"›";position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;opacity:.55;}
+body.preg-mode #lpgBtnRow > button[onclick="LunaPreg.week.open()"]::after{content:none !important;}
+body.preg-mode .preg-trk-tile .preg-trk-lbl, body.preg-mode .preg-trk-tile .preg-trk-lbl span{font-size:16px !important;font-weight:600 !important;color:var(--home-fg,#3c2a5a) !important;}
+</style>
+<style id="lunaNormBtnLight">/* lunaNormBtnLight：经期模式「开始记录 / 去标记经期 / 记录今天」改成淡色整行，文字居中，颜色跟主题 */
+#onboardCardPeriod button, #onboardCard button[onclick="startHomeRecording()"]{
+ width:100% !important;min-height:62px !important;border-radius:20px !important;border:none !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;
+ background:rgba(var(--purple-rgb,124,92,191),.15) !important;color:var(--home-fg,#3c2a5a) !important;font-size:16px !important;font-weight:600 !important;
+ text-align:center !important;padding:0 20px !important;position:relative !important;}
+button[onclick="startHomeRecording()"]{width:100% !important;min-height:62px !important;border-radius:20px !important;border:none !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;background:rgba(var(--purple-rgb,124,92,191),.15) !important;color:var(--home-fg,#3c2a5a) !important;font-size:16px !important;font-weight:600 !important;text-align:center !important;padding:0 20px !important;position:relative !important;}
+button[onclick="startHomeRecording()"]::after{content:none}
+
+#onboardCardPeriod button{width:100% !important;min-height:62px !important;border-radius:20px !important;border:none !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;background:rgba(var(--purple-rgb,124,92,191),.15) !important;color:var(--home-fg,#3c2a5a) !important;font-size:16px !important;font-weight:600 !important;text-align:center !important;padding:0 20px !important;position:relative !important;}
+#onboardCardPeriod button::after{content:none}
+body.lpg-sub-norm #lpgRec1 button{background:rgba(var(--purple-rgb,124,92,191),.15) !important;color:var(--home-fg,#3c2a5a) !important;box-shadow:0 6px 16px -12px rgba(60,40,90,.35) !important;border-radius:20px !important;height:auto !important;min-height:62px !important;font-size:16px !important;font-weight:600 !important;}
+body.lpg-sub-norm #lpgRec1 button svg path{stroke:var(--home-fg,#3c2a5a) !important}
+
+button[onclick="startHomeRecording()"],#onboardCardPeriod button{display:flex !important;align-items:center;justify-content:center !important}
+</style>
+<style id="lunaYearCal">
+#lunaYearView{display:none;position:fixed;inset:0;z-index:170;background:var(--cal-bg,#f4f1fa);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#lunaYearView .yv-head{position:sticky;top:0;z-index:3;background:var(--cal-bg,#f4f1fa);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 46px) 20px 12px;border-bottom:1px solid var(--home-card-border,rgba(124,92,191,.14));}
+#lunaYearView .yv-x{position:absolute;left:18px;bottom:8px;width:40px;height:40px;border:none;background:transparent;font-size:30px;line-height:1;color:var(--cal-fg,#2a2140);cursor:pointer;}
+#lunaYearView .yv-ttl{font-size:17px;font-weight:600;color:var(--cal-fg,#2a2140);}
+#lunaYearView .yv-year{text-align:center;font-size:26px;font-weight:700;color:var(--cal-fg,#2a2140);margin:22px 0 10px;font-family:Georgia,'Songti SC',serif;}
+#lunaYearView .yv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 6px;padding:0 14px;}
+#lunaYearView .yv-m{cursor:pointer;-webkit-tap-highlight-color:transparent;}
+#lunaYearView .yv-mn{text-align:center;font-size:14px;font-weight:500;color:var(--cal-fg,#2a2140);margin-bottom:6px;}
+#lunaYearView .yv-m.cur .yv-mn{font-weight:800;color:rgb(var(--purple-rgb,124,92,191));}
+#lunaYearView .yv-d{display:grid;grid-template-columns:repeat(7,1fr);row-gap:3px;justify-items:center;}
+#lunaYearView .yv-d i{font-style:normal;width:17px;height:17px;line-height:17px;text-align:center;font-size:10.5px;color:var(--cal-fg,#2a2140);border-radius:50%;box-sizing:border-box;}
+#lunaYearView .yv-d i.x{visibility:hidden;}
+#lunaYearView .yv-d i.old{opacity:.45;}
+#lunaYearView .yv-d i.p{background:#f0709a;color:#fff;font-weight:600;}
+#lunaYearView .yv-d i.pp{border:1.2px solid rgba(240,127,160,.75);background:rgba(240,127,160,.12);}
+#lunaYearView .yv-d i.f{color:#2fa57b;font-weight:600;}
+#lunaYearView .yv-d i.t{box-shadow:0 0 0 1.4px rgb(var(--purple-rgb,124,92,191));font-weight:800;}
+#lunaYearView .yv-d i.t.p{box-shadow:0 0 0 1.4px #fff, 0 0 0 2.8px rgb(var(--purple-rgb,124,92,191));}
+#lunaYearView .yv-pad{height:50px;}
+</style>
+<script id="lunaYearCalJs">
+window.LunaYearCal=(function(){
+  function lang(){ try{ if(localStorage.getItem('luna_ui_en')==='1') return 'en'; if(localStorage.getItem('luna_ui_vi')==='1') return 'vi'; }catch(e){} return (typeof _appLang!=='undefined'&&_appLang==='zh')?'zh':'th'; }
+  var TH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var ZH=['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  function mname(m){ var l=lang(); return l==='zh'?ZH[m]:(l==='en'?EN[m]:(l==='vi'?'Th '+(m+1):TH[m])); }
+  function title(){ var l=lang(); return l==='zh'?'全年日历':(l==='en'?'Year overview':(l==='vi'?'Cả năm':'ปฏิทินทั้งปี')); }
+  function yname(y){ var l=lang(); return l==='zh'?(y+'年'):(''+y); }
+  function key(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+  function monthHtml(y,m,todayMid,preg){
+    var first=new Date(y,m,1).getDay(), n=new Date(y,m+1,0).getDate(), h='';
+    for(var i=0;i<first;i++) h+='<i class="x">0</i>';
+    for(var d=1;d<=n;d++){
+      var dt=new Date(y,m,d), k=key(y,m,d), fut=dt>todayMid, cls='';
+      if(dt.getTime()===todayMid.getTime()) cls+=' t';
+      var isP=false; try{ isP=periodSet.has(k); }catch(e){}
+      if(isP && !fut) cls+=' p';
+      else if(fut && !preg && window.LunaPhase){
+        try{ var ph=window.LunaPhase.getPhase(dt); if(ph&&ph.hasData){ if(ph.phase==='fertile') cls+=' f'; else if(ph.phase==='period') cls+=' pp'; } }catch(e){}
+      }
+      h+='<i class="'+cls.trim()+'">'+d+'</i>';
+    }
+    return h;
+  }
+  function build(){
+    var now=new Date(), todayMid=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    var preg=document.body.classList.contains('preg-mode');
+    var v=document.getElementById('lunaYearView');
+    var y0=now.getFullYear()-1, h='<div class="yv-head"><button class="yv-x" onclick="LunaYearCal.close()" aria-label="close">×</button><span class="yv-ttl">'+title()+'</span></div>';
+    for(var y=y0;y<=y0+2;y++){
+      h+='<div class="yv-year" id="yv-y'+y+'">'+yname(y)+'</div><div class="yv-grid">';
+      for(var m=0;m<12;m++){
+        var cur=(y===now.getFullYear()&&m===now.getMonth());
+        h+='<div class="yv-m'+(cur?' cur':'')+'" onclick="LunaYearCal.go('+y+','+m+')"><div class="yv-mn">'+mname(m)+'</div><div class="yv-d">'+monthHtml(y,m,todayMid,preg)+'</div></div>';
+      }
+      h+='</div>';
+    }
+    v.innerHTML=h+'<div class="yv-pad"></div>';
+  }
+  function open(){
+    var v=document.getElementById('lunaYearView');
+    if(!v){ v=document.createElement('div'); v.id='lunaYearView'; document.body.appendChild(v); }
+    build(); v.style.display='block'; v.scrollTop=0;
+    var y=new Date().getFullYear(), t=document.getElementById('yv-y'+y);
+    if(t) v.scrollTop=Math.max(0,t.offsetTop-92);
+  }
+  function close(){ var v=document.getElementById('lunaYearView'); if(v) v.style.display='none'; }
+  function go(y,m){ close(); try{ calYear=y; calMonth=m; calRender(); }catch(e){} }
+  return {open:open,close:close,go:go};
+})();
+</script>
+<style id="lunaCalTipOff">/* lunaCalTipOff：日历页顶部「可标记过去31天」提示条移除（？说明里已有同样内容） */
+#calPanel > div:has(> [data-i18n="cal_tip"]), #calPanel .luna-caltip-off{display:none !important;}
+</style>
+<script>(function(){function f(){try{var e=document.querySelector('#calPanel [data-i18n="cal_tip"]');if(e&&e.parentElement)e.parentElement.classList.add('luna-caltip-off');}catch(x){}}f();document.addEventListener('DOMContentLoaded',f);setTimeout(f,1500);})();</script>

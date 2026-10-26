@@ -5384,7 +5384,7 @@ window._fb = { get: async p=>{const s=await get(ref(db,p));return s.exists()?s.v
   try{
     var connected = false, reported = false;
     onValue(ref(db, '.info/connected'), function(s){
-      connected = (s.val() === true);
+      connected = (s.val() === true); try{ window.__lunaDbConn = connected; }catch(e){} /*lunaFbRest*/
       if(connected){
         try{ window.__lunaDbConnectedAt = Date.now(); }catch(e){}
         // 刚连上：补写一次最近登录，并把之前没写成功的记录重新同步
@@ -6570,13 +6570,13 @@ window.signOutGoogle = async function() {
   // ★彻底清掉当前账号的本地痕迹★ —— 否则换号登录时，残留的 luna_logs/luna_period_days
   // 会让新号串显示上个号的记录，残留的 luna_consent 会让新号跳过"欢迎/同意条款"页。
   // _lunaClearAccountData 的清单已涵盖 logs/period/consent/nickname/usedays 等全部用户数据。
-  try { if(typeof window._lunaClearAccountData === 'function') window._lunaClearAccountData(); } catch(e) {}
+  try { if(typeof window._lunaClearAccountData === 'function') window._lunaClearAccountData({keepScoped:true}); } catch(e) {}
   localStorage.removeItem('luna_uid');
   localStorage.removeItem('luna_activated');
   localStorage.removeItem('luna_display_name');
   localStorage.removeItem('luna_email');
   localStorage.removeItem('luna_photo_url');
-  localStorage.removeItem('luna_data_owner');  // 清掉账号归属标记，确保下个号被视为全新登录
+  /*lunaLogoutKeep2*/ // 账号归属标记退出时保留：下次进来仍认得是老号，换号登录时才会清；永久删除账号走另一条路径，会全清
   sessionStorage.removeItem('luna_uid');
   window._authHandled = false;
   if(window.LunaDB) {
@@ -13809,7 +13809,8 @@ window.setLang = setLang;
   function doLogout() {
     const isTh = _appLang === 'th';
     _lunaConfirm(isTh ? 'ออกจากระบบ？' : '确定退出登录？', {okText: isTh?'ออกจากระบบ':'退出'}, function(){
-      if(typeof signOutGoogle === 'function') signOutGoogle();
+      if(typeof window.__lunaLogoutFlow === 'function') window.__lunaLogoutFlow();
+      else if(typeof signOutGoogle === 'function') signOutGoogle();
       else location.reload();
     });
   }
@@ -14499,7 +14500,7 @@ window.setLang = setLang;
 
   // ── 换账号时清掉上一个账号的本地残留（修复"同机多账号记录串号"）──
   // localStorage 是整个浏览器共用、不分账号的；换号登录若不清，旧账号数据会被合并进新账号、并被写回云端污染
-  window._lunaClearAccountData = function(){
+  window._lunaClearAccountData = function(opts){ /*lunaLogoutKeep*/
     // 🩹 在清空任何东西之前，先把当前（即将退出登录的）这个账号的 uid 记下来，
     // 用来算出 period_days/logs/usedays 对应的 namespaced key 名——这几个已经改成按账号
     // 拆分存储了，不能只删旧的 bare key 名，不然新版本实际在用的那份数据反而留在本地没清掉
@@ -14528,12 +14529,18 @@ window.setLang = setLang;
      // luna_code 是上一个账号用过的会员码，留着可能在新账号界面上露出旧码；
      // luna_insight_first_unlocked 是"第一份深度分析报告"提醒的一次性标记，账号相关，不清会导致新账号明明数据不够也不会收到这条提醒（因为误以为已经推送过）。
      'luna_notifs_deleted','luna_current_phase','luna_save_reward_day','luna_code','luna_insight_first_unlocked'
-    ].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+    ].forEach(function(k){
+      try{
+        if(opts && opts.keepScoped && _prevUid && k.length > _prevUid.length && k.slice(-(_prevUid.length + 1)) === '_' + _prevUid) return;   // 退出登录：按账号存的记录不删
+        if(opts && opts.keepScoped && k === 'luna_first_login') return;   /*lunaLogoutKeep2*/ // 试用起点保留：退出后不能靠重新进入白拿 7 天试用；永久删除账号才会清
+        localStorage.removeItem(k);
+      }catch(e){}
+    });
     // 同步清掉内存缓存，否则加载时又会把旧数据合并回来
     try { logs = []; } catch(e) {}
     try { periodSet = new Set(); } catch(e) {}
     try { window._lunaLoadedDataFor = null; } catch(e) {} // 归属标记也一并清掉，确保下次doLoad无论加载哪个账号都会先核对
-    try { localStorage.removeItem('luna_data_owner_uid'); } catch(e) {} // 持久归属标记同样要清，不然下次登录（哪怕换了账号）会被误判成"本地数据可信"
+    try { if(!(opts && opts.keepScoped)) { localStorage.removeItem('luna_data_owner_uid'); localStorage.removeItem('luna_data_owner'); } } catch(e) {}   /*lunaLogoutKeep2b*/ // 持久归属标记同样要清（退出登录时保留），不然下次登录（哪怕换了账号）会被误判成"本地数据可信"
     try { if(typeof renderLogList==='function') renderLogList(); } catch(e) {}
     try { if(typeof calUpdateStats==='function') calUpdateStats(); } catch(e) {}
   };
@@ -19859,7 +19866,11 @@ window.setLang = setLang;
   }
 
   function calRender() {
-    document.getElementById('calMonthLabel').textContent = _appLang==='zh' ? `${calYear}年 ${calMonth+1}月` : `${MONTHS_TH[calMonth]} ${calYear}`;
+    document.getElementById('calMonthLabel').textContent = (function(){ /*lunaCalHead*/
+      var l='th'; try{ if(localStorage.getItem('luna_ui_en')==='1') l='en'; else if(localStorage.getItem('luna_ui_vi')==='1') l='vi'; else if(_appLang==='zh') l='zh'; }catch(e){}
+      var EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return l==='zh' ? (calMonth+1)+'月' : (l==='en' ? EN[calMonth] : (l==='vi' ? 'Th '+(calMonth+1) : MONTHS_TH[calMonth]));
+    })();
     calBuildSwipeTrack();
     calUpdateStats();
     calUpdateTodayBtn();
@@ -20249,7 +20260,7 @@ window.setLang = setLang;
 
     // 瞬间把"当前月"这屏摆回正中（永远是第2屏），不带动画——真正的翻页动效
     // 前面已经通过手指原生滑动或下面calPrev/calNext的平滑滚动播过了，这里只是摆正数据
-    _calIgnoreScroll = true;
+    _calIgnoreScroll = false; window.__calIgnoreUntil = performance.now() + 120;
     track.style.scrollBehavior = 'auto';
     track.scrollLeft = track.clientWidth;
     _calSwipeBusy = false;
@@ -20264,14 +20275,15 @@ window.setLang = setLang;
 
     let scrollTimer = null;
     track.addEventListener('scroll', function(){
-      if(_calIgnoreScroll){ _calIgnoreScroll = false; return; } // 跳过"摆正中间屏"自己触发的这一下
+      if(performance.now() < (window.__calIgnoreUntil||0)) return; // lunaCalSmooth：按时间忽略"摆正中间屏"自己触发的滚动
       if(scrollTimer) clearTimeout(scrollTimer);
       scrollTimer = setTimeout(function(){
         const w = track.clientWidth;
         if(!w) return;
         const idx = Math.round(track.scrollLeft / w); // 停在了第几屏：0=上个月，1=当前月，2=下个月
         if(idx === 1){ _calSwipeBusy = false; return; } // 拖到一半又弹回正中，什么都没翻，不用重新渲染
-        if(idx < 1){ calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } }
+        if(window.__calJump){ calYear = window.__calJump.y; calMonth = window.__calJump.m; window.__calJump = null; }
+        else if(idx < 1){ calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } }
         else       { calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } }
         calRender(); // 真正切到新的月份，并把新的"当前月"重新摆到正中
       }, 90); // 等滑动/惯性彻底停下来再判断落在哪一屏，避免划到一半就误判
@@ -21250,8 +21262,8 @@ window.setLang = setLang;
   function showCalendar() {
     try { sessionStorage.setItem('luna_lastPage', 'cal'); } catch(e){}
     const _cp = document.getElementById('calPanel');
-    _cp.style.display = 'block';
-    _cp.classList.remove('page-in'); void _cp.offsetWidth; _cp.classList.add('page-in');
+    _cp.classList.remove('page-in'); /*lunaCalSmooth*/
+    _cp.style.transform = 'translateX(100%)'; _cp.style.display = 'block';
     document.body.style.overflow = 'hidden';
     // 周期分析手风琴：每次重新进入日历页都重置为收起状态，不保留上次展开过的记忆
     const _caHead = document.getElementById('calAnalysisHead');
@@ -21279,6 +21291,7 @@ window.setLang = setLang;
     calMonth = _t.getMonth();
     calRender();
     if(typeof updateOnboard==='function') updateOnboard();
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ _cp.style.transform = ''; _cp.classList.remove('page-in'); void _cp.offsetWidth; _cp.classList.add('page-in'); }); });
   }
   // 通用：让面板向右滑出后再隐藏，并执行回调（实现进出对称的丝滑转场）
   function slideOutAndHide(panel, done){
@@ -25325,7 +25338,9 @@ window.lunaTtcMk = function(c, ic){
   <div style="position:sticky; top:0; z-index:5; background:var(--cal-bg); display:flex; align-items:center; justify-content:space-between; padding:52px 20px 12px; transition:background .4s ease;">
     <div style="display:flex; align-items:center; gap:12px;">
       <button onclick="playExitSlide(document.getElementById('calPanel'), closeCalendar)" class="back-btn">‹</button>
-      <span style="font-size:20px; font-weight:600; color:var(--cal-fg); font-family:Georgia,'Songti SC',serif;"><span data-i18n="cal_title">ปฏิทินรอบเดือน</span></span>
+      <span id="calMonthLabel"></span><button id="calRangeEntryBtn" onclick="calEnterRangeMode()" title="ทำเครื่องหมายช่วงประจำเดือน" class="cal-range-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,0.2));"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4M16 2v4"/><path d="M7.5 15h9"/></svg>
+        </button>
     </div>
     <div style="display:flex; align-items:center; gap:10px;">
       <!-- 实时时钟（已隐藏，保留代码）-->
@@ -25360,18 +25375,8 @@ window.lunaTtcMk = function(c, ic){
     <div style="position:absolute;right:-10px;bottom:-18px;font-size:110px;line-height:1;opacity:0.07;pointer-events:none;">🪷</div>
     <!-- 导航行：‹和›停在两端不动；月份文字改成flex弹性居中（在‹和右侧按钮组之间的剩余空间里居中），
          这样右边不管加了几个按钮（比如翻走了才出现的"回到今天"）都不会盖住月份文字，尤其是年份 -->
-    <div style="position:relative;display:flex; align-items:center; justify-content:space-between; padding:0 6px; margin-bottom:10px;">
-      <button onclick="calPrev()" class="cal-nav-btn">‹</button>
-      <span id="calMonthLabel" style="flex:1; min-width:0; text-align:center; font-size:16px; font-weight:600; color:var(--cal-fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 4px;"></span>
-      <div style="display:flex; align-items:center; gap:2px; flex-shrink:0;">
-        <button id="calTodayBtn" onclick="calGoToday()" class="cal-today-btn" data-i18n="cal_back_today">วันนี้</button>
-        <button onclick="calNext()" class="cal-nav-btn">›</button>
-        <!-- 🎯 批量标记经期入口：小图标按钮，收在导航行末尾 -->
-        <button id="calRangeEntryBtn" onclick="calEnterRangeMode()" title="ทำเครื่องหมายช่วงประจำเดือน" class="cal-range-btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,0.2));"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M8 2v4M16 2v4"/><path d="M7.5 15h9"/></svg>
-        </button>
-      </div>
-    </div>
+    <div style="display:none;"><button onclick="calPrev()" class="cal-nav-btn">‹</button><button onclick="calNext()" class="cal-nav-btn">›</button></div>
+    <button id="calTodayBtn" onclick="calGoToday()" class="cal-today-btn" data-i18n="cal_back_today">วันนี้</button>
     <!-- 批量选区间的选择状态提示条：收在卡片内部，跟日历格用同一张卡片背景。可以逐天点选，也可以选两头后用"补齐中间"快速填满，都要点"确认保存"才真正写入 -->
     <div id="calRangeBanner" style="display:none; position:relative; flex-direction:column; gap:12px; background:var(--purple-pale); border-radius:12px; padding:11px 13px; margin:0 6px 10px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -27182,9 +27187,7 @@ document.addEventListener('DOMContentLoaded', function() {
       setTimeout(function(){
         if(typeof _lunaSimpleAlert === 'function'){
           _lunaSimpleAlert(
-            _appLang === 'zh'
-              ? '已成功退出登录\n本机数据已清空，别担心——用同一个账号重新登录，之前的记录都会自动找回来'
-              : 'ออกจากระบบเรียบร้อยแล้ว\nข้อมูลในเครื่องถูกล้างแล้ว ไม่ต้องกังวลนะคะ เข้าสู่ระบบด้วยบัญชีเดิมอีกครั้ง ข้อมูลเก่าจะกลับมาเองค่ะ',
+            (typeof window.__lunaLogoutMsg==='function' ? window.__lunaLogoutMsg() : '已成功退出登录'),
             _appLang === 'zh' ? '知道了' : 'เข้าใจแล้ว',
             null, '👋'
           );
@@ -30877,6 +30880,7 @@ var WK = {
       }
     }
     window.exportData = exportFull;
+    window.__lunaDoBackup = function(){ return doBackup(false); };
 
     // ── ① 导入：原流程照走，确认通过后再把额外的记录补回来 ──
     var pend = null, pendTs = 0;
@@ -31543,12 +31547,12 @@ body.lpg-sub-norm .phone > .card.actions-card{display:none !important;}
     function T(a,b){ return zh() ? a : b; }
     function flagOn(){ try{ return window._remoteConfig.featureFlags.subscribeBlock !== false; }catch(e){ return true; } }
     function eligible(){
-      try{ if(localStorage.getItem('luna_sub_preview') === '1') return isNorm() ? normOpen(true) : true; }catch(e){}
+      try{ if(localStorage.getItem('luna_sub_preview') === '1') return isNorm() ? normOpen(true) : modeOpen(true); }catch(e){}
       var norm = isNorm(), test = false;
       try{ test = (window.__lunaSubTest === true); }catch(e){}   // 后台标记为"测试账号"的人：即使已是会员也显示，方便测试
       if(!test){ try{ if(typeof window.isPro==='function' && window.isPro()) return false; }catch(e){ return false; } }
       if(norm) return normOpen(test);   // 普通经期模式：按"每月最多 2-3 次 + 点 X/下次再说才收起"的节奏出现
-      return true;
+      return modeOpen(test); /*lunaSubMode*/
     }
     function isNorm(){ try{ var bc = document.body.classList; return !bc.contains('preg-mode') && !bc.contains('ttc-mode'); }catch(e){ return false; } }
     // 普通经期模式的出现节奏：没点 X/下次再说之前一直显示（只显示"记录今天"+订阅区块）；点了就收起，
@@ -31567,7 +31571,29 @@ body.lpg-sub-norm .phone > .card.actions-card{display:none !important;}
         return false;
       }catch(e){ return false; }
     }
+    // 备孕 / 怀孕模式：订阅区块也能点 X / "下次再说" 收起，之后每隔 4～5 天再出现一次（不限每月次数）。状态存本机。
+    var MKEY = 'luna_sub_mode';
+    function loadM(){ try{ var o = JSON.parse(localStorage.getItem(MKEY) || '{}'); return (o && typeof o === 'object') ? o : {}; }catch(e){ return {}; } }
+    function saveM(o){ try{ localStorage.setItem(MKEY, JSON.stringify(o)); }catch(e){} }
+    function modeOpen(loose){
+      try{
+        if(loose){ return sessionStorage.getItem('luna_sub_mode_dis') !== '1'; }
+        var st = loadM();
+        if(st.open === true || !st.last) return true;
+        if(Date.now() - st.last > (st.gap || 4) * 86400000){ st.open = true; saveM(st); return true; }
+        return false;
+      }catch(e){ return true; }
+    }
+    function dismissM(){
+      try{
+        var preview = false; try{ preview = localStorage.getItem('luna_sub_preview') === '1'; }catch(e){}
+        if(preview || window.__lunaSubTest === true){ try{ sessionStorage.setItem('luna_sub_mode_dis','1'); }catch(e){} }
+        else { var st = loadM(); st.open = false; st.last = Date.now(); st.gap = 4 + Math.round(Math.random()); saveM(st); }
+      }catch(e){}
+      try{ tick(); }catch(e){}
+    }
     function dismissN(){
+      if(!isNorm()){ return dismissM(); }
       try{
         var preview = false; try{ preview = localStorage.getItem('luna_sub_preview') === '1'; }catch(e){}
         if(preview || window.__lunaSubTest === true){ try{ sessionStorage.setItem('luna_sub_norm_dis','1'); }catch(e){} }
@@ -31620,12 +31646,12 @@ body.lpg-sub-norm .phone > .card.actions-card{display:none !important;}
     function render(){
       var host = document.getElementById('lpgSub'), P = getPlans(); if(!host || !P) return;
       var nm = isNorm();
-      var h = '<div class="sb">' + (nm ? '<button type="button" class="x" id="lpgSubX" aria-label="' + T('关闭','ปิด') + '">&times;</button>' : '') + '<div class="sb-t">' + T('选择你的套餐','เลือกแผนของคุณ') + '</div>'
+      var h = '<div class="sb">' + (true ? '<button type="button" class="x" id="lpgSubX" aria-label="' + T('关闭','ปิด') + '">&times;</button>' : '') + '<div class="sb-t">' + T('选择你的套餐','เลือกแผนของคุณ') + '</div>'
         + planRow('yearly',P) + planRow('monthly',P)
         + '<button type="button" class="go" id="lpgSubGo">' + T('继续','ดำเนินการต่อ') + '</button>'
         + '<div class="dc">' + (zh()?DZ:DT) + '<span onclick="showTerms()">' + T('使用条款','ข้อกำหนดการใช้งาน') + '</span>' + T(' 与 ',' และ ') + '<span onclick="showPrivacy()">' + T('隐私政策','นโยบายความเป็นส่วนตัว') + '</span></div>'
         + '<button type="button" class="rs" id="lpgSubRs">' + T('已购买过？恢复购买','เคยซื้อแล้ว? กู้คืนการซื้อ') + '</button>'
-        + (nm ? '<button type="button" class="lt" id="lpgSubLt">' + T('下次再说','ไว้ครั้งหน้า') + '</button>' : '')
+        + (true ? '<button type="button" class="lt" id="lpgSubLt">' + T('下次再说','ไว้ครั้งหน้า') + '</button>' : '')
         + '<div class="car" id="lpgSubCar">' + (nm ? NSLIDES : SLIDES).map(function(s){ var cap = (zh()?s.zh:s.th); return '<div class="sl"><img src="' + s.img + '" alt="" draggable="false">' + (s.y == null ? '<b class="bt">' + cap + '</b>' : '<b' + (nm ? ' class="cp"' : '') + ' style="top:' + (s.y*100).toFixed(1) + '%">' + cap + '</b>') + '</div>'; }).join('') + '</div>'
         + '<div class="dots" id="lpgSubDots">' + SLIDES.map(function(s,i){ return '<i' + (i===0?' class="on"':'') + '></i>'; }).join('') + '</div></div>';
       host.innerHTML = h; lastLang = zh() ? 'zh' : 'th'; lastNorm = nm; built = true;
@@ -34089,8 +34115,8 @@ button[onclick="startHomeRecording()"],#onboardCardPeriod button{display:flex !i
 </style>
 <script>(function(){function f(){try{var e=document.querySelector('#calPanel [data-i18n="cal_tip"]');if(e&&e.parentElement)e.parentElement.classList.add('luna-caltip-off');}catch(x){}}f();document.addEventListener('DOMContentLoaded',f);setTimeout(f,1500);})();</script>
 <style id="lunaCalFlat">/* lunaCalFlat：日历页去掉大框——日历和周期分析直接放在页面底色上，只留一条细分隔线 */
-#calPanel div:has(> div > #calMonthLabel){background:transparent !important;box-shadow:none !important;border:none !important;border-radius:0 !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;padding:6px 6px 0 !important;}
-#calPanel div:has(> div > #calMonthLabel) > div:first-child:not(:has(*)){display:none !important;}
+#calPanel div:has(> #calSwipeWrap){background:transparent !important;box-shadow:none !important;border:none !important;border-radius:0 !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;padding:0 6px 0 !important;}
+#calPanel div:has(> #calSwipeWrap) > div:first-child:not(:has(*)){display:none !important;}
 #calPanel div:has(> #calAnalysisHead){background:transparent !important;box-shadow:none !important;border:none !important;border-radius:0 !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;border-top:1px solid var(--home-card-border,rgba(124,92,191,.14)) !important;margin-top:14px !important;}
 </style>
 <style id="lunaYearCal">
@@ -34212,7 +34238,7 @@ window.LunaYearCal=(function(){
 })();
 </script>
 <script id="lunaCalTodayFast">
-/* lunaCalTodayFast：「今天」按钮——离得远（超过2个月）时直接跳回本月（加一个很短的淡入），不再一页一页翻回来；近的仍用原来的翻页动效 */
+/* lunaCalTodayFast：「今天」按钮——离得远（超过2个月）时，一次平滑滑到本月（像翻一页），不再一个月一个月地翻；近的仍走原来的翻页 */
 (function(){
   function wrap(){
     try{
@@ -34220,12 +34246,21 @@ window.LunaYearCal=(function(){
       var fast=function(){
         try{
           var t=getTodayTH(), ty=t.getFullYear(), tm=t.getMonth();
-          var diff=Math.abs((ty-calYear)*12+(tm-calMonth));
-          if(diff<=2) return orig();
-          calYear=ty; calMonth=tm; calRender();
-          var tr=document.getElementById('calSwipeTrack');
-          if(tr&&tr.animate) tr.animate([{opacity:.15},{opacity:1}],{duration:240,easing:'ease-out'});
-        }catch(e){ try{ orig(); }catch(_){} }
+          var diff=(ty-calYear)*12+(tm-calMonth);
+          if(Math.abs(diff)<=2) return orig();
+          if(window.__calJump) return;
+          var track=document.getElementById('calSwipeTrack');
+          var panes=track&&track.children;
+          if(!track||!panes||panes.length<2||!track.clientWidth){ calYear=ty; calMonth=tm; calRender(); return; }
+          var grid=function(i){ return panes[i]&&panes[i].firstElementChild; };
+          var back=diff<0, idx=back?0:2;
+          if(!grid(idx)){ calYear=ty; calMonth=tm; calRender(); return; }
+          grid(idx).innerHTML=calBuildGridHtml(ty,tm);
+          window.__calJump={y:ty,m:tm};
+          track.style.scrollBehavior='smooth';
+          track.scrollLeft=track.clientWidth*idx;
+          setTimeout(function(){ if(window.__calJump){ window.__calJump=null; calYear=ty; calMonth=tm; calRender(); } },1400);
+        }catch(e){ try{ window.__calJump=null; orig(); }catch(_){} }
       };
       fast.__fast=true; window.calGoToday=fast; return true;
     }catch(e){ return false; }
@@ -34233,3 +34268,143 @@ window.LunaYearCal=(function(){
   if(!wrap()){ var n=0,iv=setInterval(function(){ if(wrap()||++n>40) clearInterval(iv); },250); }
 })();
 </script>
+<script id="lunaCalWatch">
+/* lunaCalWatch：日历错误追踪（静默上报到 errorReports，后台「错误监控」里看）
+   cal_swipe_miss  —— 用户明显横向滑了一下，但月份没变（"要滑两次"这类问题），附当时的状态
+   cal_open_slow   —— 点开日历页同步耗时超过 400ms（"第一次打开会卡一下"）
+   每种每次打开 App 最多报一次，不含任何个人内容。 */
+(function(){
+  function rep(kind,msg,detail){ try{ if(window.__lunaReportError) window.__lunaReportError(kind,msg,'',0,0,detail); }catch(e){} }
+  var lastRender=0, mo=null;
+  function bind(){
+    var tr=document.getElementById('calSwipeTrack'); if(!tr||tr.__watch) return !!tr&&!!tr.__watch;
+    tr.__watch=1;
+    try{ mo=new MutationObserver(function(){ lastRender=Date.now(); }); mo.observe(tr,{childList:true}); }catch(e){}
+    var st=null;
+    tr.addEventListener('touchstart',function(e){
+      try{ var t=e.touches[0]; st={x:t.clientX,y:t.clientY,at:Date.now(),y0:calYear,m0:calMonth,sl:tr.scrollLeft,r0:lastRender}; }catch(x){ st=null; }
+    },{passive:true});
+    tr.addEventListener('touchend',function(e){
+      try{
+        if(!st) return; var t=e.changedTouches[0], dx=t.clientX-st.x, dy=t.clientY-st.y, s=st; st=null;
+        if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.3) return;
+        if(dx<0 && typeof calCanGoNext==='function' && !calCanGoNext()) return;   // 已经是本月，往后本来就滑不动
+        setTimeout(function(){
+          try{
+            if(window.__calJump) return;
+            if(calYear!==s.y0||calMonth!==s.m0) return;     // 月份变了，正常
+            if(lastRender>s.r0) return;                      // 期间重新渲染过，不算
+            var d=['dx='+Math.round(dx)+' dy='+Math.round(dy),
+                   'sl0='+Math.round(s.sl)+' sl1='+Math.round(tr.scrollLeft)+' w='+tr.clientWidth,
+                   'sinceRender='+(s.at-lastRender)+'ms','ignoreLeft='+Math.max(0,Math.round((window.__calIgnoreUntil||0)-performance.now()))+'ms',
+                   'month='+s.y0+'-'+(s.m0+1)].join('\n');
+            rep('cal_swipe_miss','calendar swipe ignored (month unchanged after horizontal swipe)',d);
+          }catch(x){}
+        },800);
+      }catch(x){}
+    },{passive:true});
+    return true;
+  }
+  function wrapOpen(){
+    try{
+      var o=window.showCalendar; if(typeof o!=='function'||o.__w) return false;
+      var w=function(){ var s=performance.now(); var r=o.apply(this,arguments); var ms=Math.round(performance.now()-s);
+        if(ms>400) rep('cal_open_slow','calendar open slow (>400ms sync)','ms='+ms); bind(); return r; };
+      w.__w=1; window.showCalendar=w; return true;
+    }catch(e){ return false; }
+  }
+  var n=0, iv=setInterval(function(){ var a=wrapOpen(), b=bind(); if((a&&b)||++n>60) clearInterval(iv); },500);
+})();
+</script>
+<script id="lunaFbRestJs">
+/* lunaFbRestJs：数据库读写的"HTTPS 备用通道"
+   有些手机/网络会拦掉 Firebase 的实时连接（WebSocket），App 里所有走 window._fb 的读写（登录后拉回记录、恢复云端数据、立即备份……）就会一直转圈。
+   但普通 HTTPS 请求是通的（错误上报就是这样发出去的）。所以：
+   · 已知没连上时，直接走 REST（用登录用户自己的令牌，规则和原来完全一样）；
+   · 连上了但 8 秒还没回应，也改走 REST；
+   · REST 也失败，才退回原来的方式。成功与否都是服务器真实返回的结果，不会假成功。 */
+(function(){
+  var DBB='https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app';
+  function conn(){ return window.__lunaDbConn===true; }
+  function tmo(ms,msg){ return new Promise(function(_,rej){ setTimeout(function(){ rej(new Error(msg)); },ms); }); }
+  async function tok(){
+    try{ var a=window.auth; if(a&&a.currentUser) return await Promise.race([a.currentUser.getIdToken(), tmo(8000,'tok-timeout')]); }catch(e){}
+    return '';
+  }
+  async function rest(method,p,body,ms){
+    var t=await tok(), ctl=window.AbortController?new AbortController():null, to=setTimeout(function(){ try{ ctl&&ctl.abort(); }catch(e){} },ms||15000);
+    try{
+      var url=DBB+'/'+String(p).replace(/^\/+/,'')+'.json'+(t?('?auth='+encodeURIComponent(t)):'');
+      var r=await fetch(url,{method:method,headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:ctl?ctl.signal:undefined});
+      if(!r.ok) throw new Error('rest-'+r.status);
+      return method==='GET'?await r.json():true;
+    } finally { clearTimeout(to); }
+  }
+  function note(kind,msg){ try{ window.__lunaRestUsed=(window.__lunaRestUsed||0)+1; if(window.__lunaRestUsed===1 && window.__lunaReportError) window.__lunaReportError(kind,msg,'',0,0,''); }catch(e){} }
+  function wrap(){
+    var f=window._fb; if(!f||f.__rest||!f.get||!f.set) return false;
+    var g=f.get, s=f.set, r=f.remove;
+    f.get=async function(p){
+      if(!conn()){ try{ var v=await rest('GET',p,undefined,15000); note('db_rest_fallback','db offline: using HTTPS fallback'); return v; }catch(e){} return g.call(f,p); }
+      try{ return await Promise.race([g.call(f,p), tmo(8000,'sdk-timeout')]); }
+      catch(e){ if(e&&e.message==='sdk-timeout'){ var v2=await rest('GET',p,undefined,15000); note('db_rest_fallback','db slow: using HTTPS fallback'); return v2; } throw e; }
+    };
+    f.set=async function(p,v){
+      if(v===undefined) return s.call(f,p,v);
+      if(!conn()){ try{ await rest('PUT',p,v,30000); note('db_rest_fallback','db offline: using HTTPS fallback'); return; }catch(e){} return s.call(f,p,v); }
+      try{ return await Promise.race([s.call(f,p,v), tmo(8000,'sdk-timeout')]); }
+      catch(e){ if(e&&e.message==='sdk-timeout'){ await rest('PUT',p,v,30000); note('db_rest_fallback','db slow: using HTTPS fallback'); return; } throw e; }
+    };
+    if(r) f.remove=async function(p){
+      if(!conn()){ try{ await rest('DELETE',p,undefined,20000); return; }catch(e){} return r.call(f,p); }
+      try{ return await Promise.race([r.call(f,p), tmo(8000,'sdk-timeout')]); }
+      catch(e){ if(e&&e.message==='sdk-timeout'){ await rest('DELETE',p,undefined,20000); return; } throw e; }
+    };
+    f.__rest=true; return true;
+  }
+  var n=0, iv=setInterval(function(){ if(wrap()||++n>120) clearInterval(iv); },250);
+})();
+</script>
+<script id="lunaLogoutKeep">
+/* lunaLogoutKeep：退出登录 = 只退出，不再清掉这个账号在本机的记录。
+   · 退出前先尝试把记录备份到云端（最多等 15 秒，失败也照常退出，数据留在本机）；
+   · 本机保留的是"按账号存的记录"（经期/日志/备孕/怀孕等，key 带账号 id），游客看不到、别的账号也读不到；
+   · 同一个账号再登录，本机记录立刻就在，再和云端合并；换了别的账号登录，本机仍只读各自账号自己的那份。 */
+(function(){
+  function lang(){ try{ if(localStorage.getItem('luna_ui_en')==='1') return 'en'; if(localStorage.getItem('luna_ui_vi')==='1') return 'vi'; }catch(e){} return (typeof _appLang!=='undefined'&&_appLang==='zh')?'zh':'th'; }
+  var M={
+    ok:{zh:'已成功退出登录\n你的记录还保存在这台手机和云端，用同一个账号重新登录就能继续使用',
+        th:'ออกจากระบบเรียบร้อยแล้ว\nบันทึกของคุณยังอยู่ในเครื่องนี้และบนคลาวด์ เข้าสู่ระบบด้วยบัญชีเดิมเพื่อใช้งานต่อได้เลย',
+        en:'Signed out.\nYour records are still saved on this phone and in the cloud. Sign in with the same account to keep using them.',
+        vi:'Đã đăng xuất.\nDữ liệu vẫn được lưu trên điện thoại này và trên đám mây. Đăng nhập lại bằng cùng tài khoản để tiếp tục.'},
+    fail:{zh:'已成功退出登录\n你的记录还保存在这台手机里（这次没能备份到云端），用同一个账号重新登录就能继续使用',
+        th:'ออกจากระบบเรียบร้อยแล้ว\nบันทึกของคุณยังอยู่ในเครื่องนี้ (ครั้งนี้สำรองขึ้นคลาวด์ไม่สำเร็จ) เข้าสู่ระบบด้วยบัญชีเดิมเพื่อใช้งานต่อได้เลย',
+        en:'Signed out.\nYour records are still saved on this phone (the cloud backup did not go through this time). Sign in with the same account to keep using them.',
+        vi:'Đã đăng xuất.\nDữ liệu vẫn được lưu trên điện thoại này (lần này chưa sao lưu lên đám mây được). Đăng nhập lại bằng cùng tài khoản để tiếp tục.'},
+    busy:{zh:'正在备份到云端…',th:'กำลังสำรองข้อมูลขึ้นคลาวด์…',en:'Backing up to the cloud…',vi:'Đang sao lưu lên đám mây…'}
+  };
+  window.__lunaLogoutMsg=function(){
+    var bad=false; try{ bad=sessionStorage.getItem('luna_logout_bk')==='0'; }catch(e){}
+    try{ sessionStorage.removeItem('luna_logout_bk'); }catch(e){}
+    return (bad?M.fail:M.ok)[lang()];
+  };
+  window.__lunaLogoutFlow=function(){
+    var go=function(){ try{ if(typeof signOutGoogle==='function') signOutGoogle(); else location.reload(); }catch(e){ location.reload(); } };
+    var u=''; try{ u=localStorage.getItem('luna_uid')||''; }catch(e){}
+    if(!u||typeof window.__lunaDoBackup!=='function') return go();
+    try{ if(typeof showToast==='function') showToast(M.busy[lang()]); }catch(e){}
+    var done=false;
+    function fin(ok){ if(done) return; done=true; try{ sessionStorage.setItem('luna_logout_bk',ok?'1':'0'); }catch(e){} go(); }
+    var tm=setTimeout(function(){ fin(false); },15000);
+    Promise.resolve().then(function(){ return window.__lunaDoBackup(); }).then(function(){ clearTimeout(tm); fin(true); },function(){ clearTimeout(tm); fin(false); });
+  };
+})();
+</script>
+<style id="lunaCalHead">/* lunaCalHead：日历页顶部——标题换成月份（不带年份），多选按钮贴在月份右边；“回到今天”改成和整年页同款的悬浮胶囊；日历格贴着月份 */
+#calPanel #calMonthLabel{font-size:22px !important;font-weight:600 !important;white-space:nowrap;line-height:1.2;}
+#calPanel div:has(> div > #calMonthLabel){padding-bottom:0 !important;}
+#calPanel #calRangeEntryBtn{margin-left:2px;}
+#calPanel #calTodayBtn{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);margin:0;height:auto;padding:9px 18px;border:none;border-radius:999px;background:var(--cal-surface-bg,#fff);color:var(--cal-fg,#2a2140);font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 8px 22px -8px rgba(60,40,90,.35);opacity:0;transform:translate(-50%,8px);pointer-events:none;z-index:40;transition:opacity .22s ease,transform .22s ease;}
+#calPanel #calTodayBtn.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
+#calPanel #calTodayBtn:active{transform:translate(-50%,0) scale(.96);}
+</style>

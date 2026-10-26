@@ -34084,18 +34084,31 @@ body.lpg-sub-norm #lpgRec1 button svg path{stroke:var(--home-fg,#3c2a5a) !import
 
 button[onclick="startHomeRecording()"],#onboardCardPeriod button{display:flex !important;align-items:center;justify-content:center !important}
 </style>
+<style id="lunaCalTipOff">/* lunaCalTipOff：日历页顶部「可标记过去31天」提示条移除（？说明里已有同样内容） */
+#calPanel > div:has(> [data-i18n="cal_tip"]), #calPanel .luna-caltip-off{display:none !important;}
+</style>
+<script>(function(){function f(){try{var e=document.querySelector('#calPanel [data-i18n="cal_tip"]');if(e&&e.parentElement)e.parentElement.classList.add('luna-caltip-off');}catch(x){}}f();document.addEventListener('DOMContentLoaded',f);setTimeout(f,1500);})();</script>
+<style id="lunaCalFlat">/* lunaCalFlat：日历页去掉大框——日历和周期分析直接放在页面底色上，只留一条细分隔线 */
+#calPanel div:has(> div > #calMonthLabel){background:transparent !important;box-shadow:none !important;border:none !important;border-radius:0 !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;padding:6px 6px 0 !important;}
+#calPanel div:has(> div > #calMonthLabel) > div:first-child:not(:has(*)){display:none !important;}
+#calPanel div:has(> #calAnalysisHead){background:transparent !important;box-shadow:none !important;border:none !important;border-radius:0 !important;-webkit-backdrop-filter:none !important;backdrop-filter:none !important;border-top:1px solid var(--home-card-border,rgba(124,92,191,.14)) !important;margin-top:14px !important;}
+</style>
 <style id="lunaYearCal">
-#lunaYearView{display:none;position:fixed;inset:0;z-index:170;background:var(--cal-bg,#f4f1fa);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#lunaYearView{display:none;position:fixed;inset:0;z-index:170;background:var(--cal-bg,#f4f1fa);overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;transform:scale(1.5);will-change:transform,opacity;}
+#lunaYearView.yv-in{opacity:1;transform:scale(1);transition:transform .42s cubic-bezier(.22,.8,.24,1),opacity .32s ease;}
+#lunaYearView.yv-out-zoom{opacity:0;transform:scale(2.4);transition:transform .42s cubic-bezier(.5,0,.75,.4),opacity .36s ease .04s;}
+#lunaYearView.yv-out-x{opacity:0;transform:scale(.9);transition:transform .3s ease,opacity .26s ease;}
+@media (prefers-reduced-motion:reduce){#lunaYearView,#lunaYearView.yv-in,#lunaYearView.yv-out-zoom,#lunaYearView.yv-out-x{transition:none !important;}}
 #lunaYearView .yv-head{position:sticky;top:0;z-index:3;background:var(--cal-bg,#f4f1fa);display:flex;align-items:center;justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 46px) 20px 12px;border-bottom:1px solid var(--home-card-border,rgba(124,92,191,.14));}
 #lunaYearView .yv-x{position:absolute;left:18px;bottom:8px;width:40px;height:40px;border:none;background:transparent;font-size:30px;line-height:1;color:var(--cal-fg,#2a2140);cursor:pointer;}
 #lunaYearView .yv-ttl{font-size:17px;font-weight:600;color:var(--cal-fg,#2a2140);}
 #lunaYearView .yv-year{text-align:center;font-size:26px;font-weight:700;color:var(--cal-fg,#2a2140);margin:22px 0 10px;font-family:Georgia,'Songti SC',serif;}
-#lunaYearView .yv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 6px;padding:0 14px;}
+#lunaYearView .yv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:34px 14px;padding:0 20px;}
 #lunaYearView .yv-m{cursor:pointer;-webkit-tap-highlight-color:transparent;}
-#lunaYearView .yv-mn{text-align:center;font-size:14px;font-weight:500;color:var(--cal-fg,#2a2140);margin-bottom:6px;}
+#lunaYearView .yv-mn{text-align:center;font-size:14px;font-weight:500;color:var(--cal-fg,#2a2140);margin-bottom:10px;}
 #lunaYearView .yv-m.cur .yv-mn{font-weight:800;color:rgb(var(--purple-rgb,124,92,191));}
-#lunaYearView .yv-d{display:grid;grid-template-columns:repeat(7,1fr);row-gap:3px;justify-items:center;}
-#lunaYearView .yv-d i{font-style:normal;width:17px;height:17px;line-height:17px;text-align:center;font-size:10.5px;color:var(--cal-fg,#2a2140);border-radius:50%;box-sizing:border-box;}
+#lunaYearView .yv-d{display:grid;grid-template-columns:repeat(7,1fr);row-gap:5px;justify-items:center;}
+#lunaYearView .yv-d i{font-style:normal;width:15px;height:15px;line-height:15px;text-align:center;font-size:10px;color:var(--cal-fg,#2a2140);border-radius:50%;box-sizing:border-box;}
 #lunaYearView .yv-d i.x{visibility:hidden;}
 #lunaYearView .yv-d i.old{opacity:.45;}
 #lunaYearView .yv-d i.p{background:#f0709a;color:#fff;font-weight:600;}
@@ -34103,7 +34116,13 @@ button[onclick="startHomeRecording()"],#onboardCardPeriod button{display:flex !i
 #lunaYearView .yv-d i.f{color:#2fa57b;font-weight:600;}
 #lunaYearView .yv-d i.t{box-shadow:0 0 0 1.4px rgb(var(--purple-rgb,124,92,191));font-weight:800;}
 #lunaYearView .yv-d i.t.p{box-shadow:0 0 0 1.4px #fff, 0 0 0 2.8px rgb(var(--purple-rgb,124,92,191));}
-#lunaYearView .yv-pad{height:50px;}
+#lunaYearView .yv-year{position:relative;margin:38px 0 14px !important;padding-top:28px;}
+#lunaYearView .yv-year::before{content:"";position:absolute;left:20px;right:20px;top:0;border-top:1.5px dashed rgba(var(--purple-rgb,124,92,191),.35);}
+#lunaYearView .yv-head + .yv-year{margin-top:18px !important;padding-top:6px;}
+#lunaYearView .yv-head + .yv-year::before{display:none;}
+#lunaYearView .yv-pad{height:60px;}
+#lunaYearBackToday{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 104px);transform:translate(-50%,-8px);z-index:175;display:flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:999px;background:var(--cal-surface-bg,#fff);color:var(--cal-fg,#2a2140);font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 8px 22px -8px rgba(60,40,90,.35);opacity:0;pointer-events:none;transition:opacity .22s ease,transform .22s ease;}
+#lunaYearBackToday.show{opacity:1;pointer-events:auto;transform:translate(-50%,0);}
 </style>
 <script id="lunaYearCalJs">
 window.LunaYearCal=(function(){
@@ -34134,30 +34153,83 @@ window.LunaYearCal=(function(){
     var now=new Date(), todayMid=new Date(now.getFullYear(),now.getMonth(),now.getDate());
     var preg=document.body.classList.contains('preg-mode');
     var v=document.getElementById('lunaYearView');
-    var y0=now.getFullYear()-1, h='<div class="yv-head"><button class="yv-x" onclick="LunaYearCal.close()" aria-label="close">×</button><span class="yv-ttl">'+title()+'</span></div>';
-    for(var y=y0;y<=y0+2;y++){
+    var y0=now.getFullYear()-2, h='<div class="yv-head"><button class="yv-x" onclick="LunaYearCal.close()" aria-label="close">×</button><span class="yv-ttl">'+title()+'</span></div>';
+    for(var y=y0;y<=y0+5;y++){
       h+='<div class="yv-year" id="yv-y'+y+'">'+yname(y)+'</div><div class="yv-grid">';
       for(var m=0;m<12;m++){
         var cur=(y===now.getFullYear()&&m===now.getMonth());
-        h+='<div class="yv-m'+(cur?' cur':'')+'" onclick="LunaYearCal.go('+y+','+m+')"><div class="yv-mn">'+mname(m)+'</div><div class="yv-d">'+monthHtml(y,m,todayMid,preg)+'</div></div>';
+        h+='<div class="yv-m'+(cur?' cur':'')+'" onclick="LunaYearCal.go('+y+','+m+',this)"><div class="yv-mn">'+mname(m)+'</div><div class="yv-d">'+monthHtml(y,m,todayMid,preg)+'</div></div>';
       }
       h+='</div>';
     }
     v.innerHTML=h+'<div class="yv-pad"></div>';
+    var bt=document.getElementById('lunaYearBackToday');
+    if(!bt){ bt=document.createElement('button'); bt.id='lunaYearBackToday'; bt.type='button'; bt.onclick=toToday; document.body.appendChild(bt); }
+    bt.innerHTML='<span>↓</span><span></span>'; bt.lastChild.textContent=backLabel(); bt.classList.remove('show');
+    v.onscroll=function(){ if(!v._raf){ v._raf=requestAnimationFrame(function(){ v._raf=0; updBack(); }); } };
   }
+  function setOrigin(v,el){
+    try{ var r=el.getBoundingClientRect(), x=r.left+r.width/2, y=r.top+r.height/2+v.scrollTop; v.style.transformOrigin=x+'px '+y+'px'; }catch(e){ v.style.transformOrigin='50% 40%'; }
+  }
+  function backLabel(){ var l=lang(); return l==='zh'?'返回今天':(l==='en'?'Back to today':(l==='vi'?'Về hôm nay':'กลับไปวันนี้')); }
+  function updBack(){
+    var v=document.getElementById('lunaYearView'), b=document.getElementById('lunaYearBackToday'); if(!v||!b) return;
+    var cur=v.querySelector('.yv-m.cur'); if(!cur) return;
+    var r=cur.getBoundingClientRect(), vh=window.innerHeight;
+    var above=r.bottom<110, below=r.top>vh-40;
+    if(above||below){ b.firstChild.textContent=above?'↑':'↓'; b.classList.add('show'); } else b.classList.remove('show');
+  }
+  function toToday(){
+    var v=document.getElementById('lunaYearView'); var cur=v&&v.querySelector('.yv-m.cur'); if(!cur) return;
+    var y=new Date().getFullYear(), t=document.getElementById('yv-y'+y);
+    try{ v.scrollTo({top:Math.max(0,t.offsetTop-92),behavior:'smooth'}); }catch(e){ v.scrollTop=Math.max(0,t.offsetTop-92); }
+  }
+  var busy=false;
   function open(){
+    if(busy) return; busy=true;
     var v=document.getElementById('lunaYearView');
     if(!v){ v=document.createElement('div'); v.id='lunaYearView'; document.body.appendChild(v); }
-    build(); v.style.display='block'; v.scrollTop=0;
+    build(); v.classList.remove('yv-in','yv-out-zoom','yv-out-x'); v.style.display='block'; v.scrollTop=0;
     var y=new Date().getFullYear(), t=document.getElementById('yv-y'+y);
     if(t) v.scrollTop=Math.max(0,t.offsetTop-92);
+    var cur=v.querySelector('.yv-m.cur'); if(cur) setOrigin(v,cur); else v.style.transformOrigin='50% 40%';
+    void v.offsetWidth; v.classList.add('yv-in');
+    setTimeout(function(){ busy=false; updBack(); },430);
   }
-  function close(){ var v=document.getElementById('lunaYearView'); if(v) v.style.display='none'; }
-  function go(y,m){ close(); try{ calYear=y; calMonth=m; calRender(); }catch(e){} }
+  function hide(v,cls,ms){
+    var bt=document.getElementById('lunaYearBackToday'); if(bt) bt.classList.remove('show');
+    v.classList.remove('yv-in'); v.classList.add(cls);
+    setTimeout(function(){ v.style.display='none'; v.classList.remove(cls); busy=false; },ms);
+  }
+  function close(){ var v=document.getElementById('lunaYearView'); if(!v||busy||v.style.display==='none') return; busy=true; hide(v,'yv-out-x',320); }
+  function go(y,m,el){
+    var v=document.getElementById('lunaYearView'); if(!v||busy) return; busy=true;
+    try{ calYear=y; calMonth=m; calRender(); }catch(e){}
+    if(el) setOrigin(v,el);
+    hide(v,'yv-out-zoom',460);
+  }
   return {open:open,close:close,go:go};
 })();
 </script>
-<style id="lunaCalTipOff">/* lunaCalTipOff：日历页顶部「可标记过去31天」提示条移除（？说明里已有同样内容） */
-#calPanel > div:has(> [data-i18n="cal_tip"]), #calPanel .luna-caltip-off{display:none !important;}
-</style>
-<script>(function(){function f(){try{var e=document.querySelector('#calPanel [data-i18n="cal_tip"]');if(e&&e.parentElement)e.parentElement.classList.add('luna-caltip-off');}catch(x){}}f();document.addEventListener('DOMContentLoaded',f);setTimeout(f,1500);})();</script>
+<script id="lunaCalTodayFast">
+/* lunaCalTodayFast：「今天」按钮——离得远（超过2个月）时直接跳回本月（加一个很短的淡入），不再一页一页翻回来；近的仍用原来的翻页动效 */
+(function(){
+  function wrap(){
+    try{
+      var orig=window.calGoToday; if(typeof orig!=='function'||orig.__fast) return false;
+      var fast=function(){
+        try{
+          var t=getTodayTH(), ty=t.getFullYear(), tm=t.getMonth();
+          var diff=Math.abs((ty-calYear)*12+(tm-calMonth));
+          if(diff<=2) return orig();
+          calYear=ty; calMonth=tm; calRender();
+          var tr=document.getElementById('calSwipeTrack');
+          if(tr&&tr.animate) tr.animate([{opacity:.15},{opacity:1}],{duration:240,easing:'ease-out'});
+        }catch(e){ try{ orig(); }catch(_){} }
+      };
+      fast.__fast=true; window.calGoToday=fast; return true;
+    }catch(e){ return false; }
+  }
+  if(!wrap()){ var n=0,iv=setInterval(function(){ if(wrap()||++n>40) clearInterval(iv); },250); }
+})();
+</script>

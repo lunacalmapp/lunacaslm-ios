@@ -3469,6 +3469,9 @@ window.installPWA = function() {
         <button onclick="LunaPreg.post && LunaPreg.post.openEvent('birth')" style="background:transparent;border:1.5px solid var(--home-fg-muted);color:var(--home-fg);border-radius:999px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
           <span id="pregHomeBirthBtn"></span>
         </button>
+        <button id="lpgBabyBtn" onclick="LunaBabyView.open()" style="background:transparent;border:1.5px solid var(--home-fg-muted);color:var(--home-fg);border-radius:999px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
+          <span id="lpgBabyBtnTxt">看看宝宝怎么样了 👶</span>
+        </button>
       </div>
     </div>
 
@@ -30126,7 +30129,7 @@ body.lpg-flow .lpg-kick-row{border:none !important;border-radius:0 !important;bo
       setCur(c); renderPanel();
     }
     function reset(){ var c = getCur(); if(c && c.n > 0 && !window.confirm(T('重新开始会清掉现在数的这一次，确定吗？', 'เริ่มใหม่จะล้างครั้งที่กำลังนับอยู่ ยืนยันหรือไม่?'))) return; setCur(null); renderPanel(); }
-    function finish(){ var c = getCur(); if(!c || c.n < 1) return; if(save(c.n, (Date.now() - c.t0) / 1000)){ setCur(null); renderPanel(); renderRow(); } }
+    function finish(){ var c = getCur(); if(!c || c.n < 1) return; if(save(c.n, (Date.now() - c.t0) / 1000)){ try{ if(typeof window.trackEvent === 'function') window.trackEvent('preg_kick'); }catch(e){} setCur(null); renderPanel(); renderRow(); } }
     function renderPanel(){
       var b = el('lpgKickBody'); if(!b) return;
       var zh = lg() === 'zh', c = getCur(), n = c ? c.n : 0, secs = c ? Math.floor((Date.now() - c.t0) / 1000) : 0;
@@ -34408,3 +34411,901 @@ window.LunaYearCal=(function(){
 #calPanel #calTodayBtn.show{opacity:1;transform:translate(-50%,0);pointer-events:auto;}
 #calPanel #calTodayBtn:active{transform:translate(-50%,0) scale(.96);}
 </style>
+<script id="lunaFruitArt">
+/* lunaFruitArt：孕期水果插画（内嵌 SVG，不联网）。get(key) 返回 viewBox 0 0 100 100 里的内容。 */
+(function(){
+  if(window.LunaFruitArt) return;
+  var SH = '<ellipse cx="50" cy="93" rx="27" ry="3.6" fill="#3a2a5a" opacity=".14"/>';
+  function rg(id,a,b,cx,cy,r){ return '<radialGradient id="'+id+'" cx="'+(cx||34)+'%" cy="'+(cy||28)+'%" r="'+(r||85)+'%"><stop offset="0" stop-color="'+a+'"/><stop offset="1" stop-color="'+b+'"/></radialGradient>'; }
+  function lg(id,a,b,x2,y2){ return '<linearGradient id="'+id+'" x1="0" y1="0" x2="'+(x2||0)+'" y2="'+(y2===undefined?1:y2)+'"><stop offset="0" stop-color="'+a+'"/><stop offset="1" stop-color="'+b+'"/></linearGradient>'; }
+  function hi(x,y,rx,ry,rot,op){ return '<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="#fff" opacity="'+(op||.42)+'" transform="rotate('+(rot||-35)+' '+x+' '+y+')"/>'; }
+  function leaf(x,y,rot,sc,c1,c2){ c1=c1||'#7cc36b'; c2=c2||'#4e9c4a'; return '<g transform="translate('+x+' '+y+') rotate('+rot+') scale('+(sc||1)+')"><path d="M0 0C6-11 20-12 26-5C19 4 7 6 0 0z" fill="'+c1+'"/><path d="M1 0C9-3 17-4 24-5" fill="none" stroke="'+c2+'" stroke-width="1.6" stroke-linecap="round"/></g>'; }
+  function D(s){ return '<defs>'+s+'</defs>'; }
+  var A = {};
+
+  A.pea = D(lg('fa_pea1','#b6e68a','#5ea84a')+rg('fa_pea2','#e2f8bd','#8cc863'))+SH+
+    '<path d="M9 58C9 41 27 33 50 33s41 8 41 25-18 24-41 24S9 75 9 58z" fill="url(#fa_pea1)"/>'+
+    '<path d="M16 58C16 47 31 41 50 41s34 6 34 17-15 17-34 17-34-6-34-17z" fill="#d7f0b0"/>'+
+    '<circle cx="31" cy="58" r="11" fill="url(#fa_pea2)"/><circle cx="50" cy="59" r="12" fill="url(#fa_pea2)"/><circle cx="69" cy="58" r="11" fill="url(#fa_pea2)"/>'+
+    hi(27,54,4,2.4,-30,.6)+hi(46,55,4.5,2.6,-30,.6)+hi(65,54,4,2.4,-30,.6)+
+    '<path d="M84 40c6-8 10-10 14-10" fill="none" stroke="#5ea84a" stroke-width="3" stroke-linecap="round"/>'+hi(30,38,10,3,-8,.35);
+
+  A.blueberry = D(rg('fa_bb','#92a2ee','#36418a',34,26))+SH+
+    '<circle cx="50" cy="56" r="31" fill="url(#fa_bb)"/><circle cx="50" cy="56" r="31" fill="#cfd6ff" opacity=".13"/>'+
+    '<path d="M50 38l4.2 6.4 7.4-1.6-2.2 7.2 6 4.6-7.4 1.8-.8 7.6-7.2-3.6-7.2 3.6-.8-7.6-7.4-1.8 6-4.6-2.2-7.2 7.4 1.6z" fill="#27306e" opacity=".8" transform="translate(0 -4) scale(1 .9) translate(0 4)"/>'+
+    '<circle cx="50" cy="52" r="3.4" fill="#141a4a" opacity=".75"/>'+hi(36,42,9,4.4,-35,.5);
+
+  A.raspberry = (function(){
+    var pts=[[38,40],[50,38],[62,40],[32,51],[44,50],[56,50],[68,51],[34,63],[46,62],[58,62],[69,63],[40,74],[52,74],[63,74],[50,85]];
+    var s=D(rg('fa_rs','#ff8aa2','#b81c45',35,30))+SH; pts.forEach(function(p){ s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="9.2" fill="url(#fa_rs)"/>'+'<circle cx="'+(p[0]-3)+'" cy="'+(p[1]-3)+'" r="2.6" fill="#fff" opacity=".5"/>'; });
+    return s+'<path d="M50 30l-12-6 6 9-8 4 11 0 3 8 3-8 11 0-8-4 6-9z" fill="#5fae4a"/><circle cx="50" cy="33" r="2.4" fill="#3d7d33"/>'; })();
+
+  A.grape = (function(){
+    var pts=[[30,44],[44,40],[58,40],[72,44],[37,56],[51,52],[65,56],[44,66],[58,66],[51,78]];
+    var s=D(rg('fa_gp','#c9a0f0','#5a2f92',34,28))+SH; pts.forEach(function(p){ s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="10" fill="url(#fa_gp)"/><circle cx="'+(p[0]-3.4)+'" cy="'+(p[1]-3.6)+'" r="2.8" fill="#fff" opacity=".55"/>'; });
+    return s+'<path d="M50 30c0-8 2-12 6-16" fill="none" stroke="#7a5a3a" stroke-width="3.6" stroke-linecap="round"/>'+leaf(54,22,-20,1.5); })();
+
+  A.kumquat = D(rg('fa_kq','#ffd27a','#ee8410',34,26))+SH+
+    '<ellipse cx="50" cy="58" rx="29" ry="27" fill="url(#fa_kq)"/>'+
+    '<g fill="#d27a10" opacity=".35"><circle cx="38" cy="66" r="1.2"/><circle cx="56" cy="72" r="1.2"/><circle cx="62" cy="58" r="1.2"/><circle cx="44" cy="50" r="1.2"/><circle cx="30" cy="56" r="1.2"/><circle cx="52" cy="62" r="1.2"/></g>'+
+    '<path d="M50 32l5 4-3 4h-4l-3-4z" fill="#68a84a"/><path d="M50 32v-6" stroke="#7a5a3a" stroke-width="3" stroke-linecap="round"/>'+leaf(52,28,-28,1.2)+hi(37,48,9,4.6,-35,.5);
+
+  A.fig = D(rg('fa_fg','#c284d0','#4e2266',34,26))+SH+
+    '<path d="M50 22C60 22 64 30 64 38c0 8 16 18 16 32 0 14-14 20-30 20S20 84 20 70c0-14 16-24 16-32 0-8 4-16 14-16z" fill="url(#fa_fg)"/>'+
+    '<path d="M46 36c-6 14-8 30-4 48M54 36c6 14 8 30 4 48M50 34v54" fill="none" stroke="#e0b4ee" stroke-width="2.2" stroke-linecap="round" opacity=".5"/>'+
+    '<path d="M50 22v-8" stroke="#6a4a2a" stroke-width="4.4" stroke-linecap="round"/><circle cx="50" cy="88" r="2.6" fill="#2a1038" opacity=".7"/>'+hi(37,50,6,13,-8,.38);
+
+  A.lime = D(rg('fa_lm','#d3f27e','#5c9a1a',34,26))+SH+
+    '<ellipse cx="50" cy="58" rx="31" ry="27" fill="url(#fa_lm)"/>'+
+    '<g fill="#3f7a10" opacity=".28"><circle cx="36" cy="66" r="1.3"/><circle cx="58" cy="72" r="1.3"/><circle cx="66" cy="56" r="1.3"/><circle cx="42" cy="50" r="1.3"/><circle cx="52" cy="62" r="1.3"/></g>'+
+    '<ellipse cx="50" cy="31" rx="4" ry="3" fill="#7ab52a"/>'+leaf(52,33,-35,1.5,'#6fb35a','#3f8a3a')+hi(36,46,10,4.6,-30,.5);
+
+  A.peach = D(rg('fa_pc','#ffe0a8','#ee5a58',32,22,95))+SH+
+    '<path d="M50 30C62 21 85 30 85 57c0 20-16 33-35 33S15 77 15 57c0-27 23-36 35-27z" fill="url(#fa_pc)"/>'+
+    '<path d="M50 31c-5 18-4 40 4 58" fill="none" stroke="#d24a4c" stroke-width="2.6" stroke-linecap="round" opacity=".55"/>'+
+    '<path d="M50 30v-8" stroke="#7a5a3a" stroke-width="3.4" stroke-linecap="round"/>'+leaf(52,26,-28,1.7)+hi(32,50,8,14,-18,.4);
+
+  A.lemon = D(rg('fa_lo','#fff58c','#e3b200',34,26))+SH+
+    '<path d="M7 58c0-4 5-6 9-8 6-17 20-25 34-25s28 8 34 25c4 2 9 4 9 8s-5 6-9 8c-6 17-20 25-34 25s-28-8-34-25c-4-2-9-4-9-8z" fill="url(#fa_lo)"/>'+
+    '<g fill="#b8920a" opacity=".25"><circle cx="34" cy="68" r="1.2"/><circle cx="58" cy="74" r="1.2"/><circle cx="68" cy="56" r="1.2"/><circle cx="42" cy="46" r="1.2"/></g>'+
+    leaf(60,28,-30,1.5)+hi(34,46,12,4.4,-28,.5);
+
+  A.pear = D(rg('fa_pr','#ecf48c','#86ab32',32,24))+SH+
+    '<path d="M50 16c10 0 14 10 14 20 0 9 10 15 16 27 6 12-4 28-30 28S14 75 20 63c6-12 16-18 16-27 0-10 4-20 14-20z" fill="url(#fa_pr)"/>'+
+    '<g fill="#6f8f20" opacity=".3"><circle cx="38" cy="70" r="1.2"/><circle cx="56" cy="76" r="1.2"/><circle cx="64" cy="64" r="1.2"/><circle cx="46" cy="58" r="1.2"/></g>'+
+    '<path d="M50 16c0-6 2-10 6-13" fill="none" stroke="#7a5a3a" stroke-width="3.4" stroke-linecap="round"/>'+leaf(53,12,-20,1.5)+hi(40,44,5,13,-14,.4);
+
+  A.avocado = D(rg('fa_av','#49873f','#1e4a22',34,24)+lg('fa_av2','#f1f8b4','#b4d45a')+rg('fa_av3','#c58c58','#6a3d1e',34,28))+SH+
+    '<path d="M50 12c11 0 16 12 16 24 0 9 7 15 13 26 7 13-3 28-29 28S12 75 19 62c6-11 13-17 13-26 0-12 5-24 18-24z" fill="url(#fa_av)"/>'+
+    '<g transform="translate(50 56) scale(.85) translate(-50 -56)"><path d="M50 12c11 0 16 12 16 24 0 9 7 15 13 26 7 13-3 28-29 28S12 75 19 62c6-11 13-17 13-26 0-12 5-24 18-24z" fill="url(#fa_av2)"/></g>'+
+    '<circle cx="50" cy="66" r="14" fill="url(#fa_av3)"/>'+hi(45,60,4.6,2.8,-35,.5)+hi(36,38,3,9,-12,.55);
+
+  A.pomegranate = D(rg('fa_pg','#ff7684','#8e1428',32,26,95))+SH+
+    '<circle cx="50" cy="59" r="31" fill="url(#fa_pg)"/>'+
+    '<path d="M38 32l3-10 6 5 3-7 3 7 6-5 3 10c-4 3-9 4-12 4s-8-1-12-4z" fill="#a8182e"/><path d="M42 30c4 2 12 2 16 0" stroke="#5a0c1a" stroke-width="2" fill="none" stroke-linecap="round" opacity=".6"/>'+
+    '<path d="M24 66c4 10 12 18 26 20" fill="none" stroke="#5a0c1a" stroke-width="3" stroke-linecap="round" opacity=".22"/>'+hi(36,50,9,5,-35,.45);
+
+  A.mango = D(rg('fa_mg','#ffe27c','#ef5a2c',30,22,100))+SH+
+    '<path d="M19 52C19 32 40 20 61 27c21 7 29 28 19 47-10 18-38 20-52 4-6-8-9-17-9-26z" fill="url(#fa_mg)"/>'+
+    '<path d="M19 52C19 32 40 20 61 27c-14 4-30 12-38 30-2 5-3 9-4 12-1-6-1-12 0-17z" fill="#9ccb4a" opacity=".38"/>'+
+    '<path d="M60 26c-2-5 0-9 4-11" stroke="#7a5a3a" stroke-width="3.6" fill="none" stroke-linecap="round"/>'+leaf(62,18,-30,1.7)+hi(38,46,10,5,-40,.5);
+
+  A.banana = D(lg('fa_bn','#fff08a','#f2bd1c',1,1)+lg('fa_bn2','#fff7b0','#f6cf3a',1,1))+SH+
+    '<path d="M18 30C12 60 33 86 68 91c15 2 23-9 17-18-23-3-41-17-44-47z" fill="url(#fa_bn)"/>'+
+    '<path d="M24 36C22 60 40 80 70 86" fill="none" stroke="#d9a010" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>'+
+    '<path d="M46 44c10 18 20 28 38 30" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>'+
+    '<path d="M17 31c0-9 7-16 12-15l11 10z" fill="#7a5a2a"/><path d="M83 74c3 5 1 9-3 10-3-2-3-6-1-10z" fill="#5a4020"/>';
+
+  A.papaya = D(lg('fa_pp','#f9cc50','#e98a2a')+lg('fa_pp2','#ffbc70','#ff8a3c'))+SH+
+    '<path d="M50 9c23 3 34 30 30 54-3 19-16 29-30 29S23 82 20 63C16 39 27 12 50 9z" fill="url(#fa_pp)"/>'+
+    '<path d="M50 16c17 4 25 28 22 47-2 14-11 23-22 23S30 77 28 63C25 44 33 20 50 16z" fill="url(#fa_pp2)"/>'+
+    '<ellipse cx="50" cy="56" rx="12" ry="25" fill="#ffd9a6"/>'+
+    '<g fill="#2b2018"><circle cx="46" cy="40" r="2.8"/><circle cx="54" cy="44" r="2.8"/><circle cx="45" cy="50" r="2.8"/><circle cx="53" cy="56" r="2.8"/><circle cx="46" cy="62" r="2.8"/><circle cx="54" cy="68" r="2.8"/><circle cx="48" cy="73" r="2.8"/></g>'+
+    hi(33,36,3.4,13,-12,.5);
+
+  A.pomelo = D(rg('fa_pm','#f6f29a','#a9bb30',34,26,95))+SH+
+    '<ellipse cx="50" cy="60" rx="35" ry="32" fill="url(#fa_pm)"/>'+
+    '<ellipse cx="50" cy="28" rx="10" ry="6.4" fill="#b8c63c"/><ellipse cx="50" cy="27" rx="6" ry="3.4" fill="#d6e064"/>'+
+    '<g fill="#7a8a18" opacity=".26"><circle cx="30" cy="62" r="1.5"/><circle cx="46" cy="76" r="1.5"/><circle cx="66" cy="70" r="1.5"/><circle cx="72" cy="52" r="1.5"/><circle cx="40" cy="48" r="1.5"/><circle cx="58" cy="56" r="1.5"/></g>'+
+    leaf(54,29,-25,1.6)+hi(32,46,11,5.4,-35,.5);
+
+  A.pineapple = D(rg('fa_pa','#ffdb62','#e68b14',34,26)+'<clipPath id="fa_pac"><ellipse cx="50" cy="66" rx="26" ry="29"/></clipPath>')+SH+
+    '<path d="M50 40c-5-12-9-22-5-32 5 9 6 20 5 32z" fill="#4f9d3f"/><path d="M50 40c-1-14 3-26 11-32 0 12-4 24-11 32z" fill="#68b44c"/><path d="M50 40c-9-8-19-12-26-12 6 8 15 14 26 12z" fill="#5fae4a"/><path d="M50 40c9-8 19-12 26-12-6 8-15 14-26 12z" fill="#4f9d3f"/><path d="M50 42c-12-2-22 2-28 8 10 2 20 0 28-8z" fill="#68b44c"/><path d="M50 42c12-2 22 2 28 8-10 2-20 0-28-8z" fill="#5fae4a"/>'+
+    '<ellipse cx="50" cy="66" rx="26" ry="29" fill="url(#fa_pa)"/>'+
+    '<g clip-path="url(#fa_pac)" stroke="#b36a0c" stroke-width="1.6" opacity=".55" fill="none"><path d="M10 40L90 120M10 54L90 134M10 68L90 148M10 26L90 106M10 82L90 162M10 12L90 92"/><path d="M90 40L10 120M90 54L10 134M90 68L10 148M90 26L10 106M90 82L10 162M90 12L10 92"/></g>'+
+    hi(38,52,7,13,-12,.35);
+
+  A.cantaloupe = D(rg('fa_ct','#ffe0a4','#e08a3c',34,26,95)+'<clipPath id="fa_ctc"><circle cx="50" cy="58" r="33"/></clipPath>')+SH+
+    '<circle cx="50" cy="58" r="33" fill="url(#fa_ct)"/>'+
+    '<g clip-path="url(#fa_ctc)" fill="none" stroke="#fff4d6" stroke-width="1.8" opacity=".6"><path d="M50 24C36 42 36 74 50 92M50 24C64 42 64 74 50 92M30 30C22 48 22 68 30 86M70 30C78 48 78 68 70 86"/><path d="M18 46C38 52 62 52 82 46M16 62C38 70 62 70 84 62M24 78C40 84 60 84 76 78"/></g>'+
+    '<path d="M50 26c0-6 2-9 6-11" stroke="#7a5a3a" stroke-width="3.6" fill="none" stroke-linecap="round"/>'+hi(34,44,10,5,-35,.38);
+
+  A.watermelon = D(rg('fa_wm','#5fc06a','#1f6a30',34,26,95)+'<clipPath id="fa_wmc"><ellipse cx="50" cy="59" rx="38" ry="32"/></clipPath>')+SH+
+    '<ellipse cx="50" cy="59" rx="38" ry="32" fill="url(#fa_wm)"/>'+
+    '<g clip-path="url(#fa_wmc)" fill="none" stroke="#17501f" stroke-width="5" stroke-linecap="round" opacity=".5"><path d="M50 24C38 40 38 78 50 94"/><path d="M50 24C62 40 62 78 50 94"/><path d="M30 28C16 44 18 74 30 90"/><path d="M70 28C84 44 82 74 70 90"/><path d="M14 40C8 52 10 68 16 78"/><path d="M86 40C92 52 90 68 84 78"/></g>'+
+    '<path d="M50 28c0-5 2-8 6-9" stroke="#6a8a3a" stroke-width="3.8" fill="none" stroke-linecap="round"/>'+hi(30,44,11,5,-30,.42);
+
+  window.LunaFruitArt = {
+    has: function(k){ return !!A[k]; },
+    get: function(k){ return A[k] || ''; },
+    keys: function(){ return Object.keys(A); }
+  };
+})();
+
+</script>
+<script id="lunaFetusArt">
+/* lunaFetusArt：按孕周变化的宝宝插画（8–40 周）。LunaFetusArt.svg(w) 返回 <g>…</g>（坐标系 240×240，已含居中），颜色/比例/姿势随周数变化。 */
+(function(){
+  if(window.LunaFetusArt) return;
+  var AN = [8,12,16,20,24,28,32,36,40];
+  var P = {
+    hr:  [37,34,32,30,29,29,29,29,29],      // 头半径（越往后头占比越小）
+    brx: [25,29,34,37,40,42,44,46,48],      // 身体
+    bry: [19,22,26,28,30,32,34,35,36],
+    lr:  [10,16,25,31,34,36,36,36,36],       // 大腿
+    ly:  [7,9,12,14,16,17,18,18,18],
+    ar:  [7,15,21,24,25,26,26,26,26],       // 手臂
+    cheek:[0,.15,.25,.35,.5,.65,.8,.9,1]    // 脸蛋的圆润
+  };
+  var C = {                                 // 皮肤：早期偏红、半透明；后期变粉润
+    a:[[255,196,190],[255,203,190],[255,206,188],[255,215,196],[255,224,208],[255,227,212],[255,229,215],[255,229,215],[255,229,215]],
+    b:[[240,138,140],[240,148,128],[240,156,126],[240,162,132],[240,166,136],[240,166,136],[240,166,136],[240,166,136],[240,166,136]]
+  };
+  function lerpArr(arr, w){
+    if(w <= AN[0]) return arr[0]; if(w >= AN[AN.length-1]) return arr[arr.length-1];
+    for(var i=0;i<AN.length-1;i++){ if(w >= AN[i] && w <= AN[i+1]){ var t=(w-AN[i])/(AN[i+1]-AN[i]); var a=arr[i], b=arr[i+1]; return (typeof a==='number') ? a+(b-a)*t : a.map(function(v,k){ return v+(b[k]-v)*t; }); } }
+    return arr[0];
+  }
+  function rgb(a){ return 'rgb('+Math.round(a[0])+','+Math.round(a[1])+','+Math.round(a[2])+')'; }
+  function n(x){ return Math.round(x*10)/10; }
+
+  function svg(w){
+    w = Math.max(8, Math.min(40, w|0));
+    var hr=lerpArr(P.hr,w), brx=lerpArr(P.brx,w), bry=lerpArr(P.bry,w), lr=lerpArr(P.lr,w), ly=lerpArr(P.ly,w), ar=lerpArr(P.ar,w), ck=lerpArr(P.cheek,w);
+    var c1=rgb(lerpArr(C.a,w)), c2=rgb(lerpArr(C.b,w)), c0=rgb(lerpArr(C.a,w).map(function(v){ return Math.min(255,v+14); }));
+    var H={x:98,y:88};
+    var B={x:H.x+hr*0.42+brx*0.5, y:H.y+hr*0.55+bry*0.9};
+    var T={x:B.x-brx*0.48, y:B.y+bry*0.95};
+    var S={x:T.x-lr*1.05, y:T.y+6};
+    var A={x:H.x+hr*0.1, y:H.y+hr*0.95};
+    var k=ar/26;
+    var hand={x:A.x-20*k, y:A.y-16*k};
+    var fingers = w>=11, ear = w>=11, nose = w>=12, hair = w>=20, hair2 = w>=30, thumb = w>=14 && w<=31, early = w<11;
+    var deg = w<28 ? 0 : Math.min(105,(w-28)*13), sc = w<30 ? 1 : (w>=34 ? 0.9 : 1 - (w-30)*0.025);
+    var o='';
+    o+='<defs><radialGradient id="bvSkin" cx="38%" cy="30%" r="85%"><stop offset="0" stop-color="'+c0+'"/><stop offset=".6" stop-color="'+c1+'"/><stop offset="1" stop-color="'+c2+'"/></radialGradient>'+
+       '<linearGradient id="bvCord" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c9a0e8"/><stop offset="1" stop-color="#9a6fd0"/></linearGradient></defs>';
+    // 脐带
+    var cx0=B.x+brx*0.1, cy0=B.y+bry*0.9;
+    var cord='M'+n(cx0)+' '+n(cy0)+'C'+n(cx0+28)+' '+n(cy0+8)+' '+n(cx0+48)+' '+n(cy0-8)+' '+n(cx0+44)+' '+n(cy0-28)+'C'+n(cx0+40)+' '+n(cy0-46)+' '+n(cx0+18)+' '+n(cy0-44)+' '+n(cx0+22)+' '+n(cy0-60)+'C'+n(cx0+25)+' '+n(cy0-72)+' '+n(cx0+40)+' '+n(cy0-76)+' '+n(cx0+46)+' '+n(cy0-70);
+    o+='<path d="'+cord+'" fill="none" stroke="url(#bvCord)" stroke-width="'+(w<14?4:7)+'" stroke-linecap="round"/>'+
+       '<path d="'+cord+'" fill="none" stroke="#e9d4fa" stroke-width="2" stroke-dasharray="3 7" stroke-linecap="round" opacity=".8"/>';
+    if(early){ // 早期：小尾巴
+      o+='<ellipse cx="'+n(B.x+brx*0.9)+'" cy="'+n(B.y+bry*0.6)+'" rx="'+n(brx*0.55)+'" ry="'+n(bry*0.22)+'" fill="url(#bvSkin)" transform="rotate(35 '+n(B.x+brx*0.9)+' '+n(B.y+bry*0.6)+')"/>';
+    }
+    // 腿
+    o+='<ellipse cx="'+n(T.x)+'" cy="'+n(T.y)+'" rx="'+n(lr)+'" ry="'+n(ly)+'" fill="url(#bvSkin)" transform="rotate(-8 '+n(T.x)+' '+n(T.y)+')"/>';
+    o+='<ellipse cx="'+n(S.x)+'" cy="'+n(S.y)+'" rx="'+n(lr*0.4)+'" ry="'+n(ly*0.55)+'" fill="url(#bvSkin)" transform="rotate(10 '+n(S.x)+' '+n(S.y)+')"/>';
+    var fx=S.x-lr*0.33, fy=S.y+4;
+    if(fingers){ var tr=Math.max(2.2,ly*0.3); o+='<circle cx="'+n(fx)+'" cy="'+n(fy)+'" r="'+n(ly*0.33)+'" fill="'+c2+'"/><circle cx="'+n(fx+3)+'" cy="'+n(fy+ly*0.3+1)+'" r="'+n(tr)+'" fill="'+c2+'"/><circle cx="'+n(fx-2)+'" cy="'+n(fy+ly*0.38)+'" r="'+n(tr*0.85)+'" fill="'+c2+'"/>'; }
+    else { o+='<ellipse cx="'+n(S.x-2)+'" cy="'+n(S.y+1)+'" rx="'+n(Math.max(3,lr*0.4))+'" ry="'+n(Math.max(2.4,ly*0.5))+'" fill="'+c2+'" opacity=".8"/>'; }
+    // 身体（胸口：呼吸动画作用在它上面）
+    o+='<ellipse class="bv-chest" cx="'+n(B.x)+'" cy="'+n(B.y)+'" rx="'+n(brx)+'" ry="'+n(bry)+'" fill="url(#bvSkin)" transform="rotate(-24 '+n(B.x)+' '+n(B.y)+')"/>';
+    if(w>=33){ o+='<ellipse cx="'+n(B.x+brx*0.1)+'" cy="'+n(B.y+bry*0.05)+'" rx="'+n(brx*0.6)+'" ry="'+n(bry*0.4)+'" fill="#fff" opacity=".12" transform="rotate(-24 '+n(B.x)+' '+n(B.y)+')"/>'; }
+    // 头
+    o+='<circle cx="'+H.x+'" cy="'+H.y+'" r="'+n(hr)+'" fill="url(#bvSkin)"/>';
+    if(early){ // 早期：眼睛是脸侧的小黑点，没有五官细节，头顶有微微的透明感
+      o+='<circle cx="'+n(H.x-hr*0.55)+'" cy="'+n(H.y-hr*0.04)+'" r="3.4" fill="#4a2f3a"/><ellipse cx="'+n(H.x-hr*0.2)+'" cy="'+n(H.y-hr*0.42)+'" rx="'+n(hr*0.28)+'" ry="'+n(hr*0.14)+'" fill="#fff" opacity=".35" transform="rotate(-30 '+n(H.x-hr*0.2)+' '+n(H.y-hr*0.42)+')"/>';
+    } else {
+      var ex=hr*0.34, ey=H.y-hr*0.02;
+      o+='<path d="M'+n(H.x-hr*0.66)+' '+n(ey)+'q'+n(hr*0.17)+' '+n(hr*0.17)+' '+n(hr*0.34)+' 0" fill="none" stroke="#7a4a3a" stroke-width="2.8" stroke-linecap="round"/>'+
+         '<path d="M'+n(H.x+hr*0.0)+' '+n(ey)+'q'+n(hr*0.17)+' '+n(hr*0.17)+' '+n(hr*0.34)+' 0" fill="none" stroke="#7a4a3a" stroke-width="2.8" stroke-linecap="round"/>';
+      var cr=6+ck*3;
+      o+='<ellipse cx="'+n(H.x-hr*0.7)+'" cy="'+n(H.y+hr*0.33)+'" rx="'+n(cr)+'" ry="'+n(cr*0.62)+'" fill="#ff8fa6" opacity="'+n(.25+ck*.2)+'"/><ellipse cx="'+n(H.x+hr*0.2)+'" cy="'+n(H.y+hr*0.33)+'" rx="'+n(cr)+'" ry="'+n(cr*0.62)+'" fill="#ff8fa6" opacity="'+n(.25+ck*.2)+'"/>';
+      if(nose) o+='<path d="M'+n(H.x-hr*0.28)+' '+n(H.y+hr*0.12)+'q'+n(-hr*0.06)+' '+n(hr*0.1)+' '+n(hr*0.04)+' '+n(hr*0.1)+'" fill="none" stroke="#d98a78" stroke-width="2" stroke-linecap="round" opacity=".7"/>';
+      if(!thumb) o+='<path d="M'+n(H.x-hr*0.38)+' '+n(H.y+hr*0.45)+'q'+n(hr*0.12)+' '+n(hr*0.1)+' '+n(hr*0.24)+' 0" fill="none" stroke="#c0675a" stroke-width="2.4" stroke-linecap="round"/>';
+      o+='<ellipse cx="'+n(H.x-hr*0.45)+'" cy="'+n(H.y-hr*0.62)+'" rx="'+n(hr*0.28)+'" ry="'+n(hr*0.14)+'" fill="#fff" opacity=".4" transform="rotate(-30 '+n(H.x-hr*0.45)+' '+n(H.y-hr*0.62)+')"/>';
+    }
+    if(ear) o+='<ellipse cx="'+n(H.x+hr*0.9)+'" cy="'+n(H.y+hr*0.1)+'" rx="'+n(hr*0.17)+'" ry="'+n(hr*0.24)+'" fill="'+c1+'"/><ellipse cx="'+n(H.x+hr*0.9)+'" cy="'+n(H.y+hr*0.1)+'" rx="'+n(hr*0.08)+'" ry="'+n(hr*0.13)+'" fill="'+c2+'" opacity=".5"/>';
+    if(hair){ o+='<path d="M'+n(H.x-hr*0.72)+' '+n(H.y-hr*0.55)+'C'+n(H.x-hr*0.4)+' '+n(H.y-hr*1.0)+' '+n(H.x+hr*0.2)+' '+n(H.y-hr*1.04)+' '+n(H.x+hr*0.6)+' '+n(H.y-hr*0.78)+'" fill="none" stroke="#b07a5a" stroke-width="2.4" stroke-linecap="round" opacity="'+(hair2?.7:.4)+'"/>';
+      if(hair2) o+='<path d="M'+n(H.x-hr*0.5)+' '+n(H.y-hr*0.78)+'C'+n(H.x-hr*0.2)+' '+n(H.y-hr*1.1)+' '+n(H.x+hr*0.3)+' '+n(H.y-hr*1.08)+' '+n(H.x+hr*0.5)+' '+n(H.y-hr*0.9)+'" fill="none" stroke="#b07a5a" stroke-width="2" stroke-linecap="round" opacity=".5"/>'; }
+    // 手臂 + 手
+    if(w<=31 || w<14){
+      var mx=thumb? H.x-hr*0.33 : hand.x, my=thumb? H.y+hr*0.5 : hand.y;
+      o+='<ellipse cx="'+n(A.x)+'" cy="'+n(A.y)+'" rx="'+n(ar)+'" ry="'+n(Math.max(4.5,ar*0.42))+'" fill="url(#bvSkin)" transform="rotate(-38 '+n(A.x)+' '+n(A.y)+')"/>';
+      var hr2=Math.max(3.4,7.2*k);
+      o+='<circle cx="'+n(thumb?mx:hand.x+2)+'" cy="'+n(thumb?my:hand.y+2)+'" r="'+n(hr2)+'" fill="'+c1+'"/>';
+      if(fingers) o+='<circle cx="'+n((thumb?mx:hand.x+2)-7*k)+'" cy="'+n((thumb?my:hand.y+2)-6*k)+'" r="'+n(3.2*k+.6)+'" fill="'+c1+'"/><circle cx="'+n((thumb?mx:hand.x+2))+'" cy="'+n((thumb?my:hand.y+2)-9*k)+'" r="'+n(3.2*k+.6)+'" fill="'+c1+'"/><circle cx="'+n((thumb?mx:hand.x+2)+7*k)+'" cy="'+n((thumb?my:hand.y+2)-8*k)+'" r="'+n(3.1*k+.6)+'" fill="'+c1+'"/>';
+    } else { // 后期：两只小手抱在胸前
+      o+='<ellipse cx="'+n(A.x+6)+'" cy="'+n(A.y-4)+'" rx="'+n(ar*0.8)+'" ry="'+n(ar*0.36)+'" fill="url(#bvSkin)" transform="rotate(8 '+n(A.x)+' '+n(A.y)+')"/><circle cx="'+n(A.x+ar*0.5)+'" cy="'+n(A.y-2)+'" r="8" fill="'+c0+'"/><circle cx="'+n(A.x+ar*0.5+5)+'" cy="'+n(A.y-6)+'" r="3.6" fill="'+c0+'"/>';
+    }
+    return '<g transform="translate(120 130) scale('+n(sc)+') rotate('+deg+') translate(-119 -146)"><g transform="translate(14 14)">'+o+'</g></g>';
+  }
+  window.LunaFetusArt = { svg: svg };
+})();
+
+</script>
+<script id="lunaBabyViewJs">
+/* lunaBabyView：怀孕首页「看看宝宝怎么样了」——大一点的宝宝页（会呼吸的胎儿 + 水果比喻 + 本周宝宝发育 + 妈妈这周），底部「看完整详情」进孕期小百科 */
+(function(){
+  if(window.LunaBabyView) return;
+  var MIN_W = 8;   // 从第几周开始显示入口（宝宝已经有人形）
+  var CM = {6:.5,7:1,8:1.6,9:2.3,10:3.1,11:4.1,12:5.4,13:6.5,14:8,15:10,16:11.6,17:13,18:14,19:15,20:25,21:27,22:28,23:29,24:30,25:34,26:35,27:37,28:38,29:39,30:40,31:41,32:42,33:44,34:45,35:46,36:47,37:48,38:49,39:50,40:51};
+  var FK = {6:'pea',7:'blueberry',8:'raspberry',9:'grape',10:'kumquat',11:'fig',12:'lime',13:'peach',14:'lemon',15:'pear',16:'avocado',
+    17:'pomegranate',18:'mango',19:'mango',20:'banana',21:'banana',22:'papaya',23:'papaya',24:'papaya',25:'pomelo',26:'pomelo',27:'pomelo',
+    28:'pineapple',29:'pineapple',30:'pineapple',31:'pineapple',32:'cantaloupe',33:'cantaloupe',34:'cantaloupe',35:'cantaloupe',36:'watermelon',37:'watermelon',38:'watermelon',39:'watermelon',40:'watermelon'};
+  var FN = {
+    pea:['豌豆','เม็ดถั่วลันเตา','a pea','hạt đậu'], blueberry:['蓝莓','บลูเบอร์รี','a blueberry','quả việt quất'], raspberry:['覆盆子','ราสเบอร์รี','a raspberry','quả mâm xôi'],
+    grape:['葡萄','องุ่น','a grape','quả nho'], kumquat:['金桔','ส้มจี๊ด','a kumquat','quả quất'], fig:['无花果','มะเดื่อ','a fig','quả sung'], lime:['青柠','มะนาว','a lime','quả chanh xanh'],
+    peach:['桃子','ลูกพีช','a peach','quả đào'], lemon:['柠檬','เลมอน','a lemon','quả chanh vàng'], pear:['梨','ลูกแพร์','a pear','quả lê'], avocado:['牛油果','อะโวคาโด','an avocado','quả bơ'],
+    pomegranate:['石榴','ทับทิม','a pomegranate','quả lựu'], mango:['芒果','มะม่วง','a mango','quả xoài'], banana:['香蕉','กล้วย','a banana','quả chuối'], papaya:['木瓜','มะละกอ','a papaya','quả đu đủ'],
+    pomelo:['柚子','ส้มโอ','a pomelo','quả bưởi'], pineapple:['菠萝','สับปะรด','a pineapple','quả dứa'], cantaloupe:['哈密瓜','แคนตาลูป','a cantaloupe','quả dưa vàng'], watermelon:['小西瓜','แตงโมลูกเล็ก','a small watermelon','quả dưa hấu nhỏ']
+  };
+  function sizeLine(w){
+    var k = FK[w], cm = CM[w], L = lang(); if(!k || !cm) return '';
+    var nm = FN[k][{zh:0,th:1,en:2,vi:3}[L] || 0], h = w >= 20;
+    if(L === 'zh') return '宝宝' + (h ? '身长' : '') + '约 ' + cm + ' 厘米' + (h ? '（头到脚）' : '') + '，就像' + nm + '那么大';
+    if(L === 'th') return 'ทารกยาวประมาณ ' + cm + ' ซม.' + (h ? ' (จากศีรษะถึงเท้า)' : '') + ' ขนาดประมาณ' + nm;
+    if(L === 'vi') return 'Bé dài khoảng ' + cm + ' cm' + (h ? ' (từ đầu đến chân)' : '') + ', to bằng ' + nm;
+    return 'Baby is about ' + cm + ' cm' + (h ? ' (head to toe)' : '') + ', about the size of ' + nm;
+  }
+  var S = {
+    zh:{ btn:'看看宝宝怎么样了 👶', title:'宝宝现在', wk:function(w,d){ return '孕 '+w+' 周'+(d?' +'+d+' 天':''); }, baby:'👶 本周宝宝发育信息', mom:'🤰 孕妈妈这周', more:'看完整详情', note:'示意图，宝宝的大小是大概值' },
+    th:{ btn:'ดูว่าลูกเป็นอย่างไรบ้าง 👶', title:'ลูกน้อยตอนนี้', wk:function(w,d){ return 'ตั้งครรภ์ '+w+' สัปดาห์'+(d?' +'+d+' วัน':''); }, baby:'👶 พัฒนาการของลูกสัปดาห์นี้', mom:'🤰 คุณแม่สัปดาห์นี้', more:'ดูรายละเอียดทั้งหมด', note:'ภาพประกอบ ขนาดของลูกเป็นค่าโดยประมาณ' },
+    en:{ btn:'See how baby is doing 👶', title:'Baby now', wk:function(w,d){ return 'Week '+w+(d?' +'+d+'d':''); }, baby:"👶 This week's baby development", mom:'🤰 Mom this week', more:'See full details', note:'Illustration only; sizes are approximate' },
+    vi:{ btn:'Xem bé thế nào rồi 👶', title:'Bé lúc này', wk:function(w,d){ return 'Tuần '+w+(d?' +'+d+' ngày':''); }, baby:'👶 Sự phát triển của bé tuần này', mom:'🤰 Mẹ tuần này', more:'Xem đầy đủ', note:'Hình minh họa, kích thước chỉ là ước tính' }
+  };
+  function lang(){
+    try{ if(localStorage.getItem('luna_ui_en')==='1') return 'en'; if(localStorage.getItem('luna_ui_vi')==='1') return 'vi'; }catch(e){}
+    try{ if(window._appLang) return window._appLang==='zh' ? 'zh' : 'th'; }catch(e){}
+    try{ return (localStorage.getItem('luna_lang')||'th')==='zh' ? 'zh' : 'th'; }catch(e){ return 'th'; }
+  }
+  function T(){ return S[lang()] || S.zh; }
+  function el(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function info(){ try{ return window.LunaPreg && window.LunaPreg.isActive && window.LunaPreg.isActive() ? window.LunaPreg.info() : null; }catch(e){ return null; } }
+  function weekOf(i){ return i ? Math.max(1, Math.min(40, i.weeks|0)) : 0; }
+
+  var CSS = '<style id="lunaBabyViewCss">'+
+  '#lunaBabyView{display:none;position:fixed;inset:0;z-index:158;background:var(--stat-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(36px + env(safe-area-inset-bottom,0px));transition:background .4s ease;}'+
+  '#lunaBabyView .bv-top{position:sticky;top:0;z-index:5;background:var(--stat-bg);display:flex;align-items:center;gap:12px;padding:52px 20px 8px;}'+
+  '#lunaBabyView .bv-title{font-size:20px;font-weight:600;color:var(--stat-fg);font-family:Georgia,"Songti SC",serif;}'+
+  '#lunaBabyView .bv-wrap{padding:0 16px;}'+
+  '#lunaBabyView .bv-hero{position:relative;width:min(80vw,320px);aspect-ratio:1;margin:34px auto 0;}'+
+  '#lunaBabyView .bv-ring,#lunaBabyView .bv-ring2{position:absolute;inset:-2%;border-radius:50%;border:2px solid rgba(240,127,160,.5);opacity:0;animation:bvRing 3.8s ease-out infinite;}'+
+  '#lunaBabyView .bv-ring2{animation-delay:1.9s;}'+
+  '#lunaBabyView .bv-glow{position:absolute;inset:-6%;border-radius:50%;background:radial-gradient(circle,rgba(255,170,200,.42),rgba(255,170,200,0) 68%);animation:bvGlow 3.8s ease-in-out infinite;}'+
+  '#lunaBabyView .bv-svg{position:relative;width:100%;height:100%;display:block;overflow:visible;animation:bvWomb 3.8s ease-in-out infinite;}'+
+  '#lunaBabyView .bv-fetus{transform-box:view-box;transform-origin:120px 130px;animation:bvBreathe 3.8s ease-in-out infinite;}'+
+  '#lunaBabyView .bv-chest{transform-box:fill-box;transform-origin:50% 62%;animation:bvChest 3.8s ease-in-out infinite;}'+
+  '#lunaBabyView .bv-bub{position:absolute;border-radius:50%;background:rgba(255,255,255,.7);box-shadow:inset 0 0 0 1px rgba(255,255,255,.9);opacity:0;animation:bvBub 6s ease-in infinite;}'+
+  '@keyframes bvBreathe{0%,100%{transform:scale(var(--bvs,1)) translateY(0);}50%{transform:scale(calc(var(--bvs,1)*1.075)) translateY(-3px);}}'+
+  '@keyframes bvChest{0%,100%{transform:scale(1,1);}50%{transform:scale(1.07,1.13);}}'+
+  '@keyframes bvWomb{0%,100%{transform:scale(1);}50%{transform:scale(1.025);}}'+
+  '@keyframes bvGlow{0%,100%{opacity:.55;transform:scale(.97);}50%{opacity:1;transform:scale(1.05);}}'+
+  '@keyframes bvRing{0%{opacity:.55;transform:scale(.98);}100%{opacity:0;transform:scale(1.14);}}'+
+  '@keyframes bvBub{0%{opacity:0;transform:translateY(0);}15%{opacity:.9;}100%{opacity:0;transform:translateY(-70px);}}'+
+  '@media (prefers-reduced-motion:reduce){#lunaBabyView .bv-fetus,#lunaBabyView .bv-chest,#lunaBabyView .bv-svg,#lunaBabyView .bv-glow,#lunaBabyView .bv-ring,#lunaBabyView .bv-ring2,#lunaBabyView .bv-bub{animation:none;}}'+
+  '#lunaBabyView .bv-chip{display:table;margin:14px auto 0;padding:6px 16px;border-radius:999px;background:var(--purple-pale);color:var(--purple);font-size:14px;font-weight:700;}'+
+  '#lunaBabyView .bv-note{text-align:center;margin-top:8px;font-size:11.5px;color:var(--stat-fg);opacity:.5;}'+
+  '#lunaBabyView .bv-card{background:var(--stat-surface-bg);border-radius:20px;box-shadow:var(--stat-surface-shadow);border:1px solid var(--stat-surface-border);padding:18px 16px;margin-top:14px;}'+
+  '#lunaBabyView .bv-fruit{display:flex;align-items:center;justify-content:center;height:190px;}'+
+  '#lunaBabyView .bv-fruit svg{display:block;overflow:visible;transform-origin:50% 90%;animation:bvFruit 4.2s ease-in-out infinite;}'+
+  '@keyframes bvFruit{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}'+
+  '#lunaBabyView .bv-size{text-align:center;font-size:14px;font-weight:700;color:var(--purple);line-height:1.6;margin-top:4px;}'+
+  '#lunaBabyView .bv-h{font-size:15px;font-weight:700;color:var(--stat-fg);margin-bottom:8px;}'+
+  '#lunaBabyView .bv-p{font-size:14px;line-height:1.85;color:var(--stat-fg);}'+
+  '#lunaBabyView .bv-more{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;margin-top:16px;border:none;border-radius:18px;background:rgba(var(--purple-rgb,124,92,191),.13);color:var(--purple);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;}'+
+  '#lunaBabyView .bv-more:active{opacity:.6;}'+
+  'body #pregMidContent > div:last-child > button#lpgBabyBtn{display:none !important;}'+
+  'body.lpg-baby-on.preg-mode #pregMidContent > div:last-child > button#lpgBabyBtn{display:flex !important;}'+
+  'body.preg-mode #pregMidContent > div:last-child > button#lpgBabyBtn{background:rgba(110,170,230,.17) !important;}'+
+  '</style>';
+
+  function womb(w){
+    var s = 0.92 + 0.08 * Math.max(0, Math.min(1, (w - MIN_W) / (40 - MIN_W)));
+    return '<svg class="bv-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+    '<defs><radialGradient id="bvWomb" cx="50%" cy="42%" r="62%"><stop offset="0" stop-color="#ffe9ee"/><stop offset=".62" stop-color="#ffd0dd"/><stop offset="1" stop-color="#f3a8c4"/></radialGradient></defs>'+
+    '<circle cx="120" cy="120" r="108" fill="url(#bvWomb)"/><circle cx="120" cy="120" r="108" fill="none" stroke="#fff" stroke-width="3" opacity=".55"/>'+
+    '<g class="bv-fetus" style="--bvs:'+s.toFixed(3)+'">'+(window.LunaFetusArt ? window.LunaFetusArt.svg(w) : '')+'</g></svg>';
+  }
+  function fruitSvg(w){
+    var k = FK[w] || null, A = window.LunaFruitArt; if(!k || !A || !A.has(k)) return '';
+    var cm = CM[w] || 1, sc = 0.5 + 0.5 * Math.sqrt(Math.min(1, cm / 51)), px = Math.round(176 * sc);
+    return '<svg viewBox="0 0 100 100" width="'+px+'" height="'+px+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+A.get(k)+'</svg>';
+  }
+  function txt(id){ var e = el(id); return e ? String(e.textContent || '').trim() : ''; }
+
+  function build(){
+    var i = info(), w = weekOf(i); if(!i || w < MIN_W) return false;
+    var t = T(), root = el('lunaBabyView'); if(!root) return false;
+    var key = w + '|' + i.days + '|' + lang() + '|' + txt('pregWeekBaby') + '|' + txt('pregWeekMom');
+    if(root.getAttribute('data-sig') === key) return true;
+    root.setAttribute('data-sig', key);
+    var size = sizeLine(w), baby = txt('pregWeekBaby'), mom = txt('pregWeekMom');
+    root.innerHTML =
+      '<div class="bv-top"><button class="back-btn" onclick="LunaBabyView.close()">‹</button><span class="bv-title">'+esc(t.title)+'</span></div>'+
+      '<div class="bv-wrap">'+
+        '<div class="bv-hero"><div class="bv-glow"></div><div class="bv-ring"></div><div class="bv-ring2"></div>'+womb(w)+
+          '<span class="bv-bub" style="left:14%;bottom:30%;width:10px;height:10px;animation-delay:0s"></span><span class="bv-bub" style="left:84%;bottom:42%;width:14px;height:14px;animation-delay:2s"></span><span class="bv-bub" style="left:76%;bottom:22%;width:8px;height:8px;animation-delay:4s"></span></div>'+
+        '<div class="bv-chip">'+esc(t.wk(w, i.days|0))+'</div><div class="bv-note">'+esc(t.note)+'</div>'+
+        '<div class="bv-card"><div class="bv-fruit">'+fruitSvg(w)+'</div>'+(size?'<div class="bv-size">'+esc(size)+'</div>':'')+'</div>'+
+        (baby?'<div class="bv-card"><div class="bv-h">'+esc(t.baby)+'</div><div class="bv-p">'+esc(baby)+'</div></div>':'')+
+        (mom?'<div class="bv-card"><div class="bv-h">'+esc(t.mom)+'</div><div class="bv-p">'+esc(mom)+'</div></div>':'')+
+        '<button class="bv-more" onclick="LunaBabyView.full()">'+esc(t.more)+' ›</button>'+
+      '</div>';
+    return true;
+  }
+  var timer = null;
+  function open(){
+    if(!build()) return;
+    var root = el('lunaBabyView'); root.style.display = 'block'; root.scrollTop = 0;
+    try{ document.body.style.overflow = 'hidden'; }catch(e){}
+    if(!timer) timer = setInterval(function(){ var r = el('lunaBabyView'); if(!r || r.style.display !== 'block'){ clearInterval(timer); timer = null; return; } build(); }, 1200);
+  }
+  function close(){
+    var r = el('lunaBabyView'); if(r) r.style.display = 'none';
+    try{ document.body.style.overflow = ''; }catch(e){}
+  }
+  function full(){ try{ if(window.LunaPreg && window.LunaPreg.week) window.LunaPreg.week.open(); }catch(e){} }
+
+  function mount(){
+    if(!document.body) return;
+    if(!el('lunaBabyViewCss')) document.head.insertAdjacentHTML('beforeend', CSS);
+    if(!el('lunaBabyView')){ var d = document.createElement('div'); d.id = 'lunaBabyView'; document.body.appendChild(d); }
+  }
+  function tick(){
+    try{
+      mount();
+      var i = info(), on = !!i && weekOf(i) >= MIN_W && document.body.classList.contains('preg-mode');
+      if(document.body.classList.contains('lpg-baby-on') !== on) document.body.classList.toggle('lpg-baby-on', on);
+      var sp = el('lpgBabyBtnTxt'); if(sp){ var s = T().btn; if(sp.textContent !== s) sp.textContent = s; }
+      if(!on){ var r = el('lunaBabyView'); if(r && r.style.display === 'block') close(); }
+    }catch(e){}
+  }
+  window.LunaBabyView = { open: open, close: close, full: full, _tick: tick };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
+  setInterval(tick, 1000);
+})();
+
+</script>
+<script id="lunaPregDoctor">
+/* lunaPregDoctor：怀孕模式的「医生报告 PDF」。
+   怀孕模式下点「导出医生报告」不再出月经报告，改出孕期报告：孕周/预产期 · 体重变化 · 产检记录 · 胎动记录 · 症状与情绪 · 想问医生的问题。
+   全部在本机用 canvas 画，数据只读（LunaPreg / 体重 / 产检 / 胎动 / 症状记录），不联网；PDF 复用原来医生报告的保存/分享。非怀孕模式照旧走原来的月经报告。 */
+(function(){
+  if(window.LunaPregDoctor) return;
+  var W = 1240, H = 1754, M = 80, BOT = 150;
+  var FF = '"Noto Sans Thai","Sarabun","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Helvetica Neue",Arial,sans-serif';
+  var C = { purple:'#7c5cbf', pink:'#e88fbd', ink:'#2d2640', mute:'#8a849e', line:'#e8e3f2', soft:'#f6f2fc', green:'#4f9a6c' };
+  var MOOD_ZH = { 'ดีใจ':'开心', 'สงบ':'平静', 'เศร้า':'难过', 'หงุดหงิด':'烦躁', 'กังวล':'焦虑' };
+  var MOOD_COL = { 'ดีใจ':'#f2b84b', 'สงบ':'#7fc4a8', 'เศร้า':'#6f8fd6', 'หงุดหงิด':'#e57b7b', 'กังวล':'#b08ad8' };
+  var MOOD_L = { 'ดีใจ':['开心','ดีใจ','Happy','Vui'], 'สงบ':['平静','สงบ','Calm','Bình yên'], 'เศร้า':['难过','เศร้า','Sad','Buồn'], 'หงุดหงิด':['烦躁','หงุดหงิด','Irritable','Bực bội'], 'กังวล':['焦虑','กังวล','Anxious','Lo lắng'] };
+  var TH_M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var EN_M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function lang(){
+    try{ if(localStorage.getItem('luna_ui_en')==='1') return 'en'; if(localStorage.getItem('luna_ui_vi')==='1') return 'vi'; }catch(e){}
+    try{ if(window._appLang) return window._appLang==='zh' ? 'zh' : 'th'; }catch(e){}
+    try{ return (localStorage.getItem('luna_lang')||'th')==='zh' ? 'zh' : 'th'; }catch(e){ return 'th'; }
+  }
+  function T(zh, th, en, vi){ var l = lang(); return l==='zh' ? zh : (l==='th' ? th : (l==='en' ? (en===undefined?zh:en) : (vi===undefined?(en===undefined?zh:en):vi))); }
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function parse(k){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(k)); return m ? new Date(+m[1], +m[2]-1, +m[3]) : null; }
+  function fmt(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+  function md(k){ var d = parse(k); if(!d) return ''; var l = lang(), m = d.getMonth(), dd = d.getDate();
+    return l==='zh' ? (m+1)+'月'+dd+'日' : (l==='th' ? dd+' '+TH_M[m] : (l==='en' ? EN_M[m]+' '+dd : dd+'/'+(m+1))); }
+  function mdy(k){ var d = parse(k); if(!d) return ''; var l = lang(), m = d.getMonth(), dd = d.getDate(), y = d.getFullYear();
+    return l==='zh' ? y+'年'+(m+1)+'月'+dd+'日' : (l==='th' ? dd+' '+TH_M[m]+' '+(y+543) : (l==='en' ? EN_M[m]+' '+dd+', '+y : dd+'/'+(m+1)+'/'+y)); }
+  function toast(m){ try{ if(typeof window.showToast === 'function') window.showToast(m); }catch(e){} }
+  function pro(){ try{ return !!(window.isPro && window.isPro()); }catch(e){ return false; } }
+  function xt(s){ try{ var l = window.lunaEnLang && window.lunaEnLang('zh'); if((l==='en'||l==='vi') && typeof window.lunaEnT === 'function') return window.lunaEnT(s); }catch(e){} return s; }
+  function symName(c){ var l = lang(); if(l==='zh') return c; if(l==='th'){ try{ return window.translateSym ? window.translateSym(c) : c; }catch(e){ return c; } } return xt(c); }
+  function isActive(){ try{ return !!(window.LunaPreg && window.LunaPreg.isActive && window.LunaPreg.isActive()); }catch(e){ return false; } }
+
+  /* ───── 数据 ───── */
+  function scan(r, from){
+    var arr = []; try{ if(typeof logs !== 'undefined' && Array.isArray(logs)) arr = logs; }catch(e){}
+    var cnt = {}, mood = {}, i, j, l, x, c, mk, k;
+    for(i = 0; i < arr.length; i++){
+      l = arr[i]; if(!l || typeof l.date !== 'string' || !Array.isArray(l.symptoms) || l.date > r.tk || l.date < from) continue;
+      r.logDays++;
+      for(j = 0; j < l.symptoms.length; j++){
+        x = l.symptoms[j]; if(typeof x !== 'string') continue;
+        if(x.indexOf('บันทึก：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
+        c = String(x).replace(/（อารมณ์）|（ปริมาณ）|（สี）/g, '').trim();
+        mk = MOOD_ZH[c] ? c : null;
+        if(!mk){ for(k in MOOD_ZH) if(MOOD_ZH[k] === c) mk = k; }
+        if(mk){ mood[mk] = (mood[mk] || 0) + 1; continue; }
+        try{ if(window.toZhCanonical) c = window.toZhCanonical(c); }catch(e){}
+        if(!c || c === '状态良好' || c === 'สุขภาพดี' || c.length > 20) continue;
+        cnt[c] = (cnt[c] || 0) + 1;
+      }
+    }
+    function top(o){ var a = [], q; for(q in o) a.push([q, o[q]]); a.sort(function(p, s){ return s[1] - p[1]; }); return a; }
+    r.sym = top(cnt).slice(0, 6); r.mood = top(mood);
+    for(k in mood) r.moodTotal += mood[k];
+  }
+  function gatherPreg(){
+    var info = null; try{ info = window.LunaPreg.info(); }catch(e){}
+    if(!info) return null;
+    var today = (function(){ try{ return window.LunaPreg._u.todayDate(); }catch(e){ var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); } })();
+    var r = { mode: 'preg', info: info, today: today, tk: fmt(today), weights: [], visits: [], kicks: [], sym: [], mood: [], logDays: 0, moodTotal: 0 };
+    try{ r.weights = (window.LunaPreg.track.weights() || []).slice(); }catch(e){}
+    try{ r.visits = (window.LunaPreg.track.visits() || []).slice(); }catch(e){}
+    try{ if(window.LunaKick && window.LunaKick.list) r.kicks = (window.LunaKick.list() || []).slice(); }catch(e){}
+    scan(r, info.lmpKey || '0000-00-00');
+    return r;
+  }
+
+  function todayD(){ try{ return window.LunaPreg._u.todayDate(); }catch(e){ var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); } }
+  function gatherTtc(){
+    var X = window.LunaTtc, info = null, m = null, lg = {};
+    try{ info = X.info(); }catch(e){} if(!info) return null;
+    try{ m = X.view.readModel(); }catch(e){}
+    try{ lg = X.logs.map() || {}; }catch(e){}
+    var today = todayD(), r = { mode: 'ttc', info: info, m: m, today: today, tk: fmt(today), sym: [], mood: [], logDays: 0, moodTotal: 0, rows: [], cnt: { bbt: 0, lhPos: 0, sex: 0 } };
+    var ks = Object.keys(lg).sort().reverse(), cut = fmt(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30)), k, e, i;
+    for(i = 0; i < ks.length; i++){
+      k = ks[i]; e = lg[k]; if(!e || k > r.tk || k < cut) continue;
+      if(typeof e.bbt === 'number') r.cnt.bbt++; if(e.lh === 'pos') r.cnt.lhPos++; if(e.sex) r.cnt.sex++;
+      r.rows.push({ date: k, bbt: e.bbt, lh: e.lh, mucus: e.mucus, sex: e.sex, preg: e.preg });
+    }
+    scan(r, info.tryingSince || '0000-00-00');
+    return r;
+  }
+  function gatherPp(md){
+    var P = window.LunaPreg, info = null; try{ info = P.post.info(); }catch(e){} if(!info) return null;
+    var today = todayD(), r = { mode: md, info: info, today: today, tk: fmt(today), sym: [], mood: [], logDays: 0, moodTotal: 0 };
+    scan(r, info.eventDate || '0000-00-00'); return r;
+  }
+  function mode(){
+    try{ var P = window.LunaPreg; if(P && P.post && P.post.isActive()){ var pi = P.post.info(); return (pi && pi.kind === 'ended') ? 'ppEnded' : 'pp'; } }catch(e){}
+    try{ if(window.LunaPreg && window.LunaPreg.isActive()) return 'preg'; }catch(e){}
+    try{ if(window.LunaTtc && window.LunaTtc.isActive()) return 'ttc'; }catch(e){}
+    return null;
+  }
+  function gather(){ var md = mode(); if(md === 'preg') return gatherPreg(); if(md === 'ttc') return gatherTtc(); if(md === 'pp' || md === 'ppEnded') return gatherPp(md); return null; }
+
+  /* ───── 画布工具 ───── */
+  function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r); ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath(); }
+  function txt(ctx, s, x, y, size, color, weight, align){ ctx.font = (weight || 400) + ' ' + size + 'px ' + FF; ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); }
+  function fit(ctx, s, maxW, size, weight){ ctx.font = (weight || 400) + ' ' + size + 'px ' + FF; if(ctx.measureText(s).width <= maxW) return s; while(s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1); return s + '…'; }
+  function wrap(ctx, s, maxW){
+    var out = [], line = '', i, ch, test, words;
+    if(/ /.test(s) && !/[　-鿿฀-๿]/.test(s)){
+      words = s.split(' ');
+      for(i = 0; i < words.length; i++){ test = line ? line + ' ' + words[i] : words[i]; if(ctx.measureText(test).width > maxW && line){ out.push(line); line = words[i]; } else line = test; }
+      if(line) out.push(line); return out;
+    }
+    for(i = 0; i < s.length; i++){ ch = s.charAt(i); test = line + ch; if(ctx.measureText(test).width > maxW && line && !/[ัิ-ฺ็-๎]/.test(ch)){ out.push(line); line = ch; } else line = test; }
+    if(line) out.push(line); return out;
+  }
+
+
+  var LH_L = { neg: ['阴性','ลบ','Negative','Âm tính'], weak: ['弱阳','จาง','Faint','Dương nhạt'], pos: ['强阳','บวก','Positive','Dương tính'] };
+  var MUC_L = { dry: ['干燥','แห้ง','Dry','Khô'], sticky: ['黏稠','เหนียว','Sticky','Dính'], creamy: ['乳状','ครีม','Creamy','Dạng kem'], watery: ['水样','เหลวใส','Watery','Loãng'], egg: ['蛋清样','ไข่ขาว','Egg-white','Lòng trắng'] };
+  var PG_L = { neg: ['阴性','ลบ','Negative','Âm tính'], faint: ['浅阳','จาง','Faint','Dương nhạt'], pos: ['阳性','บวก','Positive','Dương tính'] };
+  function pick(tbl, k){ var a = tbl[k]; if(!a) return k ? String(k) : '-'; return a[{zh:0,th:1,en:2,vi:3}[lang()]]; }
+  function heads(r){
+    var kd = r.mode;
+    if(kd === 'ttc') return {
+      title: T('备孕健康记录摘要','สรุปบันทึกการวางแผนตั้งครรภ์','Trying-to-conceive summary','Tóm tắt chuẩn bị mang thai'),
+      range: T('统计范围：备孕开始至今','ช่วงข้อมูล: ตั้งแต่เริ่มวางแผนถึงปัจจุบัน','Range: from start of trying until today','Phạm vi: từ khi bắt đầu chuẩn bị đến nay'),
+      prev: T('备孕医生报告预览','ตัวอย่างรายงานการวางแผนตั้งครรภ์สำหรับแพทย์','Trying-to-conceive report preview','Xem trước báo cáo chuẩn bị mang thai'),
+      file: 'Luna-ttc-report-',
+      ph: T('例如：备孕半年还没怀上，需要做检查吗？','เช่น วางแผนมาครึ่งปีแล้วยังไม่ตั้งครรภ์ ต้องตรวจอะไรไหม?','e.g. We have been trying for 6 months, do we need any tests?','VD: Đã cố gắng nửa năm chưa có thai, có cần làm xét nghiệm không?'),
+      note: T('本报告由 Luna 根据本人自行记录的数据整理，排卵日、易孕期等均为估计值，可能有 1–2 天误差，不能用来避孕，也不能代替医生的诊断。','รายงานนี้สรุปจากข้อมูลที่ผู้ใช้บันทึกเอง วันตกไข่และช่วงเจริญพันธุ์เป็นค่าประมาณ อาจคลาดเคลื่อน 1–2 วัน ใช้คุมกำเนิดไม่ได้ และไม่สามารถใช้แทนการวินิจฉัยของแพทย์','This report is compiled by Luna from data you recorded yourself. Ovulation and fertile window are estimates (may be off by 1–2 days), cannot be used for contraception, and do not replace a doctor\'s diagnosis.','Báo cáo do Luna tổng hợp từ dữ liệu bạn tự ghi. Ngày rụng trứng và thời gian dễ thụ thai chỉ là ước tính (có thể lệch 1–2 ngày), không dùng để tránh thai và không thay thế chẩn đoán của bác sĩ.')
+    };
+    var ended = kd === 'ppEnded';
+    if(kd === 'pp' || ended) return {
+      title: ended ? T('恢复期记录摘要','สรุปบันทึกช่วงฟื้นตัว','Recovery summary','Tóm tắt giai đoạn hồi phục') : T('产后恢复记录摘要','สรุปบันทึกการฟื้นตัวหลังคลอด','Postpartum recovery summary','Tóm tắt hồi phục sau sinh'),
+      range: ended ? T('统计范围：从事件日期至今','ช่วงข้อมูล: ตั้งแต่วันที่เกิดเหตุการณ์ถึงปัจจุบัน','Range: from the event date until today','Phạm vi: từ ngày xảy ra đến nay') : T('统计范围：从分娩当天至今','ช่วงข้อมูล: ตั้งแต่วันคลอดถึงปัจจุบัน','Range: from the day of birth until today','Phạm vi: từ ngày sinh đến nay'),
+      prev: ended ? T('恢复期医生报告预览','ตัวอย่างรายงานช่วงฟื้นตัวสำหรับแพทย์','Recovery report preview','Xem trước báo cáo hồi phục') : T('产后医生报告预览','ตัวอย่างรายงานหลังคลอดสำหรับแพทย์','Postpartum report preview','Xem trước báo cáo sau sinh'),
+      file: 'Luna-recovery-report-',
+      ph: T('例如：恶露还没干净，需要复查吗？','เช่น น้ำคาวปลายังไม่หมด ต้องไปตรวจไหม?','e.g. Bleeding has not stopped yet, should I get checked?','VD: Sản dịch vẫn chưa hết, có cần đi khám lại không?'),
+      note: T('本报告由 Luna 根据本人自行记录的数据整理，恢复情况因人而异，不能代替医生的诊断；如出血增多、发烧、剧烈腹痛或持续情绪低落，请及时就医。','รายงานนี้สรุปจากข้อมูลที่ผู้ใช้บันทึกเอง การฟื้นตัวแตกต่างกันในแต่ละคน ไม่สามารถใช้แทนการวินิจฉัยของแพทย์ หากเลือดออกมาก มีไข้ ปวดท้องรุนแรง หรือรู้สึกหดหู่ต่อเนื่อง โปรดพบแพทย์ทันที','This report is compiled by Luna from data you recorded yourself. Recovery varies from person to person and does not replace a doctor\'s diagnosis; if bleeding increases, or you have fever, severe abdominal pain or persistent low mood, seek care promptly.','Báo cáo do Luna tổng hợp từ dữ liệu bạn tự ghi. Mỗi người hồi phục khác nhau, báo cáo không thay thế chẩn đoán của bác sĩ; nếu ra máu nhiều, sốt, đau bụng dữ dội hoặc buồn bã kéo dài, hãy đi khám ngay.')
+    };
+    return {
+      title: T('孕期健康记录摘要', 'สรุปบันทึกสุขภาพระหว่างตั้งครรภ์', 'Pregnancy health summary', 'Tóm tắt sức khỏe thai kỳ'),
+      range: T('统计范围：从末次月经至今', 'ช่วงข้อมูล: ตั้งแต่ประจำเดือนครั้งสุดท้ายถึงปัจจุบัน', 'Range: from last period until today', 'Phạm vi: từ kỳ kinh cuối đến nay'),
+      prev: T('孕期医生报告预览', 'ตัวอย่างรายงานการตั้งครรภ์สำหรับแพทย์', 'Pregnancy report preview', 'Xem trước báo cáo thai kỳ'),
+      file: 'Luna-pregnancy-report-',
+      ph: T('例如：最近脚踝肿，需要检查吗？', 'เช่น ช่วงนี้เท้าบวม ต้องตรวจไหม?', 'e.g. My ankles are swollen lately, should I get checked?', 'VD: Dạo này mắt cá chân sưng, có cần kiểm tra không?'),
+      note: T('本报告由 Luna 根据本人自行记录的数据整理，孕周、预产期等均为估计值，可能有误差，不能代替医生的诊断，请以产检结果为准。', 'รายงานนี้สรุปจากข้อมูลที่ผู้ใช้บันทึกเอง อายุครรภ์และกำหนดคลอดเป็นค่าประมาณ อาจคลาดเคลื่อน ไม่สามารถใช้แทนการวินิจฉัยของแพทย์ โปรดยึดผลการตรวจครรภ์เป็นหลัก', 'This report is compiled by Luna from data you recorded yourself. Gestational age and due date are estimates and may be off; it does not replace a doctor\'s diagnosis. Please rely on your prenatal exam results.', 'Báo cáo này do Luna tổng hợp từ dữ liệu bạn tự ghi. Tuổi thai và ngày dự sinh chỉ là ước tính, có thể sai lệch; không thay thế chẩn đoán của bác sĩ. Hãy dựa vào kết quả khám thai.')
+    };
+  }
+  function yr(k){ var d = parse(k); return d ? String(d.getFullYear() + (lang() === 'th' ? 543 : 0)) : ''; }
+  function headData(r){
+    var kd = r.mode, info = r.info, tiles, bas;
+    if(kd === 'ttc'){
+      var m = r.m && r.m.hasData ? r.m : null, w = m ? (m.win || m.upcoming) : null, mo = info.months, srcL = { bbt: T('体温确认','ยืนยันด้วยอุณหภูมิ','Confirmed by BBT','Xác nhận bằng nhiệt độ'), lh: T('试纸推算','ตามชุดตรวจ','From OPK','Theo que thử'), predicted: T('估计','ประมาณการ','Estimated','Ước tính') };
+      tiles = [
+        [T('备孕时长','ระยะเวลาที่วางแผน','Trying for','Thời gian chuẩn bị'), mo > 0 ? T(mo+' 个月', mo+' เดือน', mo+' months', mo+' tháng') : T(info.days+' 天', info.days+' วัน', info.days+' days', info.days+' ngày'), T('自 ','ตั้งแต่ ','since ','từ ') + md(info.tryingSince)],
+        [T('当前周期','รอบเดือนปัจจุบัน','Current cycle','Chu kỳ hiện tại'), m && m.cycleDay ? T('第 '+m.cycleDay+' 天','วันที่ '+m.cycleDay,'Day '+m.cycleDay,'Ngày '+m.cycleDay) : '-', m && m.cycleLen ? T('周期约 '+m.cycleLen+' 天','รอบประมาณ '+m.cycleLen+' วัน','cycle ≈ '+m.cycleLen+' days','chu kỳ ≈ '+m.cycleLen+' ngày') : ''],
+        [T('预计排卵日','คาดว่าไข่ตก','Est. ovulation','Rụng trứng dự kiến'), w ? md(w.ovu) : '-', w ? (srcL[m.ovuSource] || srcL.predicted) : ''],
+        [T('易孕期','ช่วงเจริญพันธุ์','Fertile window','Dễ thụ thai'), w ? md(w.fStart) + '–' + md(w.ovu) : '-', w && w.nextStart ? T('预计下次月经 ','คาดว่าประจำเดือนครั้งหน้า ','next period ','kỳ kinh tới ') + md(w.nextStart) : '']
+      ];
+      bas = T('排卵日与易孕期由月经记录（及体温、排卵试纸）推算，为估计值，可能有 1–2 天误差，不能用来避孕。','วันตกไข่และช่วงเจริญพันธุ์คำนวณจากบันทึกประจำเดือน (และอุณหภูมิ/ชุดตรวจไข่ตก) เป็นค่าประมาณ อาจคลาดเคลื่อน 1–2 วัน ใช้คุมกำเนิดไม่ได้','Ovulation and fertile window are estimated from period records (plus BBT / OPK); may be off by 1–2 days and cannot be used for contraception.','Ngày rụng trứng và thời gian dễ thụ thai được ước tính từ ghi chép kinh nguyệt (và nhiệt độ/que thử); có thể lệch 1–2 ngày và không dùng để tránh thai.');
+    } else if(kd === 'pp' || kd === 'ppEnded'){
+      var ended = kd === 'ppEnded';
+      tiles = [
+        [ended ? T('已过去','ผ่านมาแล้ว','Time since','Đã qua') : T('产后时间','หลังคลอดมาแล้ว','Since birth','Sau sinh'), T(info.weeks+' 周 '+info.days+' 天', info.weeks+' สัปดาห์ '+info.days+' วัน', info.weeks+'w '+info.days+'d', info.weeks+' tuần '+info.days+' ngày'), T('第 '+info.dayN+' 天','วันที่ '+info.dayN,'day '+info.dayN,'ngày '+info.dayN)],
+        [ended ? T('事件日期','วันที่เกิดเหตุการณ์','Event date','Ngày xảy ra') : T('分娩日期','วันคลอด','Birth date','Ngày sinh'), md(info.eventDate), yr(info.eventDate)],
+        [T('记录天数','จำนวนวันที่บันทึก','Days logged','Số ngày ghi'), T(r.logDays+' 天', r.logDays+' วัน', r.logDays+' days', r.logDays+' ngày'), ''],
+        [T('情绪记录','บันทึกอารมณ์','Mood records','Ghi chép tâm trạng'), T(r.moodTotal+' 次', r.moodTotal+' ครั้ง', r.moodTotal+'x', r.moodTotal+' lần'), '']
+      ];
+      bas = T('以下内容为你自己记录的恢复情况，供复诊时参考；恢复进度因人而异。','ข้อมูลด้านล่างมาจากที่คุณบันทึกเองเกี่ยวกับการฟื้นตัว ใช้เป็นข้อมูลประกอบเมื่อไปตรวจติดตาม การฟื้นตัวแตกต่างกันในแต่ละคน','The following is your own recovery log, for reference at follow-up visits; recovery pace varies from person to person.','Nội dung dưới đây là ghi chép hồi phục của chính bạn, để tham khảo khi tái khám; tốc độ hồi phục khác nhau ở mỗi người.');
+    } else {
+      var wk = info.weeks, dy = info.days;
+    var tri = [ '', T('孕早期','ไตรมาสที่ 1','1st trimester','Quý 1'), T('孕中期','ไตรมาสที่ 2','2nd trimester','Quý 2'), T('孕晚期','ไตรมาสที่ 3','3rd trimester','Quý 3') ][info.trimester] || '';
+    var left = info.daysToDue;
+    var tiles = [
+      [T('当前孕周','อายุครรภ์','Gestational age','Tuổi thai'), T(wk+' 周 '+dy+' 天', wk+' สัปดาห์ '+dy+' วัน', wk+'w '+dy+'d', wk+' tuần '+dy+' ngày'), tri],
+      [T('预产期','กำหนดคลอด','Due date','Ngày dự sinh'), md(info.dueKey), String(parse(info.dueKey) ? parse(info.dueKey).getFullYear() + (lang()==='th' ? 543 : 0) : '')],
+      [T('距预产期','อีกกี่วันถึงกำหนดคลอด','Days to due date','Còn đến ngày sinh'), left >= 0 ? T(left+' 天', left+' วัน', left+' days', left+' ngày') : T('已超过 '+(-left)+' 天', 'เลยมา '+(-left)+' วัน', (-left)+' days past', 'Quá '+(-left)+' ngày'), ''],
+      [T('末次月经','ประจำเดือนครั้งสุดท้าย','Last period','Kỳ kinh cuối'), md(info.lmpKey), String(parse(info.lmpKey) ? parse(info.lmpKey).getFullYear() + (lang()==='th' ? 543 : 0) : '')]
+    ];
+      var bas = T('孕周与预产期按末次月经或你设置的日期推算，为估计值，请以医生产检（如 B 超）为准。', 'อายุครรภ์และกำหนดคลอดคำนวณจากประจำเดือนครั้งสุดท้ายหรือวันที่ที่ตั้งไว้ เป็นค่าโดยประมาณ โปรดยึดผลการตรวจของแพทย์เป็นหลัก', 'Gestational age and due date are estimated from your last period or the date you set; please rely on your doctor\'s exam (e.g. ultrasound).', 'Tuổi thai và ngày dự sinh được ước tính từ kỳ kinh cuối hoặc ngày bạn đặt; hãy tin theo kết quả khám (siêu âm) của bác sĩ.');
+    }
+    return { tiles: tiles, bas: bas };
+  }
+
+  /* ───── 分页绘制 ───── */
+  function draw(r, q){
+    var HD = heads(r);
+    var pages = [], cv, ctx, y, pageNo = 0;
+    function newPage(first){
+      cv = document.createElement('canvas'); cv.width = W; cv.height = H; ctx = cv.getContext('2d'); pages.push(cv); pageNo++;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+      if(first){
+        var g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#7c5cbf'); g.addColorStop(1, '#d97fb0'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, 180);
+        txt(ctx, HD.title, M, 92, 52, '#fff', 700);
+        txt(ctx, HD.range + '     ' + T('生成日期：', 'วันที่สร้าง: ', 'Generated: ', 'Ngày tạo: ') + mdy(r.tk), M, 144, 24, 'rgba(255,255,255,.9)', 400);
+        txt(ctx, 'Luna', W - M, 92, 40, 'rgba(255,255,255,.95)', 700, 'right');
+        y = 228;
+      } else {
+        ctx.fillStyle = C.soft; ctx.fillRect(0, 0, W, 92);
+        txt(ctx, HD.title + T('（续）',' (ต่อ)',' (cont.)',' (tiếp)'), M, 60, 30, C.purple, 700);
+        txt(ctx, 'Luna', W - M, 60, 30, C.purple, 700, 'right');
+        y = 140;
+      }
+    }
+    function need(h){ if(y + h > H - BOT) newPage(false); }
+    function section(title){ need(120); txt(ctx, title, M, y, 34, C.ink, 700); ctx.fillStyle = C.line; ctx.fillRect(M, y + 16, W - 2*M, 2); y += 56; }
+
+    newPage(true);
+    var info = r.info;
+    // —— 关键数据 ——
+    section(T('关键数据', 'ข้อมูลสำคัญ', 'Key facts', 'Thông tin chính'));
+    var hd = headData(r), tiles = hd.tiles, bas = hd.bas;
+    var tw = (W - 2*M - 3*20) / 4, i, tx;
+    for(i = 0; i < 4; i++){
+      tx = M + i*(tw + 20); ctx.fillStyle = C.soft; rr(ctx, tx, y, tw, 150, 22); ctx.fill();
+      txt(ctx, fit(ctx, tiles[i][0], tw - 30, 22, 400), tx + 22, y + 40, 22, C.mute, 400);
+      var big = 46; ctx.font = '700 46px ' + FF; while(big > 24){ ctx.font = '700 ' + big + 'px ' + FF; if(ctx.measureText(tiles[i][1]).width <= tw - 36) break; big -= 2; }
+      txt(ctx, fit(ctx, tiles[i][1], tw - 30, big, 700), tx + 22, y + 94, big, C.purple, 700);
+      txt(ctx, tiles[i][2], tx + 22, y + 130, 21, C.mute, 400);
+    }
+    y += 150 + 34;
+    ctx.font = '400 22px ' + FF;
+    wrap(ctx, bas, W - 2*M).forEach(function(ln){ txt(ctx, ln, M, y, 22, C.mute, 400); y += 32; });
+    y += 28;
+
+    if(r.mode === 'preg'){
+    // —— 体重 ——
+    section(T('体重变化（kg）', 'น้ำหนักตัว (กก.)', 'Weight (kg)', 'Cân nặng (kg)'));
+    var ws = r.weights;
+    if(!ws.length){
+      txt(ctx, T('孕期还没有体重记录', 'ยังไม่มีบันทึกน้ำหนักในครรภ์นี้', 'No weight records yet', 'Chưa có ghi chép cân nặng'), M, y + 8, 26, C.mute, 400); y += 70;
+    } else {
+      need(330);
+      var ch = 200, top0 = y + 20, base = top0 + ch, minV = Infinity, maxV = -Infinity, pts = ws.slice(-16);
+      pts.forEach(function(p){ minV = Math.min(minV, p.kg); maxV = Math.max(maxV, p.kg); });
+      if(maxV - minV < 2){ minV -= 1; maxV += 1; } else { minV -= 0.5; maxV += 0.5; }
+      var d0 = parse(pts[0].date).getTime(), d1 = parse(pts[pts.length-1].date).getTime(), span = Math.max(1, d1 - d0), x0 = M + 70, x1 = W - M - 70;
+      function px(p){ return pts.length === 1 ? (x0 + x1) / 2 : x0 + (parse(p.date).getTime() - d0) / span * (x1 - x0); }
+      function py(v){ return base - (v - minV) / (maxV - minV) * ch; }
+      ctx.fillStyle = '#faf8fd'; rr(ctx, M, top0 - 24, W - 2*M, ch + 96, 20); ctx.fill();
+      ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(M + 30, base); ctx.lineTo(W - M - 30, base); ctx.stroke();
+      if(pts.length > 1){ ctx.strokeStyle = '#9a7be3'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.beginPath(); pts.forEach(function(p, ix){ if(ix) ctx.lineTo(px(p), py(p.kg)); else ctx.moveTo(px(p), py(p.kg)); }); ctx.stroke(); }
+      var mx = pts.reduce(function(a, p, ix){ return p.kg > pts[a].kg ? ix : a; }, 0), mn = pts.reduce(function(a, p, ix){ return p.kg < pts[a].kg ? ix : a; }, 0);
+      pts.forEach(function(p, ix){
+        var x = px(p), yy = py(p.kg); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, yy, 11, 0, 7); ctx.fill(); ctx.strokeStyle = C.purple; ctx.lineWidth = 5; ctx.stroke();
+        var show = pts.length <= 8 || ix === 0 || ix === pts.length - 1 || ix === mx || ix === mn;
+        if(show){ txt(ctx, String(p.kg), x, yy - 22, 26, C.purple, 700, 'center'); txt(ctx, md(p.date), x, base + 36, 20, C.ink, 400, 'center'); }
+      });
+      y = base + 112;
+      var first = ws[0], last = ws[ws.length-1], delta = Math.round((last.kg - first.kg) * 10) / 10;
+      txt(ctx, T('最早 ' + first.kg + ' kg（' + md(first.date) + '）→ 最近 ' + last.kg + ' kg（' + md(last.date) + '），变化 ' + (delta > 0 ? '+' : '') + delta + ' kg，共记录 ' + ws.length + ' 次',
+                 'ครั้งแรก ' + first.kg + ' กก. (' + md(first.date) + ') → ล่าสุด ' + last.kg + ' กก. (' + md(last.date) + ') เปลี่ยน ' + (delta > 0 ? '+' : '') + delta + ' กก. บันทึก ' + ws.length + ' ครั้ง',
+                 'First ' + first.kg + ' kg (' + md(first.date) + ') → latest ' + last.kg + ' kg (' + md(last.date) + '), change ' + (delta > 0 ? '+' : '') + delta + ' kg, ' + ws.length + ' records',
+                 'Đầu ' + first.kg + ' kg (' + md(first.date) + ') → gần nhất ' + last.kg + ' kg (' + md(last.date) + '), thay đổi ' + (delta > 0 ? '+' : '') + delta + ' kg, ' + ws.length + ' lần ghi'), M, y + 8, 24, C.ink, 400);
+      y += 64;
+    }
+
+    // —— 产检 ——
+    y += 14; section(T('产检记录', 'บันทึกการตรวจครรภ์', 'Prenatal visits', 'Khám thai'));
+    var up = [], past = [];
+    r.visits.forEach(function(v){ (v.date >= r.tk ? up : past).push(v); });
+    up.sort(function(a, b){ return a.date < b.date ? -1 : 1; }); past.sort(function(a, b){ return a.date < b.date ? 1 : -1; });
+    var rowsV = up.slice(0, 3).map(function(v){ return [v, true]; }).concat(past.slice(0, 4).map(function(v){ return [v, false]; }));
+    if(!rowsV.length){ txt(ctx, T('还没有产检记录或提醒', 'ยังไม่มีบันทึกหรือการนัดตรวจครรภ์', 'No visits or reminders yet', 'Chưa có lịch hoặc ghi chép khám thai'), M, y + 8, 26, C.mute, 400); y += 70; }
+    else {
+      rowsV.forEach(function(it){
+        need(60); var v = it[0], isUp = it[1];
+        ctx.fillStyle = isUp ? '#efe9fb' : C.soft; rr(ctx, M, y - 30, 190, 42, 21); ctx.fill();
+        txt(ctx, isUp ? T('即将', 'เร็ว ๆ นี้', 'Upcoming', 'Sắp tới') : T('已完成', 'ผ่านไปแล้ว', 'Past', 'Đã qua'), M + 95, y, 21, isUp ? C.purple : C.mute, 700, 'center');
+        txt(ctx, md(v.date) + (v.time ? ' ' + v.time : ''), M + 214, y, 26, C.ink, 700);
+        txt(ctx, fit(ctx, v.note || '', W - 2*M - 214 - 270, 24, 400), M + 214 + 270, y, 24, C.mute, 400);
+        y += 56;
+      });
+      y += 4;
+    }
+
+    // —— 胎动 ——
+    if(r.kicks.length){
+      y += 18; section(T('胎动记录', 'บันทึกการนับลูกดิ้น', 'Kick counts', 'Đếm cử động thai'));
+      r.kicks.slice(0, 5).forEach(function(k){
+        need(54); var mins = Math.max(1, Math.round((k.secs || 0) / 60));
+        txt(ctx, md(k.date), M, y, 26, C.ink, 700);
+        txt(ctx, T(k.n + ' 次，用时约 ' + mins + ' 分钟', k.n + ' ครั้ง ใช้เวลาประมาณ ' + mins + ' นาที', k.n + ' kicks in about ' + mins + ' min', k.n + ' lần trong khoảng ' + mins + ' phút'), M + 230, y, 26, C.mute, 400);
+        y += 52;
+      });
+      txt(ctx, T('共 ' + r.kicks.length + ' 次记录；胎动次数仅供参考，如明显减少请及时联系医生。', 'มี ' + r.kicks.length + ' ครั้ง ใช้เป็นข้อมูลอ้างอิงเท่านั้น หากลูกดิ้นลดลงชัดเจนควรติดต่อแพทย์ทันที', r.kicks.length + ' records; for reference only. If movement clearly decreases, contact your doctor promptly.', r.kicks.length + ' lần ghi; chỉ để tham khảo. Nếu thai máy giảm rõ rệt, hãy liên hệ bác sĩ ngay.'), M, y + 6, 21, C.mute, 400);
+      y += 40;
+    }
+
+    }
+    // —— 备孕：最近 30 天备孕记录 ——
+    if(r.mode === 'ttc'){
+      section(T('最近 30 天备孕记录', 'บันทึกการวางแผนตั้งครรภ์ 30 วันล่าสุด', 'Last 30 days of tracking', 'Ghi chép 30 ngày gần đây'));
+      if(!r.rows.length){ txt(ctx, T('最近 30 天没有体温、排卵试纸、黏液或同房记录', 'ไม่มีบันทึกอุณหภูมิ ชุดตรวจไข่ตก มูก หรือการมีเพศสัมพันธ์ใน 30 วันล่าสุด', 'No temperature, ovulation-test, mucus or intercourse records in the last 30 days', 'Không có ghi chép nhiệt độ, que thử, dịch nhầy hoặc quan hệ trong 30 ngày qua'), M, y + 8, 24, C.mute, 400); y += 70; }
+      else {
+        var cx = [M, M + 190, M + 380, M + 600, M + 830], hs = [T('日期','วันที่','Date','Ngày'), T('体温 °C','อุณหภูมิ °C','BBT °C','Nhiệt độ °C'), T('排卵试纸','ชุดตรวจไข่ตก','Ovulation test','Que thử rụng trứng'), T('宫颈黏液','มูกปากมดลูก','Mucus','Dịch nhầy'), T('同房','มีเพศสัมพันธ์','Intercourse','Quan hệ')], ci;
+        need(70); for(ci = 0; ci < 5; ci++) txt(ctx, hs[ci], cx[ci], y, 22, C.mute, 700); y += 18; ctx.fillStyle = C.line; ctx.fillRect(M, y, W - 2*M, 2); y += 40;
+        r.rows.slice(0, 14).forEach(function(w){
+          need(52);
+          var sx = w.sex === 'prot' ? T('有（有保护）','มี (ป้องกัน)','Yes (protected)','Có (an toàn)') : (w.sex ? T('有','มี','Yes','Có') : '-');
+          var vals = [md(w.date), typeof w.bbt === 'number' ? w.bbt.toFixed(2) : '-', w.lh ? pick(LH_L, w.lh) : '-', w.mucus ? pick(MUC_L, w.mucus) : '-', sx];
+          for(ci = 0; ci < 5; ci++) txt(ctx, fit(ctx, vals[ci], (ci < 4 ? cx[ci+1] - cx[ci] : W - M - cx[ci]) - 14, 24, ci === 0 ? 700 : 400), cx[ci], y, 24, (w.lh === 'pos' && ci === 2) ? C.purple : C.ink, (ci === 0 || (w.lh === 'pos' && ci === 2)) ? 700 : 400);
+          y += 48;
+        });
+        y += 6;
+        txt(ctx, T('最近 30 天：体温 ' + r.cnt.bbt + ' 次，排卵试纸强阳 ' + r.cnt.lhPos + ' 次，同房 ' + r.cnt.sex + ' 天', '30 วันล่าสุด: อุณหภูมิ ' + r.cnt.bbt + ' ครั้ง ชุดตรวจไข่ตกขึ้นบวก ' + r.cnt.lhPos + ' ครั้ง มีเพศสัมพันธ์ ' + r.cnt.sex + ' วัน', 'Last 30 days: BBT ' + r.cnt.bbt + ' times, positive ovulation tests ' + r.cnt.lhPos + ', intercourse on ' + r.cnt.sex + ' days', '30 ngày qua: đo nhiệt độ ' + r.cnt.bbt + ' lần, que thử dương tính ' + r.cnt.lhPos + ' lần, quan hệ ' + r.cnt.sex + ' ngày'), M, y + 8, 22, C.mute, 400);
+        y += 52;
+      }
+    }
+    // —— 症状 ——
+    y += 22; section(T('常见症状（共记录 ' + r.logDays + ' 天）', 'อาการที่พบบ่อย (บันทึก ' + r.logDays + ' วัน)', 'Common symptoms (' + r.logDays + ' days logged)', 'Triệu chứng thường gặp (' + r.logDays + ' ngày ghi)'));
+    if(!r.sym.length){ txt(ctx, T('孕期还没有症状记录', 'ยังไม่มีบันทึกอาการในครรภ์นี้', 'No symptom records yet', 'Chưa có ghi chép triệu chứng'), M, y + 8, 26, C.mute, 400); y += 70; }
+    else {
+      var maxC = r.sym[0][1], lblW = 270, barW = W - 2*M - lblW - 120;
+      r.sym.forEach(function(s){
+        need(52);
+        txt(ctx, fit(ctx, symName(s[0]), lblW - 20, 26, 400), M, y + 30, 26, C.ink, 400);
+        ctx.fillStyle = '#f0ecf8'; rr(ctx, M + lblW, y + 8, barW, 28, 14); ctx.fill();
+        var fw = Math.max(28, barW * s[1] / maxC), bg = ctx.createLinearGradient(M + lblW, 0, M + lblW + fw, 0); bg.addColorStop(0, '#9a7be3'); bg.addColorStop(1, '#e88fbd');
+        ctx.fillStyle = bg; rr(ctx, M + lblW, y + 8, fw, 28, 14); ctx.fill();
+        txt(ctx, T(s[1] + ' 次', s[1] + ' ครั้ง', s[1] + 'x', s[1] + ' lần'), W - M, y + 31, 24, C.mute, 400, 'right');
+        y += 48;
+      });
+      y += 10;
+    }
+
+    // —— 情绪 ——
+    y += 44; section(T('情绪记录', 'อารมณ์ที่บันทึก', 'Mood', 'Tâm trạng'));
+    if(!r.moodTotal){ txt(ctx, T('孕期还没有情绪记录', 'ยังไม่มีบันทึกอารมณ์ในครรภ์นี้', 'No mood records yet', 'Chưa có ghi chép tâm trạng'), M, y + 8, 26, C.mute, 400); y += 70; }
+    else {
+      need(130); var mx2 = M, full = W - 2*M;
+      ctx.save(); rr(ctx, M, y, full, 34, 17); ctx.clip();
+      r.mood.forEach(function(m){ var w2 = full * m[1] / r.moodTotal; ctx.fillStyle = MOOD_COL[m[0]] || '#bbb'; ctx.fillRect(mx2, y, w2 + 1, 34); mx2 += w2; });
+      ctx.restore();
+      var lx = M, ly = y + 78; ctx.font = '400 24px ' + FF;
+      r.mood.forEach(function(m){
+        var li = {zh:0,th:1,en:2,vi:3}[lang()], nm = (MOOD_L[m[0]] ? MOOD_L[m[0]][li] : m[0]) + ' ' + Math.round(m[1] * 100 / r.moodTotal) + '%';
+        var w3 = ctx.measureText(nm).width + 44; if(lx + w3 > W - M){ lx = M; ly += 40; }
+        ctx.fillStyle = MOOD_COL[m[0]] || '#bbb'; ctx.beginPath(); ctx.arc(lx + 10, ly - 8, 9, 0, 7); ctx.fill();
+        txt(ctx, nm, lx + 28, ly, 24, C.ink, 400); lx += w3 + 18;
+      });
+      y = ly + 50;
+    }
+
+    // —— 想问医生 ——
+    y += 22; section(T('想问医生的问题', 'คำถามที่อยากถามแพทย์', 'Questions for my doctor', 'Câu hỏi muốn hỏi bác sĩ'));
+    var qLines = []; ctx.font = '400 28px ' + FF;
+    if(q){ String(q).split(/\n+/).forEach(function(p){ if(p.trim()) qLines = qLines.concat(wrap(ctx, p.trim(), W - 2*M)); }); }
+    var nL = Math.max(2, qLines.length);
+    for(i = 0; i < nL; i++){ need(60); if(qLines[i]) txt(ctx, qLines[i], M, y + 34, 28, C.ink, 400); ctx.fillStyle = C.line; ctx.fillRect(M, y + 46, W - 2*M, 2); y += 56; }
+
+    // —— 页脚 ——
+    var note = HD.note;
+    pages.forEach(function(pg, ix){
+      var c2 = pg.getContext('2d'), fy = H - 84; c2.fillStyle = C.line; c2.fillRect(M, fy - 22, W - 2*M, 2); c2.font = '400 20px ' + FF;
+      var ls = wrap(c2, note, W - 2*M - 140);
+      for(var j = 0; j < ls.length && j < 3; j++) txt(c2, ls[j], M, fy + 8 + j*30, 20, C.mute, 400);
+      txt(c2, (ix + 1) + ' / ' + pages.length, W - M, fy + 8, 22, C.mute, 400, 'right');
+    });
+    return pages;
+  }
+
+  /* ───── 多页 PDF（每页一张 JPEG） ───── */
+  function bytes(s){ var a = new Uint8Array(s.length), i; for(i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) & 255; return a; }
+  function buildPdf(jpegs){
+    var parts = [], offs = [], len = 0, n = jpegs.length;
+    function push(u8){ parts.push(u8); len += u8.length; }
+    function str(s){ push(bytes(s)); }
+    function obj(id, body){ offs[id] = len; str(id + ' 0 obj\n' + body + '\nendobj\n'); }
+    str('%PDF-1.4\n');
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    var kids = [], i; for(i = 0; i < n; i++) kids.push((3 + i*3) + ' 0 R');
+    obj(2, '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + n + ' >>');
+    for(i = 0; i < n; i++){
+      var pId = 3 + i*3, imId = pId + 1, cId = pId + 2;
+      obj(pId, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im' + i + ' ' + imId + ' 0 R >> >> /Contents ' + cId + ' 0 R >>');
+      offs[imId] = len; str(imId + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + W + ' /Height ' + H + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpegs[i].length + ' >>\nstream\n'); push(jpegs[i]); str('\nendstream\nendobj\n');
+      var cs = 'q 595 0 0 842 0 0 cm /Im' + i + ' Do Q';
+      obj(cId, '<< /Length ' + cs.length + ' >>\nstream\n' + cs + '\nendstream');
+    }
+    var total = 3 + n*3, xr = len; str('xref\n0 ' + total + '\n0000000000 65535 f \n');
+    for(i = 1; i < total; i++) str(('0000000000' + offs[i]).slice(-10) + ' 00000 n \n');
+    str('trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xr + '\n%%EOF');
+    var out = new Uint8Array(len), p = 0; parts.forEach(function(u){ out.set(u, p); p += u.length; }); return out;
+  }
+  function dataUrlToU8(du){ var b = atob(du.split(',')[1]), u = new Uint8Array(b.length), i; for(i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+
+  /* ───── 问题输入 + 预览 ───── */
+  function close(){ var m = document.getElementById('lpgPregDocModal'); if(m) m.remove(); try{ document.body.style.overflow = ''; }catch(e){} }
+  function ask(prefill, cb, ph){
+    var old = document.getElementById('lpgPregDocAsk'); if(old) old.remove();
+    var m = document.createElement('div'); m.id = 'lpgPregDocAsk';
+    m.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(44,36,64,.55);display:flex;align-items:center;justify-content:center;padding:28px;font-family:inherit;';
+    function btn(id, label, primary){ return '<button id="' + id + '" style="flex:1;padding:13px 8px;border:none;border-radius:14px;font-size:14.5px;font-weight:' + (primary ? 700 : 600) + ';cursor:pointer;font-family:inherit;background:' + (primary ? 'linear-gradient(135deg,#7c5cbf,#d97fb0);color:#fff;' : '#f1edf9;color:#6B6585;') + '">' + label + '</button>'; }
+    m.innerHTML = '<div style="background:#fff;border-radius:24px;padding:24px 20px 18px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(124,92,191,.28);">'
+      + '<div style="font-size:16px;font-weight:700;color:#2d2640;margin-bottom:6px;">' + T('想问医生什么？', 'อยากถามแพทย์ว่าอะไร?', 'What do you want to ask your doctor?', 'Bạn muốn hỏi bác sĩ gì?') + '</div>'
+      + '<div style="font-size:12.5px;color:#6B6585;line-height:1.6;margin-bottom:10px;">' + T('写下来会放进报告里，产检时就不容易忘；不写也可以。', 'จดไว้จะอยู่ในรายงาน ช่วยให้ไม่ลืมตอนไปตรวจ ไม่เขียนก็ได้', 'It goes into the report so you won\'t forget at the visit; optional.', 'Sẽ được đưa vào báo cáo để bạn không quên khi đi khám; có thể bỏ qua.') + '</div>'
+      + '<textarea id="lpgPregAskTxt" maxlength="200" rows="5" placeholder="' + (ph || '') + '" style="width:100%;box-sizing:border-box;border:1.5px solid #e2dcf0;border-radius:14px;padding:12px;font-size:14.5px;font-family:inherit;color:#2d2640;resize:none;outline:none;"></textarea>'
+      + '<div id="lpgPregAskCnt" style="text-align:right;font-size:11.5px;color:#6B6585;margin:4px 0 14px;">0 / 200</div>'
+      + '<div style="display:flex;gap:10px;">' + btn('lpgPregAskSkip', T('不写了', 'ไม่เขียน', 'Skip', 'Bỏ qua'), false) + btn('lpgPregAskDone', T('完成', 'เสร็จ', 'Done', 'Xong'), true) + '</div></div>';
+    document.body.appendChild(m);
+    var ta = document.getElementById('lpgPregAskTxt'), cnt = document.getElementById('lpgPregAskCnt');
+    ta.value = prefill || ''; cnt.textContent = ta.value.length + ' / 200'; ta.oninput = function(){ cnt.textContent = ta.value.length + ' / 200'; };
+    document.getElementById('lpgPregAskSkip').onclick = function(){ m.remove(); cb(prefill || ''); };
+    document.getElementById('lpgPregAskDone').onclick = function(){ var v = ta.value.trim(); m.remove(); cb(v); };
+    setTimeout(function(){ try{ ta.focus(); }catch(e){} }, 120);
+  }
+  function preview(q){
+    var r = gather(); if(!r){ toast(T('还没有可导出的信息', 'ยังไม่มีข้อมูลให้ส่งออก', 'Nothing to export yet', 'Chưa có thông tin để xuất')); return; }
+    var HD = heads(r), cvs = draw(r, q), jpgs = cvs.map(function(c){ return c.toDataURL('image/jpeg', 0.92); });
+    close();
+    var m = document.createElement('div'); m.id = 'lpgPregDocModal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#2d2640;display:flex;flex-direction:column;font-family:inherit;';
+    var imgs = jpgs.map(function(j, i){ return '<img alt="" src="' + j + '" style="display:block;width:100%;max-width:560px;margin:' + (i ? '14px' : '0') + ' auto 0;border-radius:10px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.35);">'; }).join('');
+    m.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;color:#fff;"><div style="font-size:16px;font-weight:700;">📄 ' + HD.prev + '</div>'
+      + '<button id="lpgPregDocX" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;">✕</button></div>'
+      + '<div style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 14px 14px;">' + imgs + '</div>'
+      + '<div style="padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 16px);background:#241d38;">'
+      + '<button id="lpgPregDocEdit" style="width:100%;padding:10px;margin-bottom:8px;border:1.5px solid rgba(255,255,255,.28);border-radius:14px;background:transparent;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;">✎ ' + (q ? T('修改想问医生的问题', 'แก้ไขคำถามที่อยากถามแพทย์', 'Edit my questions', 'Sửa câu hỏi') : T('添加想问医生的问题', 'เพิ่มคำถามที่อยากถามแพทย์', 'Add questions for my doctor', 'Thêm câu hỏi cho bác sĩ')) + '</button>'
+      + '<button id="lpgPregDocSave" style="width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#d97fb0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">' + T('保存 / 分享 PDF', 'บันทึก / แชร์ PDF', 'Save / share PDF', 'Lưu / chia sẻ PDF') + '</button>'
+      + '<div style="text-align:center;font-size:11.5px;color:rgba(255,255,255,.55);margin-top:8px;">' + T('可直接给医生看；报告只在你的手机上生成，不会上传。', 'ให้แพทย์ดูได้ทันที รายงานสร้างบนเครื่องของคุณเท่านั้น ไม่ถูกอัปโหลด', 'Ready to show your doctor; generated on your phone only, never uploaded.', 'Có thể đưa bác sĩ xem; chỉ tạo trên điện thoại của bạn, không tải lên.') + '</div></div>';
+    document.body.appendChild(m); try{ document.body.style.overflow = 'hidden'; }catch(e){}
+    document.getElementById('lpgPregDocX').onclick = close;
+    document.getElementById('lpgPregDocEdit').onclick = function(){ ask(q || '', function(q2){ preview(q2); }, HD.ph); };
+    document.getElementById('lpgPregDocSave').onclick = function(){
+      var pdf = buildPdf(jpgs.map(dataUrlToU8)), name = HD.file + fmt(r.today) + '.pdf';
+      try{ if(window.LunaDoctorReport && window.LunaDoctorReport.savePdf) window.LunaDoctorReport.savePdf(pdf, name); }catch(e){ toast(T('保存失败，请重试', 'บันทึกไม่สำเร็จ กรุณาลองใหม่', 'Save failed, please try again', 'Lưu không thành công, hãy thử lại')); }
+    };
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent(({ ttc: 'ttc_doctor_report_open', pp: 'pp_doctor_report_open', ppEnded: 'pp_doctor_report_open' })[r.mode] || 'preg_doctor_report_open'); }catch(e){}
+  }
+  function open(){
+    if(!pro()){ try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
+    if(!gather()){ toast(T('还没有可导出的信息', 'ยังไม่มีข้อมูลให้ส่งออก', 'Nothing to export yet', 'Chưa có thông tin để xuất')); return; }
+    var HD0 = heads(gather());
+    ask('', function(q){ preview(q); }, HD0.ph);
+  }
+  window.LunaPregDoctor = { open: open, close: close, _gather: gather, _draw: draw, _buildPdf: buildPdf };
+
+  /* 把「导出医生报告」按模式分流：怀孕模式 → 孕期报告；其它模式一点不变 */
+  function wrap2(){
+    var D = window.LunaDoctorReport; if(!D || D.__pregWrapped) return !!(D && D.__pregWrapped);
+    var orig = D.open;
+    D.open = function(){ if(mode()) return open(); return orig.apply(this, arguments); };
+    D.__pregWrapped = true; return true;
+  }
+  if(!wrap2()){ var n = 0, iv = setInterval(function(){ if(wrap2() || ++n > 40) clearInterval(iv); }, 500); }
+})();
+
+</script>
+<script id="lunaFeatureTrack">
+/* lunaFeatureTrack：给后台「功能使用统计」补埋点（只记"做了什么"，不带任何内容）。
+   孕期体重 preg_weight · 产检 preg_visit · 看宝宝 baby_view_open。
+   胎动 preg_kick 直接加在胎动模块的「完成一次」里。其余是包一层原函数：原来的结果原样返回，埋点出任何问题都当没发生。 */
+(function(){
+  function tr(n){ try{ if(typeof window.trackEvent === 'function') window.trackEvent(n); }catch(e){} }
+  function wrapFn(obj, name, ev, okf){
+    try{
+      if(!obj || typeof obj[name] !== 'function' || obj[name].__lunaTr) return false;
+      var o = obj[name];
+      obj[name] = function(){ var r = o.apply(this, arguments); try{ if(okf(r)) tr(ev); }catch(e){} return r; };
+      obj[name].__lunaTr = true; return true;
+    }catch(e){ return false; }
+  }
+  function arm(){
+    var a = true, P = window.LunaPreg;
+    a = wrapFn(P && P.track, 'saveWeight', 'preg_weight', function(r){ return r && r.ok; }) && a;
+    a = wrapFn(P && P.track, 'saveVisit', 'preg_visit', function(r){ return r && r.ok && r.isNew; }) && a;
+    a = wrapFn(window.LunaBabyView, 'open', 'baby_view_open', function(){ return true; }) && a;
+    return a;
+  }
+  if(!arm()){ var n = 0, iv = setInterval(function(){ if(arm() || ++n > 40) clearInterval(iv); }, 500); }
+})();
+
+</script>
+<script id="lunaPostcarePoll">
+/* lunaPostcarePoll：备孕模式下，首页底部弹一次小问卷「想用产后护理功能吗？」
+   想 / 不想 / ✕（✕ = 不选择，记为中立）。只弹一次（出现就记，不管点没点都不再弹）。
+   只发事件、不存任何个人内容：postcare_shown / postcare_want / postcare_no / postcare_skip。 */
+(function(){
+  try{
+    if(window.LunaPostcarePoll) return;
+    var K = 'luna_postcare_poll';
+    function ls(k, v){ try{ if(v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){} return null; }
+    function lang(){
+      try{ if(ls('luna_ui_en') === '1') return 'en'; if(ls('luna_ui_vi') === '1') return 'vi'; }catch(e){}
+      try{ var l = window._appLang || ls('luna_lang') || 'th'; return l === 'zh' ? 'zh' : 'th'; }catch(e){ return 'th'; }
+    }
+    var TX = {
+      zh: { t: '想用产后护理功能吗？', d: '我们在考虑加入：恶露、伤口、情绪和复诊记录。你的选择会帮我们决定要不要做。', y: '想', n: '不想', x: '先不选' },
+      th: { t: 'อยากใช้ฟีเจอร์ดูแลหลังคลอดไหม?', d: 'เรากำลังพิจารณาเพิ่มการบันทึกน้ำคาวปลา แผล อารมณ์ และการตรวจติดตาม คำตอบของคุณช่วยให้เราตัดสินใจได้', y: 'อยากใช้', n: 'ไม่อยากใช้', x: 'ข้ามไปก่อน' },
+      en: { t: 'Want a postpartum care feature?', d: 'We are considering lochia, wound, mood and follow-up tracking. Your answer helps us decide.', y: 'Yes', n: 'No', x: 'Skip' },
+      vi: { t: 'Bạn có muốn tính năng chăm sóc sau sinh không?', d: 'Chúng tôi đang cân nhắc thêm ghi chép sản dịch, vết thương, tâm trạng và tái khám. Lựa chọn của bạn giúp chúng tôi quyết định.', y: 'Muốn', n: 'Không muốn', x: 'Bỏ qua' }
+    };
+    function shown(el){ if(!el) return false; try{ var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0.05; }catch(e){ return false; } }
+    function ttcOn(){ try{ return !!(window.LunaTtc && window.LunaTtc.isActive() && !(window.LunaPreg && (window.LunaPreg.isActive() || (window.LunaPreg.post && window.LunaPreg.post.isActive())))); }catch(e){ return false; } }
+    function homeClear(){
+      var ids = ['onboardGate','trialIntroModal','obTrialConfirmLoadingOverlay','guestLoginModal','sysPopupNotice','consentOverlay','langGate','codeGate','freePreviewModal','mine-panel','calPanel','statsPanel','ttcSettingModal','ttcLogModal','ttcNudge','lunaOrbHint','orbLoginRequiredHint'];
+      for(var i = 0; i < ids.length; i++){ if(shown(document.getElementById(ids[i]))) return false; }
+      try{ if(document.querySelector('.modal-overlay.open, .fp-root.open')) return false; }catch(e){}
+      return true;
+    }
+    function track(n){ try{ if(typeof window.trackEvent === 'function') window.trackEvent(n); }catch(e){} }
+    function remove(){ var e = document.getElementById('postcarePoll'); if(e && e.parentNode) e.parentNode.removeChild(e); }
+    function answer(v){ remove(); ls(K, v); track('postcare_' + v); }
+    function show(){
+      if(document.getElementById('postcarePoll')) return;
+      var T = TX[lang()] || TX.zh;
+      ls(K, 'shown'); track('postcare_shown');                       // 一出现就记成"已弹过"，之后不再弹
+      var el = document.createElement('div'); el.id = 'postcarePoll'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', T.t);
+      el.style.cssText = 'position:fixed;left:14px;right:14px;margin:0 auto;max-width:420px;bottom:calc(190px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));z-index:130;'
+        + 'background:#fff;border-radius:24px;padding:20px 20px 16px;box-shadow:0 12px 36px rgba(90,50,140,.22),0 2px 8px rgba(90,50,140,.10);border:1px solid rgba(124,92,191,.14);'
+        + 'font-family:inherit;color:#2d2640;opacity:0;transform:translateY(14px);transition:opacity .3s ease,transform .3s ease;';
+      el.innerHTML = '<button type="button" id="postcareX" aria-label="' + T.x + '" style="position:absolute;top:8px;right:8px;width:36px;height:36px;border:none;background:transparent;color:#9b94b0;font-size:20px;line-height:1;cursor:pointer;">✕</button>'
+        + '<div style="display:flex;gap:12px;align-items:flex-start;padding-right:26px;"><div style="flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:#f3edfb;display:flex;align-items:center;justify-content:center;font-size:24px;">🤱</div>'
+        + '<div style="flex:1;min-width:0;"><div id="postcareT" style="font-size:17px;font-weight:700;line-height:1.35;"></div><div id="postcareD" style="margin-top:6px;font-size:13.5px;line-height:1.6;color:#5f5776;"></div></div></div>'
+        + '<div style="display:flex;gap:10px;margin-top:14px;"><button type="button" id="postcareNo" style="flex:1;min-height:44px;border-radius:999px;border:1.5px solid rgba(124,92,191,.3);background:transparent;color:#6B6585;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;"></button>'
+        + '<button type="button" id="postcareYes" style="flex:1;min-height:44px;border-radius:999px;border:none;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;"></button></div>';
+      document.body.appendChild(el);
+      el.querySelector('#postcareT').textContent = T.t; el.querySelector('#postcareD').textContent = T.d;
+      el.querySelector('#postcareYes').textContent = T.y; el.querySelector('#postcareNo').textContent = T.n;
+      el.querySelector('#postcareYes').onclick = function(){ answer('want'); };
+      el.querySelector('#postcareNo').onclick = function(){ answer('no'); };
+      el.querySelector('#postcareX').onclick = function(){ answer('skip'); };
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.style.opacity = '1'; el.style.transform = 'translateY(0)'; }); });
+    }
+    var okTicks = 0, tries = 0, timer = null;
+    function stop(){ if(timer){ clearInterval(timer); timer = null; } }
+    function tick(){
+      try{
+        if(ls(K)){ stop(); return; }
+        if(++tries > 600){ stop(); return; }                       // 本次启动最多等 10 分钟
+        if(!ttcOn() || !homeClear()){ okTicks = 0; return; }
+        if(++okTicks >= 4){ stop(); show(); }                      // 备孕模式 + 干净首页连续 4 秒才弹
+      }catch(e){ stop(); }
+    }
+    if(!ls(K)) timer = setInterval(tick, 1000);
+    window.LunaPostcarePoll = { show: show, remove: remove, _ok: function(){ return ttcOn() && homeClear(); } };
+  }catch(e){ try{ console.log('LunaPostcarePoll 初始化失败（已忽略）:', e); }catch(_){} }
+})();
+
+</script>

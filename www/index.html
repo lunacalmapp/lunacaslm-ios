@@ -3748,7 +3748,9 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
     <button onclick="LunaPreg.week.open()" style="margin-top:12px;background:transparent;border:1.5px solid var(--home-fg-muted);color:var(--home-fg);border-radius:999px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;"><span id="pregWeekBtn"></span></button>
   </div>
 
-  <!-- Bottom Nav -->
+  <div id="lunaFeelCard" class="card" style="display:none;"></div>
+
+   <!-- Bottom Nav -->
   <!-- 🌙 Luna 悬浮助手球（仅首页）-->
   <div id="lunaOrb" style="display:none;position:fixed;right:16px;bottom:120px;z-index:140;
     width:48px;height:48px;border-radius:50%;
@@ -4734,14 +4736,24 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
 
 <!-- ═══ 更多记录 全屏面板 ═══ -->
 <div id="moreLogPanel" style="display:none; position:fixed; inset:0; z-index:300; background:var(--rec-bg); overflow-y:auto; padding-bottom:40px; transition:background .4s ease;">
-
-  <!-- 顶部栏 -->
-  <div style="display:flex; align-items:center; gap:12px; padding:52px 20px 16px;">
-    <button onclick="closeMoreLog()" class="back-btn">‹</button>
-    <span style="font-family:Georgia,'Songti SC',serif; font-size:20px; color:var(--rec-fg);"><span data-i18n="detail_record">บันทึกละเอียด</span>
+  <!-- lunaLogPage 顶部栏 -->
+  <div style="position:sticky;top:0;z-index:5;background:var(--rec-bg);display:flex; align-items:center; gap:8px; padding:52px 16px 12px;">
+    <button onclick="LunaLog.close()" class="back-btn">‹</button>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:14px;">
+      <button type="button" id="lglPrev" onclick="LunaLog.go(-1)" style="border:none;background:var(--rec-btn-bg,#f4f1fb);color:var(--rec-fg);width:34px;height:34px;border-radius:50%;font-size:18px;">‹</button>
+      <span id="lglTitle" style="font-family:Georgia,'Songti SC',serif; font-size:19px; color:var(--rec-fg);min-width:90px;text-align:center;"></span>
+      <button type="button" id="lglNext" onclick="LunaLog.go(1)" style="border:none;background:var(--rec-btn-bg,#f4f1fb);color:var(--rec-fg);width:34px;height:34px;border-radius:50%;font-size:18px;">›</button>
+    </div><span style="width:40px;"></span>
   </div>
+  <div id="lglHint" style="text-align:center;font-size:11.5px;color:var(--rec-fg-muted,var(--text-muted,#8a84a0));margin:-4px 16px 10px;letter-spacing:.2px;"></div>
 
   <div style="padding:0 16px; display:flex; flex-direction:column; gap:14px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; background:var(--rec-surface-bg,#f8f6fd); border-radius:14px; padding:14px 16px;">
+      <div style="display:flex; align-items:center; gap:10px;"><span style="font-size:20px;">🩸</span>
+        <div style="font-size:14px; font-weight:600; color:var(--rec-fg);"><span data-i18n="mark_period_day">ทำเครื่องหมายวันมีประจำเดือน</span></div></div>
+      <label class="day-switch"><input type="checkbox" id="lglPeriod"><span class="day-slider"></span></label>
+    </div>
+
 
     <!-- 流量 -->
     <div class="mr-card">
@@ -4833,6 +4845,16 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
             <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😞</div><div class="mr-lbl" data-i18n="mood_disappointed">ผิดหวัง</div></div>
             <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😪</div><div class="mr-lbl" data-i18n="mood_tired">เหนื่อยใจ</div></div>
           </div>
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">⚡</div><div class="mr-lbl" data-i18n="mx_energ">มีพลัง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😆</div><div class="mr-lbl" data-i18n="mx_playful">ร่าเริง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🎭</div><div class="mr-lbl" data-i18n="mx_swing">อารมณ์แกว่ง</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🌧️</div><div class="mr-lbl" data-i18n="mx_depr">ซึมเศร้า</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">😓</div><div class="mr-lbl" data-i18n="mx_guilt">รู้สึกผิด</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🔁</div><div class="mr-lbl" data-i18n="mx_rumi">คิดวนซ้ำ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🪫</div><div class="mr-lbl" data-i18n="mx_lowe">หมดแรงใจ</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🪞</div><div class="mr-lbl" data-i18n="mx_selfc">โทษตัวเอง</div></div>
+          </div>
         </div>
         <div class="mr-pager"></div>
       </div>
@@ -4864,6 +4886,15 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
             <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🧠</div><div class="mr-lbl" data-i18n="sym_brainfog">คิดไม่ค่อยออก</div></div>
             <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">👃</div><div class="mr-lbl" data-i18n="sym_smell">ไวต่อกลิ่น</div></div>
             <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🫃</div><div class="mr-lbl" data-i18n="sym_severecramp">ปวดบีบรุนแรง</div></div>
+          </div>
+          <div class="mr-carousel-page">
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🩷</div><div class="mr-lbl" data-i18n="sx2_breast">เจ็บเต้านม</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🛏️</div><div class="mr-lbl" data-i18n="sx2_sleepy">ง่วงนอน</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">💧</div><div class="mr-lbl" data-i18n="sx2_nip">มีน้ำนมไหลจากหัวนม</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🚻</div><div class="mr-lbl" data-i18n="sx2_urin">ปัสสาวะบ่อย</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🦿</div><div class="mr-lbl" data-i18n="sx2_leg">ตะคริวที่ขา</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">🦷</div><div class="mr-lbl" data-i18n="sx2_gum">เหงือกมีเลือดออก</div></div>
+            <div class="mr-btn mr-multi" onclick="toggleMr(this)"><div class="mr-icon">✅</div><div class="mr-lbl" data-i18n="sx2_ok">สุขภาพดี</div></div>
           </div>
         </div>
         <div class="mr-pager"></div>
@@ -4934,6 +4965,8 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
       </div>
     </div>
 
+    <div id="mrxMore" style="display:contents;"></div>
+
     <!-- 备注 -->
     <div class="mr-card">
       <div class="mr-section-title"><span>📝</span> <span data-i18n="notes_title">บันทึกเพิ่ม</span></div>
@@ -4950,7 +4983,7 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
 
   <!-- 保存按钮 -->
   <div style="padding:20px 16px 0;">
-    <button class="save-btn" onclick="saveMoreLog()"><span data-i18n="save_btn_icon">💾 บันทึก</span></button>
+    <button class="save-btn" onclick="LunaLog.save()"><span data-i18n="save_btn_icon">💾 บันทึก</span></button>
   </div>
 </div>
 
@@ -11610,7 +11643,7 @@ window.setLang = setLang;
         const nextPeriod = readStatText('nextDate');
         const symCount = {};
         (typeof logs !== 'undefined' ? logs : []).forEach(l => { if(l && Array.isArray(l.symptoms)) l.symptoms.forEach(s=>{
-          if(typeof s !== 'string' || s.includes('（อารมณ์）')) return;
+          if(typeof s !== 'string' || s.includes('（อารมณ์）') || s.indexOf('ไลฟ์：') === 0) return;
           const name = s.replace('（ปริมาณ）','').replace('（สี）','');
           symCount[name] = (symCount[name]||0)+1;
         }); });
@@ -14230,10 +14263,13 @@ window.setLang = setLang;
 
   function openMoreLog() {
     closeModal();
+    if(window.LunaLog){ window.LunaLog.open(); return; }
+    try{ if(window.LunaMrx) window.LunaMrx.onOpen(); }catch(e){}
     document.getElementById('moreLogPanel').style.display = 'block';
     document.body.style.overflow = 'hidden';
   }
   function closeMoreLog() {
+    if(window.LunaLog && window.LunaLog.isOpen()){ window.LunaLog.close(); return; }
     document.getElementById('moreLogPanel').style.display = 'none';
     document.body.style.overflow = '';
   }
@@ -14594,14 +14630,15 @@ window.setLang = setLang;
     // 多选症状
     document.querySelectorAll('.mr-btn.sel-multi').forEach(btn => {
       const emoji = btn.querySelector('.mr-icon').textContent.trim();
-      const name  = btn.querySelector('.mr-lbl').textContent.trim();
+      const name0 = btn.querySelector('.mr-lbl').textContent.trim();
+      const name  = (window.LunaMrx && (btn.getAttribute('data-life') || btn.getAttribute('data-store-th'))) ? window.LunaMrx.storeName(btn, name0) : name0;
       items.push({ emoji, name });
     });
     // 备注
     document.querySelectorAll('.mr-textarea').forEach((ta, i) => {
       if (ta.value.trim()) items.push({ emoji: i === 0 ? '📝' : '✍️', name: ta.value.trim() });
     });
-    return items;
+    { const _seen = {}; return items.filter(it => { if(_seen[it.name]) return false; _seen[it.name] = 1; return true; }); }
   }
 
   // 🌙 用"记录前"的经期数据估算上一次预测的经期开始日，供命中提示用（不影响原有的 calUpdateStats 显示逻辑）
@@ -14753,6 +14790,7 @@ window.setLang = setLang;
   window.saveLog = saveLog;
 
   function saveMoreLog() {
+    try{ if(window.LunaMrx) window.LunaMrx.before(); }catch(e){}
     // 🩹 记录永久免费，去掉付费墙拦截（跟 Android 版对齐）
     const symptoms = collectDetailSymptoms();
     const key = getTodayKey();
@@ -14763,7 +14801,7 @@ window.setLang = setLang;
     const otherTxt = otherEl ? otherEl.value.trim() : '';
     const note = [noteTxt, otherTxt].filter(Boolean).join(' · ');
 
-    if (symptoms.length > 0 || note) {
+    if (symptoms.length > 0 || note || (window.LunaMrx && window.LunaMrx.has())) {
       let logArr = [];
       try { logArr = JSON.parse(localStorage.getItem(_acctKey('luna_logs')) || '[]'); if(!Array.isArray(logArr)) logArr = []; } catch(e) { logArr = []; }
       const existing = logArr.findIndex(l => l && l.date === key);
@@ -14776,8 +14814,9 @@ window.setLang = setLang;
         logArr[existing].emojis   = mergedE;
         // 备注：追加（新备注接在旧备注后，避免覆盖丢失）
         if (note) logArr[existing].note = [logArr[existing].note, note].filter(Boolean).join(' · ');
+        try{ if(window.LunaMrx) window.LunaMrx.apply(logArr[existing]); }catch(e){}
       } else {
-        logArr.unshift({ date: key, symptoms: symptoms.map(s=>s.name), emojis: symptoms.map(s=>s.emoji), note: note });
+        { const _ne = { date: key, symptoms: symptoms.map(s=>s.name), emojis: symptoms.map(s=>s.emoji), note: note }; try{ if(window.LunaMrx) window.LunaMrx.apply(_ne); }catch(e){} logArr.unshift(_ne); }
       }
       // 🩹 本地写入单独try/catch，本地存满不影响云端同步照常尝试（跟 saveLog 同一套修法）
       try { localStorage.setItem(_acctKey('luna_logs'), JSON.stringify(logArr)); }
@@ -14797,6 +14836,7 @@ window.setLang = setLang;
     });
     document.querySelectorAll('.mr-textarea').forEach(ta => ta.value = '');
     document.getElementById('colorTip').style.display = 'none';
+    try{ if(window.LunaMrx) window.LunaMrx.after(); }catch(e){}
     closeMoreLog();
     showToast(_appLang==='zh'?'详细记录已保存 ✓':'บันทึกรายละเอียดแล้ว ✓');
     // 🌙 详细记录里选了疼痛类症状，或备注里写了不舒服，也一样触发关心
@@ -14911,13 +14951,15 @@ window.setLang = setLang;
         const rawSym = (l.symptoms&&l.symptoms[si])||'';
         // 流量/颜色/心情这几种带括号后缀的标签不是真正的"症状"，不套症状翻译表
         // （硬套会把后缀词换了、前面的泰语心情词却没跟着换，变成"ดีใจ（情绪）"这种怪异混合）
-        const isAnnotated = rawSym.includes('（ปริมาณ）')||rawSym.includes('（สี）')||rawSym.includes('（อารมณ์）');
-        const dispSym = isAnnotated ? rawSym : translateSym(rawSym);
+        const _lf = rawSym.indexOf('ไลฟ์：') === 0;
+        const isAnnotated = _lf||rawSym.includes('（ปริมาณ）')||rawSym.includes('（สี）')||rawSym.includes('（อารมณ์）');
+        const dispSym = _lf ? rawSym.replace(/^ไลฟ์：/, '') : (isAnnotated ? rawSym : translateSym(rawSym));
         // 🔒 dispSym 可能来自用户在"其他症状"里打的自由文本，之前没转义就直接拼进 innerHTML，
         // 打个 <img onerror=...> 之类的会被当真 HTML 执行——现在过一遍 escHtml 堵住
         return `<span class="log-tag log-tag-del" onclick="confirmDeleteTag(${origIdx},${si})">${e} ${escHtml(dispSym)}<span class="log-tag-x">✕</span></span>`;
       }).join('');
       // 🔒 备注原来只转义了 < 一个字符（够挡住开标签，但不完整）；统一换成 escHtml 全转义
+      const metaHtml = (l.water > 0 || l.weight > 0) ? `<div class="log-tags">${l.water > 0 ? `<span class="log-tag">💧 ${l.water} ml</span>` : ''}${l.weight > 0 ? `<span class="log-tag">⚖️ ${l.weight} kg</span>` : ''}</div>` : '';
       const noteHtml = l.note ? `<div class="log-note log-note-del" onclick="confirmDeleteNote(${origIdx})">📝 ${escHtml(l.note)}<span class="log-note-x">✕</span></div>` : '';
       return `
         <div class="log-entry" id="logentry-${origIdx}">
@@ -14926,6 +14968,7 @@ window.setLang = setLang;
             <button class="log-del-btn" onclick="confirmDeleteLog(${origIdx})">🗑</button>
           </div>
           ${tagsHtml ? `<div class="log-tags">${tagsHtml}</div>` : ''}
+          ${metaHtml}
           ${noteHtml}
         </div>`;
     }).join('');
@@ -15003,7 +15046,7 @@ window.setLang = setLang;
     if(Array.isArray(l.emojis))   l.emojis.splice(si, 1);
     if(Array.isArray(l.symptoms)) l.symptoms.splice(si, 1);
     // 这一天既没表情也没备注了 → 整条移除
-    if((!l.emojis || l.emojis.length === 0) && !l.note){ logs.splice(idx, 1); }
+    if((!l.emojis || l.emojis.length === 0) && !l.note && !(l.water > 0) && !(l.weight > 0)){ logs.splice(idx, 1); }
     saveLogs();
     if(typeof renderLogList==='function') renderLogList();
     if(typeof calUpdateStats==='function') calUpdateStats();
@@ -15023,7 +15066,7 @@ window.setLang = setLang;
     if(!l) return;
     delete l.note;
     // 备注删了之后这一天也没表情了 → 整条移除
-    if(!l.emojis || l.emojis.length === 0){ logs.splice(idx, 1); }
+    if((!l.emojis || l.emojis.length === 0) && !(l.water > 0) && !(l.weight > 0)){ logs.splice(idx, 1); }
     saveLogs();
     if(typeof renderLogList==='function') renderLogList();
     if(typeof calUpdateStats==='function') calUpdateStats();
@@ -19940,6 +19983,7 @@ window.setLang = setLang;
   let currentDayKey = null;
 
   function openDayDetail() {
+    if(window.LunaLog){ var _k=currentDayKey; try{ document.getElementById('dayModal').classList.remove('open'); }catch(e){} window.LunaLog.open(_k); return; }
     const [y,m,d] = currentDayKey.split('-').map(Number);
     document.getElementById('dayDetailTitle').textContent = _appLang==='zh' ? `${m}月${d}日 详细记录` : `${d} ${MONTHS_TH[m-1]} บันทึกละเอียด`;
     // reset all
@@ -19951,7 +19995,8 @@ window.setLang = setLang;
     // pre-fill from existing log
     const ex = logs.find(l => l.date === currentDayKey);
     if (ex) {
-      ex.symptoms.forEach((name, i) => {
+      ex.symptoms.forEach((name0, i) => {
+        const name = String(name0).replace(/^ไลฟ์：/, '');
         document.querySelectorAll('#dayDetailPanel .mr-lbl').forEach(lbl => {
           if (lbl.textContent.trim() === name || name.startsWith(lbl.textContent.trim())) {
             const btn = lbl.closest('.mr-btn');
@@ -20005,7 +20050,7 @@ window.setLang = setLang;
     // multi-select items
     document.querySelectorAll('#dayDetailPanel .dd-multi.sel-multi').forEach(btn => {
       emojis.push(btn.querySelector('.mr-icon').textContent.trim());
-      symptoms.push(btn.querySelector('.mr-lbl').textContent.trim());
+      { const _n0 = btn.querySelector('.mr-lbl').textContent.trim(); symptoms.push((window.LunaMrx && btn.getAttribute('data-life')) ? window.LunaMrx.storeName(btn, _n0) : _n0); }
     });
 
     // notes
@@ -21715,7 +21760,7 @@ window.setLang = setLang;
       const avgPeriod = readStatText('statAvgPeriod');
       const symCount = {};
       logs.forEach(l => { if (l && Array.isArray(l.symptoms)) l.symptoms.forEach(s => {
-        if (typeof s !== 'string' || s.includes('（อารมณ์）')) return;
+        if (typeof s !== 'string' || s.includes('（อารมณ์）') || s.indexOf('ไลฟ์：') === 0) return;
         const name = s.replace('（ปริมาณ）', '').replace('（สี）', '');
         symCount[name] = (symCount[name] || 0) + 1;
       }); });
@@ -21962,7 +22007,7 @@ window.setLang = setLang;
               const emoji=MOODS[s], key='mood:'+emoji;
               if(!itemMap[key]) itemMap[key]={isMood:true, emoji, count:0, dates:[]};
               itemMap[key].count++; itemMap[key].dates.push(l.date);
-            } else if(s.indexOf('บันทึก：')===0 || s.indexOf('อื่นๆ：')===0 || s==='อารมณ์' || s==='情绪'
+            } else if(s.indexOf('บันทึก：')===0 || s.indexOf('ไลฟ์：')===0 || s.indexOf('อื่นๆ：')===0 || s==='อารมณ์' || s==='情绪'
               || s.includes('（ปริมาณ）') || s.includes('（สี）') || s.includes('（อารมณ์）')){
               /* 备注/流量/颜色/情绪占位等非真正"症状"的条目，不计入 */
             } else {
@@ -22407,7 +22452,7 @@ window.setLang = setLang;
           if(MOODS[s]!==undefined){ moodCount[s]=(moodCount[s]||0)+1; }
           // ✨ 修复：备注(บันทึก：)和其他(อื่นๆ：)里填的是用户自由输入的文字，不是真正的"症状"选项，
           //    不应该拿去参与"最常见症状"统计——不然写过的备注偶尔会被误判成"最多症状"显示出来
-          else if(s.indexOf('บันทึก：')===0 || s.indexOf('อื่นๆ：')===0){ /* 跳过，不计入symCount */ }
+          else if(s.indexOf('บันทึก：')===0 || s.indexOf('ไลฟ์：')===0 || s.indexOf('อื่นๆ：')===0){ /* 跳过，不计入symCount */ }
           else { symCount[s]=(symCount[s]||0)+1; }
         });
       }
@@ -22617,7 +22662,7 @@ window.setLang = setLang;
       const symCount = {};
       logs.forEach(l=>{ if(!l||!Array.isArray(l.symptoms)) return; l.symptoms.forEach((s)=>{
         if(typeof s!=='string') return;
-        if(s.includes('（ปริมาณ）')||s.includes('（สี）')||s.includes('（อารมณ์）')||s.startsWith('บันทึก')||s.startsWith('อื่นๆ')||s==='อารมณ์'||s==='情绪') return;
+        if(s.includes('（ปริมาณ）')||s.includes('（สี）')||s.includes('（อารมณ์）')||s.startsWith('บันทึก')||s.startsWith('ไลฟ์：')||s.startsWith('อื่นๆ')||s==='อารมณ์'||s==='情绪') return;
         const rawName=s.replace('（ปริมาณ）','').replace('（สี）','').replace('（อารมณ์）','');
         const canon=toZhCanonical(rawName);
         symCount[canon]=(symCount[canon]||0)+1;
@@ -25723,6 +25768,8 @@ window.lunaTtcMk = function(c, ic){
         <div class="mr-btn dd-multi" onclick="this.classList.toggle('sel-multi')"><div class="mr-icon">🤕</div><div class="mr-lbl" data-i18n="sym_headache">ปวดหัว</div></div>
       </div>
     </div>
+
+    <div id="mrxDay" style="display:contents;"></div>
 
     <!-- 备注 -->
     <div class="mr-card">
@@ -29032,7 +29079,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
         ph = (ps && ps.has) ? phaseAt(l.date, ps.starts, cl, pl) : null;
         for(j = 0; j < l.symptoms.length; j++){
           x = l.symptoms[j]; if(typeof x !== 'string') continue;
-          if(x.indexOf('บันทึก：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
+          if(x.indexOf('บันทึก：') === 0 || x.indexOf('ไลฟ์：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
           mk = moodKey(x);
           if(mk){ mood[mk] = (mood[mk] || 0) + 1; nM++; if(ph) phM[ph] = (phM[ph] || 0) + 1; continue; }
           c = canonSym(x); try{ if(window.toZhCanonical) c = window.toZhCanonical(c); }catch(e){}
@@ -29529,6 +29576,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
       }
       return out.slice(0, 14);
     }
+    /*lunaClosingLang*/ function apiLangOf(zh){ if(!zh) return 'th'; try{ var l = (typeof window.lunaApiLang === 'function') ? window.lunaApiLang('zh') : 'zh'; return (l === 'vi' || l === 'en') ? l : 'zh'; }catch(e){ return 'zh'; } }   // 英文/越南语模式也是 _appLang==='zh'，之前一律发 zh，AI 就写成中文
     function getAuth(){ try{ return window.auth || (typeof auth !== 'undefined' ? auth : null); }catch(e){ return null; } }
     function fetchClosing(mode, facts, zh){
       return new Promise(function(resolve){
@@ -29542,7 +29590,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
           try{
             var a = getAuth(); if(!a || !a.currentUser) return fin(null, false);
             a.currentUser.getIdToken().then(function(tok){
-              return fetch(CLOSING_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ mode: mode, lang: zh ? 'zh' : 'th', facts: facts }), signal: ctl ? ctl.signal : undefined });
+              return fetch(CLOSING_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ mode: mode, lang: apiLangOf(zh), facts: facts }), signal: ctl ? ctl.signal : undefined });
             }).then(function(rs){
               if(rs.ok) return rs.json().then(function(d){ fin(d && typeof d.text === 'string' && d.text.length >= 20 ? d.text : null, true); });
               fin(null, rs.status >= 500);                   // 502/5xx 重试一次；403/429/400 不重试，直接用模版
@@ -29562,7 +29610,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
       return fetchClosing(md0, facts, zh);
     }
     function hsh(t){ var h = 5381, i; for(i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h); }
-    function clKey(md0, zh, facts){ return U.fmtKey(U.todayDate()) + '|' + md0 + '|' + (zh ? 'zh' : 'th') + '|' + hsh(facts.join('|')); }
+    function clKey(md0, zh, facts){ return U.fmtKey(U.todayDate()) + '|' + md0 + '|' + apiLangOf(zh) + '|' + hsh(facts.join('|')); }
     function readCl(md0, zh, facts){ try{ var o = JSON.parse(localStorage.getItem(K('luna_modeai_cl')) || 'null'); return (o && o.k === clKey(md0, zh, facts) && typeof o.text === 'string') ? o.text : null; }catch(e){ return null; } }
     function saveCl(md0, zh, facts, text){ try{ localStorage.setItem(K('luna_modeai_cl'), JSON.stringify({ k: clKey(md0, zh, facts), text: text })); }catch(e){} }
 
@@ -32987,7 +33035,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         nDays++;
         for(j = 0; j < l.symptoms.length; j++){
           x = l.symptoms[j]; if(typeof x !== 'string') continue;
-          if(x.indexOf('บันทึก：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
+          if(x.indexOf('บันทึก：') === 0 || x.indexOf('ไลฟ์：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
           c = String(x).replace(/（อารมณ์）|（ปริมาณ）|（สี）/g, '').trim();
           var mk = MOOD_ZH[c] ? c : null;
           if(!mk){ for(var k in MOOD_ZH) if(MOOD_ZH[k] === c) mk = k; }
@@ -33692,6 +33740,614 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 (function(){try{var E={"离易孕期还有 {} 天（{} 开始）": "Fertile window in {} days (starts {})", "离易孕期还有 {} 天": "Fertile window in {} days", "易孕期 {} · 预测排卵 {}": "Fertile window {} · predicted ovulation {}", "易孕期 第 {} 天": "Fertile window · day {}", "怀孕的机会在上升 · 预测排卵 {}（还有 {} 天）": "Chances are rising · predicted ovulation {} ({} days to go)", "预测排卵还有 {} 天 · 这几天怀孕机会最高": "Ovulation expected in {} days · your best chances are these days", "两周等待期 · 排卵后第 {} 天": "Two-week wait · day {} after ovulation", "从 {} 起验孕更准 · 还有 {} 天": "Testing is more accurate from {} · {} days to go", "备孕 · 周期第 {} 天": "Trying to conceive · cycle day {}", "🌱 备孕 · 周期第 {} 天": "🌱 Trying to conceive · cycle day {}", "备孕第 {} 天": "Day {} of trying to conceive", "{} · 还有 {} 天": "{} · {} days to go", "{}月{}日 – {}月{}日": "{}/{} – {}/{}"},V={"离易孕期还有 {} 天（{} 开始）": "Còn {} ngày đến thời kỳ dễ thụ thai (bắt đầu {})", "离易孕期还有 {} 天": "Còn {} ngày đến thời kỳ dễ thụ thai", "易孕期 {} · 预测排卵 {}": "Thời kỳ dễ thụ thai {} · dự đoán rụng trứng {}", "易孕期 第 {} 天": "Thời kỳ dễ thụ thai · ngày {}", "怀孕的机会在上升 · 预测排卵 {}（还有 {} 天）": "Cơ hội thụ thai đang tăng · dự đoán rụng trứng {} (còn {} ngày)", "预测排卵还有 {} 天 · 这几天怀孕机会最高": "Còn {} ngày đến rụng trứng · những ngày này khả năng thụ thai cao nhất", "两周等待期 · 排卵后第 {} 天": "Hai tuần chờ đợi · ngày {} sau rụng trứng", "从 {} 起验孕更准 · 还有 {} 天": "Thử thai chính xác hơn từ {} · còn {} ngày", "备孕 · 周期第 {} 天": "Chuẩn bị mang thai · ngày {} của chu kỳ", "🌱 备孕 · 周期第 {} 天": "🌱 Chuẩn bị mang thai · ngày {} của chu kỳ", "备孕第 {} 天": "Ngày {} chuẩn bị mang thai", "{} · 还有 {} 天": "{} · còn {} ngày"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
 <script id="lunaHrI18n">/* 健康报告门槛改为 3 个月：进度/说明文字的英文、越南文模板。只补不改。 */
 (function(){try{var E={"已记录 {}/{} 个月 · 看示例报告": "{}/{} months logged · see a sample report", "已记录 {}/{} 个月 · 满 {} 个月生成报告": "{}/{} months logged · report unlocks at {} months", "再记录 {} 个月的月经，就能生成你的健康报告。": "Log your period in {} more months to unlock your health report.", "💡 同一个月里不管记几次，都只算一个月。需要 {} 个不同的月份各有月经记录。": "💡 However many times you log in the same month, it counts as one month. You need period records in {} different months.", "同一个月里不管记几次，都只算一个月。需要 {} 个不同的月份各有月经记录。": "However many times you log in the same month, it counts as one month. You need period records in {} different months."},V={"已记录 {}/{} 个月 · 看示例报告": "Đã ghi {}/{} tháng · xem báo cáo mẫu", "已记录 {}/{} 个月 · 满 {} 个月生成报告": "Đã ghi {}/{} tháng · đủ {} tháng sẽ tạo báo cáo", "再记录 {} 个月的月经，就能生成你的健康报告。": "Ghi thêm kinh nguyệt của {} tháng nữa để mở báo cáo sức khỏe của bạn.", "💡 同一个月里不管记几次，都只算一个月。需要 {} 个不同的月份各有月经记录。": "💡 Ghi bao nhiêu lần trong cùng một tháng cũng chỉ tính là một tháng. Cần có ghi chép kinh nguyệt ở {} tháng khác nhau.", "同一个月里不管记几次，都只算一个月。需要 {} 个不同的月份各有月经记录。": "Ghi bao nhiêu lần trong cùng một tháng cũng chỉ tính là một tháng. Cần có ghi chép kinh nguyệt ở {} tháng khác nhau."},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
+<script id="lunaModeAiI18n">/* 备孕/孕期/统计/分析页：英文/越南文模式补充模板与后处理规则（只补不改）。 */
+(function(){try{var E={"你的周期很稳定（最近几次只差 {} 天），这是身体状态不错的好信号。": "Your cycle is very steady (the last few differed by only {} days), which is a good sign that your body is doing well.", "你的周期有些浮动（最近几次相差 {} 天），预测会有误差；坚持记录，Luna 会越来越懂你。如果经常大幅提前或推迟，建议咨询医生。": "Your cycle fluctuates a bit (the last few differed by {} days), so predictions may be off. Keep logging and Luna will get to know you better. If it often comes much earlier or later, consider talking to a doctor.", "{}（已推迟 {} 天）": "{} ({} days late)", "{}（占 {}%）": "{} ({}% of logs)", "{}（窗口内还没有记录）": "{} (nothing logged in the window yet)", "{} kg（自 {} 起）": "{} kg (since {})", "{}（{} 天后）": "{} (in {} days)", "下次产检在 {} 天后（{}），别忘了带上这份记录。": "Your next checkup is in {} days ({}). Don't forget to bring this record.", "看看宝宝怎么样了": "See how baby is doing"},V={"你的周期很稳定（最近几次只差 {} 天），这是身体状态不错的好信号。": "Chu kỳ của bạn rất đều (vài chu kỳ gần đây chỉ lệch nhau {} ngày), đây là dấu hiệu tốt cho thấy cơ thể bạn đang ổn.", "你的周期有些浮动（最近几次相差 {} 天），预测会有误差；坚持记录，Luna 会越来越懂你。如果经常大幅提前或推迟，建议咨询医生。": "Chu kỳ của bạn hơi dao động (vài chu kỳ gần đây lệch nhau {} ngày) nên dự đoán có thể sai lệch. Hãy tiếp tục ghi chép, Luna sẽ ngày càng hiểu bạn hơn. Nếu thường xuyên đến sớm hoặc muộn nhiều, nên hỏi bác sĩ.", "{}（已推迟 {} 天）": "{} (trễ {} ngày)", "{}（占 {}%）": "{} (chiếm {}%)", "{}（窗口内还没有记录）": "{} (chưa có ghi chép trong khoảng này)", "{} kg（自 {} 起）": "{} kg (từ {})", "{}（{} 天后）": "{} (sau {} ngày)", "下次产检在 {} 天后（{}），别忘了带上这份记录。": "Lần khám thai tiếp theo sau {} ngày ({}), đừng quên mang theo bản ghi này.", "看看宝宝怎么样了": "Xem em bé thế nào rồi"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
+<script id="lunaModeAiI18n2">/* 补充模板（只补不改） */
+(function(){try{var E={"月经已经推迟 {} 天，不管是期待还是紧张都很正常。": "Your period is {} days late. Whether you're hopeful or anxious, that's completely normal.", "晨尿验孕最准；如果迟迟不来又测不出，也可以去医院抽血确认": "A first-morning-urine test is the most accurate; if your period still hasn't come and tests show nothing, you can have a blood test at a clinic to confirm", "数据还不够（已有 {} 个周期，满 3 个更准）": "Not enough data yet (cycles logged: {}; 3 cycles give a more accurate result)", "你已经备孕约 {} 个月了，建议和医生聊聊，做一次检查，也能更安心": "You've been trying for about {} months. It may be worth talking to a doctor and getting a check-up for peace of mind.", "（已超过 {} 天）": " ({} days overdue)", "已超过 {} 天": "{} days overdue"},V={"月经已经推迟 {} 天，不管是期待还是紧张都很正常。": "Kỳ kinh đã trễ {} ngày. Dù là mong đợi hay hồi hộp thì đều rất bình thường.", "晨尿验孕最准；如果迟迟不来又测不出，也可以去医院抽血确认": "Thử thai bằng nước tiểu buổi sáng là chính xác nhất; nếu kinh vẫn chưa đến mà thử không ra, bạn cũng có thể đi xét nghiệm máu tại cơ sở y tế để xác nhận", "数据还不够（已有 {} 个周期，满 3 个更准）": "Chưa đủ dữ liệu (đã có {} chu kỳ; đủ 3 chu kỳ sẽ chính xác hơn)", "你已经备孕约 {} 个月了，建议和医生聊聊，做一次检查，也能更安心": "Bạn đã chuẩn bị mang thai khoảng {} tháng. Nên trao đổi với bác sĩ và đi khám để yên tâm hơn.", "（已超过 {} 天）": " (quá {} ngày)", "已超过 {} 天": "quá {} ngày"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }var k0="月经快到啦（预计 {nx}），提前备好用品、给自己留一点轻松的时间 🌙";if(window.LUNA_EN[k0]&&!window.LUNA_EN[k0+" {symTip}"]) window.LUNA_EN[k0+" {symTip}"]=window.LUNA_EN[k0]+" {symTip}";if(window.LUNA_VI[k0]&&!window.LUNA_VI[k0+" {symTip}"]) window.LUNA_VI[k0+" {symTip}"]=window.LUNA_VI[k0]+" {symTip}";}catch(e){}})();</script>
+<script id="lunaModeAiI18n3">/* 补充模板（只补不改） */
+(function(){try{var E={"最近一次：{} kg（{}）　比第一次记录 {} kg": "Most recent: {} kg ({}) · {} kg vs. first record", "约 {}": "about {}"},V={"最近一次：{} kg（{}）　比第一次记录 {} kg": "Gần nhất: {} kg ({}) · {} kg so với lần ghi đầu", "约 {}": "khoảng {}"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }var k0="月经快到啦（预计 {nx}），提前备好用品、给自己留一点轻松的时间 🌙";if(window.LUNA_EN[k0]&&!window.LUNA_EN[k0+" {symTip}"]) window.LUNA_EN[k0+" {symTip}"]=window.LUNA_EN[k0]+" {symTip}";if(window.LUNA_VI[k0]&&!window.LUNA_VI[k0+" {symTip}"]) window.LUNA_VI[k0+" {symTip}"]=window.LUNA_VI[k0]+" {symTip}";}catch(e){}})();</script>
+<script id="lunaModeAiI18n4">/* 补充模板（只补不改） */
+(function(){try{var E={"产后第 {} 天": "Day {} postpartum", "产后第 {}": "Day {} postpartum"},V={"产后第 {} 天": "Ngày {} sau sinh", "产后第 {}": "Ngày {} sau sinh"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }var k0="月经快到啦（预计 {nx}），提前备好用品、给自己留一点轻松的时间 🌙";if(window.LUNA_EN[k0]&&!window.LUNA_EN[k0+" {symTip}"]) window.LUNA_EN[k0+" {symTip}"]=window.LUNA_EN[k0]+" {symTip}";if(window.LUNA_VI[k0]&&!window.LUNA_VI[k0+" {symTip}"]) window.LUNA_VI[k0+" {symTip}"]=window.LUNA_VI[k0]+" {symTip}";}catch(e){}})();</script>
+<script id="lunaMrxTbl">(function(){try{var E={"有活力": "Energetic", "欢悦": "Cheerful", "情绪波动": "Mood swings", "抑郁": "Depressed", "内疚": "Guilty", "反复想同一件事": "Dwelling on one thing", "精神不振": "Low spirits", "自我苛刻": "Self-critical", "乳房压痛": "Breast tenderness", "困倦": "Sleepiness", "乳头出现乳状分泌物": "Milky nipple discharge", "尿频": "Frequent urination", "腿抽筋": "Leg cramps", "牙龈出血": "Bleeding gums", "状态良好": "Feeling fine", "性行为和性欲": "Sex and sex drive", "没有性行为": "No sex", "有保护的性行为": "Protected sex", "无保护的性行为": "Unprotected sex", "自慰": "Masturbation", "性欲旺盛": "High sex drive", "性欲低下": "Low sex drive", "阴道分泌物": "Vaginal discharge", "无分泌物": "No discharge", "乳液状": "Creamy", "粘稠": "Sticky", "分泌物增多": "Increased discharge", "点滴出血": "Spotting", "异常分泌物": "Unusual discharge", "食欲": "Appetite", "厌食": "Aversion to food", "食欲增强": "Increased appetite", "食欲下降": "Decreased appetite", "消化和排便": "Digestion and stool", "胃灼热": "Heartburn", "呕吐": "Vomiting", "消化正常": "Normal digestion", "大便正常": "Normal stool", "水肿": "Swelling", "四肢水肿": "Swollen limbs", "面部水肿": "Facial swelling", "鼻塞": "Stuffy nose", "其他": "Other", "旅行": "Travel", "压力": "Stress", "疾病或损伤": "Illness or injury", "酒精": "Alcohol", "体力活动": "Physical activity", "没有锻炼": "No exercise", "瑜伽": "Yoga", "健身": "Gym", "健身操和舞蹈": "Aerobics and dance", "游泳": "Swimming", "团队运动": "Team sports", "跑步": "Running", "骑自行车": "Cycling", "散步": "Walking", "今天": "Today", "昨天": "Yesterday", "这一天的修改还没保存，要保存吗？": "You have unsaved changes for this day. Save them?", "不保存": "Don't save", "取消": "Cancel", "今天感觉怎么样？": "How are you feeling today?", "全部记录": "All logs", "新": "New", "已记录 ✓": "Logged ✓", "已取消记录": "Log removed", "已保存 ✓": "Saved ✓", "孕期提醒": "Pregnancy reminders", "每一项都能单独开关；关掉 App 后手机也会提醒（需要允许系统通知）": "Turn each one on or off separately; they also work when the app is closed (system notifications must be allowed)", "孕周更新": "Week-by-week update", "每进入新的一周，早上 9:00": "Each new week, at 9:00 AM", "记录体重": "Weigh-in", "每周一次，早上 7:00；晚上 8:00 还没记会再提醒一次": "Weekly at 7:00 AM; a second reminder at 8:00 PM if not logged", "数胎动": "Kick counting", "孕 28 周起，每晚 8:00": "From week 28, every night at 8:00 PM", "预产期临近": "Due date approaching", "满 37 周时，以及预产期前 7 天": "At 37 weeks, and 7 days before the due date", "🤰 孕 {w} 周了": "🤰 You are {w} weeks pregnant", "点开看看这一周宝宝和身体的变化": "Open to see what changes this week for baby and you", "⚖️ 该记录体重了": "⚖️ Time to log your weight", "每周记一次，就能看到变化曲线": "Log it weekly and you will see your trend line", "⚖️ 今天还没记录体重": "⚖️ No weight logged yet today", "只要几秒钟，记一下吧": "It only takes a few seconds", "👣 数胎动时间到": "👣 Time to count kicks", "今晚安静坐一会儿，数一数宝宝的小动作": "Sit quietly for a bit tonight and count baby's movements", "🌷 已经孕 37 周了": "🌷 You have reached 37 weeks", "宝宝随时可能来报到，检查一下待产包吧": "Baby could arrive any time now, so check your hospital bag", "🌷 距离预产期还有 7 天": "🌷 7 days until your due date", "留意胎动；有规律的宫缩或任何不对劲，请联系医生": "Keep an eye on movements; contact your doctor about regular contractions or anything unusual", "‹ 左右滑动，查看其他日期的记录 ›": "‹ Swipe left or right to see other days ›", "用药": "Medication", "记录你一天服用的药物": "Log the medicines you take each day", "添加药物": "Add medicine", "设置提醒": "Set reminders", "药名（最多 30 字）": "Medicine name (up to 30 characters)", "提醒时间": "Reminder time", "到点提醒我": "Remind me at this time", "保存": "Save", "删除": "Delete", "关闭": "Close", "还没有添加药物": "No medicines added yet", "药物与提醒": "Medicines and reminders", "药物提醒只是个人备忘，不提供用药建议，也不能替代医生或药师的指导。提醒可能因手机设置、省电模式或网络而延迟或不触发，请不要完全依赖它。药名只保存在你的手机上，不会上传到服务器；也不保证避孕效果。": "Medicine reminders are a personal memo only. They are not medical advice and do not replace guidance from your doctor or pharmacist. Reminders may be delayed or may not fire because of phone settings, battery saver or network, so please do not rely on them alone. Medicine names stay on your phone and are not uploaded. This does not guarantee contraceptive effectiveness.", "目前提醒只会在 App 打开时弹出": "For now, reminders only appear while the app is open", "该吃药了：": "Time for your medicine: ", "服药": "Took medicine", "喝水": "Water", "体重": "Weight", "记录你的体重（公斤）": "Log your weight (kg)", "更多心情": "More moods", "更多症状": "More symptoms", "服药 {}": "Took medicine {}", "该吃药了：{}": "Time for your medicine: {}", "💊 该吃药了：{}": "💊 Time for your medicine: {}"},V={"有活力": "Tràn đầy năng lượng", "欢悦": "Vui tươi", "情绪波动": "Tâm trạng thất thường", "抑郁": "Chán nản", "内疚": "Tội lỗi", "反复想同一件事": "Cứ nghĩ mãi một chuyện", "精神不振": "Uể oải", "自我苛刻": "Tự khắt khe với mình", "乳房压痛": "Căng tức ngực", "困倦": "Buồn ngủ", "乳头出现乳状分泌物": "Tiết dịch sữa ở núm vú", "尿频": "Tiểu nhiều", "腿抽筋": "Chuột rút chân", "牙龈出血": "Chảy máu nướu", "状态良好": "Ổn định", "性行为和性欲": "Quan hệ tình dục và ham muốn", "没有性行为": "Không quan hệ", "有保护的性行为": "Quan hệ có bảo vệ", "无保护的性行为": "Quan hệ không bảo vệ", "自慰": "Tự thỏa mãn", "性欲旺盛": "Ham muốn cao", "性欲低下": "Ham muốn thấp", "阴道分泌物": "Dịch âm đạo", "无分泌物": "Không có dịch", "乳液状": "Dạng kem", "粘稠": "Dính, đặc", "分泌物增多": "Dịch nhiều hơn", "点滴出血": "Ra máu lấm tấm", "异常分泌物": "Dịch bất thường", "食欲": "Cảm giác thèm ăn", "厌食": "Chán ăn", "食欲增强": "Ăn ngon hơn", "食欲下降": "Ăn kém đi", "消化和排便": "Tiêu hóa và đại tiện", "胃灼热": "Ợ nóng", "呕吐": "Nôn", "消化正常": "Tiêu hóa bình thường", "大便正常": "Đại tiện bình thường", "水肿": "Phù nề", "四肢水肿": "Phù tay chân", "面部水肿": "Phù mặt", "鼻塞": "Nghẹt mũi", "其他": "Khác", "旅行": "Đi du lịch", "压力": "Căng thẳng", "疾病或损伤": "Bệnh hoặc chấn thương", "酒精": "Rượu bia", "体力活动": "Hoạt động thể chất", "没有锻炼": "Không tập luyện", "瑜伽": "Yoga", "健身": "Tập gym", "健身操和舞蹈": "Aerobic và khiêu vũ", "游泳": "Bơi lội", "团队运动": "Thể thao đồng đội", "跑步": "Chạy bộ", "骑自行车": "Đạp xe", "散步": "Đi bộ", "今天": "Hôm nay", "昨天": "Hôm qua", "这一天的修改还没保存，要保存吗？": "Bạn chưa lưu thay đổi của ngày này. Lưu không?", "不保存": "Không lưu", "取消": "Hủy", "今天感觉怎么样？": "Hôm nay bạn cảm thấy thế nào?", "全部记录": "Tất cả ghi chép", "新": "Mới", "已记录 ✓": "Đã ghi ✓", "已取消记录": "Đã bỏ ghi", "已保存 ✓": "Đã lưu ✓", "孕期提醒": "Nhắc nhở thai kỳ", "每一项都能单独开关；关掉 App 后手机也会提醒（需要允许系统通知）": "Bật/tắt từng mục riêng; vẫn nhắc khi đã tắt ứng dụng (cần cho phép thông báo hệ thống)", "孕周更新": "Cập nhật tuần thai", "每进入新的一周，早上 9:00": "Mỗi khi sang tuần mới, lúc 9:00 sáng", "记录体重": "Ghi cân nặng", "每周一次，早上 7:00；晚上 8:00 还没记会再提醒一次": "Mỗi tuần một lần lúc 7:00 sáng; nhắc lại lúc 8:00 tối nếu chưa ghi", "数胎动": "Đếm cử động thai", "孕 28 周起，每晚 8:00": "Từ tuần 28, mỗi tối lúc 8:00", "预产期临近": "Sắp đến ngày dự sinh", "满 37 周时，以及预产期前 7 天": "Khi đủ 37 tuần và 7 ngày trước ngày dự sinh", "🤰 孕 {w} 周了": "🤰 Bạn đã mang thai {w} tuần", "点开看看这一周宝宝和身体的变化": "Mở xem em bé và cơ thể bạn thay đổi thế nào tuần này", "⚖️ 该记录体重了": "⚖️ Đến lúc ghi cân nặng", "每周记一次，就能看到变化曲线": "Ghi mỗi tuần một lần là thấy được đường xu hướng", "⚖️ 今天还没记录体重": "⚖️ Hôm nay chưa ghi cân nặng", "只要几秒钟，记一下吧": "Chỉ mất vài giây thôi", "👣 数胎动时间到": "👣 Đến giờ đếm cử động thai", "今晚安静坐一会儿，数一数宝宝的小动作": "Tối nay ngồi yên một lúc và đếm cử động của bé", "🌷 已经孕 37 周了": "🌷 Bạn đã đủ 37 tuần", "宝宝随时可能来报到，检查一下待产包吧": "Em bé có thể chào đời bất cứ lúc nào, hãy kiểm tra túi đồ đi sinh", "🌷 距离预产期还有 7 天": "🌷 Còn 7 ngày đến ngày dự sinh", "留意胎动；有规律的宫缩或任何不对劲，请联系医生": "Theo dõi cử động thai; hãy liên hệ bác sĩ nếu có cơn co đều đặn hoặc bất thường", "‹ 左右滑动，查看其他日期的记录 ›": "‹ Vuốt trái/phải để xem ngày khác ›", "用药": "Thuốc", "记录你一天服用的药物": "Ghi lại thuốc bạn dùng mỗi ngày", "添加药物": "Thêm thuốc", "设置提醒": "Cài nhắc nhở", "药名（最多 30 字）": "Tên thuốc (tối đa 30 ký tự)", "提醒时间": "Giờ nhắc", "到点提醒我": "Nhắc tôi đúng giờ", "保存": "Lưu", "删除": "Xóa", "关闭": "Đóng", "还没有添加药物": "Chưa thêm thuốc nào", "药物与提醒": "Thuốc và nhắc nhở", "药物提醒只是个人备忘，不提供用药建议，也不能替代医生或药师的指导。提醒可能因手机设置、省电模式或网络而延迟或不触发，请不要完全依赖它。药名只保存在你的手机上，不会上传到服务器；也不保证避孕效果。": "Nhắc thuốc chỉ là ghi chú cá nhân, không phải lời khuyên y tế và không thay thế hướng dẫn của bác sĩ hoặc dược sĩ. Lời nhắc có thể chậm hoặc không hiện do cài đặt máy, chế độ tiết kiệm pin hoặc mạng, vì vậy đừng chỉ dựa vào đó. Tên thuốc chỉ lưu trên điện thoại của bạn và không được tải lên. Không đảm bảo hiệu quả tránh thai.", "目前提醒只会在 App 打开时弹出": "Hiện lời nhắc chỉ hiện khi ứng dụng đang mở", "该吃药了：": "Đến giờ uống thuốc: ", "服药": "Đã uống thuốc", "喝水": "Nước uống", "体重": "Cân nặng", "记录你的体重（公斤）": "Ghi cân nặng của bạn (kg)", "更多心情": "Thêm tâm trạng", "更多症状": "Thêm triệu chứng", "服药 {}": "Đã uống thuốc {}", "该吃药了：{}": "Đến giờ uống thuốc: {}", "💊 该吃药了：{}": "💊 Đến giờ uống thuốc: {}"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
+<script id="lunaMrx">
+/* lunaMrx: 更多记录页新增分类（性行为/分泌物/食欲/消化/水肿/其他/体力活动）+ 用药/喝水/体重 */
+(function(){
+  var D = {"cards": [["sx", "💗", ["การมีเพศสัมพันธ์และความต้องการ", "性行为和性欲", "Sex and sex drive", "Quan hệ tình dục và ham muốn"], 1, [["sx_none", "🚫", "ไม่มีเพศสัมพันธ์", "没有性行为", "No sex", "Không quan hệ"], ["sx_prot", "🛡️", "มีเพศสัมพันธ์แบบป้องกัน", "有保护的性行为", "Protected sex", "Quan hệ có bảo vệ"], ["sx_unprot", "💞", "มีเพศสัมพันธ์แบบไม่ป้องกัน", "无保护的性行为", "Unprotected sex", "Quan hệ không bảo vệ"], ["sx_self", "🌸", "ช่วยตัวเอง", "自慰", "Masturbation", "Tự thỏa mãn"], ["sx_hi", "🔥", "ความต้องการสูง", "性欲旺盛", "High sex drive", "Ham muốn cao"], ["sx_lo", "🧊", "ความต้องการต่ำ", "性欲低下", "Low sex drive", "Ham muốn thấp"]]], ["dc", "🫧", ["ตกขาว", "阴道分泌物", "Vaginal discharge", "Dịch âm đạo"], 0, [["dc_none", "🫧", "ไม่มีตกขาว", "无分泌物", "No discharge", "Không có dịch"], ["dc_milky", "🥛", "ตกขาวสีขาวขุ่น", "乳液状", "Creamy", "Dạng kem"], ["dc_sticky", "🍯", "ตกขาวเหนียวข้น", "粘稠", "Sticky", "Dính, đặc"], ["dc_more", "💦", "ตกขาวมากขึ้น", "分泌物增多", "Increased discharge", "Dịch nhiều hơn"], ["dc_spot", "🩸", "เลือดออกกะปริบกะปรอย", "点滴出血", "Spotting", "Ra máu lấm tấm"], ["dc_abn", "⚠️", "ตกขาวผิดปกติ", "异常分泌物", "Unusual discharge", "Dịch bất thường"]]], ["ap", "🍽️", ["ความอยากอาหาร", "食欲", "Appetite", "Cảm giác thèm ăn"], 0, [["ap_anor", "🙅", "เบื่ออาหาร", "厌食", "Aversion to food", "Chán ăn"], ["ap_up", "🍽️", "อยากอาหารมากขึ้น", "食欲增强", "Increased appetite", "Ăn ngon hơn"], ["ap_down", "📉", "อยากอาหารน้อยลง", "食欲下降", "Decreased appetite", "Ăn kém đi"]]], ["dg", "🚽", ["การย่อยและการขับถ่าย", "消化和排便", "Digestion and stool", "Tiêu hóa và đại tiện"], 0, [["sym_nausea", "🤢", null, null, "Nausea", "Buồn nôn"], ["dg_heart", "🔥", "อาการแสบร้อนกลางอก", "胃灼热", "Heartburn", "Ợ nóng"], ["dg_vomit", "🤮", "อาเจียน", "呕吐", "Vomiting", "Nôn"], ["sym_bloat", "🎈", null, null, "Bloating", "Đầy hơi"], ["sym_constipation", "🧻", null, null, "Constipation", "Táo bón"], ["sym_diarrhea", "🚽", null, null, "Diarrhea", "Tiêu chảy"], ["dg_digok", "👌", "ย่อยอาหารปกติ", "消化正常", "Normal digestion", "Tiêu hóa bình thường"], ["dg_stool", "✅", "ขับถ่ายปกติ", "大便正常", "Normal stool", "Đại tiện bình thường"]]], ["sw", "🦶", ["อาการบวม", "水肿", "Swelling", "Phù nề"], 0, [["sw_limb", "🦶", "แขนขาบวม", "四肢水肿", "Swollen limbs", "Phù tay chân"], ["sw_face", "🌝", "หน้าบวม", "面部水肿", "Facial swelling", "Phù mặt"], ["sw_nose", "👃", "คัดจมูก", "鼻塞", "Stuffy nose", "Nghẹt mũi"]]], ["ot", "✈️", ["อื่นๆ", "其他", "Other", "Khác"], 1, [["ot_trip", "✈️", "เดินทาง", "旅行", "Travel", "Đi du lịch"], ["ot_stress", "⚡", "ความเครียด", "压力", "Stress", "Căng thẳng"], ["ot_ill", "🤒", "เจ็บป่วยหรือบาดเจ็บ", "疾病或损伤", "Illness or injury", "Bệnh hoặc chấn thương"], ["ot_alc", "🍷", "แอลกอฮอล์", "酒精", "Alcohol", "Rượu bia"]]], ["ac", "🏃", ["กิจกรรมทางกาย", "体力活动", "Physical activity", "Hoạt động thể chất"], 1, [["ac_none", "🛋️", "ไม่ได้ออกกำลังกาย", "没有锻炼", "No exercise", "Không tập luyện"], ["ac_yoga", "🧘", "โยคะ", "瑜伽", "Yoga", "Yoga"], ["ac_gym", "🏋️", "ฟิตเนส", "健身", "Gym", "Tập gym"], ["ac_dance", "💃", "แอโรบิกและเต้น", "健身操和舞蹈", "Aerobics and dance", "Aerobic và khiêu vũ"], ["ac_swim", "🏊", "ว่ายน้ำ", "游泳", "Swimming", "Bơi lội"], ["ac_team", "🏀", "กีฬาทีม", "团队运动", "Team sports", "Thể thao đồng đội"], ["ac_run", "🏃", "วิ่ง", "跑步", "Running", "Chạy bộ"], ["ac_bike", "🚴", "ปั่นจักรยาน", "骑自行车", "Cycling", "Đạp xe"], ["ac_walk", "🚶", "เดินเล่น", "散步", "Walking", "Đi bộ"]]]], "moodX": [["mx_energ", "⚡", "มีพลัง", "有活力", "Energetic", "Tràn đầy năng lượng"], ["mx_playful", "😆", "ร่าเริง", "欢悦", "Cheerful", "Vui tươi"], ["mx_swing", "🎭", "อารมณ์แกว่ง", "情绪波动", "Mood swings", "Tâm trạng thất thường"], ["mx_depr", "🌧️", "ซึมเศร้า", "抑郁", "Depressed", "Chán nản"], ["mx_guilt", "😓", "รู้สึกผิด", "内疚", "Guilty", "Tội lỗi"], ["mx_rumi", "🔁", "คิดวนซ้ำ", "反复想同一件事", "Dwelling on one thing", "Cứ nghĩ mãi một chuyện"], ["mx_lowe", "🪫", "หมดแรงใจ", "精神不振", "Low spirits", "Uể oải"], ["mx_selfc", "🪞", "โทษตัวเอง", "自我苛刻", "Self-critical", "Tự khắt khe với mình"]], "symX": [["sx2_breast", "🩷", "เจ็บเต้านม", "乳房压痛", "Breast tenderness", "Căng tức ngực"], ["sx2_sleepy", "🛏️", "ง่วงนอน", "困倦", "Sleepiness", "Buồn ngủ"], ["sx2_nip", "💧", "มีน้ำนมไหลจากหัวนม", "乳头出现乳状分泌物", "Milky nipple discharge", "Tiết dịch sữa ở núm vú"], ["sx2_urin", "🚻", "ปัสสาวะบ่อย", "尿频", "Frequent urination", "Tiểu nhiều"], ["sx2_leg", "🦿", "ตะคริวที่ขา", "腿抽筋", "Leg cramps", "Chuột rút chân"], ["sx2_gum", "🦷", "เหงือกมีเลือดออก", "牙龈出血", "Bleeding gums", "Chảy máu nướu"], ["sx2_ok", "✅", "สุขภาพดี", "状态良好", "Feeling fine", "Ổn định"]], "ui": {"lg_today": ["วันนี้", "今天", "Today", "Hôm nay"], "lg_yest": ["เมื่อวาน", "昨天", "Yesterday", "Hôm qua"], "lg_unsaved": ["การแก้ไขของวันนี้ยังไม่ได้บันทึก ต้องการบันทึกไหม?", "这一天的修改还没保存，要保存吗？", "You have unsaved changes for this day. Save them?", "Bạn chưa lưu thay đổi của ngày này. Lưu không?"], "lg_discard": ["ไม่บันทึก", "不保存", "Don't save", "Không lưu"], "lg_cancel": ["ยกเลิก", "取消", "Cancel", "Hủy"], "lg_feel": ["วันนี้รู้สึกอย่างไรบ้าง?", "今天感觉怎么样？", "How are you feeling today?", "Hôm nay bạn cảm thấy thế nào?"], "lg_all": ["บันทึกทั้งหมด", "全部记录", "All logs", "Tất cả ghi chép"], "lg_new": ["ใหม่", "新", "New", "Mới"], "lg_logged": ["บันทึกแล้ว ✓", "已记录 ✓", "Logged ✓", "Đã ghi ✓"], "lg_unlogged": ["ยกเลิกการบันทึกแล้ว", "已取消记录", "Log removed", "Đã bỏ ghi"], "lg_saved": ["บันทึกแล้ว ✓", "已保存 ✓", "Saved ✓", "Đã lưu ✓"], "rm_title": ["การแจ้งเตือนช่วงตั้งครรภ์", "孕期提醒", "Pregnancy reminders", "Nhắc nhở thai kỳ"], "rm_hint": ["เปิดปิดได้แยกแต่ละอย่าง และแจ้งเตือนได้แม้ปิดแอป (ต้องอนุญาตการแจ้งเตือนของระบบ)", "每一项都能单独开关；关掉 App 后手机也会提醒（需要允许系统通知）", "Turn each one on or off separately; they also work when the app is closed (system notifications must be allowed)", "Bật/tắt từng mục riêng; vẫn nhắc khi đã tắt ứng dụng (cần cho phép thông báo hệ thống)"], "rm_week": ["อัปเดตสัปดาห์ครรภ์", "孕周更新", "Week-by-week update", "Cập nhật tuần thai"], "rm_week_s": ["ทุกครั้งที่เข้าสู่สัปดาห์ใหม่ เวลา 9:00 น.", "每进入新的一周，早上 9:00", "Each new week, at 9:00 AM", "Mỗi khi sang tuần mới, lúc 9:00 sáng"], "rm_weight": ["บันทึกน้ำหนัก", "记录体重", "Weigh-in", "Ghi cân nặng"], "rm_weight_s": ["สัปดาห์ละครั้ง 7:00 น. ถ้า 20:00 น. ยังไม่ได้บันทึกจะเตือนอีกครั้ง", "每周一次，早上 7:00；晚上 8:00 还没记会再提醒一次", "Weekly at 7:00 AM; a second reminder at 8:00 PM if not logged", "Mỗi tuần một lần lúc 7:00 sáng; nhắc lại lúc 8:00 tối nếu chưa ghi"], "rm_kick": ["นับลูกดิ้น", "数胎动", "Kick counting", "Đếm cử động thai"], "rm_kick_s": ["ตั้งแต่สัปดาห์ที่ 28 ทุกคืน 20:00 น.", "孕 28 周起，每晚 8:00", "From week 28, every night at 8:00 PM", "Từ tuần 28, mỗi tối lúc 8:00"], "rm_due": ["ใกล้กำหนดคลอด", "预产期临近", "Due date approaching", "Sắp đến ngày dự sinh"], "rm_due_s": ["เมื่อครบ 37 สัปดาห์ และก่อนกำหนดคลอด 7 วัน", "满 37 周时，以及预产期前 7 天", "At 37 weeks, and 7 days before the due date", "Khi đủ 37 tuần và 7 ngày trước ngày dự sinh"], "rm_n_week_t": ["🤰 ตั้งครรภ์ {w} สัปดาห์แล้ว", "🤰 孕 {w} 周了", "🤰 You are {w} weeks pregnant", "🤰 Bạn đã mang thai {w} tuần"], "rm_n_week_b": ["เปิดดูการเปลี่ยนแปลงของลูกน้อยและร่างกายในสัปดาห์นี้", "点开看看这一周宝宝和身体的变化", "Open to see what changes this week for baby and you", "Mở xem em bé và cơ thể bạn thay đổi thế nào tuần này"], "rm_n_wt_t": ["⚖️ ได้เวลาบันทึกน้ำหนัก", "⚖️ 该记录体重了", "⚖️ Time to log your weight", "⚖️ Đến lúc ghi cân nặng"], "rm_n_wt_b": ["บันทึกสัปดาห์ละครั้ง ก็จะเห็นเส้นกราฟการเปลี่ยนแปลง", "每周记一次，就能看到变化曲线", "Log it weekly and you will see your trend line", "Ghi mỗi tuần một lần là thấy được đường xu hướng"], "rm_n_wt2_t": ["⚖️ วันนี้ยังไม่ได้บันทึกน้ำหนัก", "⚖️ 今天还没记录体重", "⚖️ No weight logged yet today", "⚖️ Hôm nay chưa ghi cân nặng"], "rm_n_wt2_b": ["ใช้เวลาไม่กี่วินาที บันทึกสักหน่อยนะ", "只要几秒钟，记一下吧", "It only takes a few seconds", "Chỉ mất vài giây thôi"], "rm_n_kick_t": ["👣 ได้เวลานับลูกดิ้น", "👣 数胎动时间到", "👣 Time to count kicks", "👣 Đến giờ đếm cử động thai"], "rm_n_kick_b": ["คืนนี้นั่งพักเงียบ ๆ สักครู่ แล้วนับการเคลื่อนไหวของลูกน้อย", "今晚安静坐一会儿，数一数宝宝的小动作", "Sit quietly for a bit tonight and count baby's movements", "Tối nay ngồi yên một lúc và đếm cử động của bé"], "rm_n_37_t": ["🌷 ครบ 37 สัปดาห์แล้ว", "🌷 已经孕 37 周了", "🌷 You have reached 37 weeks", "🌷 Bạn đã đủ 37 tuần"], "rm_n_37_b": ["ลูกน้อยอาจมาพบได้ทุกเมื่อ ลองเช็กกระเป๋าเตรียมคลอดดูนะ", "宝宝随时可能来报到，检查一下待产包吧", "Baby could arrive any time now, so check your hospital bag", "Em bé có thể chào đời bất cứ lúc nào, hãy kiểm tra túi đồ đi sinh"], "rm_n_7_t": ["🌷 อีก 7 วันถึงกำหนดคลอด", "🌷 距离预产期还有 7 天", "🌷 7 days until your due date", "🌷 Còn 7 ngày đến ngày dự sinh"], "rm_n_7_b": ["สังเกตลูกดิ้น หากมีอาการผิดปกติให้ติดต่อแพทย์", "留意胎动；有规律的宫缩或任何不对劲，请联系医生", "Keep an eye on movements; contact your doctor about regular contractions or anything unusual", "Theo dõi cử động thai; hãy liên hệ bác sĩ nếu có cơn co đều đặn hoặc bất thường"], "lg_hint": ["‹ ปัดซ้าย/ขวาเพื่อดูบันทึกวันอื่น ›", "‹ 左右滑动，查看其他日期的记录 ›", "‹ Swipe left or right to see other days ›", "‹ Vuốt trái/phải để xem ngày khác ›"], "mrx_med_title": ["ยา", "用药", "Medication", "Thuốc"], "mrx_med_sub": ["บันทึกยาที่คุณกินในแต่ละวัน", "记录你一天服用的药物", "Log the medicines you take each day", "Ghi lại thuốc bạn dùng mỗi ngày"], "mrx_med_add": ["เพิ่มยา", "添加药物", "Add medicine", "Thêm thuốc"], "mrx_med_remind": ["ตั้งเวลาเตือน", "设置提醒", "Set reminders", "Cài nhắc nhở"], "mrx_med_name": ["ชื่อยา (ไม่เกิน 30 ตัวอักษร)", "药名（最多 30 字）", "Medicine name (up to 30 characters)", "Tên thuốc (tối đa 30 ký tự)"], "mrx_med_time": ["เวลาเตือน", "提醒时间", "Reminder time", "Giờ nhắc"], "mrx_med_on": ["เตือนฉันตามเวลา", "到点提醒我", "Remind me at this time", "Nhắc tôi đúng giờ"], "mrx_med_save": ["บันทึก", "保存", "Save", "Lưu"], "mrx_med_del": ["ลบ", "删除", "Delete", "Xóa"], "mrx_med_close": ["ปิด", "关闭", "Close", "Đóng"], "mrx_med_empty": ["ยังไม่ได้เพิ่มยา", "还没有添加药物", "No medicines added yet", "Chưa thêm thuốc nào"], "mrx_med_mgr": ["จัดการยาและการเตือน", "药物与提醒", "Medicines and reminders", "Thuốc và nhắc nhở"], "mrx_med_disc": ["การเตือนยาเป็นเพียงบันทึกส่วนตัว ไม่ใช่คำแนะนำทางการแพทย์ และไม่สามารถแทนที่คำแนะนำของแพทย์หรือเภสัชกรได้ การเตือนอาจล่าช้าหรือไม่ทำงานเพราะการตั้งค่าเครื่อง โหมดประหยัดแบตเตอรี่ หรือเครือข่าย โปรดอย่าพึ่งพาเพียงอย่างเดียว ชื่อยาเก็บไว้ในเครื่องของคุณเท่านั้น ไม่อัปโหลดขึ้นเซิร์ฟเวอร์ และไม่รับประกันผลการคุมกำเนิด", "药物提醒只是个人备忘，不提供用药建议，也不能替代医生或药师的指导。提醒可能因手机设置、省电模式或网络而延迟或不触发，请不要完全依赖它。药名只保存在你的手机上，不会上传到服务器；也不保证避孕效果。", "Medicine reminders are a personal memo only. They are not medical advice and do not replace guidance from your doctor or pharmacist. Reminders may be delayed or may not fire because of phone settings, battery saver or network, so please do not rely on them alone. Medicine names stay on your phone and are not uploaded. This does not guarantee contraceptive effectiveness.", "Nhắc thuốc chỉ là ghi chú cá nhân, không phải lời khuyên y tế và không thay thế hướng dẫn của bác sĩ hoặc dược sĩ. Lời nhắc có thể chậm hoặc không hiện do cài đặt máy, chế độ tiết kiệm pin hoặc mạng, vì vậy đừng chỉ dựa vào đó. Tên thuốc chỉ lưu trên điện thoại của bạn và không được tải lên. Không đảm bảo hiệu quả tránh thai."], "mrx_med_noplug": ["ตอนนี้การเตือนจะแสดงเฉพาะตอนที่เปิดแอปอยู่", "目前提醒只会在 App 打开时弹出", "For now, reminders only appear while the app is open", "Hiện lời nhắc chỉ hiện khi ứng dụng đang mở"], "mrx_med_alert": ["ถึงเวลากินยาแล้ว: ", "该吃药了：", "Time for your medicine: ", "Đến giờ uống thuốc: "], "mrx_taken": ["กินยา", "服药", "Took medicine", "Đã uống thuốc"], "mrx_water": ["น้ำดื่ม", "喝水", "Water", "Nước uống"], "mrx_weight": ["น้ำหนัก", "体重", "Weight", "Cân nặng"], "mrx_weight_ph": ["บันทึกน้ำหนักของคุณ (กก.)", "记录你的体重（公斤）", "Log your weight (kg)", "Ghi cân nặng của bạn (kg)"], "mrx_more_mood": ["อารมณ์เพิ่มเติม", "更多心情", "More moods", "Thêm tâm trạng"], "mrx_more_sym": ["อาการเพิ่มเติม", "更多症状", "More symptoms", "Thêm triệu chứng"]}};            // {cards, moodX, symX, ui}
+  var LIFE = 'ไลฟ์：';
+  try{ var st = document.createElement('style'); st.textContent = '.mrx-in{width:100%;box-sizing:border-box;padding:12px 14px;border-radius:14px;border:1.5px solid var(--rec-textarea-border);background:var(--rec-textarea-bg);color:var(--rec-fg);font:inherit;font-size:14px;outline:none;}'; document.head.appendChild(st); }catch(e){}
+  function lang(){ try{ return (typeof _appLang !== 'undefined' && _appLang === 'th') ? 'th' : 'zh'; }catch(e){ return 'zh'; } }
+  function T(k){ var l = lang(); var u = D.ui[k]; if(u) return u[l === 'th' ? 0 : 1]; try{ if(typeof LANG !== 'undefined' && LANG[l] && LANG[l][k] !== undefined) return LANG[l][k]; }catch(e){} return k; }
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  // 1) 词条并入 App 的两份语言表（th / zh）；en / vi 走中文路径，由翻译层处理
+  try{
+    if(typeof LANG !== 'undefined'){
+      D.moodX.concat(D.symX).forEach(function(it){ LANG.th[it[0]] = it[2]; LANG.zh[it[0]] = it[3]; });
+      D.cards.forEach(function(c){
+        LANG.th['mrx_t_' + c[0]] = c[2][0]; LANG.zh['mrx_t_' + c[0]] = c[2][1];
+        c[4].forEach(function(it){ if(it[2] !== null){ LANG.th[it[0]] = it[2]; LANG.zh[it[0]] = it[3]; } });
+      });
+      Object.keys(D.ui).forEach(function(k){ LANG.th[k] = D.ui[k][0]; LANG.zh[k] = D.ui[k][1]; });
+    }
+  }catch(e){ try{ console.warn('mrx lang', e); }catch(_){} }
+
+  function btn(variant, key, emoji, life, extra){
+    var cls = variant === 'day' ? 'mr-btn dd-multi' : 'mr-btn mr-multi';
+    var on = variant === 'day' ? "this.classList.toggle('sel-multi')" : 'toggleMr(this)';
+    return '<div class="' + cls + '" onclick="' + on + '"' + (life ? ' data-life="1"' : '') + (extra || '') + '><div class="mr-icon">' + emoji + '</div><div class="mr-lbl" data-i18n="' + key + '">' + esc(T(key)) + '</div></div>';
+  }
+  function cardHtml(c, variant){
+    var h = '<div class="mr-card"><div class="mr-section-title"><span>' + c[1] + '</span> <span data-i18n="mrx_t_' + c[0] + '">' + esc(T('mrx_t_' + c[0])) + '</span></div><div class="mr-grid8">';
+    c[4].forEach(function(it){ h += btn(variant, it[0], it[1], c[3]); });
+    return h + '</div></div>';
+  }
+  function extraCard(title, items, variant){
+    var h = '<div class="mr-card"><div class="mr-section-title"><span>' + (title === 'mrx_more_mood' ? '😊' : '💊') + '</span> <span data-i18n="' + title + '">' + esc(T(title)) + '</span></div><div class="mr-grid8">';
+    items.forEach(function(it){ h += btn(variant, it[0], it[1], 0); });
+    return h + '</div></div>';
+  }
+  // 2) 今天的"更多记录"页：药 / 水 / 体重 卡片
+  function storeKey(n){ try{ return (typeof _acctKey === 'function') ? _acctKey(n) : n; }catch(e){ return n; } }
+  function todayKey(){ try{ return getTodayKey(); }catch(e){ var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); } }
+  function jget(k, def){ try{ var v = JSON.parse(localStorage.getItem(storeKey(k))); return v == null ? def : v; }catch(e){ return def; } }
+  function jset(k, v){ try{ localStorage.setItem(storeKey(k), JSON.stringify(v)); }catch(e){} }
+  var water = 0, WSTEP = 250, WGOAL = 2000;
+  function meds(){ var m = jget('luna_meds', []); return Array.isArray(m) ? m : []; }
+  function takenToday(){ var t = jget('luna_med_taken', {}); return (t && t.d === todayKey() && Array.isArray(t.ids)) ? t.ids : []; }
+  function medCard(){
+    var ms = meds(), tk = [];
+    var h = '<div class="mr-card" id="mrxMedCard"><div class="mr-section-title"><span>💊</span> <span data-i18n="mrx_med_title">' + esc(T('mrx_med_title')) + '</span></div>' +
+      '<div style="font-size:12px;color:var(--rec-fg-muted);margin:-8px 0 10px;" data-i18n="mrx_med_sub">' + esc(T('mrx_med_sub')) + '</div><div class="mr-grid8" id="mrxMedGrid">';
+    ms.forEach(function(m){
+      var th = (m.time ? ' ' + m.time : '');
+      h += '<div class="mr-btn mr-multi' + (tk.indexOf(m.id) >= 0 ? ' sel-multi' : '') + '" onclick="toggleMr(this)" data-life="1" data-med="' + esc(m.id) + '" data-store-th="' + esc(D.ui.mrx_taken[0] + th) + '" data-store-zh="' + esc(D.ui.mrx_taken[1] + th) + '"><div class="mr-icon">💊</div><div class="mr-lbl">' + esc(m.name) + (m.time ? '<br><span style="opacity:.7">' + esc(m.time) + '</span>' : '') + '</div></div>';
+    });
+    h += '<div class="mr-btn" onclick="LunaMrx.openMgr(true)"><div class="mr-icon">➕</div><div class="mr-lbl" data-i18n="mrx_med_add">' + esc(T('mrx_med_add')) + '</div></div></div>' +
+      '<div onclick="LunaMrx.openMgr()" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--rec-surface-border);display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--rec-fg);cursor:pointer;"><span data-i18n="mrx_med_remind">' + esc(T('mrx_med_remind')) + '</span><span>›</span></div></div>';
+    return h;
+  }
+  function waterCard(){
+    return '<div class="mr-card"><div class="mr-section-title" style="margin-bottom:6px;"><span>💧</span> <span data-i18n="mrx_water">' + esc(T('mrx_water')) + '</span>' +
+      '<span style="margin-left:auto;display:flex;gap:8px;"><button type="button" onclick="LunaMrx.water(-1)" style="width:38px;height:38px;border-radius:50%;border:none;background:var(--rec-btn-bg);font-size:20px;color:var(--rec-fg);">−</button>' +
+      '<button type="button" onclick="LunaMrx.water(1)" style="width:38px;height:38px;border-radius:50%;border:none;background:var(--rec-btn-bg);font-size:20px;color:var(--rec-fg);">+</button></span></div>' +
+      '<div style="font-size:26px;font-weight:700;color:var(--rec-fg);"><span id="mrxWaterVal">0</span> <span style="font-size:13px;font-weight:500;color:var(--rec-fg-muted);">/ ' + WGOAL + ' ml</span></div></div>';
+  }
+  function weightCard(){
+    return '<div class="mr-card"><div class="mr-section-title"><span>⚖️</span> <span data-i18n="mrx_weight">' + esc(T('mrx_weight')) + '</span></div>' +
+      '<input id="mrxWeight" type="number" inputmode="decimal" step="0.1" min="20" max="300" class="mrx-in" data-i18n-placeholder="mrx_weight_ph" placeholder="' + esc(T('mrx_weight_ph')) + '"></div>';
+  }
+  function build(){
+    var more = document.getElementById('mrxMore');
+    if(more){
+      var h = '';
+      D.cards.forEach(function(c){ h += cardHtml(c, 'today'); });
+      h += medCard() + waterCard() + weightCard();
+      more.innerHTML = h;
+    }
+    var day = document.getElementById('mrxDay');
+    if(day){
+      var d = extraCard('mrx_more_mood', D.moodX, 'day') + extraCard('mrx_more_sym', D.symX, 'day');
+      D.cards.forEach(function(c){ d += cardHtml(c, 'day'); });
+      day.innerHTML = d;
+    }
+    try{ if(typeof LANG !== 'undefined' && typeof applyAppLang === 'function' && typeof _appLang !== 'undefined') { /* 文字已按当前语言生成 */ } }catch(e){}
+  }
+  function refreshMed(){ var c = document.getElementById('mrxMedCard'); if(!c) return; var tmp = document.createElement('div'); tmp.innerHTML = medCard(); c.parentNode.replaceChild(tmp.firstChild, c); }
+
+  var LM = window.LunaMrx = {};
+  LM.water = function(dir){ water = Math.max(0, Math.min(6000, water + dir * WSTEP)); var e = document.getElementById('mrxWaterVal'); if(e) e.textContent = water; };
+  LM.onOpen = function(){
+    try{
+      var l = (typeof logs !== 'undefined' ? logs : []).filter(function(x){ return x && x.date === todayKey(); })[0];
+      water = (l && l.water > 0) ? l.water : 0; LM.water(0);
+      var w = document.getElementById('mrxWeight'); if(w) w.value = (l && l.weight > 0) ? l.weight : '';
+      refreshMed();
+    }catch(e){}
+  };
+  // 保存前：把水/体重/无保护同房/已服药 读出来，保存时写进当天记录
+  var pending = null;
+  LM.before = function(){
+    pending = { water: water, weight: null, unprot: false };
+    try{
+      var w = parseFloat(((document.getElementById('mrxWeight') || {}).value || '').replace(',', '.'));
+      if(w >= 20 && w <= 300) pending.weight = Math.round(w * 10) / 10;
+      var u = document.querySelector('#mrxMore [data-life] .mr-lbl[data-i18n="sx_unprot"]');
+      pending.unprot = !!(u && u.closest('.mr-btn').classList.contains('sel-multi'));
+      var ids = []; document.querySelectorAll('#mrxMedGrid [data-med].sel-multi').forEach(function(b){ ids.push(b.getAttribute('data-med')); });
+      jset('luna_med_taken', { d: todayKey(), ids: ids });
+    }catch(e){}
+  };
+  LM.has = function(){ return !!(pending && (pending.water > 0 || pending.weight)); };
+  LM.apply = function(entry){
+    if(!pending || !entry) return;
+    try{
+      if(pending.water > 0) entry.water = pending.water; else if(entry.water) delete entry.water;
+      if(pending.weight){ entry.weight = pending.weight;
+        try{ if(window.LunaPreg && LunaPreg.track && LunaPreg.track.saveWeight && LunaPreg.isActive && LunaPreg.isActive()) LunaPreg.track.saveWeight(entry.date, pending.weight); }catch(e){} }
+      if(pending.unprot) entry.sex = 'yes';
+    }catch(e){}
+  };
+  LM.after = function(){ pending = null; var w = document.getElementById('mrxWeight'); if(w) w.value = ''; };
+  // 收集时用：药物按钮保存的是"服药 08:00"，不带药名
+  LM.storeName = function(btn, name){
+    var s = btn.getAttribute(lang() === 'th' ? 'data-store-th' : 'data-store-zh');
+    var base = s || name;
+    return btn.getAttribute('data-life') ? LIFE + base : base;
+  };
+
+  // 3) 药物管理弹窗
+  function nid(){ return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  var hasPlugin = function(){ try{ return !!(window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.LocalNotifications); }catch(e){ return false; } };
+  LM.openMgr = function(focusAdd){
+    var old = document.getElementById('mrxMgr'); if(old) old.remove();
+    var ms = meds();
+    var m = document.createElement('div'); m.id = 'mrxMgr';
+    m.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(44,36,64,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;';
+    m.onclick = function(e){ if(e.target === m) m.remove(); };
+    var rows = '';
+    ms.forEach(function(x){
+      rows += '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--rec-surface-border);"><span style="font-size:20px;">💊</span><div style="flex:1;min-width:0;"><div style="font-size:14px;color:var(--rec-fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(x.name) + '</div><div style="font-size:11.5px;color:var(--rec-fg-muted);">' + (x.time ? esc(x.time) + (x.remind ? ' 🔔' : '') : '') + '</div></div><button type="button" data-del="' + esc(x.id) + '" style="border:none;background:none;color:#d6455d;font-size:13px;cursor:pointer;">' + esc(T('mrx_med_del')) + '</button></div>';
+    });
+    if(!ms.length) rows = '<div style="font-size:13px;color:var(--rec-fg-muted);padding:10px 0;">' + esc(T('mrx_med_empty')) + '</div>';
+    m.innerHTML = '<div style="background:var(--rec-surface-bg,#fff);border-radius:20px;padding:20px 18px;width:100%;max-width:380px;max-height:88vh;overflow:auto;">' +
+      '<div style="font-size:16px;font-weight:700;color:var(--rec-fg);margin-bottom:8px;">💊 ' + esc(T('mrx_med_mgr')) + '</div>' +
+      '<div style="font-size:11.5px;line-height:1.6;color:var(--rec-fg-muted);background:var(--rec-btn-bg);border-radius:12px;padding:10px 12px;margin-bottom:10px;">' + esc(T('mrx_med_disc')) + (hasPlugin() ? '' : '<br>' + esc(T('mrx_med_noplug'))) + '</div>' +
+      '<div id="mrxMedRows">' + rows + '</div>' +
+      '<div style="margin-top:12px;"><input id="mrxMedName" maxlength="30" class="mrx-in" style="margin-bottom:8px;" placeholder="' + esc(T('mrx_med_name')) + '">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="font-size:13px;color:var(--rec-fg);" data-i18n="mrx_med_time">' + esc(T('mrx_med_time')) + '</span><input id="mrxMedTime" type="time" value="08:00" class="mrx-in" style="width:auto;padding:8px 10px;"></div>' +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--rec-fg);margin-bottom:12px;"><input id="mrxMedOn" type="checkbox" checked style="width:17px;height:17px;"> ' + esc(T('mrx_med_on')) + '</label></div>' +
+      '<div style="display:flex;gap:10px;"><button type="button" id="mrxMedClose" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--rec-btn-bg);color:var(--rec-fg);font-size:14px;">' + esc(T('mrx_med_close')) + '</button><button type="button" id="mrxMedSave" style="flex:1;padding:12px;border:none;border-radius:12px;background:var(--purple);color:#fff;font-size:14px;font-weight:600;">' + esc(T('mrx_med_save')) + '</button></div></div>';
+    document.body.appendChild(m);
+    document.getElementById('mrxMedClose').onclick = function(){ m.remove(); };
+    m.querySelectorAll('[data-del]').forEach(function(b){ b.onclick = function(){
+      var id = b.getAttribute('data-del'); jset('luna_meds', meds().filter(function(x){ return x.id !== id; })); schedule(); refreshMed(); LM.openMgr(); }; });
+    document.getElementById('mrxMedSave').onclick = function(){
+      var name = (document.getElementById('mrxMedName').value || '').trim().slice(0, 30);
+      if(!name){ try{ document.getElementById('mrxMedName').focus(); }catch(e){} return; }
+      var time = document.getElementById('mrxMedTime').value || '';
+      var on = !!document.getElementById('mrxMedOn').checked;
+      var arr = meds(); arr.push({ id: nid(), name: name, time: time, remind: on && !!time }); jset('luna_meds', arr);
+      schedule(); refreshMed(); m.remove();
+    };
+    if(focusAdd){ setTimeout(function(){ try{ document.getElementById('mrxMedName').focus(); }catch(e){} }, 120); }
+  };
+
+  // 4) 提醒：有本地通知插件就交给系统；没有就在 App 打开时弹出
+  function hhmm(){ var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function hash(s){ var h = 0, i; for(i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h) % 2000000000 + 1; }
+  function schedule(){
+    try{
+      var LN = hasPlugin() ? Capacitor.Plugins.LocalNotifications : null; if(!LN) return;
+      var ms = meds(), ids = jget('luna_med_nids', []);
+      var p = (ids.length ? LN.cancel({ notifications: ids.map(function(i){ return { id: i }; }) }) : Promise.resolve());
+      p.then(function(){
+        var list = ms.filter(function(x){ return x.remind && x.time; });
+        if(!list.length){ jset('luna_med_nids', []); return; }
+        return LN.requestPermissions().then(function(r){
+          if(r && r.display && r.display !== 'granted') return;
+          var notes = list.map(function(x){ var t = x.time.split(':'); var id = hash(x.id);
+            return { id: id, title: '💊', body: T4('mrx_med_alert') + x.name, schedule: { on: { hour: parseInt(t[0], 10), minute: parseInt(t[1], 10) }, allowWhileIdle: true } }; });
+          jset('luna_med_nids', notes.map(function(n){ return n.id; }));
+          return LN.schedule({ notifications: notes });
+        });
+      }).catch(function(e){ try{ console.warn('mrx schedule', e); }catch(_){} });
+    }catch(e){}
+  }
+  var fired = {};
+  function tick(){
+    try{
+      if(hasPlugin()) return;
+      var now = hhmm(), day = todayKey();
+      meds().forEach(function(x){
+        if(!x.remind || x.time !== now) return;
+        var k = day + x.id + now; if(fired[k]) return; fired[k] = 1;
+        if(typeof showToast === 'function') showToast('💊 ' + T('mrx_med_alert') + x.name);
+      });
+    }catch(e){}
+  }
+  setInterval(tick, 20000);
+  schedule();
+
+  // ═══════════ LunaLog：整页"详细记录"，按日期左右翻（保存按钮 + 翻页前询问未保存）═══════════
+  var LL = window.LunaLog = {};
+  var curKey = null, snap = '', openFlag = false, edgeOk = true;
+  function pnl(){ return document.getElementById('moreLogPanel'); }
+  function pk(k){ var a = String(k).split('-'); return new Date(+a[0], +a[1] - 1, +a[2]); }
+  function fk(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function addDays(k, n){ var d = pk(k); d.setDate(d.getDate() + n); return fk(d); }
+  var MAXBACK = 31;
+  function clampKey(k){ var t = todayKey(), lo = addDays(t, -MAXBACK); if(!k || k > t) return t; if(k < lo) return lo; return k; }
+  function dateTitle(k){
+    var t = todayKey(); if(k === t) return T('lg_today'); if(k === addDays(t, -1)) return T('lg_yest');
+    var d = pk(k);
+    if(lang() === 'th'){ try{ return d.getDate() + ' ' + MONTHS_TH[d.getMonth()]; }catch(e){} }
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+  function btnList(){ return [].slice.call(pnl().querySelectorAll('.mr-btn')).filter(function(b){ return (b.getAttribute('onclick') || '').indexOf('openMgr') < 0; }); }
+  function formsOf(b){
+    var out = [], l = b.querySelector('.mr-lbl');
+    var k = l ? l.getAttribute('data-i18n') : null;
+    if(b.getAttribute('data-store-th')){ out.push(b.getAttribute('data-store-th'), b.getAttribute('data-store-zh')); return out; }
+    if(k && typeof LANG !== 'undefined'){ if(LANG.th[k] !== undefined) out.push(LANG.th[k]); if(LANG.zh[k] !== undefined) out.push(LANG.zh[k]); }
+    if(l) out.push(l.textContent.trim());
+    return out;
+  }
+  function isFlowBtn(b){ return (b.getAttribute('onclick') || '').indexOf("'flow'") >= 0; }
+  function isColorBtn(b){ return !!b.querySelector('.color-dot'); }
+  function clearAll(){
+    var P = pnl();
+    [].forEach.call(P.querySelectorAll('.mr-btn.sel-single, .mr-btn.sel-multi'), function(b){ b.classList.remove('sel-single', 'sel-multi'); });
+    [].forEach.call(P.querySelectorAll('.mr-textarea'), function(t){ t.value = ''; });
+    try{ setColorCardDim(false); }catch(e){}
+    var ct = document.getElementById('colorTip'); if(ct) ct.style.display = 'none';
+    var w = document.getElementById('mrxWeight'); if(w) w.value = '';
+    water = 0; LM.water(0);
+  }
+  var keepSyms = [];
+  function findEntry(k){ var arr = (typeof logs !== 'undefined' && Array.isArray(logs)) ? logs : []; for(var i = 0; i < arr.length; i++){ if(arr[i] && arr[i].date === k) return arr[i]; } return null; }
+  function load(k){
+    curKey = k; keepSyms = [];
+    clearAll();
+    var ttl = document.getElementById('lglTitle'); if(ttl) ttl.textContent = dateTitle(k);
+    var ht = document.getElementById('lglHint'); if(ht){ ht.textContent = T('lg_hint'); ht.style.display = (swipeCount() >= 3) ? 'none' : ''; }
+    var t = todayKey(), lo = addDays(t, -MAXBACK);
+    var pv = document.getElementById('lglPrev'), nx = document.getElementById('lglNext');
+    if(pv) pv.style.opacity = (k <= lo) ? '.25' : '1';
+    if(nx) nx.style.opacity = (k >= t) ? '.25' : '1';
+    var pt = document.getElementById('lglPeriod'); if(pt){ try{ pt.checked = !!(typeof periodSet !== 'undefined' && periodSet.has(k)); }catch(e){ pt.checked = false; } }
+    var E = findEntry(k), btns = btnList();
+    if(E){
+      var names = Array.isArray(E.symptoms) ? E.symptoms : [];
+      names.forEach(function(raw, i){
+        if(typeof raw !== 'string') return;
+        if(raw.indexOf('บันทึก：') === 0 || raw.indexOf('อื่นๆ：') === 0){ keepSyms.push({ name: raw, emoji: (E.emojis && E.emojis[i]) || '📝' }); return; }
+        var ann = (raw.match(/（(ปริมาณ|สี|อารมณ์)）$/) || [])[1] || '';
+        var nm = raw.replace(/^ไลฟ์：/, '').replace(/（(ปริมาณ|สี|อารมณ์)）$/, '');
+        var hit = false;
+        btns.forEach(function(b){
+          if(ann === 'ปริมาณ' && !isFlowBtn(b)) return;
+          if(ann === 'สี' && !isColorBtn(b)) return;
+          if(!ann && (isFlowBtn(b) || isColorBtn(b))) return;
+          if(formsOf(b).indexOf(nm) >= 0){ b.classList.add(b.classList.contains('mr-multi') ? 'sel-multi' : 'sel-single'); hit = true; }
+        });
+        if(!hit) keepSyms.push({ name: raw, emoji: (E.emojis && E.emojis[i]) || '📌' });
+      });
+      var n1 = document.getElementById('noteInput'); if(n1) n1.value = E.note || '';
+      if(E.water > 0){ water = E.water; LM.water(0); }
+      var w = document.getElementById('mrxWeight'); if(w && E.weight > 0) w.value = E.weight;
+      // 流量选了"无"，颜色卡片置灰（跟手动点选时一致）
+      try{ var fl = pnl().querySelector('.mr-btn.sel-single[onclick*="\'flow\'"]'); if(fl && fl.getAttribute('onclick').indexOf('setColorCardDim(true)') >= 0) setColorCardDim(true); }catch(e){}
+    }
+    snap = ser();
+  }
+  function ser(){
+    var s = [], i = 0;
+    btnList().forEach(function(b, idx){ if(b.classList.contains('sel-multi') || b.classList.contains('sel-single')) s.push(idx); });
+    var n = document.getElementById('noteInput'), o = document.getElementById('otherSymptomInput'), w = document.getElementById('mrxWeight'), p = document.getElementById('lglPeriod');
+    return JSON.stringify([s, n ? n.value : '', o ? o.value : '', water, w ? w.value : '', p ? p.checked : false]);
+  }
+  function dirty(){ return openFlag && ser() !== snap; }
+  function askUnsaved(cb){
+    var old = document.getElementById('lglAsk'); if(old) old.remove();
+    var m = document.createElement('div'); m.id = 'lglAsk';
+    m.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(44,36,64,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:28px;';
+    m.innerHTML = '<div style="background:var(--rec-surface-bg,#fff);border-radius:20px;padding:22px 18px;width:100%;max-width:340px;"><div style="font-size:15px;line-height:1.6;color:var(--rec-fg);margin-bottom:16px;">' + esc(T('lg_unsaved')) + '</div>' +
+      '<div style="display:flex;gap:8px;"><button type="button" data-a="cancel" style="flex:1;padding:12px 4px;border:none;border-radius:12px;background:var(--rec-btn-bg);color:var(--rec-fg);font-size:14px;">' + esc(T('lg_cancel')) + '</button>' +
+      '<button type="button" data-a="discard" style="flex:1;padding:12px 4px;border:none;border-radius:12px;background:var(--rec-btn-bg);color:#d6455d;font-size:14px;">' + esc(T('lg_discard')) + '</button>' +
+      '<button type="button" data-a="save" style="flex:1;padding:12px 4px;border:none;border-radius:12px;background:var(--purple);color:#fff;font-size:14px;font-weight:600;">' + esc(T('mrx_med_save')) + '</button></div></div>';
+    document.body.appendChild(m);
+    [].forEach.call(m.querySelectorAll('button'), function(b){ b.onclick = function(){ var a = b.getAttribute('data-a'); m.remove(); cb(a); }; });
+  }
+  function showPanel(){ var P = pnl(); P.style.display = "block"; document.body.style.overflow = 'hidden'; openFlag = true; }
+  function hidePanel(){ var P = pnl(); P.style.display = 'none'; document.body.style.overflow = ''; openFlag = false; renderFeel(); }
+  LL.isOpen = function(){ return openFlag && pnl() && pnl().style.display !== 'none'; };
+  LL.open = function(k){
+    try{ if(typeof closeModal === 'function') closeModal(); }catch(e){}
+    showPanel(); load(clampKey(k || todayKey()));
+    pnl().scrollTop = 0;
+  };
+  LL.close = function(){
+    if(dirty()){ askUnsaved(function(a){ if(a === 'cancel') return; if(a === 'save'){ if(!LL.save({ stay: true })) return; } hidePanel(); }); return; }
+    hidePanel();
+  };
+  function swapTo(nk, dir){
+    var b = pnl().children[1];
+    if(!b){ load(nk); return; }
+    b.style.transition = 'transform .15s ease, opacity .15s ease'; b.style.transform = 'translateX(' + (-dir * 36) + 'px)'; b.style.opacity = '0';
+    setTimeout(function(){
+      load(nk); pnl().scrollTop = 0;
+      b.style.transition = 'none'; b.style.transform = 'translateX(' + (dir * 36) + 'px)'; void b.offsetWidth;
+      b.style.transition = 'transform .18s ease, opacity .18s ease'; b.style.transform = 'translateX(0)'; b.style.opacity = '1';
+    }, 150);
+  }
+  function swipeCount(){ try{ return parseInt(localStorage.getItem('luna_lg_swipes') || '0', 10) || 0; }catch(e){ return 0; } }
+  function swipeBump(){ try{ localStorage.setItem('luna_lg_swipes', String(swipeCount() + 1)); }catch(e){} }
+  LL.go = function(delta, bySwipe){
+    var t = todayKey(), lo = addDays(t, -MAXBACK), nk = addDays(curKey, delta);
+    if(nk > t || nk < lo) return;
+    var run = function(){ if(bySwipe) swipeBump(); swapTo(nk, delta > 0 ? 1 : -1); };
+    if(dirty()){ askUnsaved(function(a){ if(a === 'cancel') return; if(a === 'save'){ if(!LL.save({ stay: true })) return; } run(); }); } else run();
+  };
+  // 采集：按钮 → 症状条目（流量/颜色带后缀；生活类带前缀；药物只写"服药 时间"）
+  function collect(){
+    var items = [], seen = {};
+    function add(emoji, name){ if(!name || seen[name]) return; seen[name] = 1; items.push({ emoji: emoji, name: name }); }
+    [].forEach.call(pnl().querySelectorAll('.mr-btn.sel-single'), function(b){
+      var l = b.querySelector('.mr-lbl'), ic = b.querySelector('.mr-icon'); if(!l) return;
+      var t = l.textContent.trim();
+      if(isFlowBtn(b)) add((ic && ic.textContent.trim()) || '💧', t + '（ปริมาณ）');
+      else if(isColorBtn(b)) add('🎨', t + '（สี）');
+    });
+    [].forEach.call(pnl().querySelectorAll('.mr-btn.sel-multi'), function(b){
+      var l = b.querySelector('.mr-lbl'), ic = b.querySelector('.mr-icon'); if(!l) return;
+      var nm = l.textContent.trim();
+      var st = (b.getAttribute('data-life') || b.getAttribute('data-store-th')) ? LM.storeName(b, nm) : nm;
+      add((ic && ic.textContent.trim()) || '', st);
+    });
+    return items;
+  }
+  LL.save = function(opt){
+    opt = opt || {};
+    var key = curKey || todayKey();
+    var items = collect();
+    keepSyms.forEach(function(k){ var dup = items.some(function(x){ return x.name === k.name; }); if(!dup) items.push(k); });
+    var n1 = document.getElementById('noteInput'), o1 = document.getElementById('otherSymptomInput');
+    var note = [n1 ? n1.value.trim() : '', o1 ? o1.value.trim() : ''].filter(Boolean).join(' · ');
+    var wv = parseFloat(((document.getElementById('mrxWeight') || {}).value || '').replace(',', '.'));
+    var kg = (wv >= 20 && wv <= 300) ? Math.round(wv * 10) / 10 : null;
+    var unprot = false;
+    try{ var u = pnl().querySelector('.mr-lbl[data-i18n="sx_unprot"]'); unprot = !!(u && u.closest('.mr-btn').classList.contains('sel-multi')); }catch(e){}
+    var moodPicked = pnl().querySelectorAll('#mrCarouselMood .mr-btn.sel-multi').length;
+    try{
+      var arr = logs, idx = -1, i;
+      for(i = 0; i < arr.length; i++){ if(arr[i] && arr[i].date === key){ idx = i; break; } }
+      var has = items.length > 0 || note || water > 0 || kg;
+      if(!has){
+        if(idx >= 0){ var cur = arr[idx]; if(cur.sex && !unprot && cur.sex === 'yes'){ cur.symptoms = []; cur.emojis = []; delete cur.note; delete cur.water; delete cur.weight; } else arr.splice(idx, 1); }
+      } else {
+        var e = idx >= 0 ? arr[idx] : { date: key };
+        e.symptoms = items.map(function(x){ return x.name; });
+        e.emojis = items.map(function(x){ return x.emoji; });
+        if(note) e.note = note; else delete e.note;
+        if(water > 0) e.water = water; else delete e.water;
+        if(kg){ e.weight = kg; try{ if(window.LunaPreg && LunaPreg.isActive && LunaPreg.isActive() && LunaPreg.track && LunaPreg.track.saveWeight) LunaPreg.track.saveWeight(key, kg); }catch(e2){} } else delete e.weight;
+        if(unprot) e.sex = 'yes';
+        if(idx < 0){ arr.unshift(e); arr.sort(function(a, b){ return (a && b && a.date && b.date) ? (a.date > b.date ? -1 : 1) : 0; }); }
+      }
+      saveLogs();
+    }catch(err){ try{ showToast(lang() === 'th' ? 'บันทึกไม่สำเร็จ' : '保存失败，请再试一次'); }catch(_){} try{ console.warn('LunaLog.save', err); }catch(_){} return false; }
+    // 月经日开关
+    try{
+      var pt = document.getElementById('lglPeriod');
+      if(pt && typeof periodSet !== 'undefined'){
+        var want = !!pt.checked, was = periodSet.has(key);
+        if(want !== was){
+          var newStart = want && !periodSet.has(addDays(key, -1));
+          if(want) periodSet.add(key); else periodSet.delete(key);
+          savePeriodDays();
+          if(newStart && key === todayKey()){ try{ queueLumiCare('periodStart'); }catch(e3){} }
+        }
+      }
+    }catch(e4){ try{ console.warn('LunaLog.period', e4); }catch(_){} }
+    try{ if(moodPicked > 0 && typeof window.trackEvent === 'function') window.trackEvent('mood_logged', { count: moodPicked }); }catch(e5){}
+    try{ if(key === todayKey() && typeof PAIN_KEYWORD_RE !== 'undefined' && (items.some(function(x){ return PAIN_KEYWORD_RE.test(x.name); }) || PAIN_KEYWORD_RE.test(note))) queueLumiCare('pain'); }catch(e6){}
+    snap = ser();
+    try{ showToast(T('lg_saved')); }catch(e7){}
+    if(!opt.stay) hidePanel(); else renderFeel();
+    return true;
+  };
+  // 左右滑动翻天（轮播区、输入框内不触发；左边缘留给"边缘返回"手势）
+  (function(){
+    var sx = 0, sy = 0, ok = false;
+    function bind(){
+      var P = pnl(); if(!P || P.__lglBound) return; P.__lglBound = 1;
+      P.addEventListener('touchstart', function(ev){
+        var t = ev.touches[0]; sx = t.clientX; sy = t.clientY;
+        ok = ev.touches.length === 1 && sx > 28 && !(ev.target.closest && ev.target.closest('.mr-carousel, input, textarea, #lglAsk, #mrxMgr'));
+      }, { passive: true });
+      P.addEventListener('touchend', function(ev){
+        if(!ok) return; ok = false;
+        var t = ev.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+        if(Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8){ LL.go(dx < 0 ? 1 : -1, true); }
+      }, { passive: true });
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  })();
+
+  // ═══════════ 首页"今天感觉怎么样？"卡片：常用症状一键记录 + 进入整页 ═══════════
+  var feelChips = [];
+  var rev = null;
+  function buildRev(){
+    rev = {};
+    try{ ['th','zh'].forEach(function(L){ var o = LANG[L]; for(var k in o){ if(typeof o[k] === 'string' && !rev[o[k]] && /^(sym_|mood_|sx|dc_|ap_|dg_|sw_|ot_|ac_|mx_)/.test(k)) rev[o[k]] = k; } }); }catch(e){}
+  }
+  function keyOf(n){ if(!rev) buildRev(); return rev[String(n).replace(/^ไลฟ์：/, '')] || null; }
+  function canon(n){ var k = keyOf(n); if(k) return k; try{ return window.toZhCanonical ? window.toZhCanonical(n) : n; }catch(e){ return n; } }
+  function dispName(n){
+    var k = keyOf(n); var L = lang() === 'th' ? 'th' : 'zh';
+    if(k){ try{ if(LANG[L][k]) return LANG[L][k]; }catch(e){} }
+    try{ return window.translateSym ? window.translateSym(n) : n; }catch(e){ return n; }
+  }
+  function topSymptoms(){
+    var cnt = {}, first = {}, em = {}, cut = addDays(todayKey(), -60);
+    (typeof logs !== 'undefined' ? logs : []).forEach(function(l){
+      if(!l || !l.date || l.date < cut || !Array.isArray(l.symptoms)) return;
+      l.symptoms.forEach(function(s, i){
+        if(typeof s !== 'string') return;
+        if(/^(บันทึก|อื่นๆ|ไลฟ์)：/.test(s) || /（(ปริมาณ|สี|อารมณ์)）/.test(s) || s === 'อารมณ์' || s === '情绪') return;
+        var c = canon(s); cnt[c] = (cnt[c] || 0) + 1; if(!first[c]){ first[c] = s; em[c] = (l.emojis && l.emojis[i]) || '📌'; }
+      });
+    });
+    return Object.keys(cnt).sort(function(a, b){ return cnt[b] - cnt[a]; }).slice(0, 4).map(function(c){ return { canon: c, name: first[c], emoji: em[c] }; });
+  }
+  function defaults(){
+    var L = lang() === 'th' ? 'th' : 'zh', g = function(k){ try{ return LANG[L][k]; }catch(e){ return k; } };
+    return [ { name: g('sym_headache'), emoji: '🤕' }, { name: g('sym_backpain'), emoji: '🦴' }, { name: g('sx2_ok'), emoji: '✅' }, { name: g('dc_milky'), emoji: '🥛' } ].map(function(x){ x.canon = canon(x.name); return x; });
+  }
+  function renderFeel(){
+    var c = document.getElementById('lunaFeelCard'); if(!c) return;
+    try{
+      var chips = topSymptoms(), have = {};
+      chips.forEach(function(x){ have[x.canon] = 1; });
+      defaults().forEach(function(d){ if(chips.length < 4 && !have[d.canon]){ chips.push(d); have[d.canon] = 1; } });
+      feelChips = chips;
+      var E = findEntry(todayKey()), todays = {};
+      if(E && Array.isArray(E.symptoms)) E.symptoms.forEach(function(s){ todays[canon(s)] = 1; });
+      var newUntil = 0; try{ newUntil = parseInt(localStorage.getItem('luna_lg_new_until') || '0', 10); if(!newUntil){ newUntil = Date.now() + 7 * 86400000; localStorage.setItem('luna_lg_new_until', String(newUntil)); } }catch(e){}
+      var badge = (newUntil > Date.now()) ? ' <span style="font-size:10.5px;font-weight:700;color:#fff;background:var(--pink,#e86a92);border-radius:8px;padding:2px 7px;vertical-align:middle;">' + esc(T('lg_new')) + '</span>' : '';
+      var h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><div style="font-size:15px;font-weight:700;color:var(--text);">' + esc(T('lg_feel')) + badge + '</div>' +
+        '<div onclick="LunaLog.open()" style="font-size:13px;color:var(--purple);cursor:pointer;white-space:nowrap;">' + esc(T('lg_all')) + ' ›</div></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">';
+      chips.forEach(function(x, i){
+        var on = !!todays[x.canon];
+        h += '<div onclick="LunaLog.quick(' + i + ')" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;"><div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:25px;background:' + (on ? 'var(--purple-pale)' : 'var(--rec-btn-bg,#f4f1fb)') + ';border:2px solid ' + (on ? 'var(--purple-light,#9b7fd4)' : 'transparent') + ';">' + esc(x.emoji) + '</div>' +
+          '<div style="font-size:11px;text-align:center;line-height:1.3;color:' + (on ? 'var(--purple)' : 'var(--text-muted)') + ';font-weight:' + (on ? '600' : '400') + ';">' + esc(dispName(x.name)) + '</div></div>';
+      });
+      c.innerHTML = h + '</div>'; c.style.display = '';
+    }catch(e){ try{ console.warn('renderFeel', e); }catch(_){} }
+  }
+  LL.renderFeel = renderFeel;
+  LL.quick = function(i){
+    var x = feelChips[i]; if(!x) return;
+    try{
+      var key = todayKey(), arr = logs, idx = -1, j;
+      for(j = 0; j < arr.length; j++){ if(arr[j] && arr[j].date === key){ idx = j; break; } }
+      var e = idx >= 0 ? arr[idx] : null, pos = -1;
+      if(e && Array.isArray(e.symptoms)) e.symptoms.forEach(function(s, k){ if(pos < 0 && canon(s) === x.canon) pos = k; });
+      if(pos >= 0){
+        e.symptoms.splice(pos, 1); if(Array.isArray(e.emojis)) e.emojis.splice(pos, 1);
+        if(!e.symptoms.length && !e.note && !(e.water > 0) && !(e.weight > 0)) arr.splice(idx, 1);
+        saveLogs(); showToast(T('lg_unlogged'));
+      } else {
+        if(!e){ e = { date: key, symptoms: [], emojis: [] }; arr.unshift(e); arr.sort(function(a, b){ return (a && b && a.date && b.date) ? (a.date > b.date ? -1 : 1) : 0; }); }
+        e.symptoms = e.symptoms || []; e.emojis = e.emojis || [];
+        e.symptoms.push(x.name); e.emojis.push(x.emoji);
+        saveLogs(); showToast(T('lg_logged'));
+        try{ if(typeof PAIN_KEYWORD_RE !== 'undefined' && PAIN_KEYWORD_RE.test(x.name)) queueLumiCare('pain'); }catch(e2){}
+      }
+    }catch(err){ try{ console.warn('LunaLog.quick', err); }catch(_){} }
+    renderFeel();
+  };
+  setInterval(function(){ try{ if(!LL.isOpen()) renderFeel(); }catch(e){} }, 6000);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ setTimeout(renderFeel, 400); }); else setTimeout(renderFeel, 400);
+
+  // ═══════════ LunaRemind：孕期提醒（本地通知；每一类单独开关）═══════════
+  // 说明：产检提醒（前一天/当天）和备孕提醒已由服务器推送负责，这里不重复。
+  var LRM = window.LunaRemind = {};
+  function L4(){ if(lang() === 'th') return 'th'; try{ if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; }catch(e){} return 'zh'; }
+  function T4(k){ var u = D.ui[k]; if(!u) return k; return u[{ th: 0, zh: 1, en: 2, vi: 3 }[L4()]]; }
+  var RM_CATS = ['week', 'weight', 'kick', 'due'];
+  function rmCfg(){ var c = jget('luna_rm_cfg', {}); return (c && typeof c === 'object') ? c : {}; }
+  function rmOn(cat){ return rmCfg()[cat] !== false; }
+  function dkey(d){ return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function rmEvents(){
+    var out = [];
+    try{
+      var P = window.LunaPreg; if(!P || !P.isActive || !P.isActive()) return out;
+      var s = P.get(), U = P._u; if(!s || !s.dueDate || !U) return out;
+      var due = U.parseKey(s.dueDate), today = U.todayDate(), now = Date.now(), i;
+      var wts = {}; try{ (P.track.weights() || []).forEach(function(w){ wts[w.date] = 1; }); }catch(e){}
+      for(i = 0; i < 21; i++){
+        var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+        var dtd = Math.round((due.getTime() - d.getTime()) / 86400000), dayNo = 280 - dtd, k = dkey(d);
+        if(dtd < 0 || dayNo < 28) continue;
+        var weeks = Math.floor(dayNo / 7);
+        function add(cat, id, h, m, tk, bk, w){
+          var at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0).getTime();
+          if(at < now + 45000) return;
+          var ti = T4(tk), bo = T4(bk); if(w !== undefined){ ti = ti.replace('{w}', w); }
+          out.push({ cat: cat, key: id + k, at: at, title: ti, body: bo });
+        }
+        if(dayNo % 7 === 0){
+          if(rmOn('week') && !(dayNo === 259 && rmOn('due'))) add('week', 'wk', 9, 0, 'rm_n_week_t', 'rm_n_week_b', weeks);
+          if(rmOn('weight')){
+            if(!wts[k]){ add('weight', 'w1', 7, 0, 'rm_n_wt_t', 'rm_n_wt_b'); add('weight', 'w2', 20, 0, 'rm_n_wt2_t', 'rm_n_wt2_b'); }
+          }
+        }
+        if(rmOn('kick') && weeks >= 28 && dtd > 0) add('kick', 'kc', 20, 0, 'rm_n_kick_t', 'rm_n_kick_b');
+        if(rmOn('due')){
+          if(dayNo === 259) add('due', 'd37', 9, 0, 'rm_n_37_t', 'rm_n_37_b');
+          if(dtd === 7) add('due', 'd7', 9, 0, 'rm_n_7_t', 'rm_n_7_b');
+        }
+      }
+      out.sort(function(a, b){ return a.at - b.at; });
+    }catch(e){ try{ console.warn('rmEvents', e); }catch(_){} }
+    return out.slice(0, 40);
+  }
+  var rmFired = {}, rmTimer = null;
+  function rmApply(){
+    clearTimeout(rmTimer);
+    rmTimer = setTimeout(function(){
+      try{
+        var evs = rmEvents();
+        window.__lunaRmEvents = evs;
+        var LN = hasPlugin() ? Capacitor.Plugins.LocalNotifications : null; if(!LN) return;
+        var old = jget('luna_rm_ids', []);
+        var p = old.length ? LN.cancel({ notifications: old.map(function(i){ return { id: i }; }) }) : Promise.resolve();
+        p.then(function(){
+          if(!evs.length){ jset('luna_rm_ids', []); return; }
+          return LN.requestPermissions().then(function(r){
+            if(r && r.display && r.display !== 'granted') return;
+            var notes = evs.map(function(e){ return { id: hash(e.key), title: e.title, body: e.body, schedule: { at: new Date(e.at), allowWhileIdle: true } }; });
+            jset('luna_rm_ids', notes.map(function(n){ return n.id; }));
+            return LN.schedule({ notifications: notes });
+          });
+        }).catch(function(e){ try{ console.warn('rm schedule', e); }catch(_){} });
+      }catch(e){}
+    }, 400);
+  }
+  LRM.apply = rmApply;
+  LRM.events = rmEvents;
+  setInterval(function(){
+    try{
+      if(hasPlugin()) return;
+      var now = Date.now(), evs = window.__lunaRmEvents || [];
+      evs.forEach(function(e){
+        if(e.at <= now && now - e.at < 90000 && !rmFired[e.key]){ rmFired[e.key] = 1; if(typeof showToast === 'function') showToast(e.title); }
+      });
+    }catch(e){}
+  }, 20000);
+  LRM.toggle = function(cat, el){
+    var c = rmCfg(); c[cat] = !(c[cat] !== false); jset('luna_rm_cfg', c);
+    if(el){ if(c[cat] === false) el.classList.remove('on'); else el.classList.add('on'); }
+    rmApply();
+  };
+  var rmSig = '';
+  function rmRender(){
+    try{
+      var sec = document.getElementById('pregSettingSection'); if(!sec || !sec.parentNode) return;
+      var box = document.getElementById('pregRemindSection');
+      if(!box){ box = document.createElement('div'); box.id = 'pregRemindSection'; sec.parentNode.insertBefore(box, sec.nextSibling); }
+      var act = !!(window.LunaPreg && window.LunaPreg.isActive && window.LunaPreg.isActive());
+      box.style.display = act ? '' : 'none';
+      if(!act) return;
+      var sig = L4() + JSON.stringify(rmCfg());
+      if(sig === rmSig && box.firstChild) return;
+      rmSig = sig;
+      var rows = [['week', '📅', 'rm_week', 'rm_week_s'], ['weight', '⚖️', 'rm_weight', 'rm_weight_s'], ['kick', '👣', 'rm_kick', 'rm_kick_s'], ['due', '🌷', 'rm_due', 'rm_due_s']];
+      var h = '<div class="s-title">🔔 ' + esc(T('rm_title')) + '</div><div class="s-group">';
+      rows.forEach(function(r){
+        h += '<div class="s-item"><span class="s-svg-icon" data-c="pink" style="display:flex;align-items:center;justify-content:center;font-size:16px;">' + r[1] + '</span>' +
+          '<div class="s-info"><div class="s-label">' + esc(T(r[2])) + '</div><div class="s-val">' + esc(T(r[3])) + '</div></div>' +
+          '<div class="s-toggle' + (rmOn(r[0]) ? ' on' : '') + '" onclick="LunaRemind.toggle(\'' + r[0] + '\',this)"></div></div>';
+      });
+      h += '</div><div style="font-size:11.5px;color:var(--text-muted);padding:6px 20px 14px;line-height:1.5;">' + esc(T('rm_hint')) + '</div>';
+      box.innerHTML = h;
+    }catch(e){}
+  }
+  LRM.render = rmRender;
+  setInterval(rmRender, 2500);
+  setTimeout(function(){ rmRender(); rmApply(); }, 2800);
+  try{ document.addEventListener('visibilitychange', function(){ if(!document.hidden){ rmRender(); rmApply(); } }); document.addEventListener('resume', function(){ rmApply(); }); }catch(e){}
+  try{
+    var TR = window.LunaPreg && window.LunaPreg.track;
+    if(TR && TR.saveWeight && !TR.__rmw){ TR.__rmw = 1; var sw0 = TR.saveWeight; TR.saveWeight = function(){ var r = sw0.apply(this, arguments); rmApply(); return r; }; }
+  }catch(e){}
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
+  // 语言切换后重建（按钮文字已有 data-i18n 会被 applyAppLang 更新；药物卡片自行重绘）
+  try{ var _aal = window.applyAppLang; if(typeof _aal === 'function'){ window.applyAppLang = function(l){ var r = _aal.apply(this, arguments); try{ refreshMed(); }catch(e){} try{ LL.renderFeel(); }catch(e){} return r; }; } }catch(e){}
+})();
+
+</script>
 <script id="lunaEnLayer">
 /* Luna English (US) + Vietnamese layer.
    Both languages run on the Chinese text path: when English or Vietnamese is on, luna_lang stays 'zh' (so every module picks
@@ -33742,6 +34398,20 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       [/(\d+)\s*个/g, function(m, n){ return n; }]
     ];
     var POST = [
+      [/Next checkup on (\d+) days?后/g, function(m, n){ return 'Next checkup in ' + n + (n === '1' ? ' day' : ' days'); }],
+      [/\((\d+) days?后\)/g, function(m, n){ return '(in ' + n + (n === '1' ? ' day)' : ' days)'); }],
+      [/(\d+) days?后/g, function(m, n){ return 'in ' + n + (n === '1' ? ' day' : ' days'); }],
+      [/超出常见\s*Range/g, 'outside the typical range'],
+      [/已推迟\s*(\d+) days?/g, '$1 days late'],
+      [/\(占\s*(\d+)%\)/g, '($1% of logs)'],
+      [/Ovulation\s*后\s*Day\s*(\d+)/g, 'day $1 after ovulation'],
+      [/easy\.\s*从\s*([A-Za-z]{3} \d+)\s*testing is more accurate from then/g, 'easy. Testing is more accurate from $1'],
+      [/从\s*([A-Za-z]{3} \d+)\s*([Tt])esting is more accurate from then/g, '$2esting is more accurate from $1'],
+      [/月经推迟\s*(\d+ days?)/g, 'Period late by $1'],
+      [/Day (\d+) · 月经推迟/g, 'Day $1 · Period late'],
+      [/月经推迟/g, 'Period late'],
+      [/Data 还不够 \(So far (\d+) cycles?, 满 3更准\)/g, 'Not enough data yet (so far $1; 3 cycles give a more accurate result)'],
+      [/已进入\s*Fertile window,\s*Suggestion 每 1–2 days Intercourse 一次/g, "You're in the fertile window. Intercourse every 1–2 days is suggested"],
       [/Baby\s*约\s*([\d.]+)\s*厘米,?\s*about the size of\s*(.+?)\s*那么大/g, 'Baby is about $1 cm, roughly $2-sized'],
       [/约\s*([\d.]+)\s*厘米/g, 'about $1 cm'],
       [/about the size of\s*(.+?)\s*那么大/g, 'roughly $1-sized'],
@@ -33790,6 +34460,21 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       [/(\d+)\s*个/g, function(m, n){ return n; }]
     ];
     var POST = [
+      [/vào (\d+) ngày后/g, 'sau $1 ngày'],
+      [/\((\d+) ngày后\)/g, '(sau $1 ngày)'],
+      [/(\d+) ngày后/g, 'sau $1 ngày'],
+      [/超出常见\s*Khoảng/g, 'ngoài khoảng thường gặp'],
+      [/已推迟\s*(\d+ ngày)/g, 'trễ $1'],
+      [/\(占\s*(\d+)%\)/g, '(chiếm $1%)'],
+      [/Rụng trứng\s*后\s*Ngày\s*(\d+)/g, 'ngày $1 sau rụng trứng'],
+      [/dàng\.\s*从\s*(\d+ thg \d+)/g, 'dàng. Từ $1'],
+      [/从\s*(\d+ thg \d+)/g, 'Từ $1'],
+      [/Kỳ kinh trễ/g, 'Kỳ kinh trễ'],
+      [/月经推迟\s*(\d+ ngày)/g, 'Kỳ kinh trễ $1'],
+      [/Ngày (\d+) · 月经推迟/g, 'Ngày $1 · Kỳ kinh trễ'],
+      [/月经推迟/g, 'Kỳ kinh trễ'],
+      [/Dữ liệu 还不够 \(Hiện có (\d+) chu kỳ, 满 3更准\)/g, 'Chưa đủ dữ liệu (hiện có $1 chu kỳ; đủ 3 chu kỳ sẽ chính xác hơn)'],
+      [/已进入\s*Giai đoạn dễ thụ thai,\s*Góp ý 每 1–2 ngày Quan hệ 一次/g, 'Bạn đã vào giai đoạn dễ thụ thai, nên quan hệ 1–2 ngày một lần'],
       [/你\s*Hiện tại\s*是\s*Thai (\d+) tuần,?\s*这一周的内容还在补充中,?\s*先\s*Xem\s*前面的周吧/g, 'Bạn đang ở thai kỳ tuần $1. Nội dung tuần này vẫn đang được bổ sung, hãy xem các tuần trước nhé'],
       [/Em bé\s*Chiều dài khoảng/g, 'Em bé dài khoảng'],
       [/\s*那么大/g, ''],
@@ -33817,6 +34502,10 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     var st = { exact: Object.create(null), tpls: [], phraseKeys: [], phraseRe: null };
     Object.keys(T).forEach(function(k){
       var v = T[k];
+      if(k.indexOf('{}') < 0 && /\{[A-Za-z_]\w*\}/.test(k)){ /* lunaNamedTpl */
+        var nm = [], kk = k.replace(/\{([A-Za-z_]\w*)\}/g, function(_, n){ nm.push(n); return '\u0001'; });
+        st.tpls.push({ re: new RegExp('^' + kk.split('\u0001').map(esc).join('(.+?)') + '$'), v: v, names: nm, n: nm.length, len: k.length });
+      }
       if(k.indexOf('{}') >= 0){
         var parts = k.split('{}');
         st.tpls.push({ re: new RegExp('^' + parts.map(esc).join('(.+?)') + '$'), v: v, n: parts.length - 1, len: k.length });
@@ -33851,6 +34540,12 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       .replace(/（/g, ' (').replace(/）/g, ') ').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/《/g, '"').replace(/》/g, '"').replace(/·/g, ' · ')
       .replace(/\s+([,.?!:;)])/g, '$1').replace(/\(\s+/g, '(').replace(/[ \t]{2,}/g, ' ');
   }
+  function fillTpl(t, m){
+    var idx = 0;
+    if(t.names) return t.v.replace(/\{([A-Za-z_]\w*)\}/g, function(x, n){ var j = t.names.indexOf(n); return j < 0 ? x : tr(m[j + 1] || ''); });
+    var o = t.v.replace(/\{\}/g, function(){ idx++; return tr(m[idx] || ''); });
+    return (cur() === 'en') ? o.replace(/\b1 days\b/g, '1 day') : o;
+  }
   function tr(s){
     if(typeof s !== 'string' || !CJK.test(s)) return s;
     var L = cur() || 'en';
@@ -33865,7 +34560,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     }
     for(var i = 0; i < tpls.length; i++){
       var m = core.match(tpls[i].re);
-      if(m){ var out = tpls[i].v, idx = 0; out = out.replace(/\{\}/g, function(){ idx++; return tr(m[idx] || ''); }); return lead + out + tail; }
+      if(m){ return lead + fillTpl(tpls[i], m) + tail; }
     }
     // leading / trailing emoji & symbol decoration: translate the middle and keep the decoration
     var dm = core.match(DECO);
@@ -33881,9 +34576,14 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         var done = false;
         for(var sj = segs.length; sj > si + 1 && !done; sj--){
           var mk = segs.slice(si, sj).join('').trim();
-          if(mk.indexOf('\n') < 0 && exact[mk] !== undefined){
+          var hv;
+          if(mk.indexOf('\n') < 0){
+            if(exact[mk] !== undefined) hv = exact[mk];
+            else for(var ti = 0; ti < tpls.length; ti++){ var tm = mk.match(tpls[ti].re); if(tm){ hv = fillTpl(tpls[ti], tm); break; } }
+          }
+          if(hv !== undefined){
             var sg0 = segs[si], sgl = (sg0.match(/^\s*/) || [''])[0], sge = (segs[sj - 1].match(/\s*$/) || [''])[0];
-            outp += sgl + exact[mk] + sge; si = sj; done = true;
+            outp += sgl + hv + sge; si = sj; done = true;
           }
         }
         if(done) continue;
@@ -34310,6 +35010,7 @@ window.LunaYearCal=(function(){
         if(dx<0 && typeof calCanGoNext==='function' && !calCanGoNext()) return;   // 已经是本月，往后本来就滑不动
         setTimeout(function(){
           try{
+            if(!tr.clientWidth) return;                      // 日历已关闭（例如从左边缘滑动返回），不算
             if(window.__calJump) return;
             if(calYear!==s.y0||calMonth!==s.m0) return;     // 月份变了，正常
             if(lastRender>s.r0) return;                      // 期间重新渲染过，不算
@@ -34828,7 +35529,7 @@ window.LunaYearCal=(function(){
       r.logDays++;
       for(j = 0; j < l.symptoms.length; j++){
         x = l.symptoms[j]; if(typeof x !== 'string') continue;
-        if(x.indexOf('บันทึก：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
+        if(x.indexOf('บันทึก：') === 0 || x.indexOf('ไลฟ์：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
         c = String(x).replace(/（อารมณ์）|（ปริมาณ）|（สี）/g, '').trim();
         mk = MOOD_ZH[c] ? c : null;
         if(!mk){ for(k in MOOD_ZH) if(MOOD_ZH[k] === c) mk = k; }
@@ -35324,4 +36025,38 @@ window.LunaYearCal=(function(){
   }catch(e){ try{ console.log('LunaPostcarePoll 初始化失败（已忽略）:', e); }catch(_){} }
 })();
 
+</script>
+<script id="lunaCalFix">
+/* lunaCalFix：日历"滑了没翻月"补救。原生 scroll-snap 在慢拖/短拖（约三分之一屏）时会弹回原月，
+   用户要再滑一次。这里在手指抬起后等滚动停稳，月份还没变就替用户翻过去（从左边缘起滑的右滑是"返回"，不算）。 */
+(function(){
+  var st=null;
+  function inTrack(e){ try{ return !!(e.target && e.target.closest && e.target.closest('#calSwipeTrack')); }catch(x){ return false; } }
+  document.addEventListener('touchstart',function(e){
+    try{
+      if(!inTrack(e) || e.touches.length!==1){ st=null; return; }
+      var tr=document.getElementById('calSwipeTrack'), t=e.touches[0];
+      st={x:t.clientX,y:t.clientY,y0:calYear,m0:calMonth,first:tr.firstChild};
+    }catch(x){ st=null; }
+  },{passive:true,capture:true});
+  document.addEventListener('touchend',function(e){
+    try{
+      if(!st) return; var s=st; st=null;
+      var t=e.changedTouches[0], dx=t.clientX-s.x, dy=t.clientY-s.y;
+      if(Math.abs(dx)<50||Math.abs(dx)<Math.abs(dy)*1.3) return;
+      if(dx>0 && s.x<=60) return;
+      if(dx<0 && typeof calCanGoNext==='function' && !calCanGoNext()) return;
+      setTimeout(function(){
+        try{
+          var tr=document.getElementById('calSwipeTrack'); if(!tr||!tr.clientWidth) return;
+          if(window.__calJump) return;
+          if(calYear!==s.y0||calMonth!==s.m0) return;
+          if(tr.firstChild!==s.first) return;
+          if(Math.abs(tr.scrollLeft-tr.clientWidth)>3) return;
+          if(dx>0) calPrev(); else calNext();
+        }catch(x){}
+      },420);
+    }catch(x){}
+  },{passive:true,capture:true});
+})();
 </script>

@@ -21167,6 +21167,7 @@ window.setLang = setLang;
     const daysSinceStart = Math.round((todayMidnight - lastStart) / 86400000);
     const cycleDay = (daysSinceStart % cycleLen) + 1;
     const clampedDay = Math.max(1, Math.min(cycleLen, cycleDay));
+    try{ window.__lunaCycleLen = cycleLen; }catch(e){}
     const circumference = 226.2;
     const offset = circumference * (1 - clampedDay / cycleLen);
     const ringEl = document.getElementById('ringArc');
@@ -36223,21 +36224,30 @@ window.LunaYearCal=(function(){
 })();
 </script>
 <style id="lunaSaveProgCss">
-#lunaProg{position:fixed;left:0;right:0;top:0;height:7px;z-index:100010;pointer-events:none;opacity:0;transition:opacity .25s ease;}
-#lunaProg i{display:block;height:100%;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#7c5cbf,#b49de0 70%,#f3a6c8);border-radius:0 4px 4px 0;box-shadow:0 0 12px rgba(124,92,191,.6);will-change:transform;}
+/* lunaProgBox：保存进度条 = 白色小方块（和"删除后撤销"条同尺寸同位置），底部一条细进度线 */
+#lunaProg{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:calc(100% - 32px);max-width:398px;transform:translate(-50%,14px);z-index:100010;pointer-events:none;opacity:0;transition:opacity .25s ease,transform .3s cubic-bezier(.2,.9,.3,1);
+  background:#fff;color:#2b2538;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(60,40,110,.22),0 0 0 1px rgba(124,92,191,.10);}
+#lunaProg .pg-t{display:none;}
+#lunaProg .pg-l{position:relative;height:14px;background:#fff;}
+#lunaProg i{display:block;height:100%;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#7c5cbf,#b49de0 70%,#f3a6c8);will-change:transform;}
+#lunaUndoBar{background:#fff !important;color:#2b2538 !important;box-shadow:0 10px 30px rgba(60,40,110,.22),0 0 0 1px rgba(124,92,191,.10) !important;}
+#lunaUndoBar .ub-b{color:#d9730d !important;}
+#lunaUndoBar .ub-p{background:#d9730d !important;}
 </style>
 <script id="lunaSaveProg">
 (function(){
   var bar = null, fill = null, p = 0, tm = null, running = false;
   function ensure(){
     if(bar && bar.parentNode) return;
-    bar = document.createElement('div'); bar.id = 'lunaProg'; fill = document.createElement('i'); bar.appendChild(fill); document.body.appendChild(bar);
+    bar = document.createElement('div'); bar.id = 'lunaProg'; var tx = document.createElement('div'); tx.className = 'pg-t'; var ln = document.createElement('div'); ln.className = 'pg-l'; fill = document.createElement('i'); ln.appendChild(fill); bar.appendChild(tx); bar.appendChild(ln); document.body.appendChild(bar); /*lunaProgBox*/
   }
   function set(v, ms){ fill.style.transition = 'transform ' + ms + 'ms ' + (ms > 150 ? 'ease-out' : 'ease-in'); fill.style.transform = 'scaleX(' + (v / 100) + ')'; }
   var P = window.LunaProg = {
     start: function(){
       ensure(); if(tm) clearInterval(tm); running = true; p = 0;
-      bar.style.transition = 'none'; bar.style.opacity = '1'; fill.style.transition = 'none'; fill.style.transform = 'scaleX(0)'; void fill.offsetWidth;
+      var _th = (window._appLang === 'th'), _en = false, _vi = false; try{ _en = localStorage.getItem('luna_ui_en') === '1'; _vi = localStorage.getItem('luna_ui_vi') === '1'; }catch(e){}
+      bar.firstChild.textContent = _th ? 'กำลังบันทึก…' : _en ? 'Saving…' : _vi ? 'Đang lưu…' : '正在保存…';
+      bar.style.transition = 'none'; bar.style.transform = 'translate(-50%,14px)'; void bar.offsetWidth; bar.style.transition = ''; bar.style.opacity = '1'; bar.style.transform = 'translate(-50%,0)'; fill.style.transition = 'none'; fill.style.transform = 'scaleX(0)'; void fill.offsetWidth;
       p = 30; set(p, 260);                                   // 先快速冲到约 30%
       tm = setInterval(function(){                           // 然后越走越慢，最多停在 90%
         p += (90 - p) * 0.07; if(p > 89.6) p = 89.6; set(p, 140);
@@ -36246,7 +36256,7 @@ window.LunaYearCal=(function(){
     done: function(){                                        // 数据回来：一下冲到 100%，再淡出
       if(!running) return; running = false; if(tm){ clearInterval(tm); tm = null; }
       set(100, 140);
-      setTimeout(function(){ bar.style.transition = 'opacity .3s ease'; bar.style.opacity = '0'; }, 220);
+      setTimeout(function(){ bar.style.transition = ''; bar.style.opacity = '0'; bar.style.transform = 'translate(-50%,14px)'; }, 220);
       setTimeout(function(){ if(!running){ fill.style.transition = 'none'; fill.style.transform = 'scaleX(0)'; } }, 560);
     },
     isRunning: function(){ return running; }
@@ -36850,7 +36860,39 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
     raf = requestAnimationFrame(step);
   }
   function finish(){ if(dots){ var d = dots.children; d[0].className = page ? '' : 'on'; d[1].className = page ? 'on' : ''; } }
+  // lunaPeekHint：第一次见到可翻的卡片时，自己向左"偷看一眼"再弹回来，让用户知道能滑。每种模式只演示一次；用户自己翻过就不再演示
+  var peeking = false, pkSince = 0;
+  function pkMode(){ var b = document.body.classList; return b.contains('pp-mode') ? '' : b.contains('preg-mode') ? 'preg' : b.contains('ttc-mode') ? 'ttc' : 'normal'; }
+  function pkDone(m){ try{ return localStorage.getItem('luna_flip_peek_' + m) === '1'; }catch(e){ return true; } }
+  function pkMark(m){ try{ localStorage.setItem('luna_flip_peek_' + m, '1'); }catch(e){} }
+  function pkBlocked(){
+    var sel = '#onboardGate,#langGate,#consentOverlay,#trialIntroModal,#guestLoginModal,#sysPopupNotice,#achievePopup,#lunaRateSheet,#lunaBabyKbPanel,#ttcSettingModal.open,div#lunaSkel,#delLogModal,#moodlogPanel,#insightPanel', i, el;
+    var list = document.querySelectorAll(sel); for(i = 0; i < list.length; i++){ el = list[i]; if(el.offsetHeight > 0 && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden') return true; }
+    try{ if(window.LunaLog && LunaLog.isOpen()) return true; }catch(e){}
+    return false;
+  }
+  function peek(){
+    if(peeking || page !== 0 || drag) return; peeking = true; var t0 = performance.now(), d = dots ? dots.children : null;
+    if(d && d[1]) d[1].className = 'on';
+    function step(t){
+      if(!peeking) return; var e = t - t0, th;
+      if(e < 380){ var k = e / 380; th = 28 * (1 - Math.pow(1 - k, 3)); }
+      else if(e < 700) th = 28;
+      else if(e < 1220){ var q = (e - 700) / 520; th = 28 * (1 - q * q * (3 - 2 * q)); }
+      else { peeking = false; theta = 0; paint(0); finish(); return; }
+      theta = th; paint(th); raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+  }
+  function pkTick(){
+    var m = pkMode(); if(!m || pkDone(m) || peeking || page !== 0 || drag || !card || !ok() || pkBlocked() || document.hidden || document.body.style.overflow === 'hidden'){ pkSince = 0; return; }
+    var r = card.getBoundingClientRect(); if(r.top < 0 || r.bottom > window.innerHeight || r.height < 100){ pkSince = 0; return; }
+    if(!pkSince){ pkSince = Date.now(); return; }
+    if(Date.now() - pkSince >= 2000){ pkSince = 0; pkMark(m); peek(); }
+  }
+  setInterval(pkTick, 500);
   function down(e){
+    if(peeking){ peeking = false; cancelAnimationFrame(raf); theta = 0; paint(0); finish(); }
     drag = false; lock = 0; if(!ensure() || !ok() || !e.touches || e.touches.length !== 1) return;
     var t = e.touches[0]; if(t.clientX < 28) return;
     try{ if(e.target.closest && e.target.closest('.bell-float-pos')) return; }catch(_){}
@@ -36866,6 +36908,7 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
   function up(){
     if(!drag) return; drag = false; if(lock !== 1) return;
     var moved = theta - (page ? 180 : 0);
+    if(page === 0 && moved > 32){ var pm = pkMode(); if(pm) pkMark(pm); }
     if(page === 0 && moved > 32) tween(180, 420); else if(page === 1 && moved < -32) tween(0, 420); else tween(page ? 180 : 0, 300);
   }
   document.addEventListener('touchstart', function(e){ if(e.target.closest && e.target.closest('#cycleCard')) down(e); }, { passive: true });
@@ -36880,7 +36923,7 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
     }catch(e){}
   }
   setInterval(tick, 700); tick();
-  window.LunaCardFlip = { to: function(p){ if(ensure() && ok()) tween(p ? 180 : 0, 420); }, page: function(){ return page; } };
+  window.LunaCardFlip = { peek: peek, _pk: function(){ return [pkMode(), pkDone(pkMode()), pkSince, pkBlocked(), peeking]; }, to: function(p){ if(ensure() && ok()) tween(p ? 180 : 0, 420); }, page: function(){ return page; } };
 })();
 </script>
 <style id="lunaBabyKbCss">
@@ -37142,3 +37185,167 @@ var BKB = [
 <script id="lunaMoodBadgeTr">(function(){try{if(window.LUNA_EN&&!window.LUNA_EN['💭 情绪'])window.LUNA_EN['💭 情绪']='💭 Mood';if(window.LUNA_VI&&!window.LUNA_VI['💭 情绪'])window.LUNA_VI['💭 情绪']='💭 Tâm trạng';}catch(e){}})();</script>
 
 <script id="lunaSymBadgeTr">(function(){try{if(window.LUNA_EN&&!window.LUNA_EN['🤒 症状'])window.LUNA_EN['🤒 症状']='🤒 Symptoms';if(window.LUNA_VI&&!window.LUNA_VI['🤒 症状'])window.LUNA_VI['🤒 症状']='🤒 Triệu chứng';}catch(e){}})();</script>
+
+<script id="lunaRateInvite">
+(function(){
+  var TX = {
+    th: { t:function(n){ return 'Luna อยู่เคียงข้างคุณมา ' + n + ' วันแล้ว 🌙'; }, s:'ถ้า Luna ช่วยคุณได้ ช่วยให้คะแนนเราหน่อยนะ กำลังใจจากคุณสำคัญกับเรามาก', later:'ไว้ทีหลัง' },
+    zh: { t:function(n){ return 'Luna 陪你记录了 ' + n + ' 天啦 🌙'; }, s:'如果 Luna 对你有帮助，给我们打个分吧，你的评价对我们很重要', later:'以后再说' },
+    en: { t:function(n){ return 'Luna has been with you for ' + n + ' days 🌙'; }, s:'If Luna has helped, we would love a rating. It means a lot to us', later:'Maybe later' },
+    vi: { t:function(n){ return 'Luna đã đồng hành cùng bạn ' + n + ' ngày rồi 🌙'; }, s:'Nếu Luna giúp ích cho bạn, hãy đánh giá giúp chúng mình nhé. Điều này rất ý nghĩa với chúng mình', later:'Để sau' }
+  };
+  var TS = 'luna_rate_inv_ts', GAP = 60 * 864e5, MIN_DAYS = 7, shownThisSession = false, lastSyncOk = true;
+  function lang(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  function days(){ try{ var set = {}, n = 0; (typeof logs !== 'undefined' ? logs : []).forEach(function(l){ if(l && l.date && !set[l.date]){ set[l.date] = 1; n++; } }); return n; }catch(e){ return 0; } }
+  function rated(){ try{ return parseInt(localStorage.getItem('luna_my_rating') || '0', 10) > 0; }catch(e){ return false; } }
+  function recently(){ try{ var t = parseInt(localStorage.getItem(TS) || '0', 10); return t && (Date.now() - t) < GAP; }catch(e){ return false; } }
+  function blocked(){
+    var a = document.getElementById('achievePopup'); if(a && a.offsetHeight > 0 && getComputedStyle(a).display !== 'none') return true;
+    if(document.getElementById('lunaRateSheet')) return true;
+    try{ if(window.LunaLog && LunaLog.isOpen()) return true; }catch(e){}
+    return false;
+  }
+  function show(){
+    if(typeof window.rateAppStars !== 'function') return;
+    shownThisSession = true; try{ localStorage.setItem(TS, String(Date.now())); }catch(e){}
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('rate_invite_shown', { days: days() }); }catch(e){}
+    window.rateAppStars();
+    var sh = document.getElementById('lunaRateSheet'); if(!sh) return; var T = TX[lang()];
+    var t = sh.querySelector('.lrs-t'), s = sh.querySelector('.lrs-s'), af = sh.querySelector('.lrs-after');
+    if(t) t.textContent = T.t(days()); if(s) s.textContent = T.s;
+    if(af){ var b = document.createElement('button'); b.type = 'button'; b.textContent = T.later;
+      b.style.cssText = 'border:none;background:none;color:#8a849e;font-size:13.5px;padding:10px 14px;margin-top:6px;font-family:inherit;cursor:pointer;';
+      b.addEventListener('click', function(){ var x = sh.querySelector('.lrs-x'); if(x) x.click(); }); af.appendChild(b); }
+  }
+  function maybe(force){
+    if(!force){ if(shownThisSession || rated() || recently() || !lastSyncOk || days() < MIN_DAYS) return false; }
+    if(blocked()) return false; show(); return true;
+  }
+  // 记录同步失败时不打扰用户
+  try{ var oB = window._syncBanner; if(typeof oB === 'function'){ window._syncBanner = function(ok){ lastSyncOk = (ok !== false); return oB.apply(this, arguments); }; } }catch(e){}
+  // 保存成功、页面收起、提示都走完之后再弹
+  var oGo = window.LunaSaveGo;
+  if(typeof oGo === 'function'){
+    window.LunaSaveGo = function(){
+      var r = oGo.apply(this, arguments);
+      try{
+        var tries = 0, iv = setInterval(function(){
+          tries++; var open = true; try{ open = LunaLog.isOpen(); }catch(e){ open = false; }
+          if(!open){ clearInterval(iv); setTimeout(function(){ if(!blocked()) maybe(false); else { var k = 0, iv2 = setInterval(function(){ k++; if(!blocked()){ clearInterval(iv2); maybe(false); } else if(k > 15) clearInterval(iv2); }, 800); } }, 2200); }
+          else if(tries > 30) clearInterval(iv);
+        }, 400);
+      }catch(e){}
+      return r;
+    };
+  }
+  window.LunaRateInvite = { check: maybe };
+})();
+</script>
+
+<style id="lunaCardDropCss">
+#ccP2.cc-dropmode #ccDrop.ccd-preg{margin-top:-68px;transform:scale(1.43);transform-origin:50% 81px;}
+#ccDrop.ccd-preg .ccd-n,#ccDrop.ccd-preg .ccd-s{color:#4e3f9c;}
+#ccDrop.ccd-preg .ccd-n{top:56px;}
+#ccDrop.ccd-preg .ccd-s{top:108px;}
+#ccP2 #ccDrop{display:none;}
+#ccP2.cc-dropmode #ccDrop{display:block;position:absolute;left:50%;top:50%;width:124px;height:155px;margin-left:-62px;margin-top:-72px;}
+#ccP2.cc-dropmode .cc-n{display:none !important;}
+#ccDrop .ccd-n{position:absolute;left:0;right:0;top:56px;text-align:center;color:#a43a68;font-weight:800;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.55);white-space:nowrap;}
+#ccDrop .ccd-n b{font-size:46px;letter-spacing:-1px;font-weight:800;}
+#ccDrop .ccd-n span{font-size:16px;margin-left:3px;font-weight:800;}
+#ccDrop .ccd-s{position:absolute;left:-10px;right:-10px;top:106px;text-align:center;font-size:11.5px;font-weight:700;color:#a43a68;opacity:.88;white-space:nowrap;}
+</style>
+<script id="lunaCardDrop">
+(function(){
+  var NS = 'http://www.w3.org/2000/svg', card = null, ov = null, root = null, w1, w2, bub, pops, svg, dnum, dun, dsub;
+  var cur = 0, tgt = 0, full = false, running = false, raf = 0, last = 0, T = 0, dropMode = false, lastKey = '';
+  var th = 0, thv = 0, slosh = 0, sensor = false, gam = 0, j = 0, jv = 0, ox = 0, oy = 0, ovx = 0, ovy = 0, tx = 0, ty = 0, holding = false, ripples = [], bubs = [], popList = [], nextB = 1;
+  function lang(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  var TXT = {
+    cyc:  { th: function(n){ return 'รอบเดือน ' + n + ' วัน'; }, zh: function(n){ return '周期共 ' + n + ' 天'; }, en: function(n){ return n + '-day cycle'; }, vi: function(n){ return 'Chu kỳ ' + n + ' ngày'; } },
+    preg: { th: function(n){ return 'ประมาณ ' + n + ' วัน'; }, zh: function(n){ return '共约 ' + n + ' 天'; }, en: function(n){ return 'About ' + n + ' days'; }, vi: function(n){ return 'Khoảng ' + n + ' ngày'; } }
+  };
+  function build(){
+    root = document.createElement('div'); root.id = 'ccDrop';
+    root.innerHTML = '<svg id="ccDsvg" viewBox="0 0 120 150" width="124" height="155" aria-hidden="true" style="overflow:visible;transform-origin:50% 100%;will-change:transform"><defs><clipPath id="ccDclip"><path class="ccS" d="M60 5C60 5 11 62 11 97a49 49 0 0 0 98 0C109 62 60 5 60 5Z"/></clipPath><linearGradient id="ccWg" x1="0" y1="0" x2="0" y2="1"><stop class="ccA0" offset="0" stop-color="#f7a3c3"/><stop class="ccA1" offset="1" stop-color="#ee6c9b"/></linearGradient><linearGradient id="ccWg2" x1="0" y1="0" x2="0" y2="1"><stop class="ccB0" offset="0" stop-color="#fbc0d6" stop-opacity=".85"/><stop class="ccB1" offset="1" stop-color="#f48fb1" stop-opacity=".85"/></linearGradient></defs>' +
+      '<path class="ccS ccBg" d="M60 5C60 5 11 62 11 97a49 49 0 0 0 98 0C109 62 60 5 60 5Z" fill="#fdeaf2"/><g clip-path="url(#ccDclip)"><path id="ccW2" fill="url(#ccWg2)" d=""/><path id="ccW1" fill="url(#ccWg)" d=""/><g id="ccBub"></g></g><g id="ccPops"></g>' +
+      '<path class="ccS ccOl" d="M60 5C60 5 11 62 11 97a49 49 0 0 0 98 0C109 62 60 5 60 5Z" fill="none" stroke="#f3a6c8" stroke-width="2.4"/><path class="ccHl" d="M30 88c1-12 6-22 13-31" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3.4" stroke-linecap="round"/></svg>' +
+      '<div class="ccd-n"><b id="ccDn"></b><span id="ccDu"></span></div><div class="ccd-s" id="ccDs"></div>';
+    ov.appendChild(root);
+    w1 = root.querySelector('#ccW1'); w2 = root.querySelector('#ccW2'); bub = root.querySelector('#ccBub'); pops = root.querySelector('#ccPops'); svg = root.querySelector('#ccDsvg');
+    dnum = root.querySelector('#ccDn'); dun = root.querySelector('#ccDu'); dsub = root.querySelector('#ccDs');
+  }
+  var shapeMode = '';
+  function setShape(preg){
+    var m = preg ? 'preg' : 'drop'; if(m === shapeMode || !root) return; shapeMode = m;
+    var D = preg ? 'M60 20a58 58 0 1 0 .01 0Z' : 'M60 5C60 5 11 62 11 97a49 49 0 0 0 98 0C109 62 60 5 60 5Z';
+    [].forEach.call(root.querySelectorAll('.ccS'), function(p){ p.setAttribute('d', D); });
+    root.querySelector('.ccBg').setAttribute('fill', preg ? '#ece8fb' : '#fdeaf2'); root.querySelector('.ccOl').setAttribute('stroke', preg ? '#c3b6f0' : '#f3a6c8');
+    function st(c, v){ root.querySelector(c).setAttribute('stop-color', v); }
+    st('.ccA0', preg ? '#b9c9ff' : '#f7a3c3'); st('.ccA1', preg ? '#8e86e6' : '#ee6c9b'); st('.ccB0', preg ? '#d5ddff' : '#fbc0d6'); st('.ccB1', preg ? '#a79ff0' : '#f48fb1');
+    root.querySelector('.ccHl').setAttribute('d', preg ? 'M24 70c4-14 12-24 24-31' : 'M30 88c1-12 6-22 13-31');
+    root.classList.toggle('ccd-preg', preg);
+  }
+  function refresh(){
+    card = document.getElementById('cycleCard'); ov = document.getElementById('ccP2'); if(!card || !ov) return;
+    if(!root || root.parentNode !== ov){ root = null; build(); }
+    var dayTxt = (ov.querySelector('.cc-d') || {}).textContent || '', day = parseInt(dayTxt, 10), b = document.body, total = 0, preg = b.classList.contains('preg-mode');
+    if(isNaN(day) || b.classList.contains('pp-mode')) total = 0;
+    else if(preg) total = 280;
+    else { var cl = parseInt(window.__lunaCycleLen, 10); total = (cl >= 15 && cl <= 60) ? cl : 0; }
+    dropMode = total > 0; ov.classList.toggle('cc-dropmode', dropMode); setShape(preg);
+    if(dropMode){
+      var key = day + '/' + total + '/' + lang() + (preg ? 'p' : 'c');
+      if(key !== lastKey){ lastKey = key; dnum.textContent = day; dnum.style.fontSize = dayTxt.length >= 3 ? '34px' : '46px'; dun.style.fontSize = dayTxt.length >= 3 ? '13px' : '16px'; dun.textContent = (ov.querySelector('.cc-u') || {}).textContent || ''; dsub.textContent = (preg ? TXT.preg : TXT.cyc)[lang()](total); dsub.style.fontSize = dsub.textContent.length > 11 ? '10.5px' : ''; }
+      full = day >= total; tgt = Math.min(1, day / total);
+    }
+    var show = dropMode && card.classList.contains('cc-p2') && !document.hidden;
+    if(show && !running){ running = true; cur = 0; last = performance.now(); raf = requestAnimationFrame(frame); }
+    if(!show && running){ running = false; cancelAnimationFrame(raf); }
+  }
+  // 倾斜
+  function onOri(e){ if(e.gamma == null) return; sensor = true; gam = Math.max(-45, Math.min(45, e.gamma)); }
+  try{ window.addEventListener('deviceorientation', onOri); }catch(e){}
+  var asked = false;
+  document.addEventListener('touchend', function(){ if(asked) return; asked = true;
+    try{ if(window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function' && running){ DeviceOrientationEvent.requestPermission().then(function(r){ if(r === 'granted') window.addEventListener('deviceorientation', onOri); }).catch(function(){}); } else if(!running){ asked = false; } }catch(e){} }, { passive: true });
+  // 触碰
+  function pt(e){ var p = e.touches && e.touches[0] ? e.touches[0] : e; return p; }
+  function inDrop(p){ if(!svg || !running) return null; var r = svg.getBoundingClientRect(); var x = (p.clientX - r.left) / r.width * 120, y = (p.clientY - r.top) / r.height * 150; if(x < 5 || x > 115 || y < 0 || y > 150) return null; return { x: x, y: y }; }
+  function poke(e){ var q = inDrop(pt(e)); if(!q) return; jv -= 7; ripples.push({ x: Math.max(18, Math.min(102, q.x)), t: 0, a: 3.2 }); holding = true; tx = (q.x - 60) / 60 * 7; ty = (q.y - 90) / 60 * 6; }
+  function hmove(e){ if(!holding) return; var r = svg.getBoundingClientRect(), p = pt(e), x = (p.clientX - r.left) / r.width * 120, y = (p.clientY - r.top) / r.height * 150; tx = Math.max(-8, Math.min(8, (x - 60) / 60 * 7)); ty = Math.max(-6, Math.min(6, (y - 90) / 60 * 6)); }
+  function release(){ if(!holding) return; holding = false; tx = 0; ty = 0; jv += 4; }
+  document.addEventListener('touchstart', poke, { passive: true }); document.addEventListener('touchmove', hmove, { passive: true }); document.addEventListener('touchend', release, { passive: true }); document.addEventListener('touchcancel', release, { passive: true });
+  document.addEventListener('mousedown', poke); document.addEventListener('mousemove', hmove); document.addEventListener('mouseup', release);
+  function S(x, y0, t, tn){ var w = full ? 0.7 : 2.2 + slosh, v = y0 + (x - 60) * tn + Math.sin(x / 70 * 6.283 + t * 2.2) * w + Math.sin(x / 38 * 6.283 - t * 3.1) * w * 0.35;
+    for(var i = 0; i < ripples.length; i++){ var r = ripples[i]; v += r.a * Math.exp(-r.t * 1.5) * Math.exp(-Math.abs(x - r.x) / 48) * Math.sin(Math.abs(x - r.x) * 0.30 - r.t * 10); } return v; }
+  function frame(now){
+    if(!running) return; raf = requestAnimationFrame(frame);
+    var dt = Math.min(0.04, (now - last) / 1000); last = now; T += dt; cur += (tgt - cur) * 0.06;
+    var target = ((sensor ? gam * 0.55 : 0) + Math.sin(T * 0.7) * 1.1 + Math.sin(T * 1.7 + 1) * 0.5) * Math.PI / 180; if(full) target *= 0.6;
+    thv += ((target - th) * 70 - thv * 6.5) * dt; th += thv * dt; slosh = Math.max(slosh * Math.exp(-dt * 1.1), Math.min(4.5, Math.abs(thv) * 4)); var tn = Math.tan(th), i;
+    jv += (-95 * j - 7 * jv) * dt; j += jv * dt; ovx += ((tx - ox) * 130 - ovx * 9) * dt; ox += ovx * dt; ovy += ((ty - oy) * 130 - ovy * 9) * dt; oy += ovy * dt;
+    svg.style.transform = 'translate(' + ox.toFixed(2) + 'px,' + oy.toFixed(2) + 'px) scale(' + (1 - 0.06 * j).toFixed(4) + ',' + (1 + 0.085 * j).toFixed(4) + ')';
+    for(i = ripples.length - 1; i >= 0; i--){ ripples[i].t += dt; if(ripples[i].t > 3) ripples.splice(i, 1); }
+    var y0 = shapeMode === 'preg' ? 138 - cur * 116 : 146 - cur * 138;
+    if(!full && cur > 0.12 && cur < 0.9 && T > nextB){ var n = Math.random() < 0.25 ? 2 + Math.floor(Math.random() * 2) : 1;
+      for(var k = 0; k < n; k++) bubs.push({ x: 38 + Math.random() * 44, y: (shapeMode === 'preg' ? 118 : 132) - Math.random() * 6, r: 1.1 + Math.random() * 2.6, vy: 9 + Math.random() * 16, ph: Math.random() * 6.28, fr: 2 + Math.random() * 3, el: null, d: k * 0.18 });
+      nextB = T + 0.9 + Math.random() * 3.4; }
+    for(i = bubs.length - 1; i >= 0; i--){ var b = bubs[i]; if(b.d > 0){ b.d -= dt; continue; }
+      b.y -= b.vy * dt * (0.8 + b.r * 0.12); b.x += Math.sin(T * b.fr + b.ph) * 5 * dt + th * 18 * dt; b.r += dt * 0.12;
+      if(!b.el){ b.el = document.createElementNS(NS, 'circle'); b.el.setAttribute('fill', '#fff'); b.el.setAttribute('fill-opacity', '.55'); b.el.setAttribute('stroke', '#fff'); b.el.setAttribute('stroke-opacity', '.8'); b.el.setAttribute('stroke-width', '.6'); bub.appendChild(b.el); }
+      b.el.setAttribute('cx', b.x.toFixed(2)); b.el.setAttribute('cy', b.y.toFixed(2)); b.el.setAttribute('r', b.r.toFixed(2));
+      if(b.y <= S(b.x, y0, T, tn) + b.r * 0.6){ popList.push({ x: b.x, y: S(b.x, y0, T, tn), r: b.r, t: 0, el: null }); ripples.push({ x: b.x, t: 0, a: 0.9 + b.r * 0.35 }); if(b.el.parentNode) b.el.parentNode.removeChild(b.el); bubs.splice(i, 1); } }
+    for(i = popList.length - 1; i >= 0; i--){ var p = popList[i]; p.t += dt; if(!p.el){ p.el = document.createElementNS(NS, 'circle'); p.el.setAttribute('fill', 'none'); p.el.setAttribute('stroke', '#fff'); p.el.setAttribute('stroke-width', '1'); pops.appendChild(p.el); }
+      var k2 = p.t / 0.35; if(k2 >= 1){ if(p.el.parentNode) p.el.parentNode.removeChild(p.el); popList.splice(i, 1); continue; }
+      p.el.setAttribute('cx', p.x.toFixed(2)); p.el.setAttribute('cy', p.y.toFixed(2)); p.el.setAttribute('r', (p.r * (1 + k2 * 1.8)).toFixed(2)); p.el.setAttribute('stroke-opacity', (0.85 * (1 - k2)).toFixed(2)); }
+    var d1 = 'M-10 150L-10 ' + S(-10, y0, T, tn).toFixed(1), d2 = 'M-10 150L-10 ' + (S(-10, y0, T + 0.7, tn) - 2.5).toFixed(1), x;
+    for(x = -10; x <= 130; x += 4){ d1 += ' L' + x + ' ' + S(x, y0, T, tn).toFixed(1); d2 += ' L' + x + ' ' + (S(x, y0, T + 0.7, tn * 0.9) - 2.5).toFixed(1); }
+    w1.setAttribute('d', d1 + ' L130 150Z'); w2.setAttribute('d', d2 + ' L130 150Z');
+  }
+  try{ var c = document.getElementById('cycleCard'); if(c && window.MutationObserver) new MutationObserver(refresh).observe(c, { attributes: true, attributeFilter: ['class'] }); }catch(e){}
+  document.addEventListener('visibilitychange', refresh);
+  setInterval(refresh, 600); refresh();
+  window.LunaCardDrop = { _s: function(){ return [dropMode, running, cur, tgt, lastKey]; } };
+})();
+</script>

@@ -4983,7 +4983,7 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
 
   <!-- 保存按钮 -->
   <div style="padding:20px 16px 0;">
-    <button class="save-btn" onclick="LunaLog.save()"><span data-i18n="save_btn_icon">💾 บันทึก</span></button>
+    <button class="save-btn" onclick="LunaSaveGo()"><span data-i18n="save_btn_icon">💾 บันทึก</span></button>
   </div>
 </div>
 
@@ -7935,6 +7935,7 @@ try{ window._fb.getRecent = async function(p, n){ const s = await get(query(ref(
     };
 
     function obHide(){
+      try{ if(window.LunaSkel) LunaSkel.begin(); }catch(e){}
       const el = document.getElementById('onboardGate');
       if(!el) return;
       el.style.opacity = '0';
@@ -19027,13 +19028,11 @@ window.setLang = setLang;
         s = SECTIONS[i]; c = lg === 'zh' ? s.zh : s.th; open = !!openSet[s.id];
         h += '<div id="ttcKnow_' + s.id + '" style="' + (i ? 'border-top:1px solid var(--stat-surface-border);' : '') + '">'
           + '<div onclick="LunaTtc.know.toggle(\'' + s.id + '\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 2px;">'
-          + '<span style="font-size:20px;">' + s.icon + '</span><span style="flex:1;font-size:14.5px;font-weight:700;color:var(--stat-fg);">' + esc(c.t) + '</span><span style="color:var(--stat-fg-muted);font-size:12px;">' + (open ? '▲' : '▼') + '</span></div>';
-        if(open){
-          h += '<div style="padding:0 2px 14px;">';
-          for(j = 0; j < c.p.length; j++) h += '<div style="font-size:13.5px;line-height:1.85;color:var(--stat-fg);margin-bottom:8px;">' + esc(c.p[j]) + '</div>';
-          if(s.src) h += '<div style="font-size:11px;color:var(--stat-fg-muted);">' + esc(tt('依据：', 'อ้างอิง: ') + s.src) + '</div>';
-          h += '</div>';
-        }
+          + '<span style="font-size:20px;">' + s.icon + '</span><span style="flex:1;font-size:14.5px;font-weight:700;color:var(--stat-fg);">' + esc(c.t) + '</span><span class="ttcArr" style="display:inline-block;color:var(--stat-fg-muted);font-size:12px;transition:transform .3s ease;transform:rotate(' + (open ? '180' : '0') + 'deg);">▼</span></div>';
+        h += '<div class="ttcBody" style="overflow:hidden;height:' + (open ? 'auto' : '0') + ';transition:height .3s ease;"><div style="padding:0 2px 14px;">';
+        for(j = 0; j < c.p.length; j++) h += '<div style="font-size:13.5px;line-height:1.85;color:var(--stat-fg);margin-bottom:8px;">' + esc(c.p[j]) + '</div>';
+        if(s.src) h += '<div style="font-size:11px;color:var(--stat-fg-muted);">' + esc(tt('依据：', 'อ้างอิง: ') + s.src) + '</div>';
+        h += '</div></div>';
         h += '</div>';
       }
       return h;
@@ -19051,13 +19050,24 @@ window.setLang = setLang;
     }
     function openPanel(sectionId){
       var p = el('ttcKnowPanel'); if(!p) return;
-      if(sectionId) openSet[sectionId] = true;
+      if(sectionId){ openSet = {}; openSet[sectionId] = true; }
       p.style.display = 'block'; try{ document.body.style.overflow = 'hidden'; }catch(e){}
       renderPanel(); p.scrollTop = 0;
       if(sectionId){ var t = el('ttcKnow_' + sectionId); if(t && t.scrollIntoView){ try{ t.scrollIntoView(); }catch(e){} } }
     }
     function closePanel(){ var p = el('ttcKnowPanel'); if(p) p.style.display = 'none'; try{ document.body.style.overflow = ''; }catch(e){} }
-    function toggle(id){ openSet[id] = !openSet[id]; renderPanel(); }
+    function accSet(box, open){
+      var b = box && box.querySelector('.ttcBody'), a = box && box.querySelector('.ttcArr'); if(!b) return;
+      if(a) a.style.transform = 'rotate(' + (open ? 180 : 0) + 'deg)';
+      b.style.transition = 'height .3s ease';
+      if(open){ b.style.height = b.scrollHeight + 'px'; setTimeout(function(){ if(openSet[box.id.replace('ttcKnow_', '')]) b.style.height = 'auto'; }, 330); }
+      else { b.style.height = b.scrollHeight + 'px'; void b.offsetHeight; b.style.height = '0'; }
+    }
+    function toggle(id){
+      var was = !!openSet[id], k, i;
+      for(k in openSet){ if(openSet[k] && k !== id){ openSet[k] = false; accSet(el('ttcKnow_' + k), false); } }
+      openSet[id] = !was; accSet(el('ttcKnow_' + id), !was);
+    }
 
     // ══ 首页备孕卡片：横幅 + 按钮文字 ═════════════════════════════════════
     function renderHome(m, lg){
@@ -36092,5 +36102,386 @@ window.LunaYearCal=(function(){
       },420);
     }catch(x){}
   },{passive:true,capture:true});
+})();
+</script>
+<style id="lunaRateStarsCss">
+#lunaRateSheet{position:fixed;left:0;top:0;right:0;bottom:0;z-index:100003;background:rgba(40,30,70,.5);display:none;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .2s ease;}
+#lunaRateSheet.on{opacity:1;}
+#lunaRateSheet .lrs-card{position:relative;width:100%;max-width:430px;box-sizing:border-box;background:var(--card-bg,#fff);color:var(--text,#2d2640);border-radius:28px 28px 0 0;padding:26px 22px calc(26px + env(safe-area-inset-bottom,0px));text-align:center;transform:translateY(40px);transition:transform .28s cubic-bezier(.2,.9,.3,1);}
+#lunaRateSheet.on .lrs-card{transform:translateY(0);}
+#lunaRateSheet .lrs-x{position:absolute;right:12px;top:10px;width:34px;height:34px;border:none;border-radius:50%;background:rgba(124,92,191,.10);color:#8a849e;font-size:22px;line-height:32px;padding:0;cursor:pointer;font-family:inherit;}
+#lunaRateSheet .lrs-t{font-size:18px;font-weight:700;margin:2px 0 4px;}
+#lunaRateSheet .lrs-s{font-size:12.5px;color:#8a849e;margin-bottom:18px;}
+#lunaRateSheet .lrs-row{display:flex;justify-content:center;gap:10px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:6px 0;}
+#lunaRateSheet .lrs-star{width:46px;height:46px;display:block;transform-origin:50% 55%;}
+#lunaRateSheet .lrs-star path{fill:#d9d4e6;stroke:#d9d4e6;stroke-width:1.5;stroke-linejoin:round;transition:fill .22s ease,stroke .22s ease;}
+#lunaRateSheet .lrs-star.on path{fill:#ffbf3c;stroke:#ffbf3c;}
+@keyframes lrsPop{0%{transform:scale(1)}45%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes lrsWave{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-12px) scale(1.15)}100%{transform:translateY(0) scale(1)}}
+#lunaRateSheet .lrs-star.pop{animation:lrsPop .3s ease-out both;}
+#lunaRateSheet .lrs-star.wave{animation:lrsWave .5s ease-in-out both;}
+#lunaRateSheet .lrs-lbl{position:relative;height:30px;margin:10px 0 4px;overflow:hidden;}
+#lunaRateSheet .lrs-lbl span{position:absolute;left:0;right:0;top:0;line-height:30px;font-size:17px;font-weight:700;color:#e0961a;transition:transform .24s ease,opacity .24s ease;}
+#lunaRateSheet .lrs-after{min-height:96px;}
+#lunaRateSheet .lrs-go{display:block;width:100%;height:50px;margin-top:14px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;font-size:15.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--purple,#7c5cbf),var(--purple-light,#b49de0));box-shadow:0 8px 20px -8px rgba(124,92,191,.6);}
+#lunaRateSheet .lrs-go:active{transform:scale(.985);}
+#lunaRateSheet .lrs-fb{display:block;margin:10px auto 0;background:none;border:none;color:var(--purple,#7c5cbf);font-size:13px;font-family:inherit;text-decoration:underline;cursor:pointer;padding:6px 10px;}
+</style>
+<script id="lunaRateStars">
+(function(){
+  var TXT = {
+    th: { t:'ให้คะแนน Luna', s:'แตะดาว หรือกดค้างแล้วเลื่อนไปมา ปล่อยนิ้วเพื่อยืนยัน', l:['แย่มาก','ไม่ค่อยดี','พอใช้','ดี','ยอดเยี่ยม'], thanks:'ขอบคุณที่ให้คะแนนนะ 💜', goI:'ไปให้คะแนนที่ App Store', goA:'ไปให้คะแนนที่ Google Play', fb:'ส่งความเห็นถึงเรา' },
+    zh: { t:'给 Luna 打个分', s:'点星星，或按住左右滑动，松手即确定', l:['很差','较差','一般','不错','超赞'], thanks:'谢谢你的评分 💜', goI:'去 App Store 评分', goA:'去 Google Play 评分', fb:'给我们提个意见' },
+    en: { t:'Rate Luna', s:'Tap a star, or press and slide; release to confirm', l:['Terrible','Poor','Okay','Good','Awesome'], thanks:'Thanks for rating 💜', goI:'Rate on the App Store', goA:'Rate on Google Play', fb:'Send us feedback' },
+    vi: { t:'Đánh giá Luna', s:'Chạm vào sao, hoặc giữ và trượt; thả tay để xác nhận', l:['Rất tệ','Tệ','Tạm được','Tốt','Tuyệt vời'], thanks:'Cảm ơn bạn đã đánh giá 💜', goI:'Đánh giá trên App Store', goA:'Đánh giá trên Google Play', fb:'Gửi góp ý cho chúng tôi' }
+  };
+  function L4(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  var KEY = 'luna_my_rating';
+  function saved(){ try{ var n = parseInt(localStorage.getItem(KEY) || '0', 10); return (n >= 1 && n <= 5) ? n : 0; }catch(e){ return 0; } }
+  var STAR = '<svg class="lrs-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.9-4.7 4.5 1.2 6.4L12 17.4l-5.7 3.1 1.2-6.4L2.8 9.6l6.4-.9z"/></svg>';
+  var sheet = null, stars = [], cur = 0, lbl = null, curTxt = '', dragging = false, lastTouch = 0, T;
+  var storeRate = window.rateApp;
+  function build(){
+    T = TXT[L4()];
+    var old = document.getElementById('lunaRateSheet'); if(old) old.remove();
+    sheet = document.createElement('div'); sheet.id = 'lunaRateSheet';
+    sheet.innerHTML = '<div class="lrs-card"><button type="button" class="lrs-x" aria-label="close">&times;</button><div class="lrs-t"></div><div class="lrs-s"></div><div class="lrs-row">' + STAR + STAR + STAR + STAR + STAR + '</div><div class="lrs-lbl"></div><div class="lrs-after"></div></div>';
+    document.body.appendChild(sheet);
+    sheet.querySelector('.lrs-t').textContent = T.t; sheet.querySelector('.lrs-s').textContent = T.s;
+    stars = [].slice.call(sheet.querySelectorAll('.lrs-star')); lbl = sheet.querySelector('.lrs-lbl'); curTxt = ''; cur = 0;
+    sheet.addEventListener('click', function(e){ if(e.target === sheet) close(); });
+    sheet.querySelector('.lrs-x').addEventListener('click', close);
+    var row = sheet.querySelector('.lrs-row');
+    function idxAt(x){ var r = row.getBoundingClientRect(), first = stars[0].getBoundingClientRect(), last = stars[4].getBoundingClientRect(), i, n = 1;
+      for(i = 0; i < 5; i++){ var b = stars[i].getBoundingClientRect(); if(x >= b.left - 5) n = i + 1; }
+      return n; }
+    function start(x){ dragging = true; setN(idxAt(x), true); }
+    function move(x){ if(dragging) setN(idxAt(x), true); }
+    function end(){ if(!dragging) return; dragging = false; confirmN(); }
+    row.addEventListener('touchstart', function(e){ lastTouch = Date.now(); if(e.touches.length !== 1) return; start(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+    row.addEventListener('touchmove', function(e){ move(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+    row.addEventListener('touchend', function(e){ end(); e.preventDefault(); }, { passive: false });
+    row.addEventListener('touchcancel', function(){ dragging = false; setN(saved(), false); });
+    row.addEventListener('mousedown', function(e){ if(Date.now() - lastTouch < 700) return; start(e.clientX); });
+    window.addEventListener('mousemove', function(e){ if(Date.now() - lastTouch < 700) return; move(e.clientX); });
+    window.addEventListener('mouseup', function(){ if(Date.now() - lastTouch < 700) return; end(); });
+  }
+  function setLabel(txt){
+    if(txt === curTxt) return;
+    var olds = [].slice.call(lbl.querySelectorAll('span'));
+    olds.forEach(function(o){ o.style.transform = 'translateY(-16px)'; o.style.opacity = '0'; setTimeout(function(){ if(o.parentNode) o.parentNode.removeChild(o); }, 260); });
+    curTxt = txt;
+    if(!txt) return;
+    var n = document.createElement('span'); n.textContent = txt; n.style.transform = 'translateY(16px)'; n.style.opacity = '0'; lbl.appendChild(n);
+    void n.offsetWidth; n.style.transform = 'translateY(0)'; n.style.opacity = '1';
+  }
+  function setN(n, animate){
+    var prev = cur; cur = n; var k = 0, i;
+    for(i = 0; i < 5; i++){
+      var on = i < n, was = i < prev;
+      if(on && !was && animate){
+        stars[i].classList.remove('pop'); void stars[i].offsetWidth;
+        stars[i].style.animationDelay = (k * 40) + 'ms'; stars[i].style.transitionDelay = '0ms';
+        stars[i].querySelector('path').style.transitionDelay = (k * 40) + 'ms';
+        stars[i].classList.add('pop'); k++;
+      } else { stars[i].querySelector('path').style.transitionDelay = '0ms'; if(!on) stars[i].classList.remove('pop'); }
+      stars[i].classList.toggle('on', on);
+    }
+    setLabel(n ? T.l[n - 1] : '');
+  }
+  function confirmN(){
+    try{ localStorage.setItem(KEY, String(cur)); }catch(e){}
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('rate_stars', { n: cur }); }catch(e){}
+    var i;
+    if(cur === 5){ stars.forEach(function(s, j){ s.classList.remove('pop', 'wave'); void s.offsetWidth; s.style.animationDelay = (j * 70) + 'ms'; s.classList.add('wave'); }); }
+    var plat = ''; try{ plat = (window.Capacitor && Capacitor.getPlatform && Capacitor.getPlatform()) || ''; }catch(e){}
+    var after = sheet.querySelector('.lrs-after');
+    after.innerHTML = '<div style="font-size:13px;color:#8a849e;margin-top:6px;">' + T.thanks + '</div>' +
+      '<button type="button" class="lrs-go">' + (plat === 'ios' ? T.goI : T.goA) + '</button><button type="button" class="lrs-fb">' + T.fb + '</button>';
+    after.querySelector('.lrs-go').addEventListener('click', function(){ close(); try{ if(storeRate) storeRate(); }catch(e){} });
+    after.querySelector('.lrs-fb').addEventListener('click', function(){ close(); try{ if(typeof openFeedbackModal === 'function') openFeedbackModal(); }catch(e){} });
+  }
+  function open(){
+    build();
+    sheet.style.display = 'flex'; void sheet.offsetWidth; sheet.classList.add('on');
+    var s = saved(); setTimeout(function(){ if(s) setN(s, true); }, 260);
+  }
+  function close(){
+    if(!sheet) return; var sh = sheet; sh.classList.remove('on'); setTimeout(function(){ if(sh.parentNode) sh.parentNode.removeChild(sh); }, 260); if(sheet === sh) sheet = null; dragging = false;
+  }
+  window.rateAppStars = open; window.rateAppStore = storeRate;
+  window.rateApp = function(){ open(); };
+})();
+</script>
+<style id="lunaSaveProgCss">
+#lunaProg{position:fixed;left:0;right:0;top:0;height:7px;z-index:100010;pointer-events:none;opacity:0;transition:opacity .25s ease;}
+#lunaProg i{display:block;height:100%;width:100%;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#7c5cbf,#b49de0 70%,#f3a6c8);border-radius:0 4px 4px 0;box-shadow:0 0 12px rgba(124,92,191,.6);will-change:transform;}
+</style>
+<script id="lunaSaveProg">
+(function(){
+  var bar = null, fill = null, p = 0, tm = null, running = false;
+  function ensure(){
+    if(bar && bar.parentNode) return;
+    bar = document.createElement('div'); bar.id = 'lunaProg'; fill = document.createElement('i'); bar.appendChild(fill); document.body.appendChild(bar);
+  }
+  function set(v, ms){ fill.style.transition = 'transform ' + ms + 'ms ' + (ms > 150 ? 'ease-out' : 'ease-in'); fill.style.transform = 'scaleX(' + (v / 100) + ')'; }
+  var P = window.LunaProg = {
+    start: function(){
+      ensure(); if(tm) clearInterval(tm); running = true; p = 0;
+      bar.style.transition = 'none'; bar.style.opacity = '1'; fill.style.transition = 'none'; fill.style.transform = 'scaleX(0)'; void fill.offsetWidth;
+      p = 30; set(p, 260);                                   // 先快速冲到约 30%
+      tm = setInterval(function(){                           // 然后越走越慢，最多停在 90%
+        p += (90 - p) * 0.07; if(p > 89.6) p = 89.6; set(p, 140);
+      }, 140);
+    },
+    done: function(){                                        // 数据回来：一下冲到 100%，再淡出
+      if(!running) return; running = false; if(tm){ clearInterval(tm); tm = null; }
+      set(100, 140);
+      setTimeout(function(){ bar.style.transition = 'opacity .3s ease'; bar.style.opacity = '0'; }, 220);
+      setTimeout(function(){ if(!running){ fill.style.transition = 'none'; fill.style.transform = 'scaleX(0)'; } }, 560);
+    },
+    isRunning: function(){ return running; }
+  };
+  var busy = false;
+  // 保存按钮：进度条走着，页面原地不动；云端写入有结果（或超时）后才收起页面
+  window.LunaSaveGo = function(){
+    if(busy) return; busy = true; var t0 = Date.now(), pend = null, fb = window._fb, orig = null;
+    P.start();
+    try{
+      if(fb && typeof fb.set === 'function'){
+        orig = fb.set;
+        fb.set = function(path, v){ var r = orig.apply(fb, arguments); try{ if(/\/logs$/.test(String(path)) && r && r.then) pend = r; }catch(e){} return r; };
+      }
+    }catch(e){}
+    var ok = false, held = [], oT = window.showToast, oB = window._syncBanner;   // 进度条走完之前，"已保存"和"已同步"先扣住
+    try{ if(typeof oT === 'function') window.showToast = function(){ held.push([oT, arguments]); }; }catch(e){}
+    try{ if(typeof oB === 'function') window._syncBanner = function(){ held.push([oB, arguments]); }; }catch(e){}
+    function release(){ try{ if(oT) window.showToast = oT; if(oB) window._syncBanner = oB; }catch(e){} var bad = false; held.forEach(function(h){ try{ if(h[0] === oB){ h[0].apply(window, h[1]); if(!h[1][0]) bad = true; } }catch(e){} });   // "已保存"不再提示；同步成功→顶部"已同步"；失败→下方"已在本地保存"
+      held = [];
+      if(bad && typeof oT === 'function'){ var th = (window._appLang === 'th'), en = false, vi = false; try{ en = localStorage.getItem('luna_ui_en') === '1'; vi = localStorage.getItem('luna_ui_vi') === '1'; }catch(e){}
+        try{ oT(th ? 'บันทึกในเครื่องแล้ว' : en ? 'Saved on this device' : vi ? 'Đã lưu trên thiết bị' : '已在本地保存'); }catch(e){} } }
+    try{ ok = !!LunaLog.save({ stay: true }); }catch(e){ ok = false; }
+    try{ if(orig) fb.set = orig; }catch(e){}
+    function finish(){
+      var wait = Math.max(0, 500 - (Date.now() - t0));   // 至少让进度条看得见
+      setTimeout(function(){ P.done(); setTimeout(function(){ release(); busy = false; if(ok){ try{ LunaLog.close(); }catch(e){} } }, 200); }, wait);
+    }
+    var extra = 0; try{ if(localStorage.getItem('luna_prog_demo') === '1') extra = 2000; }catch(e){}   // 演示：模拟 2 秒网络延迟
+    var settled = false; function go(){ if(settled) return; settled = true; setTimeout(finish, extra); }
+    if(pend){ pend.then(go, go); setTimeout(go, 8000); } else go();
+  };
+})();
+</script>
+<style id="lunaSkelCss">
+#lunaSkel{position:fixed;left:0;top:0;right:0;bottom:0;z-index:9500;background:transparent;overflow:hidden;}
+#lunaSkel .sk{position:fixed;background:rgba(128,110,170,.16);overflow:hidden;transition:opacity .38s ease;opacity:1;}
+#lunaSkel .sk::after{content:"";position:absolute;top:-10%;bottom:-10%;left:calc(var(--sx,0px) * -1);width:var(--cw,390px);
+  background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.5) 50%,transparent 65%);transform:translateX(-100%);animation:lunaSkelSweep 1.5s linear infinite;}
+@keyframes lunaSkelSweep{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){#lunaSkel .sk::after{animation:none}}
+</style>
+<script id="lunaSkel">
+(function(){
+  var layer = null, items = [], active = false, t0 = 0, failsafe = null;
+  function visibleBlocks(){
+    var ph = document.querySelector('.phone'), out = [], vh = window.innerHeight, i;
+    if(!ph) return out;
+    for(i = 0; i < ph.children.length; i++){
+      var el = ph.children[i], cs = getComputedStyle(el);
+      if(cs.display === 'none' || cs.visibility === 'hidden' || cs.position === 'fixed' || cs.position === 'absolute') continue;
+      if(/^(STYLE|SCRIPT)$/.test(el.tagName)) continue;
+      var r = el.getBoundingClientRect();
+      if(r.height < 24 || r.width < 60 || r.top >= vh || r.bottom <= 0) continue;
+      out.push({ el: el, r: r, rad: cs.borderRadius && parseFloat(cs.borderRadius) > 0 ? cs.borderRadius : '16px' });
+    }
+    return out;
+  }
+  function cleanup(){
+    active = false; if(failsafe){ clearTimeout(failsafe); failsafe = null; }
+    items.forEach(function(it){ var s = it.el.style; s.transition = it.tr; s.transitionDelay = it.td; s.opacity = it.op; s.transform = it.tf; });
+    items = []; if(layer && layer.parentNode) layer.parentNode.removeChild(layer); layer = null;
+  }
+  function ready(){
+    try{
+      return !localStorage.getItem('luna_onboard_cycle_len') && !localStorage.getItem('luna_onboard_period_len') && !localStorage.getItem('luna_onboard_last_period');
+    }catch(e){ return true; }
+  }
+  function reveal(){
+    if(!active) return; var n = items.length;
+    items.forEach(function(it, i){
+      var s = it.el.style, d = (i * 60) + 'ms';
+      s.transition = 'opacity .38s ease, transform .38s ease'; s.transitionDelay = d; s.opacity = it.op; s.transform = it.tf;
+      it.sk.style.transitionDelay = d; it.sk.style.opacity = '0';
+    });
+    setTimeout(cleanup, 380 + n * 60 + 120);
+  }
+  function wait(){
+    if(!active) return;
+    var el = Date.now() - t0;
+    if(el >= 900 && (ready() || el >= 2500)) reveal(); else setTimeout(wait, 80);
+  }
+  window.LunaSkel = {
+    begin: function(){
+      if(active) return;
+      try{
+        var blocks = visibleBlocks(); if(!blocks.length) return;
+        active = true; t0 = Date.now();
+        layer = document.createElement('div'); layer.id = 'lunaSkel'; layer.style.setProperty('--cw', window.innerWidth + 'px');
+        blocks.forEach(function(b){
+          var sk = document.createElement('div'); sk.className = 'sk';
+          sk.style.cssText = 'left:' + b.r.left + 'px;top:' + b.r.top + 'px;width:' + b.r.width + 'px;height:' + b.r.height + 'px;border-radius:' + b.rad + ';';
+          sk.style.setProperty('--sx', b.r.left + 'px');
+          layer.appendChild(sk);
+          var s = b.el.style;
+          items.push({ el: b.el, sk: sk, op: s.opacity, tf: s.transform, tr: s.transition, td: s.transitionDelay });
+          s.animation = 'none'; s.transition = 'none'; s.opacity = '0'; s.transform = 'translateY(8px)';   // .card 自带 fadeUp 入场动画会盖住 inline 透明度，所以先关掉（入场动画本来就是一次性的）
+        });
+        document.body.appendChild(layer);
+        failsafe = setTimeout(cleanup, 6000);   // 保险：无论如何 6 秒后一定恢复正常
+        setTimeout(wait, 900);
+      }catch(e){ try{ cleanup(); }catch(_){} }
+    }
+  };
+})();
+</script>
+<script id="lunaElastic">
+(function(){
+  // 首页（备孕期/孕期）到顶或到底继续拖时，整页被橡皮筋拉出一点再弹回去。
+  // 安卓没有系统回弹，iPhone 实测这两种模式的首页也没有；如果系统自己已经在回弹（滚动位置越界），这里自动让位，不叠加。
+  var ua = navigator.userAgent || '', isIOS = /iPhone|iPad|iPod/.test(ua);
+  try{ if(window.Capacitor && Capacitor.getPlatform && Capacitor.getPlatform() === 'ios') isIOS = true; }catch(e){}
+  var sy = 0, sx = 0, mode = 0, el = null, pulled = 0, dir = 0, locked = false;
+  function homeOn(){
+    var b = document.body; if(!b || !(b.classList.contains('preg-mode') || b.classList.contains('ttc-mode'))) return false;
+    try{ if((sessionStorage.getItem('luna_lastPage') || 'home') !== 'home') return false; }catch(e){}
+    if(b.style.overflow === 'hidden') return false;
+    var ph = document.querySelector('.phone'); return !!(ph && ph.offsetParent !== null);
+  }
+  function se(){ return document.scrollingElement || document.documentElement; }
+  function atTop(){ return se().scrollTop <= 0; }
+  function atBottom(){ var s = se(); return s.scrollTop + window.innerHeight >= s.scrollHeight - 1; }
+  document.addEventListener('touchstart', function(e){
+    locked = false; pulled = 0; dir = 0;
+    if(e.touches.length !== 1 || !homeOn()) { el = null; return; }
+    el = document.querySelector('.phone'); sy = e.touches[0].clientY; sx = e.touches[0].clientX;
+    var t = e.target; try{ if(t.closest && t.closest('input,textarea,select,.car,.mr-carousel,[data-no-elastic]')) { el = null; return; } }catch(_){}
+    if(el){ el.style.transition = 'none'; }
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    if(!el || locked) return;
+    var dy = e.touches[0].clientY - sy, dx = e.touches[0].clientX - sx;
+    var q = se(); if(q.scrollTop < 0 || q.scrollTop + window.innerHeight > q.scrollHeight + 1){ el.style.transition = 'none'; el.style.transform = ''; pulled = 0; locked = true; return; }   // 系统自己已经在回弹了，就不叠加
+    if(!dir){
+      if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ locked = true; return; }   // 横向滑动不管
+      if(dy > 4 && atTop()) dir = 1; else if(dy < -4 && atBottom()) dir = -1; else return;
+    }
+    if((dir === 1 && dy <= 0) || (dir === -1 && dy >= 0)){ pulled = 0; el.style.transform = ''; return; }
+    var raw = Math.abs(dy) - 4, v = Math.min(80, raw * 0.38);      // 越拉越吃力，最多拉出 80px
+    pulled = v * dir; el.style.transform = 'translate3d(0,' + pulled + 'px,0)';
+  }, { passive: true });
+  function end(){
+    if(!el) return; var p = el; el = null;
+    if(!pulled){ p.style.transition = ''; p.style.transform = ''; return; }
+    p.style.transition = 'transform .55s cubic-bezier(.2,1.5,.4,1)';   // 带一点过冲，弹一下
+    p.style.transform = 'translate3d(0,0,0)'; pulled = 0;
+    setTimeout(function(){ p.style.transition = ''; p.style.transform = ''; }, 600);
+  }
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', end, { passive: true });
+})();
+</script>
+<style id="lunaOrbHideCss">
+body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !important;}
+#lunaOrbX{position:fixed;left:50%;bottom:calc(112px + env(safe-area-inset-bottom,0px));width:56px;height:56px;margin-left:-28px;border-radius:50%;z-index:139;
+  background:#e5484d;color:#fff;font-size:30px;line-height:54px;text-align:center;font-weight:300;box-shadow:0 6px 18px rgba(229,72,77,.55);
+  opacity:0;transform:translateY(24px) scale(.6);transition:opacity .22s ease,transform .26s cubic-bezier(.2,1.4,.4,1);pointer-events:none;}
+#lunaOrbX.show{opacity:1;transform:translateY(0) scale(1);}
+#lunaOrbX.hot{transform:translateY(0) scale(1.28);box-shadow:0 0 0 8px rgba(229,72,77,.22),0 8px 22px rgba(229,72,77,.65);}
+#lunaOrbTip{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translate(-50%,10px);z-index:100002;max-width:84vw;padding:12px 16px;border-radius:16px;background:rgba(45,38,64,.94);color:#fff;font-size:13.5px;line-height:1.6;text-align:center;opacity:0;transition:opacity .3s ease,transform .3s ease;pointer-events:none;}
+#lunaOrbTip.show{opacity:1;transform:translate(-50%,0);}
+</style>
+<script id="lunaOrbHide">
+(function(){
+  var KEY = 'luna_orb_hidden_until', TIPKEY = 'luna_orb_hide_tip', DAY = 86400000;
+  var TXT = {
+    th: { row:'ลูกบอลผู้ช่วยลอย', on:'แสดง', off:'ซ่อนอยู่', tip:'ซ่อนลูกบอลแล้ว จะกลับมาเองใน 7 วัน ถ้าอยากใช้ก่อน ไปที่หน้า "ของฉัน" แล้วเปิด "ลูกบอลผู้ช่วยลอย" ได้เลย' },
+    zh: { row:'悬浮助手球', on:'显示中', off:'已隐藏', tip:'悬浮球已隐藏，7 天后会自动回来。想提前使用，可以到「我的」页面里找到「悬浮助手球」重新打开。' },
+    en: { row:'Floating assistant', on:'Shown', off:'Hidden', tip:'The floating ball is hidden and will return in 7 days. To bring it back sooner, open the "Me" page and turn on "Floating assistant".' },
+    vi: { row:'Quả cầu trợ lý nổi', on:'Đang hiện', off:'Đã ẩn', tip:'Đã ẩn quả cầu nổi, sau 7 ngày sẽ tự quay lại. Muốn dùng sớm, vào trang "Của tôi" và bật "Quả cầu trợ lý nổi".' }
+  };
+  function L4(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  function until(){ try{ return parseInt(localStorage.getItem(KEY) || '0', 10) || 0; }catch(e){ return 0; } }
+  function isHidden(){ return until() > Date.now(); }
+  function apply(){
+    if(until() && until() <= Date.now()){ try{ localStorage.removeItem(KEY); }catch(e){} }   // 7 天到了，自动出来
+    document.body.classList.toggle('luna-orb-off', isHidden()); refreshRow();
+  }
+  function tip(){
+    var d = document.getElementById('lunaOrbTip'); if(d) d.remove();
+    d = document.createElement('div'); d.id = 'lunaOrbTip'; d.textContent = TXT[L4()].tip; document.body.appendChild(d);
+    void d.offsetWidth; d.classList.add('show');
+    setTimeout(function(){ d.classList.remove('show'); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 350); }, 5200);
+  }
+  function hide(){
+    try{ localStorage.setItem(KEY, String(Date.now() + 7 * DAY)); localStorage.removeItem('luna_orb_pos'); }catch(e){}
+    var o = document.getElementById('lunaOrb');
+    if(o){ o.style.left = ''; o.style.top = ''; o.style.right = '16px'; o.style.bottom = '120px'; }   // 下次出来回到默认位置
+    apply();
+    var first = true; try{ first = !localStorage.getItem(TIPKEY); if(first) localStorage.setItem(TIPKEY, '1'); }catch(e){}
+    if(first) tip();
+  }
+  function show(){ try{ localStorage.removeItem(KEY); }catch(e){} apply(); }
+  // ── 拖动时出现红色 ×，拖到上面松手 = 隐藏 ──
+  var xb = null, orb = null, dragging = false, moved = false, sx = 0, sy = 0, hot = false;
+  function ensureX(){ if(xb && xb.parentNode) return; xb = document.createElement('div'); xb.id = 'lunaOrbX'; xb.textContent = '×'; document.body.appendChild(xb); }
+  function over(){
+    if(!orb || !xb) return false;
+    var a = orb.getBoundingClientRect(), b = xb.getBoundingClientRect();
+    var dx = (a.left + a.width / 2) - (b.left + b.width / 2), dy = (a.top + a.height / 2) - (b.top + b.height / 2);
+    return Math.sqrt(dx * dx + dy * dy) < 52;
+  }
+  function pt(e){ return e.touches && e.touches[0] ? e.touches[0] : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e); }
+  function down(e){ var p = pt(e); dragging = true; moved = false; hot = false; sx = p.clientX; sy = p.clientY; }
+  function move(e){
+    if(!dragging) return; var p = pt(e);
+    if(!moved && (Math.abs(p.clientX - sx) > 6 || Math.abs(p.clientY - sy) > 6)){ moved = true; ensureX(); void xb.offsetWidth; xb.classList.add('show'); }
+    if(moved){ var h = over(); if(h !== hot){ hot = h; xb.classList.toggle('hot', h); if(h && navigator.vibrate){ try{ navigator.vibrate(12); }catch(_){} } } }
+  }
+  function up(){
+    if(!dragging) return; dragging = false;
+    if(!moved || !xb) return;
+    var h = over(); xb.classList.remove('show', 'hot');
+    if(h){
+      var o = orb; o.style.transition = 'transform .22s ease, opacity .22s ease'; o.style.transform = 'scale(.2)'; o.style.opacity = '0';
+      setTimeout(function(){ o.style.transition = ''; o.style.transform = ''; o.style.opacity = ''; hide(); }, 230);
+    }
+  }
+  function bind(){
+    orb = document.getElementById('lunaOrb'); if(!orb || orb.__hideBound) return; orb.__hideBound = 1;
+    orb.addEventListener('mousedown', down); orb.addEventListener('touchstart', down, { passive: true });
+    document.addEventListener('mousemove', move); document.addEventListener('touchmove', move, { passive: true });
+    document.addEventListener('mouseup', up); document.addEventListener('touchend', up); document.addEventListener('touchcancel', function(){ dragging = false; if(xb) xb.classList.remove('show', 'hot'); });
+  }
+  // ── 「我的」页里的开关，放在"给个好评"上面 ──
+  var row = null, stat = null, lab = null;
+  function buildRow(){
+    if(row && row.parentNode) return;
+    var rate = document.querySelector('.s-item[onclick="rateApp()"]'); if(!rate) return;
+    row = document.createElement('div'); row.className = 's-item'; row.id = 'lunaOrbRow';
+    row.innerHTML = '<span class="s-svg-icon" data-c="purple"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 13a4 4 0 0 0 8 0"/></svg></span>'
+      + '<div class="s-info"><div class="s-label"><span class="lob-l"></span></div></div><span class="lob-s" style="font-size:13px;color:#8a849e;margin-right:6px;"></span><span class="s-arrow">›</span>';
+    rate.parentNode.insertBefore(row, rate);
+    lab = row.querySelector('.lob-l'); stat = row.querySelector('.lob-s');
+    row.addEventListener('click', function(){ if(isHidden()) show(); else hide(); });
+  }
+  function refreshRow(){
+    buildRow(); if(!row) return; var t = TXT[L4()];
+    lab.textContent = t.row; stat.textContent = isHidden() ? t.off : t.on;
+  }
+  function init(){ bind(); apply(); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  setInterval(function(){ bind(); apply(); }, 30000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) apply(); });
+  window.LunaOrbHide = { hide: hide, show: show, isHidden: isHidden };
 })();
 </script>

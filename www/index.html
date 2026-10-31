@@ -14948,6 +14948,14 @@ window.setLang = setLang;
       const periodBadge = isPeriod
         ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:#c2548a;background:#fde8f0;border-radius:20px;padding:2px 9px;margin-left:7px;">🩸 ${isTh ? 'มีประจำเดือน' : '经期'}</span>`
         : '';
+      const hasMood = (l.symptoms||[]).some(function(x){ return typeof x === 'string' && x.indexOf('（อารมณ์）') >= 0; });
+      const moodBadge = hasMood
+        ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:#7a56c2;background:#efe8fb;border-radius:20px;padding:2px 9px;margin-left:7px;">💭 ${isTh ? 'อารมณ์' : '情绪'}</span>`
+        : '';
+      const hasSym = (l.symptoms||[]).some(function(x){ return typeof x === 'string' && x && x.indexOf('（อารมณ์）') < 0 && x.indexOf('（ปริมาณ）') < 0 && x.indexOf('（สี）') < 0 && x.indexOf('ไลฟ์：') !== 0; });
+      const symBadge = hasSym
+        ? `<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;color:#b86a1c;background:#fdeedb;border-radius:20px;padding:2px 9px;margin-left:7px;">🤒 ${isTh ? 'อาการ' : '症状'}</span>`
+        : '';
       const tagsHtml = (l.emojis||[]).map((e, si) => {
         const rawSym = (l.symptoms&&l.symptoms[si])||'';
         // 流量/颜色/心情这几种带括号后缀的标签不是真正的"症状"，不套症状翻译表
@@ -14965,7 +14973,7 @@ window.setLang = setLang;
       return `
         <div class="log-entry" id="logentry-${origIdx}">
           <div class="log-entry-top">
-            <span class="log-entry-date">📅 ${dateStr}${periodBadge}</span>
+            <span class="log-entry-date">📅 ${dateStr}${periodBadge}${moodBadge}${symBadge}</span>
             <button class="log-del-btn" onclick="confirmDeleteLog(${origIdx})">🗑</button>
           </div>
           ${tagsHtml ? `<div class="log-tags">${tagsHtml}</div>` : ''}
@@ -28285,6 +28293,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
     }
     function stop(){ if(timer){ clearInterval(timer); timer = null; } }
     function arm(){
+      return;   // 已停用：同一个提示由下面的 lunaTtcPrompt 统一负责，两个同时开会重复弹窗
       if(ls(K_DONE) === '1') return;
       ls(K_PENDING, '1'); okTicks = 0; tries = 0;
       if(!timer) timer = setInterval(tick, 1000);
@@ -33595,7 +33604,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
   function blocked(){
     var ids=['onboardGate','langGate','consentOverlay','trialIntroModal','guestLoginModal','sysPopupNotice','lunaConfirmModal','calSettingsPanel','calPanel'];
     for(var i=0;i<ids.length;i++){ var e=document.getElementById(ids[i]); if(e&&e.offsetHeight>0&&getComputedStyle(e).display!=='none') return true; }
-    var o=document.querySelectorAll('.modal-overlay.open,.fp-root.open'); return o.length>0;
+    var o=document.querySelectorAll('.modal-overlay.open,.fp-root.open,#ttcSettingModal.open'); return o.length>0;
   }
   function ask(){
     try{ localStorage.removeItem(K); }catch(e){}
@@ -36282,7 +36291,7 @@ window.LunaYearCal=(function(){
 </style>
 <script id="lunaSkel">
 (function(){
-  var layer = null, items = [], active = false, t0 = 0, failsafe = null;
+  var layer = null, items = [], active = false, t0 = 0, failsafe = null, minMs = 900, pendingMode = false, lastMode = null;
   function visibleBlocks(){
     var ph = document.querySelector('.phone'), out = [], vh = window.innerHeight, i;
     if(!ph) return out;
@@ -36296,52 +36305,94 @@ window.LunaYearCal=(function(){
     }
     return out;
   }
+  function place(sk, b){
+    var nv = document.querySelector('.bottom-nav'), lim = nv ? nv.getBoundingClientRect().top - 8 : window.innerHeight, h = Math.max(0, Math.min(b.r.height, lim - b.r.top));   // 太长的卡片只画到底部导航栏上方
+    sk.style.cssText = 'left:' + b.r.left + 'px;top:' + b.r.top + 'px;width:' + b.r.width + 'px;height:' + h + 'px;border-radius:' + b.rad + ';';
+    sk.style.setProperty('--sx', b.r.left + 'px');
+  }
+  function hideEl(it){ var s = it.el.style; s.animation = 'none'; s.transition = 'none'; s.opacity = '0'; s.transform = 'translateY(8px)'; }
   function cleanup(){
     active = false; if(failsafe){ clearTimeout(failsafe); failsafe = null; }
     items.forEach(function(it){ var s = it.el.style; s.transition = it.tr; s.transitionDelay = it.td; s.opacity = it.op; s.transform = it.tf; });
     items = []; if(layer && layer.parentNode) layer.parentNode.removeChild(layer); layer = null;
   }
   function ready(){
-    try{
-      return !localStorage.getItem('luna_onboard_cycle_len') && !localStorage.getItem('luna_onboard_period_len') && !localStorage.getItem('luna_onboard_last_period');
-    }catch(e){ return true; }
+    try{ return !localStorage.getItem('luna_onboard_cycle_len') && !localStorage.getItem('luna_onboard_period_len') && !localStorage.getItem('luna_onboard_last_period'); }catch(e){ return true; }
+  }
+  // 模式切换后版面会再变一两次（备孕/怀孕的卡片是异步搭出来的），这里按"现在真实的版面"重新对一遍骨架
+  function sync(){
+    if(!active || !layer) return;
+    var blocks = visibleBlocks(), seen = [];
+    blocks.forEach(function(b){
+      var it = null, k; for(k = 0; k < items.length; k++){ if(items[k].el === b.el){ it = items[k]; break; } }
+      if(!it){
+        var sk = document.createElement('div'); sk.className = 'sk'; layer.appendChild(sk);
+        var s = b.el.style; it = { el: b.el, sk: sk, op: s.opacity, tf: s.transform, tr: s.transition, td: s.transitionDelay }; items.push(it); hideEl(it);
+      }
+      place(it.sk, b); it.sk.style.display = ''; seen.push(it);
+    });
+    items.forEach(function(it){ if(seen.indexOf(it) < 0) it.sk.style.display = 'none'; });
   }
   function reveal(){
-    if(!active) return; var n = items.length;
-    items.forEach(function(it, i){
+    if(!active) return; sync();
+    var list = items.filter(function(it){ return it.sk.style.display !== 'none'; }).sort(function(a, b){ return a.sk.getBoundingClientRect().top - b.sk.getBoundingClientRect().top; });
+    items.forEach(function(it){ if(list.indexOf(it) < 0){ var s = it.el.style; s.transition = it.tr; s.opacity = it.op; s.transform = it.tf; } });
+    list.forEach(function(it, i){
       var s = it.el.style, d = (i * 60) + 'ms';
       s.transition = 'opacity .38s ease, transform .38s ease'; s.transitionDelay = d; s.opacity = it.op; s.transform = it.tf;
       it.sk.style.transitionDelay = d; it.sk.style.opacity = '0';
     });
-    setTimeout(cleanup, 380 + n * 60 + 120);
+    setTimeout(cleanup, 380 + list.length * 60 + 120);
   }
   function wait(){
     if(!active) return;
     var el = Date.now() - t0;
-    if(el >= 900 && (ready() || el >= 2500)) reveal(); else setTimeout(wait, 80);
+    if(el >= minMs && (ready() || el >= 2500)) reveal(); else setTimeout(wait, 80);
   }
-  window.LunaSkel = {
-    begin: function(){
-      if(active) return;
-      try{
-        var blocks = visibleBlocks(); if(!blocks.length) return;
-        active = true; t0 = Date.now();
-        layer = document.createElement('div'); layer.id = 'lunaSkel'; layer.style.setProperty('--cw', window.innerWidth + 'px');
-        blocks.forEach(function(b){
-          var sk = document.createElement('div'); sk.className = 'sk';
-          sk.style.cssText = 'left:' + b.r.left + 'px;top:' + b.r.top + 'px;width:' + b.r.width + 'px;height:' + b.r.height + 'px;border-radius:' + b.rad + ';';
-          sk.style.setProperty('--sx', b.r.left + 'px');
-          layer.appendChild(sk);
-          var s = b.el.style;
-          items.push({ el: b.el, sk: sk, op: s.opacity, tf: s.transform, tr: s.transition, td: s.transitionDelay });
-          s.animation = 'none'; s.transition = 'none'; s.opacity = '0'; s.transform = 'translateY(8px)';   // .card 自带 fadeUp 入场动画会盖住 inline 透明度，所以先关掉（入场动画本来就是一次性的）
-        });
-        document.body.appendChild(layer);
-        failsafe = setTimeout(cleanup, 6000);   // 保险：无论如何 6 秒后一定恢复正常
-        setTimeout(wait, 900);
-      }catch(e){ try{ cleanup(); }catch(_){} }
+  function begin(opt){
+    if(active) return; opt = opt || {};
+    try{
+      var blocks = visibleBlocks(); if(!blocks.length) return;
+      active = true; t0 = Date.now(); minMs = opt.min || 900;
+      layer = document.createElement('div'); layer.id = 'lunaSkel'; layer.style.setProperty('--cw', window.innerWidth + 'px');
+      blocks.forEach(function(b){
+        var sk = document.createElement('div'); sk.className = 'sk'; place(sk, b); layer.appendChild(sk);
+        var s = b.el.style, it = { el: b.el, sk: sk, op: s.opacity, tf: s.transform, tr: s.transition, td: s.transitionDelay };
+        items.push(it); hideEl(it);
+      });
+      document.body.appendChild(layer);
+      failsafe = setTimeout(cleanup, 6000);          // 保险：无论如何 6 秒后一定恢复正常
+      setTimeout(sync, 350); setTimeout(sync, 700);
+      setTimeout(wait, 900);
+    }catch(e){ try{ cleanup(); }catch(_){} }
+  }
+  // ── 模式切换（记录月经 / 备孕 / 怀孕 / 产后）：不管怎么换，回到首页时都走一遍骨架屏 ──
+  function modeOf(){
+    var c = document.body.classList; return (c.contains('preg-mode') ? 'preg' : '') + '|' + (c.contains('ttc-mode') ? 'ttc' : '') + '|' + (c.contains('pp-mode') ? 'pp' : '');
+  }
+  function homeShown(){
+    try{ if((sessionStorage.getItem('luna_lastPage') || 'home') !== 'home') return false; }catch(e){}
+    var ids = ['mine-panel','calPanel','calSettingsPanel','statsPanel','onboardGate','langGate','trialIntroModal','guestLoginModal','lunaMoreLogPanel','moreLogPanel','ttcKnowPanel','lunaBabyView'];
+    for(var i = 0; i < ids.length; i++){ var e = document.getElementById(ids[i]); if(e){ var cs = getComputedStyle(e); if(cs.display !== 'none' && cs.visibility !== 'hidden' && e.offsetHeight > 0) return false; } }
+    try{ if(document.querySelector('.modal-overlay.open, .fp-root.open')) return false; }catch(e){}
+    return true;
+  }
+  function onMode(){
+    var m = modeOf(); if(lastMode === null){ lastMode = m; return; } if(m === lastMode) return; lastMode = m;
+    if(active) return;
+    if(homeShown()){ pendingMode = false; begin({ min: 900 }); } else pendingMode = true;     // 不在首页（比如在日历设置里切的）：等回到首页再演
+  }
+  function watch(){
+    lastMode = modeOf();
+    try{ new MutationObserver(onMode).observe(document.body, { attributes: true, attributeFilter: ['class'] }); }catch(e){}
+    var o = window.showPage;
+    if(typeof o === 'function' && !o.__skelWrap){
+      var w = function(p){ var r = o.apply(this, arguments); try{ if(p === 'home' && pendingMode && homeShown()){ pendingMode = false; begin({ min: 900 }); } }catch(e){} return r; };
+      w.__skelWrap = true; window.showPage = w;
     }
-  };
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
+  window.LunaSkel = { begin: begin, isActive: function(){ return active; }, _pending: function(){ return pendingMode; } };
 })();
 </script>
 <script id="lunaElastic">
@@ -36485,3 +36536,609 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
   window.LunaOrbHide = { hide: hide, show: show, isHidden: isHidden };
 })();
 </script>
+<style id="lunaLogSearchCss">
+#lglSearchBox{padding:6px 16px 4px;}
+#lglSearchBox .lss-in{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:14px;background:rgba(124,92,191,.10);}
+#lglSearchBox .lss-in svg{flex:0 0 auto;width:16px;height:16px;stroke:#8a849e;fill:none;stroke-width:2;stroke-linecap:round;}
+#lglSearchBox input{flex:1;min-width:0;border:none;outline:none;background:transparent;font-size:14px;font-family:inherit;color:inherit;height:100%;}
+#lglSearchBox .lss-x{display:none;border:none;background:rgba(138,132,158,.35);color:#fff;width:18px;height:18px;border-radius:50%;font-size:13px;line-height:18px;padding:0;cursor:pointer;}
+#lglSearchRes{display:none;margin:8px 0 2px;max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:16px;background:var(--card-bg,#fff);box-shadow:0 6px 20px -12px rgba(124,92,191,.4);}
+#lglSearchRes .lss-n{padding:10px 14px 4px;font-size:12px;color:#8a849e;}
+#lglSearchRes .lss-r{display:flex;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid rgba(124,92,191,.10);cursor:pointer;}
+#lglSearchRes .lss-r:active{background:rgba(124,92,191,.08);}
+#lglSearchRes .lss-d{flex:0 0 74px;font-size:13px;font-weight:700;}
+#lglSearchRes .lss-t{flex:1;min-width:0;font-size:13px;line-height:1.5;color:#6b6585;word-break:break-word;}
+#lglSearchRes .lss-e{flex:0 0 auto;font-size:15px;letter-spacing:1px;}
+#lglSearchRes mark{background:rgba(255,191,60,.4);color:inherit;border-radius:3px;padding:0 1px;}
+</style>
+<script id="lunaLogSearch">
+(function(){
+  var TXT = {
+    th: { ph:'ค้นหาอาการ อารมณ์ โน้ต หรือเดือน (1, เดือน 1)', none:'ไม่พบบันทึกที่เกี่ยวข้อง', cnt:function(n){ return 'พบ ' + n + ' วัน'; } },
+    zh: { ph:'搜索症状、心情、备注，或输入月份（1、1月）', none:'没有找到相关记录', cnt:function(n){ return '找到 ' + n + ' 天'; } },
+    en: { ph:'Search symptoms, mood, notes, or a month (1, Jan)', none:'No matching records', cnt:function(n){ return n + ' day' + (n > 1 ? 's' : '') + ' found'; } },
+    vi: { ph:'Tìm triệu chứng, tâm trạng, ghi chú hoặc tháng (1, tháng 1)', none:'Không tìm thấy bản ghi', cnt:function(n){ return 'Tìm thấy ' + n + ' ngày'; } }
+  };
+  function L4(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  function norm(s){ s = String(s == null ? '' : s).toLowerCase(); try{ s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }catch(e){} return s.replace(/đ/g, 'd'); }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // ── 多语言词典：以中文为"枢纽"，把任何一种语言的名字换成 泰/中/英/越 四种写法 ──
+  var D = null;
+  function build(){
+    if(D) return D; D = { th2zh: {}, en2zh: {}, vi2zh: {}, zh2th: {} };
+    try{
+      var LG = (typeof LANG !== 'undefined') ? LANG : (window.LANG || {}), T = LG.th || {}, Z = LG.zh || {};
+      Object.keys(T).forEach(function(k){ if(typeof T[k] === 'string' && typeof Z[k] === 'string'){ D.th2zh[T[k]] = Z[k]; D.zh2th[Z[k]] = T[k]; } });
+    }catch(e){}
+    try{ var E = window.LUNA_EN || {}; Object.keys(E).forEach(function(k){ if(typeof E[k] === 'string' && !D.en2zh[E[k]]) D.en2zh[E[k]] = D.th2zh[k] || k; }); }catch(e){}
+    try{ var V = window.LUNA_VI || {}; Object.keys(V).forEach(function(k){ if(typeof V[k] === 'string' && !D.vi2zh[V[k]]) D.vi2zh[V[k]] = D.th2zh[k] || k; }); }catch(e){}
+    return D;
+  }
+  var cache = {};
+  function variants(name){
+    if(cache[name]) return cache[name];
+    var d = build(), zh = d.th2zh[name] || d.en2zh[name] || d.vi2zh[name] || name, o = { zh: zh, th: d.zh2th[zh] || name, en: '', vi: '' };
+    try{ o.en = (window.LUNA_EN && LUNA_EN[zh]) || (window.LUNA_EN && LUNA_EN[o.th]) || ''; }catch(e){}
+    try{ o.vi = (window.LUNA_VI && LUNA_VI[zh]) || (window.LUNA_VI && LUNA_VI[o.th]) || ''; }catch(e){}
+    var all = [name, o.zh, o.th, o.en, o.vi].filter(Boolean); o.all = all; o.hay = all.map(norm).join('\u0001');
+    return (cache[name] = o);
+  }
+  function showName(name, lg){ var v = variants(name); return v[lg] || v.zh || name; }
+  // ── 月份 ──
+  var MN = null;
+  function monthNames(){
+    if(MN) return MN; MN = [];
+    var locs = ['zh-CN', 'th-TH-u-ca-gregory', 'en', 'vi'], m, i;
+    for(m = 0; m < 12; m++){
+      var set = {};
+      for(i = 0; i < locs.length; i++){
+        try{ ['long', 'short'].forEach(function(w){ var s = new Date(2024, m, 15).toLocaleDateString(locs[i], { month: w }); if(s) set[norm(s).replace(/\./g, '').replace(/\s+/g, '')] = 1; }); }catch(e){}
+      }
+      set[String(m + 1) + '月'] = 1; MN.push(set);
+    }
+    return MN;
+  }
+  function parseMonth(q){
+    var s = norm(q).replace(/[\s.,，。]/g, '');
+    var m = s.match(/^(?:thang|month|เดือน|)(\d{1,2})(?:月|thang|th|เดือน)?$/);
+    if(m){ var n = parseInt(m[1], 10); if(n >= 1 && n <= 12) return n; return 0; }
+    var mn = monthNames(), i; if(s.length < 2) return 0;
+    for(i = 0; i < 12; i++){ if(mn[i][s]) return i + 1; }
+    return 0;
+  }
+  function fmtDate(key, lg){
+    var p = key.split('-'), dt = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)), cur = new Date().getFullYear() === dt.getFullYear();
+    var loc = { zh: 'zh-CN', th: 'th-TH-u-ca-gregory', en: 'en', vi: 'vi' }[lg];
+    try{ var o = { month: 'short', day: 'numeric' }; if(!cur) o.year = '2-digit'; return dt.toLocaleDateString(loc, o); }catch(e){ return key; }
+  }
+  function old(key){ var now = new Date(); now.setHours(0, 0, 0, 0); var p = key.split('-'), dd = Math.round((now - new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10))) / 86400000); return dd > 31 || dd < 0; }
+  function hl(text, q){
+    var t = String(text), qn = norm(q); if(!qn) return esc(t);
+    var tn = norm(t); if(tn.length !== t.length) return esc(t);          // 去音标后长度变了就不高亮，避免错位
+    var i = tn.indexOf(qn); if(i < 0) return esc(t);
+    return esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + qn.length)) + '</mark>' + esc(t.slice(i + qn.length));
+  }
+  function search(q){
+    var list = (typeof logs !== 'undefined' && logs) || [], lg = L4(), out = [], i, e;
+    var qs = String(q).trim(); if(!qs) return null;
+    var month = parseMonth(qs), qn = norm(qs), onlyNum = /^\d+$/.test(qs);
+    for(i = 0; i < list.length; i++){
+      e = list[i]; if(!e || !e.date) continue;
+      var syms = (e.symptoms || []), hit = false;
+      if(month){ if(parseInt(e.date.split('-')[1], 10) === month) hit = true; }
+      if(!hit && !(onlyNum && month)){
+        var j; for(j = 0; j < syms.length && !hit; j++){ if(variants(syms[j]).hay.indexOf(qn) >= 0) hit = true; }
+        if(!hit && e.note && norm(e.note).indexOf(qn) >= 0) hit = true;
+        if(!hit && (e.emojis || []).join('').indexOf(qs) >= 0) hit = true;
+      }
+      if(hit) out.push(e);
+    }
+    out.sort(function(a, b){ return a.date > b.date ? -1 : 1; });
+    return out;
+  }
+  var box, inp, clr, res, tmr;
+  function render(){
+    var t = TXT[L4()], lg = L4(), q = inp.value; clr.style.display = q ? 'block' : 'none';
+    var r = search(q);
+    if(r === null){ res.style.display = 'none'; res.innerHTML = ''; return; }
+    var h = '';
+    if(!r.length) h = '<div class="lss-n" style="padding:14px;text-align:center;">' + esc(t.none) + '</div>';
+    else{
+      h = '<div class="lss-n">' + esc(t.cnt(r.length)) + '</div>';
+      r.slice(0, 80).forEach(function(e){
+        var names = (e.symptoms || []).map(function(s){ return showName(s, lg); }), line = names.join('、');
+        if(e.note) line += (line ? ' · ' : '') + e.note;
+        h += '<div class="lss-r" style="' + (old(e.date) ? 'cursor:default;' : '') + '" data-k="' + esc(e.date) + '"><div class="lss-d">' + esc(fmtDate(e.date, lg)) + '</div><div class="lss-t">' + hl(line, q) + '</div><div class="lss-e">' + esc((e.emojis || []).slice(0, 4).join('')) + '</div></div>';
+      });
+    }
+    res.innerHTML = h; res.style.display = 'block';
+  }
+  function mount(){
+    if(document.getElementById('lglSearchBox')) return true;
+    var hint = document.getElementById('lglHint'); if(!hint || !hint.parentNode) return false;
+    box = document.createElement('div'); box.id = 'lglSearchBox';
+    box.innerHTML = '<div class="lss-in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="lglSearchIn" autocomplete="off" autocapitalize="off" enterkeyhint="search"><button type="button" class="lss-x" aria-label="clear">&times;</button></div><div id="lglSearchRes"></div>';
+    hint.parentNode.insertBefore(box, hint);
+    inp = box.querySelector('input'); clr = box.querySelector('.lss-x'); res = box.querySelector('#lglSearchRes');
+    inp.placeholder = TXT[L4()].ph;
+    inp.addEventListener('input', function(){ clearTimeout(tmr); tmr = setTimeout(render, 140); clr.style.display = inp.value ? 'block' : 'none'; });
+    inp.addEventListener('focus', function(){ inp.placeholder = TXT[L4()].ph; });
+    clr.addEventListener('click', function(){ inp.value = ''; render(); inp.focus(); });
+    res.addEventListener('click', function(ev){
+      var r = ev.target.closest ? ev.target.closest('.lss-r') : null; if(!r) return;
+      var k = r.getAttribute('data-k');
+      var now = new Date(); now.setHours(0, 0, 0, 0); var p = k.split('-'), dd = Math.round((now - new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10))) / 86400000);
+      if(dd > 31 || dd < 0) return;                      // 记录页只能翻到最近 31 天；更早的这里已经列出完整内容，不跳转
+      inp.value = ''; render(); try{ inp.blur(); }catch(e){}
+      try{ LunaLog.open(k); }catch(e){}
+    });
+    return true;
+  }
+  function tick(){ try{ if(mount() && inp && document.activeElement !== inp) inp.placeholder = TXT[L4()].ph; }catch(e){} }
+  tick(); setInterval(tick, 1500);
+  window.LunaLogSearch = { search: search, variants: variants, parseMonth: parseMonth };
+})();
+</script>
+<style id="lunaUndoDelCss">
+#lunaUndoBar{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));width:calc(100% - 32px);max-width:398px;transform:translate(-50%,40px);opacity:0;z-index:100001;
+  background:#2b2538;color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(20,12,40,.45);transition:transform .32s cubic-bezier(.2,.9,.3,1),opacity .25s ease;pointer-events:none;}
+#lunaUndoBar.show{transform:translate(-50%,0);opacity:1;pointer-events:auto;}
+#lunaUndoBar .ub-row{display:flex;align-items:center;gap:12px;padding:14px 8px 15px 18px;}
+#lunaUndoBar .ub-t{flex:1;min-width:0;font-size:14px;line-height:1.4;}
+#lunaUndoBar .ub-b{flex:0 0 auto;border:none;background:none;color:#ffb86b;font-size:14.5px;font-weight:800;padding:8px 14px;cursor:pointer;font-family:inherit;letter-spacing:.3px;}
+#lunaUndoBar .ub-b:active{opacity:.6;}
+#lunaUndoBar .ub-p{position:absolute;left:0;right:0;bottom:0;height:3px;background:#ffb86b;transform-origin:0 50%;transform:scaleX(1);}
+.log-entry.lud-gone{overflow:hidden;}
+</style>
+<script id="lunaUndoDel">
+(function(){
+  var TXT = {
+    th: { del:function(n){ return 'ลบ ' + n + ' รายการแล้ว'; }, undo:'เลิกทำ' },
+    zh: { del:function(n){ return '已删除 ' + n + ' 条记录'; }, undo:'撤销' },
+    en: { del:function(n){ return n + (n > 1 ? ' records' : ' record') + ' deleted'; }, undo:'Undo' },
+    vi: { del:function(n){ return 'Đã xóa ' + n + ' bản ghi'; }, undo:'Hoàn tác' }
+  };
+  function L4(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  var DUR = 4000, bar = null, tt = null, pend = [], timer = null, busy = false;
+  function ensure(){
+    if(bar && bar.parentNode) return;
+    bar = document.createElement('div'); bar.id = 'lunaUndoBar'; bar.setAttribute('role', 'status');
+    bar.innerHTML = '<div class="ub-row"><div class="ub-t"></div><button type="button" class="ub-b"></button></div><div class="ub-p"></div>';
+    document.body.appendChild(bar);
+    bar.querySelector('.ub-b').addEventListener('click', undo);
+  }
+  function paint(){
+    var t = TXT[L4()]; bar.querySelector('.ub-t').textContent = t.del(pend.length); bar.querySelector('.ub-b').textContent = t.undo;
+  }
+  function restart(){        // 进度线从满走到空；每次删除都重新计时
+    var p = bar.querySelector('.ub-p'); p.style.transition = 'none'; p.style.transform = 'scaleX(1)'; void p.offsetWidth;
+    p.style.transition = 'transform ' + DUR + 'ms linear'; p.style.transform = 'scaleX(0)';
+    clearTimeout(timer); timer = setTimeout(commit, DUR);
+  }
+  function showBar(){ ensure(); paint(); if(!bar.classList.contains('show')){ void bar.offsetWidth; bar.classList.add('show'); } restart(); }
+  function hideBar(){ if(bar) bar.classList.remove('show'); }
+  function commit(){ pend = []; hideBar(); }       // 4 秒到了：撤销不再可用，删除正式生效（数据其实一开始就已经删掉并保存了）
+  function listIdx(el){ var m = /logentry-(\d+)/.exec(el.id || ''); return m ? parseInt(m[1], 10) : -1; }
+  function collapse(el, done){
+    var h = el.offsetHeight, cs = getComputedStyle(el); el.classList.add('lud-gone');
+    el.style.height = h + 'px'; el.style.boxSizing = 'border-box'; el.style.transition = 'none'; void el.offsetHeight;
+    el.style.transition = 'height .3s ease, opacity .22s ease, margin .3s ease, padding .3s ease, border-width .3s ease';
+    el.style.height = '0px'; el.style.opacity = '0'; el.style.marginTop = '0'; el.style.marginBottom = '0'; el.style.paddingTop = '0'; el.style.paddingBottom = '0'; el.style.borderWidth = '0';
+    setTimeout(done, 320);
+  }
+  function remove(el){
+    if(busy) return; var idx = listIdx(el); if(idx < 0 || typeof logs === 'undefined' || !logs[idx]) return;
+    busy = true; var item = JSON.parse(JSON.stringify(logs[idx]));
+    collapse(el, function(){
+      try{
+        var i2 = -1, k; for(k = 0; k < logs.length; k++){ if(logs[k] && logs[k].date === item.date){ i2 = k; break; } }
+        if(i2 >= 0){ logs.splice(i2, 1); saveLogs(); if(typeof calUpdateStats === 'function') calUpdateStats(); }
+        pend.push(item);
+      }catch(e){}
+      busy = false; showBar();
+    });
+  }
+  function undo(){
+    if(!pend.length) return; var items = pend.slice(); pend = []; clearTimeout(timer); hideBar();
+    var dates = [];
+    items.forEach(function(it){
+      var exists = logs.some(function(l){ return l && l.date === it.date; });
+      if(!exists){ logs.push(it); dates.push(it.date); }
+    });
+    try{ logs.sort(function(a, b){ return (a && b && a.date && b.date) ? (a.date > b.date ? -1 : 1) : 0; }); saveLogs(); if(typeof calUpdateStats === 'function') calUpdateStats(); }catch(e){}
+    // 重新排好之后，被恢复的那几条从原位置展开 + 淡入弹回来
+    setTimeout(function(){
+      dates.forEach(function(d, n){
+        var idx = -1, k; for(k = 0; k < logs.length; k++){ if(logs[k] && logs[k].date === d){ idx = k; break; } }
+        var el = document.getElementById('logentry-' + idx); if(!el) return;
+        var h = el.offsetHeight; el.style.boxSizing = 'border-box'; el.style.overflow = 'hidden'; el.style.transition = 'none';
+        el.style.height = '0px'; el.style.opacity = '0'; el.style.marginBottom = '0'; el.style.paddingTop = '0'; el.style.paddingBottom = '0'; void el.offsetHeight;
+        el.style.transition = 'height .34s cubic-bezier(.2,.9,.3,1) ' + (n * 60) + 'ms, opacity .3s ease ' + (n * 60) + 'ms, margin .34s ease ' + (n * 60) + 'ms, padding .34s ease ' + (n * 60) + 'ms';
+        el.style.height = h + 'px'; el.style.opacity = '1'; el.style.marginBottom = ''; el.style.paddingTop = ''; el.style.paddingBottom = '';
+        setTimeout(function(){ el.style.transition = ''; el.style.height = ''; el.style.overflow = ''; el.style.opacity = ''; el.style.boxSizing = ''; }, 420 + n * 60);
+      });
+    }, 30);
+  }
+  // 点 🗑 不再弹确认框，直接走"收起 + 撤销条"
+  window.confirmDeleteLog = function(idx){
+    var el = document.getElementById('logentry-' + idx); if(el) remove(el);
+  };
+  // 左滑删除
+  var sx = 0, sy = 0, tgt = null, mode = 0, dx = 0;
+  function wrap(){ return document.getElementById('logListWrap'); }
+  document.addEventListener('touchstart', function(e){
+    tgt = null; mode = 0; dx = 0; var w = wrap(); if(!w || !e.touches || e.touches.length !== 1) return;
+    var el = e.target.closest ? e.target.closest('.log-entry') : null; if(!el || !w.contains(el) || busy) return;
+    tgt = el; sx = e.touches[0].clientX; sy = e.touches[0].clientY; el.style.transition = 'none';
+  }, { passive: true });
+  document.addEventListener('touchmove', function(e){
+    if(!tgt) return; var t = e.touches[0], mx = t.clientX - sx, my = t.clientY - sy;
+    if(!mode){ if(Math.abs(mx) < 8 && Math.abs(my) < 8) return; mode = (Math.abs(mx) > Math.abs(my) * 1.4 && mx < 0) ? 1 : 2; }
+    if(mode !== 1) return;
+    dx = Math.min(0, mx); tgt.style.transform = 'translateX(' + dx + 'px)'; tgt.style.opacity = String(Math.max(.35, 1 + dx / 320));
+    if(e.cancelable) e.preventDefault();
+  }, { passive: false });
+  function end(){
+    if(!tgt) return; var el = tgt; tgt = null;
+    if(mode === 1 && dx < -90){ el.style.transition = 'transform .18s ease, opacity .18s ease'; el.style.transform = 'translateX(-110%)'; el.style.opacity = '0'; setTimeout(function(){ el.style.transform = ''; remove(el); }, 170); }
+    else if(mode === 1){ el.style.transition = 'transform .25s cubic-bezier(.2,1.3,.4,1), opacity .2s ease'; el.style.transform = ''; el.style.opacity = ''; setTimeout(function(){ el.style.transition = ''; }, 260); }
+    mode = 0;
+  }
+  document.addEventListener('touchend', end, { passive: true }); document.addEventListener('touchcancel', end, { passive: true });
+  window.LunaUndoDel = { _s: function(){ return [tgt && tgt.id, mode, dx, busy]; }, remove: remove, undo: undo, pending: function(){ return pend.length; } };
+})();
+</script>
+<style id="lunaCardFlipCss">
+#cycleCard.cc-p2 > *:not(#ccP2):not(.bell-float-pos){visibility:hidden !important;}
+#ccP2{display:none;position:absolute;left:0;top:0;right:0;bottom:0;z-index:4;border-radius:inherit;pointer-events:none;}
+#cycleCard.cc-p2 #ccP2{display:block;}
+#ccP2 .cc-tag{position:absolute;left:22px;top:22px;display:flex;align-items:center;gap:6px;}
+#ccP2 .cc-ic{width:28px;height:28px;border-radius:50%;background:rgba(var(--purple-rgb),0.12);display:flex;align-items:center;justify-content:center;font-size:14px;}
+#ccP2 .cc-lb{font-size:13px;font-weight:600;color:var(--home-fg);}
+#ccP2 .cc-n{position:absolute;left:0;right:0;top:50%;margin-top:-44px;display:flex;align-items:flex-end;justify-content:center;}
+#ccP2 .cc-d{font-size:100px;line-height:1;color:var(--home-key-num-fg);letter-spacing:-4px;font-weight:700;text-shadow:var(--home-fg-shadow);}
+#ccP2 .cc-u{font-size:26px;color:var(--home-unit-fg);font-weight:600;text-shadow:var(--home-fg-shadow);margin-bottom:12px;margin-left:6px;}
+#ccDots{position:absolute;left:50%;top:14px;margin-left:-14px;display:none;gap:5px;z-index:5;pointer-events:none;}
+#ccDots i{width:5px;height:5px;border-radius:3px;background:rgba(var(--purple-rgb),.28);transition:all .25s;}
+#ccDots i.on{width:15px;background:rgba(var(--purple-rgb),.75);}
+</style>
+<script id="lunaCardFlip">
+(function(){
+  var card = null, ov = null, dots = null, page = 0, theta = 0, drag = false, lock = 0, sx = 0, sy = 0, W = 360, raf = 0, timer = null;
+  function pregOn(){ return document.body.classList.contains('preg-mode'); }
+  function src(){
+    var p = pregOn();
+    return {
+      lbl: (document.getElementById(p ? 'pregTopLbl' : 'cardCycleLbl') || {}).textContent || '',
+      icon: p ? ((document.getElementById('pregTopIcon') || {}).textContent || '🤰') : '🩸',
+      day: (document.getElementById(p ? 'pregTopDay' : 'cycleDay') || {}).textContent || '',
+      unit: p ? ((document.getElementById('pregTopUnit') || {}).textContent || '') : (((card.querySelector('#cycleContentWrap .days-unit') || {}).textContent) || '')
+    };
+  }
+  function ok(){
+    if(!card || card.style.display === 'none' || !card.offsetParent) return false;
+    var s = src(); if(!/\d/.test(s.day)) return false;
+    var h = document.getElementById('cycleHint'); if(!pregOn() && h && h.style.display !== 'none') return false;
+    return true;
+  }
+  function ensure(){
+    card = document.getElementById('cycleCard'); if(!card) return false;
+    if(ov && ov.parentNode === card) return true;
+    ov = document.createElement('div'); ov.id = 'ccP2';
+    ov.innerHTML = '<div class="cc-tag"><div class="cc-ic"></div><span class="cc-lb"></span></div><div class="cc-n"><span class="cc-d"></span><span class="cc-u"></span></div>';
+    card.appendChild(ov);
+    dots = document.createElement('div'); dots.id = 'ccDots'; dots.innerHTML = '<i class="on"></i><i></i>'; card.appendChild(dots);
+    try{ card.style.touchAction = 'pan-y'; }catch(e){}
+    return true;
+  }
+  function fill(){
+    var s = src(); ov.querySelector('.cc-ic').textContent = s.icon; ov.querySelector('.cc-lb').textContent = s.lbl;
+    ov.querySelector('.cc-d').textContent = s.day; ov.querySelector('.cc-u').textContent = s.unit;
+  }
+  function paint(th){            // th: 0..180；前 90° 是第一种在转，过了 90° 换成第二种继续转完
+    var back = th > 90;
+    if(back !== card.classList.contains('cc-p2')){ if(back) fill(); card.classList.toggle('cc-p2', back); }
+    var rot = back ? (180 - th) : -th;
+    card.style.transform = (th <= 0.01 || th >= 179.99) ? '' : 'perspective(1100px) rotateY(' + rot + 'deg)';
+  }
+  function tween(to, ms){
+    cancelAnimationFrame(raf); var from = theta, t0 = performance.now();
+    function step(t){
+      var k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); theta = from + (to - from) * e; paint(theta);
+      if(k < 1) raf = requestAnimationFrame(step); else { theta = to; page = to ? 1 : 0; paint(theta); finish(); }
+    }
+    raf = requestAnimationFrame(step);
+  }
+  function finish(){ if(dots){ var d = dots.children; d[0].className = page ? '' : 'on'; d[1].className = page ? 'on' : ''; } }
+  function down(e){
+    drag = false; lock = 0; if(!ensure() || !ok() || !e.touches || e.touches.length !== 1) return;
+    var t = e.touches[0]; if(t.clientX < 28) return;
+    try{ if(e.target.closest && e.target.closest('.bell-float-pos')) return; }catch(_){}
+    var r = card.getBoundingClientRect(); W = r.width || 360; sx = t.clientX; sy = t.clientY; drag = true;
+    cancelAnimationFrame(raf); card.style.animation = 'none';
+  }
+  function move(e){
+    if(!drag) return; var t = e.touches[0], mx = t.clientX - sx, my = t.clientY - sy;
+    if(!lock){ if(Math.abs(mx) < 7 && Math.abs(my) < 7) return; lock = Math.abs(mx) > Math.abs(my) * 1.3 ? 1 : 2; }
+    if(lock !== 1) return; if(e.cancelable) e.preventDefault();
+    var base = page ? 180 : 0, th = base - mx / W * 180 * 1.1; theta = Math.max(0, Math.min(180, th)); paint(theta);
+  }
+  function up(){
+    if(!drag) return; drag = false; if(lock !== 1) return;
+    var moved = theta - (page ? 180 : 0);
+    if(page === 0 && moved > 32) tween(180, 420); else if(page === 1 && moved < -32) tween(0, 420); else tween(page ? 180 : 0, 300);
+  }
+  document.addEventListener('touchstart', function(e){ if(e.target.closest && e.target.closest('#cycleCard')) down(e); }, { passive: true });
+  document.addEventListener('touchmove', move, { passive: false });
+  document.addEventListener('touchend', up, { passive: true }); document.addEventListener('touchcancel', up, { passive: true });
+  function tick(){
+    try{
+      if(!ensure()) return; var can = ok();
+      dots.style.display = can ? 'flex' : 'none';
+      if(!can && (page || card.classList.contains('cc-p2'))){ page = 0; theta = 0; card.classList.remove('cc-p2'); card.style.transform = ''; finish(); }
+      if(can && card.classList.contains('cc-p2')) fill();     // 第二种显示着的时候，天数变了跟着更新
+    }catch(e){}
+  }
+  setInterval(tick, 700); tick();
+  window.LunaCardFlip = { to: function(p){ if(ensure() && ok()) tween(p ? 180 : 0, 420); }, page: function(){ return page; } };
+})();
+</script>
+<style id="lunaBabyKbCss">
+#lunaBabyKb{order:81;margin:6px 0 14px;}
+#lunaBabyKb .lbk-sec{display:flex;align-items:baseline;justify-content:space-between;margin:6px 4px 10px;}
+#lunaBabyKb .lbk-sec b{font-size:17px;color:var(--home-fg,#2d2640);}
+#lunaBabyKb .lbk-sec span{font-size:12px;color:var(--home-fg-muted,#8a849e);}
+#lunaBabyKb .lbk-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+#lunaBabyKb .lbk-k{position:relative;border-radius:22px;padding:16px 14px 14px;min-height:118px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;will-change:transform;}
+#lunaBabyKb .lbk-k:active{filter:brightness(.97);}
+#lunaBabyKb .lbk-ic{font-size:30px;line-height:1;}
+#lunaBabyKb .lbk-t{font-size:15px;font-weight:800;margin-top:12px;line-height:1.3;}
+#lunaBabyKb .lbk-s{font-size:11.5px;opacity:.78;margin-top:3px;line-height:1.4;}
+#lunaBabyKb .a{background:#ffe6d6;color:#a4551f;}#lunaBabyKb .b{background:#fff2c4;color:#8a6a00;}#lunaBabyKb .c{background:#d9f2e2;color:#2b7a4b;}
+#lunaBabyKb .d{background:#d8ecfb;color:#1f6a9c;}#lunaBabyKb .e{background:#fde0e8;color:#b23a5d;}#lunaBabyKb .f{background:#d8f0ee;color:#1f7a73;}
+#lunaBabyKb.lbk-dark .a{background:#4a3025;color:#ffbf99;}#lunaBabyKb.lbk-dark .b{background:#463d1c;color:#ffe08a;}#lunaBabyKb.lbk-dark .c{background:#1f3e2e;color:#8fe0b2;}
+#lunaBabyKb.lbk-dark .d{background:#1f3a4e;color:#9dd3f7;}#lunaBabyKb.lbk-dark .e{background:#4a2433;color:#ffa9c1;}#lunaBabyKb.lbk-dark .f{background:#1d3f3d;color:#8fe0d8;}
+#lunaBabyKb .lbk-note{margin-top:14px;font-size:11.5px;line-height:1.7;text-align:center;color:var(--home-fg-muted,#8a849e);}
+#lunaBabyKbPanel{display:none;position:fixed;inset:0;z-index:160;background:var(--stat-bg,#f6f3fb);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(36px + env(safe-area-inset-bottom,0px));}
+#lunaBabyKbPanel .lbk-top{position:sticky;top:0;z-index:5;background:var(--stat-bg,#f6f3fb);display:flex;align-items:center;gap:12px;padding:52px 20px 10px;}
+#lunaBabyKbPanel .lbk-ttl{font-size:20px;font-weight:600;color:var(--stat-fg,#2d2640);font-family:Georgia,"Songti SC",serif;}
+#lunaBabyKbPanel .lbk-body{padding:4px 16px 0;}
+#lunaBabyKbPanel .lbk-it{border-bottom:1px solid var(--stat-surface-border,rgba(124,92,191,.14));}
+#lunaBabyKbPanel .lbk-q{display:flex;align-items:center;gap:10px;padding:16px 2px;cursor:pointer;font-size:15px;font-weight:700;color:var(--stat-fg,#2d2640);}
+#lunaBabyKbPanel .lbk-q span:first-child{flex:1;}
+#lunaBabyKbPanel .lbk-ar{display:inline-block;font-size:12px;color:var(--stat-fg-muted,#8a849e);transition:transform .3s ease;}
+#lunaBabyKbPanel .lbk-it.open .lbk-ar{transform:rotate(180deg);}
+#lunaBabyKbPanel .lbk-a{overflow:hidden;transition:height .3s ease;}
+#lunaBabyKbPanel .lbk-ai{padding:0 2px 16px;font-size:13.5px;line-height:1.85;color:var(--stat-fg,#2d2640);}
+#lunaBabyKbPanel .lbk-src{margin-top:12px;font-size:11px;color:var(--stat-fg-muted,#8a849e);}
+#lunaBabyKbPanel .lbk-note{font-size:11.5px;line-height:1.7;color:var(--stat-fg-muted,#8a849e);}
+</style>
+<script id="lunaBabyKb">
+var BKB = [
+ { id:'feed', ic:'🍼', cls:'a',
+   n:['อาหารเสริมและการกิน','喂养与辅食','Feeding & solids','Bú sữa & ăn dặm'],
+   s:['เริ่มอาหารเสริมเมื่อไหร่','什么时候加辅食','When to start solids','Khi nào ăn dặm'],
+   it:[
+    ['เริ่มอาหารเสริมเมื่อไหร่?','什么时候开始加辅食？','When should solid foods start?','Khi nào bắt đầu ăn dặm?',
+     'โดยทั่วไปแนะนำให้เริ่มเมื่อประมาณ 6 เดือน และไม่ควรเริ่มก่อน 4 เดือน ดูสัญญาณของลูก: นั่งทรงตัวได้เมื่อมีที่พยุง คอแข็ง สนใจอาหาร และไม่ใช้ลิ้นดันอาหารออก ก่อนหน้านั้นนมแม่หรือนมผงก็เพียงพอ',
+     '一般建议满 6 个月左右开始，不要早于 4 个月。看宝宝的信号：能在支撑下坐稳、头颈稳、对食物有兴趣、不再用舌头把食物顶出来。在此之前，母乳或配方奶就够了。',
+     'Around 6 months is generally recommended, and not before 4 months. Look for signs: sits with support, steady head and neck, interest in food, and no longer pushing food out with the tongue. Until then, breast milk or formula is enough.',
+     'Thường khuyến nghị bắt đầu khoảng 6 tháng tuổi, không nên trước 4 tháng. Hãy quan sát dấu hiệu: ngồi vững khi có đỡ, cổ giữ thẳng, thích thú với thức ăn và không còn dùng lưỡi đẩy thức ăn ra. Trước đó, sữa mẹ hoặc sữa công thức là đủ.'],
+    ['6 เดือนแรกให้กินอะไร?','前 6 个月喝什么？','What should a baby drink in the first 6 months?','6 tháng đầu bé nên uống gì?',
+     'WHO แนะนำให้กินนมแม่อย่างเดียว 6 เดือนแรก หากให้นมแม่ไม่ได้ ใช้นมผงสำหรับทารกที่เหมาะกับวัย โดยทั่วไปก่อน 6 เดือนไม่จำเป็นต้องให้น้ำหรือน้ำผลไม้เพิ่ม',
+     'WHO 建议前 6 个月纯母乳喂养；不能母乳时用适合月龄的婴儿配方奶。6 个月前一般不需要额外喂水或果汁。',
+     'WHO recommends exclusive breastfeeding for the first 6 months; if that is not possible, use an age-appropriate infant formula. Before 6 months, extra water or juice is generally not needed.',
+     'WHO khuyến nghị chỉ bú sữa mẹ trong 6 tháng đầu; nếu không thể, dùng sữa công thức phù hợp lứa tuổi. Trước 6 tháng thường không cần cho uống thêm nước hay nước trái cây.'],
+    ['อาหารเสริมควรเลี่ยงอะไร?','辅食要避开什么？','What to avoid in early foods?','Cần tránh gì khi ăn dặm?',
+     'ไม่ให้น้ำผึ้งก่อน 1 ขวบ (เสี่ยงโบทูลิซึม) อาหารที่สำลักง่าย เช่น ถั่วทั้งเม็ด องุ่นทั้งลูก ให้หั่นหรือเลี่ยง ไม่ปรุงเกลือและน้ำตาลเพิ่ม และก่อน 1 ขวบไม่ควรให้นมวัวเป็นเครื่องดื่มหลัก',
+     '1 岁以内不要给蜂蜜（有肉毒杆菌风险）；整颗坚果、整颗葡萄等容易噎住的食物要切碎或避开；不额外加盐和糖；1 岁前不要把牛奶当作主要饮品。',
+     'No honey before age 1 (botulism risk). Cut up or avoid choking hazards such as whole nuts and whole grapes. Do not add salt or sugar, and avoid cow’s milk as the main drink before age 1.',
+     'Không cho ăn mật ong trước 1 tuổi (nguy cơ ngộ độc botulinum). Cắt nhỏ hoặc tránh thức ăn dễ gây hóc như hạt nguyên, nho nguyên quả. Không thêm muối, đường, và trước 1 tuổi không dùng sữa bò làm thức uống chính.']
+   ] },
+ { id:'mile', ic:'🧸', cls:'b',
+   n:['พัฒนาการของลูก','发育里程碑','Milestones','Mốc phát triển'],
+   s:['0–12 เดือน','0–12 个月','0–12 months','0–12 tháng'],
+   it:[
+    ['ประมาณ 2 เดือน','2 个月左右','Around 2 months','Khoảng 2 tháng',
+     'เริ่มยิ้มให้คน ตามองตามสิ่งของ ตอบสนองต่อเสียง และเงยหัวได้ชั่วครู่ตอนนอนคว่ำ',
+     '会对人笑，眼睛开始跟着东西转，听到声音会有反应，趴着时能短暂抬头。',
+     'Smiles at people, starts following things with the eyes, reacts to sounds, and briefly lifts the head during tummy time.',
+     'Mỉm cười với người, bắt đầu nhìn theo vật, phản ứng với âm thanh và ngẩng đầu được một lúc khi nằm sấp.'],
+    ['4–6 เดือน','4–6 个月','4–6 months','4–6 tháng',
+     'เริ่มอ้อแอ้ หัวเราะ พลิกตัวได้ เอื้อมมือคว้าของเล่น และราว 6 เดือนนั่งได้เมื่อมีที่พยุง',
+     '会发出咿呀声、笑出声，能翻身，伸手去抓玩具，6 个月左右在支撑下坐稳。',
+     'Babbles and laughs, rolls over, reaches for toys, and around 6 months sits with support.',
+     'Bi bô, cười thành tiếng, biết lật, với tay lấy đồ chơi và khoảng 6 tháng ngồi được khi có đỡ.'],
+    ['9–12 เดือน','9–12 个月','9–12 months','9–12 tháng',
+     'นั่งได้เอง หลายคนเริ่มคลาน จับของยืน โบกมือบ๊ายบาย และช่วงใกล้ 1 ขวบอาจพูดคำแรกที่มีความหมาย เด็กแต่ละคนไม่เท่ากัน หากกังวลให้ปรึกษาแพทย์',
+     '能自己坐稳，很多宝宝开始爬，扶着东西站起来，会挥手再见，1 岁前后可能说出第一个有意义的词。每个宝宝节奏不同，如果你担心，和医生聊聊。',
+     'Sits without support, many start crawling, pull up to stand, wave bye-bye, and around age 1 may say a first meaningful word. Every baby is different; if you are worried, talk to a doctor.',
+     'Tự ngồi vững, nhiều bé bắt đầu bò, vịn đứng lên, vẫy tay chào và quanh 1 tuổi có thể nói từ có nghĩa đầu tiên. Mỗi bé một khác; nếu lo lắng, hãy trao đổi với bác sĩ.']
+   ] },
+ { id:'sleep', ic:'🌙', cls:'c',
+   n:['การนอนของลูก','宝宝睡眠','Baby sleep','Giấc ngủ của bé'],
+   s:['นอนเท่าไหร่ถึงปกติ','睡多久算正常','How much is normal','Ngủ bao nhiêu là đủ'],
+   it:[
+    ['ลูกควรนอนวันละกี่ชั่วโมง?','宝宝一天睡多久？','How long should a baby sleep?','Bé nên ngủ bao lâu mỗi ngày?',
+     'ทารกแรกเกิดนอนประมาณ 14–17 ชั่วโมงต่อวัน แต่เป็นช่วงสั้นๆ ส่วนอายุ 4–12 เดือน (รวมงีบกลางวัน) ประมาณ 12–16 ชั่วโมง แต่ละคนต่างกันมาก',
+     '新生儿一天大约睡 14–17 小时，但是一小段一小段的；4–12 个月（含白天小睡）大约 12–16 小时。个体差别很大。',
+     'Newborns sleep about 14–17 hours a day in short stretches; babies aged 4–12 months about 12–16 hours including naps. It varies a lot between babies.',
+     'Trẻ sơ sinh ngủ khoảng 14–17 giờ mỗi ngày nhưng theo từng đoạn ngắn; trẻ 4–12 tháng khoảng 12–16 giờ kể cả giấc ngủ ngày. Mỗi bé một khác.'],
+    ['นอนอย่างไรให้ปลอดภัย?','怎样睡更安全？','How to sleep safely?','Ngủ thế nào cho an toàn?',
+     'ให้ลูกนอนหงาย บนที่นอนเรียบและค่อนข้างแน่น ไม่วางหมอน ผ้าห่มหนานุ่ม หรือตุ๊กตาในเตียง อยู่ห้องเดียวกับพ่อแม่แต่มีที่นอนของตัวเอง และไม่ให้นอนบนโซฟาหรือเก้าอี้นวม',
+     '让宝宝仰睡，睡在平坦、偏硬的床垫上；床里不放枕头、松软被子、毛绒玩具；和大人同房不同床（有自己的睡眠空间）；不要让宝宝睡在沙发或扶手椅上。',
+     'Place the baby on their back on a flat, firm mattress. Keep pillows, soft blankets and soft toys out of the cot. Share the room but not the bed, and never let the baby sleep on a sofa or armchair.',
+     'Cho bé nằm ngửa trên nệm phẳng, khá chắc. Không để gối, chăn mềm, thú nhồi bông trong nôi. Ngủ chung phòng nhưng không chung giường, và không cho bé ngủ trên sofa hay ghế bành.'],
+    ['ตื่นกลางคืนบ่อยปกติไหม?','夜里总醒正常吗？','Is waking at night normal?','Bé hay thức đêm có bình thường không?',
+     'ปกติค่ะ ทารกท้องเล็กและต้องกินนมตอนกลางคืน การนอนจะค่อยๆ ต่อเนื่องยาวขึ้นเมื่อผ่านไปหลายเดือน แต่ละคนใช้เวลาไม่เท่ากัน',
+     '正常。小宝宝胃小、需要夜里喂奶，睡眠要到几个月后才会慢慢连成一长段；每个宝宝时间不同。',
+     'Yes. Young babies have small stomachs and need night feeds. Sleep slowly consolidates into longer stretches over several months, at a different pace for each baby.',
+     'Bình thường. Trẻ nhỏ dạ dày bé và cần bú đêm. Giấc ngủ sẽ dần liền mạch hơn sau vài tháng, nhanh chậm tùy từng bé.']
+   ] },
+ { id:'vacc', ic:'💉', cls:'d',
+   n:['ตารางวัคซีน','疫苗时间表','Vaccines','Lịch tiêm chủng'],
+   s:['ต้องฉีดอะไรเมื่อไหร่','什么时候打什么','What and when','Tiêm gì, khi nào'],
+   it:[
+    ['ทำไมต้องฉีดตามเวลา?','为什么要按时接种？','Why vaccinate on time?','Vì sao nên tiêm đúng lịch?',
+     'วัคซีนช่วยป้องกันตั้งแต่ช่วงที่ลูกเสี่ยงติดเชื้อมากที่สุด ฉีดตามตารางของประเทศจะได้ผลดีที่สุด ชนิดและช่วงเวลาแต่ละประเทศต่างกันเล็กน้อย ให้ยึดตารางจากกระทรวงสาธารณสุขหรือแพทย์ (ในไทยดูได้จากสมุดบันทึกสุขภาพแม่และเด็ก)',
+     '疫苗在宝宝最容易受到感染的时候提前提供保护，按本地免疫计划的时间接种效果最好。具体种类和时间各国略有不同，请以当地卫生部门或医生给你的接种表为准（泰国可参考《妈妈与宝宝健康手册》）。',
+     'Vaccines protect babies when they are most at risk of infection, and work best when given on your country’s schedule. Types and timing differ a little between countries, so follow the schedule from your health authority or doctor (in Thailand, see the mother-and-child health book).',
+     'Vắc-xin bảo vệ trẻ đúng lúc dễ nhiễm bệnh nhất và hiệu quả nhất khi tiêm theo lịch của quốc gia. Loại và thời điểm mỗi nước hơi khác nhau, hãy theo lịch của cơ quan y tế hoặc bác sĩ (ở Thái Lan xem sổ sức khỏe mẹ và bé).'],
+    ['แรกเกิดมักฉีดอะไร?','出生时通常打什么？','What is given at birth?','Sơ sinh thường tiêm gì?',
+     'โดยทั่วไปฉีดวัคซีนไวรัสตับอักเสบบีไม่นานหลังคลอด (WHO แนะนำภายใน 24 ชั่วโมง) หลายประเทศฉีดวัคซีนป้องกันวัณโรค (BCG) ด้วย และเริ่มชุดวัคซีนพื้นฐานชุดแรกราว 2 เดือน',
+     '一般在出生后不久接种乙肝疫苗（WHO 建议出生 24 小时内），不少国家同时接种卡介苗。2 个月左右开始第一批基础免疫。',
+     'Hepatitis B vaccine is usually given soon after birth (WHO advises within 24 hours), and many countries also give BCG. The first set of routine vaccines starts around 2 months.',
+     'Vắc-xin viêm gan B thường tiêm ngay sau sinh (WHO khuyến nghị trong 24 giờ), nhiều nước cũng tiêm BCG. Đợt vắc-xin cơ bản đầu tiên bắt đầu khoảng 2 tháng tuổi.'],
+    ['หลังฉีดมีอาการอะไรบ้าง?','打完针后常见反应？','Common reactions after shots?','Phản ứng thường gặp sau tiêm?',
+     'บวมแดงที่รอยฉีด ไข้ต่ำๆ งอแง กินน้อยลง มักดีขึ้นใน 1–2 วัน หากมีไข้สูง ร้องไม่หยุดต่อเนื่อง หายใจลำบาก หน้าหรือริมฝีปากบวม หรือผื่นลมพิษทั้งตัว ให้ติดต่อแพทย์หรือไปโรงพยาบาลทันที',
+     '接种部位红肿、轻微发烧、烦躁、胃口差，通常 1–2 天内好转。如果出现高烧、持续哭闹停不下来、呼吸困难、脸或嘴唇肿胀、全身起风团，请立即联系医生或就医。',
+     'Redness or swelling where the shot was given, mild fever, fussiness and poor appetite are common and usually improve within 1–2 days. Contact a doctor or go to hospital right away for high fever, non-stop crying, trouble breathing, swelling of the face or lips, or hives all over.',
+     'Đỏ, sưng chỗ tiêm, sốt nhẹ, quấy khóc, bú kém thường gặp và hay đỡ sau 1–2 ngày. Hãy liên hệ bác sĩ hoặc đến bệnh viện ngay nếu sốt cao, khóc không dứt, khó thở, sưng mặt hoặc môi, hoặc nổi mề đay khắp người.']
+   ] },
+ { id:'doctor', ic:'🩺', cls:'e',
+   n:['เมื่อไหร่ควรพบแพทย์','何时看医生','When to see a doctor','Khi nào đi khám'],
+   s:['ไข้ ผื่น ตัวเหลือง','发烧、湿疹、黄疸','Fever, rash, jaundice','Sốt, phát ban, vàng da'],
+   it:[
+    ['ไข้','发烧','Fever','Sốt',
+     'ทารกอายุไม่ถึง 3 เดือนที่มีอุณหภูมิ 38°C ขึ้นไป ควรไปพบแพทย์โดยเร็ว อย่ารอดูอาการเอง เด็กโตกว่านั้นให้ดูความกระฉับกระเฉง การกินนม และปริมาณปัสสาวะ ไม่ใช่ดูแค่ตัวเลข',
+     '3 个月以内的宝宝体温达到 38°C 或以上，应尽快就医，不要自己观望。大一点的宝宝要看精神状态、吃奶和尿量，而不只看数字。',
+     'A baby under 3 months with a temperature of 38°C or higher should see a doctor promptly, not wait and see. For older babies, look at alertness, feeding and wet nappies, not just the number.',
+     'Trẻ dưới 3 tháng có nhiệt độ từ 38°C trở lên nên đi khám sớm, không nên chờ xem. Với trẻ lớn hơn, hãy xem độ tỉnh táo, việc bú và lượng nước tiểu, không chỉ nhìn con số.'],
+    ['ต้องไปพบแพทย์ทันที','需要马上就医的情况','Go to a doctor right away if','Cần đi khám ngay khi',
+     'หายใจเร็วหรือเหนื่อยหอบ มีเสียงครืดคราด ริมฝีปากหรือผิวเขียวซีด ปลุกยากหรือตัวอ่อนปวกเปียก อาเจียนซ้ำๆ ไม่ยอมกินนม ผ้าอ้อมเปียกน้อยลงชัดเจน หรือชัก',
+     '呼吸很快或很吃力、呼噜声、嘴唇或皮肤发青发灰；很难叫醒、软绵绵；反复吐、拒绝吃奶、尿布明显变少；抽搐。',
+     'Fast or laboured breathing, grunting, blue or grey lips or skin; hard to wake or floppy; repeated vomiting, refusing feeds, clearly fewer wet nappies; or a seizure.',
+     'Thở nhanh hoặc khó nhọc, thở khò khè, môi hoặc da tím tái; khó đánh thức hoặc mềm nhũn; nôn nhiều lần, bỏ bú, tã ướt ít rõ rệt; hoặc co giật.'],
+    ['ตัวเหลือง','黄疸','Jaundice','Vàng da',
+     'ผิวเหลืองเล็กน้อยในไม่กี่วันแรกพบได้บ่อย แต่ถ้าเหลืองภายใน 24 ชั่วโมงแรก เหลืองมาก ลามไปถึงมือเท้า หรือเกิน 2 สัปดาห์แล้วยังไม่หาย ควรให้แพทย์ตรวจ',
+     '新生儿出生几天内皮肤轻微发黄很常见；如果出生 24 小时内就发黄、黄得很明显或蔓延到手脚，或超过 2 周还没消退，请让医生检查。',
+     'Mild yellowing in the first few days is common. See a doctor if it appears within the first 24 hours, is very yellow or spreads to the hands and feet, or lasts more than 2 weeks.',
+     'Vàng da nhẹ trong vài ngày đầu khá thường gặp. Hãy cho bác sĩ khám nếu xuất hiện trong 24 giờ đầu, vàng nhiều, lan đến tay chân hoặc kéo dài hơn 2 tuần.']
+   ] },
+ { id:'care', ic:'🛁', cls:'f',
+   n:['ดูแลทารกแรกเกิด','新生儿护理','Newborn care','Chăm sóc sơ sinh'],
+   s:['อาบน้ำ สายสะดือ การอุ้ม','洗澡、脐带、抱姿','Bath, cord, holding','Tắm, rốn, cách bế'],
+   it:[
+    ['ดูแลสายสะดืออย่างไร?','脐带怎么护理？','How to care for the cord?','Chăm sóc rốn thế nào?',
+     'รักษาให้แห้งและสะอาด พับผ้าอ้อมไว้ใต้สะดือ ปกติหลุดเองใน 1–3 สัปดาห์ อย่าดึง หากผิวรอบๆ แดงลามออก มีหนองหรือกลิ่นเหม็น หรือลูกมีไข้ ให้พบแพทย์',
+     '保持干燥清洁，尿布折在脐带下面；通常 1–3 周内自然脱落，不要硬拉。如果周围皮肤发红扩大、有臭味分泌物，或宝宝发烧，请看医生。',
+     'Keep it clean and dry, and fold the nappy below it. It usually drops off on its own within 1–3 weeks, so do not pull it. See a doctor if the skin around it spreads red, there is smelly discharge, or the baby has a fever.',
+     'Giữ rốn sạch và khô, gấp tã dưới rốn. Thường tự rụng trong 1–3 tuần, không kéo giật. Hãy đi khám nếu da quanh rốn đỏ lan rộng, có dịch hôi, hoặc bé sốt.'],
+    ['อาบน้ำอย่างไร?','怎么洗澡？','How to bathe a newborn?','Tắm cho bé thế nào?',
+     'ก่อนสายสะดือหลุดเช็ดตัวด้วยน้ำอุ่นก่อนได้ หลังจากนั้นอาบน้ำอุ่น (ทดสอบด้วยท้องแขนด้านใน ไม่ร้อน) ไม่จำเป็นต้องอาบทุกวัน และมือต้องประคองลูกตลอด ห้ามละสายตาหรือปล่อยลูกไว้ลำพังแม้ครู่เดียว',
+     '脐带脱落前可以先用温水擦洗；之后用温水（用手腕内侧试，不烫）洗，不用天天洗；洗澡时手一直扶着宝宝，一刻也不要离开。',
+     'Until the cord falls off, a warm sponge bath is fine. After that, use warm (not hot) water, tested on the inner wrist; daily baths are not necessary. Keep a hand on the baby at all times and never leave them alone, even for a moment.',
+     'Trước khi rốn rụng, có thể lau người bằng nước ấm. Sau đó tắm nước ấm (thử bằng mặt trong cổ tay, không nóng), không cần tắm hằng ngày. Luôn giữ tay đỡ bé, không bao giờ để bé một mình dù chỉ chốc lát.'],
+    ['อุ้มอย่างไรให้ถูกต้อง?','怎么抱？','How to hold a newborn?','Bế bé thế nào cho đúng?',
+     'ต้องประคองศีรษะและต้นคอเสมอ ห้ามเขย่าตัวลูกเด็ดขาด (อาจทำให้สมองบาดเจ็บรุนแรง) หากเหนื่อยหรือหงุดหงิดจนทนไม่ไหว ให้วางลูกลงในเปลที่ปลอดภัย หายใจลึกๆ แล้วขอให้คนอื่นช่วย',
+     '抱的时候一定托住头和颈；千万不要摇晃宝宝（可能造成严重脑损伤）；如果烦躁到撑不住，把宝宝放在安全的婴儿床里，深呼吸，再找人帮忙。',
+     'Always support the head and neck. Never shake a baby, which can cause serious brain injury. If you feel overwhelmed, put the baby down in a safe cot, take a few deep breaths and ask someone for help.',
+     'Luôn đỡ đầu và cổ bé. Tuyệt đối không lắc bé vì có thể gây tổn thương não nghiêm trọng. Nếu quá căng thẳng, hãy đặt bé vào nôi an toàn, hít thở sâu và nhờ người khác giúp.']
+   ] }
+];
+
+(function(){
+  var TT = {
+    title:['คู่มือลูกน้อย','宝宝百科','Baby guide','Cẩm nang bé'],
+    sub:['เตรียมพร้อมเป็นพ่อแม่','育儿预习','Parenting preview','Làm quen việc nuôi con'],
+    note:['เนื้อหาเรียบเรียงจากคำแนะนำที่เผยแพร่ของ WHO, CDC, NHS ฯลฯ ใช้เพื่อความรู้ทั่วไปเท่านั้น ไม่สามารถทดแทนการวินิจฉัยของแพทย์','内容整理自 WHO、CDC、NHS 等公开建议，经过归纳，仅供一般了解，不能代替医生的诊断。','Summarised from public guidance by WHO, CDC, NHS and others. For general information only; it does not replace a doctor’s diagnosis.','Nội dung tổng hợp từ khuyến nghị công khai của WHO, CDC, NHS… chỉ để tham khảo, không thay thế chẩn đoán của bác sĩ.'],
+    src:['อ้างอิง: WHO / CDC / NHS','依据：WHO / CDC / NHS','Sources: WHO / CDC / NHS','Nguồn: WHO / CDC / NHS']
+  };
+  function L(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 0; if(localStorage.getItem('luna_ui_en') === '1') return 2; if(localStorage.getItem('luna_ui_vi') === '1') return 3; return 1; }catch(e){ return 0; } }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  var sec = null, panel = null, lastLang = -1, lastTops = [], lastVis = false, dark = false, flipping = false;
+  function phone(){ return document.querySelector('.phone'); }
+  function ttcOn(){ return document.body.classList.contains('ttc-mode'); }
+  function isDark(){
+    var els = [document.querySelector('.phone'), document.body, document.documentElement], i, m;
+    for(i = 0; i < els.length; i++){
+      if(!els[i]) continue; var c = getComputedStyle(els[i]).backgroundColor; m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(c);
+      if(m && (m[4] === undefined || parseFloat(m[4]) > 0.5)) return (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) < 110;
+    }
+    return false;
+  }
+  function html(){
+    var l = L(), h = '<div class="lbk-sec"><b>👶 ' + esc(TT.title[l]) + '</b><span>' + esc(TT.sub[l]) + '</span></div><div class="lbk-grid">';
+    BKB.forEach(function(t){ h += '<div class="lbk-k ' + t.cls + '" data-id="' + t.id + '"><div class="lbk-ic">' + t.ic + '</div><div><div class="lbk-t">' + esc(t.n[l]) + '</div><div class="lbk-s">' + esc(t.s[l]) + '</div></div></div>'; });
+    return h + '</div><div class="lbk-note">' + esc(TT.note[l]) + '</div>';
+  }
+  function ensure(){
+    var ph = phone(); if(!ph) return false;
+    if(!sec){
+      sec = document.createElement('div'); sec.id = 'lunaBabyKb';
+      sec.addEventListener('click', function(e){ var k = e.target.closest ? e.target.closest('.lbk-k') : null; if(k) openPanel(k.getAttribute('data-id')); });
+    }
+    var sub = document.getElementById('lpgSub');
+    var want = sub && sub.parentNode === ph ? sub.nextSibling : null;      // 放在套餐块的下面
+    if(sec.parentNode !== ph || (sub && sub.nextSibling !== sec)){ ph.insertBefore(sec, want); }
+    var l = L(); if(l !== lastLang){ sec.innerHTML = html(); lastLang = l; }
+    return true;
+  }
+  function items(){ return sec ? [].slice.call(sec.querySelectorAll('.lbk-sec,.lbk-k,.lbk-note')) : []; }
+  function snap(){ if(!sec || sec.style.display === 'none') return; var y = window.scrollY || 0; lastTops = items().map(function(e){ return e.getBoundingClientRect().top + y; }); }
+  function subVisible(){ var s = document.getElementById('lpgSub'); return !!(s && s.offsetHeight > 0 && getComputedStyle(s).display !== 'none'); }
+  // 套餐块消失：下面的宝宝卡片先"回到原位"，再一项一项（错开 80ms）滑上来，不是一下子弹上去
+  function riseOne(){
+    if(flipping) return; var its = items(); if(!its.length || lastTops.length !== its.length) return;
+    var y = window.scrollY || 0, ds = its.map(function(e, i){ return lastTops[i] - (e.getBoundingClientRect().top + y); });
+    if(!ds.some(function(d){ return Math.abs(d) > 2; })) return;
+    flipping = true;
+    its.forEach(function(e, i){ e.style.transition = 'none'; e.style.transform = 'translateY(' + ds[i] + 'px)'; });
+    void sec.offsetWidth;
+    its.forEach(function(e, i){ e.style.transition = 'transform .55s cubic-bezier(.2,.9,.25,1) ' + (i * 80) + 'ms'; e.style.transform = ''; });
+    setTimeout(function(){ its.forEach(function(e){ e.style.transition = ''; e.style.transform = ''; }); flipping = false; snap(); }, 600 + its.length * 80);
+  }
+  function check(){
+    var vis = subVisible();
+    if(lastVis && !vis && sec && ttcOn()) riseOne();
+    if(!flipping) snap();
+    lastVis = vis;
+  }
+  // ── 知识页 ──
+  function openPanel(id){
+    var t = null; BKB.forEach(function(x){ if(x.id === id) t = x; }); if(!t) return; var l = L();
+    if(panel && panel.parentNode) panel.parentNode.removeChild(panel);
+    panel = document.createElement('div'); panel.id = 'lunaBabyKbPanel'; if(dark) panel.className = 'lbk-dark';
+    var h = '<div class="lbk-top"><button type="button" class="back-btn lbk-back">‹</button><span class="lbk-ttl">' + t.ic + ' ' + esc(t.n[l]) + '</span></div><div class="lbk-body">';
+    t.it.forEach(function(it, i){
+      h += '<div class="lbk-it" data-i="' + i + '"><div class="lbk-q"><span>' + esc(it[l]) + '</span><span class="lbk-ar">▼</span></div><div class="lbk-a" style="height:' + (i === 0 ? 'auto' : '0') + '"><div class="lbk-ai">' + esc(it[4 + l]) + '</div></div></div>';
+    });
+    h += '<div class="lbk-src">' + esc(TT.src[l]) + '</div><div class="lbk-note" style="margin-top:14px">' + esc(TT.note[l]) + '</div></div>';
+    panel.innerHTML = h; document.body.appendChild(panel);
+    var first = panel.querySelector('.lbk-it'); if(first) first.classList.add('open');
+    panel.querySelector('.lbk-back').addEventListener('click', closePanel);
+    panel.addEventListener('click', function(e){ var q = e.target.closest ? e.target.closest('.lbk-q') : null; if(q) toggle(q.parentNode); });
+    try{ document.body.style.overflow = 'hidden'; }catch(e){}
+    panel.style.display = 'block'; panel.scrollTop = 0;
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('baby_kb_open', { id: id }); }catch(e){}
+  }
+  function closePanel(){ if(panel && panel.parentNode) panel.parentNode.removeChild(panel); panel = null; try{ document.body.style.overflow = ''; }catch(e){} }
+  function setOpen(it, open){
+    var a = it.querySelector('.lbk-a'); it.classList.toggle('open', open);
+    a.style.height = a.scrollHeight + 'px'; if(!open){ void a.offsetHeight; a.style.height = '0'; } else setTimeout(function(){ if(it.classList.contains('open')) a.style.height = 'auto'; }, 330);
+  }
+  function toggle(it){
+    var was = it.classList.contains('open');
+    [].forEach.call(panel.querySelectorAll('.lbk-it.open'), function(o){ if(o !== it) setOpen(o, false); });
+    setOpen(it, !was);
+  }
+  function tick(){
+    try{
+      var on = ttcOn() && phone();
+      if(on){ ensure(); sec.style.display = ''; sec.className = dark ? 'lbk-dark' : ''; }
+      else if(sec && sec.parentNode){ sec.parentNode.removeChild(sec); lastTops = []; }
+      dark = isDark();
+      check();
+    }catch(e){}
+  }
+  setInterval(tick, 400); tick();
+  try{ new MutationObserver(check).observe(document.body, { attributes: true, subtree: true, attributeFilter: ['style', 'class'], childList: true }); }catch(e){}
+  window.addEventListener('scroll', function(){ if(!flipping) snap(); }, { passive: true });
+  window.LunaBabyKb = { open: openPanel, close: closePanel, _s: function(){ return [lastVis, flipping, lastTops.length, items().length, lastTops.slice(0,3)]; } };
+})();
+
+</script>
+
+<script id="lunaMoodBadgeTr">(function(){try{if(window.LUNA_EN&&!window.LUNA_EN['💭 情绪'])window.LUNA_EN['💭 情绪']='💭 Mood';if(window.LUNA_VI&&!window.LUNA_VI['💭 情绪'])window.LUNA_VI['💭 情绪']='💭 Tâm trạng';}catch(e){}})();</script>
+
+<script id="lunaSymBadgeTr">(function(){try{if(window.LUNA_EN&&!window.LUNA_EN['🤒 症状'])window.LUNA_EN['🤒 症状']='🤒 Symptoms';if(window.LUNA_VI&&!window.LUNA_VI['🤒 症状'])window.LUNA_VI['🤒 症状']='🤒 Triệu chứng';}catch(e){}})();</script>

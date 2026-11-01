@@ -38076,6 +38076,8 @@ var BKB = [
   }
   var tries = 0, iv = setInterval(function(){ if(mount() || ++tries > 40) clearInterval(iv); }, 500);
   document.addEventListener('luna-lang-changed', updateEntry);
+  /* 语言切换后入口文字跟着变：App 切语言时不一定会发事件，所以每 1.5 秒对一下当前语言，变了就刷新这一行 */
+  var _lastLang = ''; setInterval(function(){ try{ var cur = L() + '|' + (ls('luna_ui_en') || '') + '|' + (ls('luna_ui_vi') || ''); if(cur !== _lastLang){ _lastLang = cur; updateEntry(); } }catch(e){} }, 1500);
   window.LunaPartner = { open: open, close: close, _payload: payload, _push: push, _mount: mount };
 })();
 </script>

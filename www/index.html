@@ -7794,6 +7794,10 @@ try{ window._fb.getRecent = async function(p, n){ const s = await get(query(ref(
         const vipFeaturesHTML = `
           ✅ ${isTh?'แชทกับ Luna ผู้ช่วยน้อย (50 แต้มจันทร์/เดือน)':'Luna 小助手聊天（每月50点）'}<br>
           ✅ ${isTh?'วิเคราะห์สุขภาพเชิงลึกด้วย AI':'AI 深度健康分析'}<br>
+          ✅ ${isTh?'แชร์สถานะกับคู่ของคุณ (ลิงก์เดียว ไม่ต้องลงแอป)':'和伴侣分享状态（发链接，TA 不用装 App）'}<br>
+          ✅ ${isTh?'ส่งออกรายงานแพทย์ PDF พร้อมคำถามที่ควรถาม':'导出医生报告 PDF（含就诊提问建议）'}<br>
+          ✅ ${isTh?'รายงานสุขภาพฉบับเต็ม ครบทุกหัวข้อ':'完整健康报告（全部评估项）'}<br>
+          ✅ ${isTh?'วิเคราะห์รูปแบบร่างกาย (อาการเด่น อารมณ์ แนวโน้ม 6 เดือน)':'身体规律洞察（症状高发期、情绪规律、半年趋势）'}<br>
           ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน (ฟรี 31 วัน)':'查看120天历史记录（免费版31天）'}<br>
           ✅ ${isTh?'สถิติครบถ้วนแบบเต็ม':'完整统计图表'}<br>
           ✅ ${isTh?'ธีมสีพิเศษเฉพาะ VIP ทั้งหมด':'全部VIP专属主题色'}<br>
@@ -7801,7 +7805,7 @@ try{ window._fb.getRecent = async function(p, n){ const s = await get(query(ref(
           ✅ ${isTh?'กราฟน้ำหนักระหว่างตั้งครรภ์':'孕期体重变化曲线'}<br>
           ✅ ${isTh?'ห้อง Lumi พิเศษอีก 2 ห้อง (รวม 6 ห้อง)':'Lumi 另外2个专属房间（共6个）'}<br>
           ✅ ${isTh?'ป้ายสมาชิกพรีเมียม 👑':'正版会员专属徽章 👑'}`;
-        const freeFeaturesHTML = `
+        const freeFeaturesHTML = window.lunaFreeListHTML ? window.lunaFreeListHTML(isTh) : `
           🌱 ${isTh?'บันทึกประจำเดือน/อาการ/อารมณ์ ไม่จำกัด':'无限记录经期/症状/心情'}<br>
           🌱 ${isTh?'ปฏิทินรอบเดือนแบบเต็ม':'完整周期日历'}<br>
           🌱 ${isTh?'โหมดวางแผนตั้งครรภ์ · ตั้งครรภ์ · หลังคลอด (ฟังก์ชันพื้นฐาน)':'备孕 · 怀孕 · 产后模式（基础功能）'}<br>
@@ -9008,6 +9012,10 @@ window.setLang = setLang;
     const vipFeaturesHTML = `
           ✅ ${isTh?'แชทกับ Luna ผู้ช่วยน้อย (50 แต้มจันทร์/เดือน)':'Luna 小助手聊天（每月50点）'}<br>
           ✅ ${isTh?'วิเคราะห์สุขภาพเชิงลึกด้วย AI':'AI 深度健康分析'}<br>
+          ✅ ${isTh?'แชร์สถานะกับคู่ของคุณ (ลิงก์เดียว ไม่ต้องลงแอป)':'和伴侣分享状态（发链接，TA 不用装 App）'}<br>
+          ✅ ${isTh?'ส่งออกรายงานแพทย์ PDF พร้อมคำถามที่ควรถาม':'导出医生报告 PDF（含就诊提问建议）'}<br>
+          ✅ ${isTh?'รายงานสุขภาพฉบับเต็ม ครบทุกหัวข้อ':'完整健康报告（全部评估项）'}<br>
+          ✅ ${isTh?'วิเคราะห์รูปแบบร่างกาย (อาการเด่น อารมณ์ แนวโน้ม 6 เดือน)':'身体规律洞察（症状高发期、情绪规律、半年趋势）'}<br>
           ✅ ${isTh?'ประวัติย้อนหลัง 120 วัน (ฟรี 31 วัน)':'查看120天历史记录（免费版31天）'}<br>
           ✅ ${isTh?'สถิติครบถ้วนแบบเต็ม':'完整统计图表'}<br>
           ✅ ${isTh?'ธีมสีพิเศษเฉพาะ VIP ทั้งหมด':'全部VIP专属主题色'}<br>
@@ -9021,7 +9029,7 @@ window.setLang = setLang;
     // 🩹 主题色/Lumi房间这两条不是"全部要VIP"，是分层的（主题色有默认+3款+6款攒月光值就能
     // 免费解锁；Lumi 6个房间里4个免费2个VIP，数字跟VIP清单/App内FAQ原本写的完全对得上，
     // 不是我瞎编的），漏了这两条会让人以为"想要好看的主题/房间就必须充钱"，其实大部分不用
-    const freeFeaturesHTML = `
+    const freeFeaturesHTML = window.lunaFreeListHTML ? window.lunaFreeListHTML(isTh) : `
           🌱 ${isTh?'บันทึกประจำเดือน/อาการ/อารมณ์ ไม่จำกัด':'无限记录经期/症状/心情'}<br>
           🌱 ${isTh?'ปฏิทินรอบเดือนแบบเต็ม':'完整周期日历'}<br>
           🌱 ${isTh?'โหมดวางแผนตั้งครรภ์ · ตั้งครรภ์ · หลังคลอด (ฟังก์ชันพื้นฐาน)':'备孕 · 怀孕 · 产后模式（基础功能）'}<br>
@@ -30307,33 +30315,34 @@ var SV = {
  watermelon:'<circle cx="50" cy="56" r="33" fill="#4f9d4a"/><path d="M50 24c-14 12-14 52 0 64M50 24c14 12 14 52 0 64M30 34c-6 14-6 40 0 52M70 34c6 14 6 40 0 52" fill="none" stroke="#2f6e36" stroke-width="5" stroke-linecap="round" opacity=".7"/>'+HLC(36,40,8),
  pumpkin:'<ellipse cx="50" cy="60" rx="37" ry="29" fill="#f28a2e"/><path d="M50 32c-14 10-14 48 0 56M50 32c14 10 14 48 0 56M32 38c-8 12-8 38 0 50M68 38c8 12 8 38 0 50" fill="none" stroke="#d96d14" stroke-width="3" opacity=".6"/><path d="M46 32c0-8 2-12 6-14" stroke="#5a7a3a" stroke-width="5" stroke-linecap="round" fill="none"/>'+LF(54,26,-30)
 };
+window.__lunaFlatArt = SV;
 
     // 每周：cm 身长(厘米，约)、fruit 名字(zh/th)、svg 键、baby 宝宝发育
 var WK = {
- 17:{cm:13,k:'pomegranate',f:['石榴','ทับทิม'],b:['骨骼在慢慢变硬，身上开始长出脂肪层。宝宝在羊水里翻身、伸展，动作越来越多。','กระดูกค่อย ๆ แข็งขึ้น และเริ่มมีไขมันสะสม ลูกพลิกตัวและบิดตัวอยู่ในน้ำคร่ำมากขึ้น']},
+ 17:{cm:13,k:'mango',f:['芒果','มะม่วง'],b:['骨骼在慢慢变硬，身上开始长出脂肪层。宝宝在羊水里翻身、伸展，动作越来越多。','กระดูกค่อย ๆ แข็งขึ้น และเริ่มมีไขมันสะสม ลูกพลิกตัวและบิดตัวอยู่ในน้ำคร่ำมากขึ้น']},
  18:{cm:14,k:'sweetpotato',f:['红薯','มันเทศ'],b:['耳朵的结构基本成形，宝宝可能开始能听到你的心跳和说话声。偶尔会打嗝，你可能会感觉到轻轻的节律跳动。','โครงสร้างหูพัฒนาเกือบครบ ลูกอาจเริ่มได้ยินเสียงหัวใจและเสียงพูดของคุณ และอาจสะอึกเป็นครั้งคราว']},
- 19:{cm:15,k:'mango',f:['芒果','มะม่วง'],b:['皮肤表面开始覆盖一层白色的胎脂，保护宝宝的皮肤。感觉器官在快速发育。','ผิวเริ่มมีไขสีขาวเคลือบเพื่อปกป้องผิว ประสาทสัมผัสต่าง ๆ พัฒนาอย่างรวดเร็ว']},
+ 19:{cm:15,k:'sweetpotato',f:['红薯','มันเทศ'],b:['皮肤表面开始覆盖一层白色的胎脂，保护宝宝的皮肤。感觉器官在快速发育。','ผิวเริ่มมีไขสีขาวเคลือบเพื่อปกป้องผิว ประสาทสัมผัสต่าง ๆ พัฒนาอย่างรวดเร็ว']},
  20:{cm:25,k:'banana',f:['香蕉','กล้วย'],h:1,b:['已经走到孕期的一半了。从这一周起，宝宝的长度改为从头量到脚，所以数字比上周大了不少。宝宝会吞咽羊水，动作也更有力。','ถึงครึ่งทางของการตั้งครรภ์แล้ว ตั้งแต่สัปดาห์นี้จะวัดความยาวจากศีรษะถึงปลายเท้า ตัวเลขจึงมากขึ้นกว่าสัปดาห์ก่อนมาก ลูกกลืนน้ำคร่ำได้และเคลื่อนไหวแรงขึ้น']},
- 21:{cm:27,k:'carrot',f:['胡萝卜','แครอท'],h:1,b:['眉毛和眼睑已经长出来，动作越来越协调。如果还没感觉到胎动，也不用着急，每个人感觉到的时间不一样。','คิ้วและเปลือกตาขึ้นแล้ว การเคลื่อนไหวประสานกันมากขึ้น หากยังไม่รู้สึกว่าลูกดิ้น ไม่ต้องรีบร้อน แต่ละคนรู้สึกไม่พร้อมกัน']},
- 22:{cm:28,k:'papaya',f:['木瓜','มะละกอ'],h:1,b:['宝宝的触觉在发展，会摸摸自己的脸、抓抓脐带。睡觉和醒着的节奏开始慢慢形成。','ประสาทสัมผัสการสัมผัสพัฒนา ลูกอาจจับใบหน้าหรือสายสะดือ และเริ่มมีรอบหลับและตื่น']},
- 23:{cm:29,k:'grapefruit',f:['柚子','ส้มโอ'],h:1,b:['宝宝对外界的声音有反应，突然的大声音可能让宝宝动一下。肺部在继续发育。','ลูกตอบสนองต่อเสียงภายนอก เสียงดังกะทันหันอาจทำให้ลูกสะดุ้งหรือดิ้น ปอดยังคงพัฒนาต่อเนื่อง']},
- 24:{cm:30,k:'corn',f:['玉米','ข้าวโพด'],h:1,b:['脸部轮廓更清楚了，肺里的小气囊在继续发育。宝宝的动作更有力，你可能能感觉到明显的踢动。','โครงหน้าชัดเจนขึ้น ถุงลมเล็ก ๆ ในปอดกำลังพัฒนาต่อ ลูกเคลื่อนไหวแรงขึ้น คุณอาจรู้สึกถึงการถีบได้ชัดเจน']},
- 25:{cm:34,k:'cauliflower',f:['花椰菜','ดอกกะหล่ำ'],h:1,b:['宝宝的头发在长出来，手的抓握更有力，对你的声音和触摸都有反应。','ผมของลูกกำลังงอก มือกำแน่นขึ้น ตอบสนองต่อเสียงและการสัมผัสของคุณ']},
- 26:{cm:35,k:'lettuce',f:['生菜','ผักกาดหอม'],h:1,b:['眼睛开始能睁开，宝宝可能对强光有反应。肺部继续成熟，吸气和呼气的动作在练习。','ดวงตาเริ่มลืมได้ ลูกอาจตอบสนองต่อแสงจ้า ปอดพัฒนาต่อเนื่อง และเริ่มฝึกการหายใจเข้าออก']},
- 27:{cm:37,k:'broccoli',f:['西兰花','บร็อกโคลี'],h:1,b:['大脑发育很快，宝宝有了自己的睡眠和活动节奏，你可能发现宝宝在某些时段特别爱动。孕中期到这里就结束了。','สมองพัฒนาเร็ว ลูกมีจังหวะหลับและตื่นเป็นของตัวเอง คุณอาจสังเกตว่าลูกดิ้นมากเป็นพิเศษในบางช่วงเวลา ไตรมาสที่สองสิ้นสุดลงที่สัปดาห์นี้']},
- 28:{cm:38,k:'eggplant',f:['茄子','มะเขือม่วง'],h:1,b:['眼睛能睁开、眨眼，大脑的沟回在增多。这个阶段起，可以开始留意宝宝平时一般什么时候比较爱动。','ลืมตาและกะพริบตาได้ รอยหยักของสมองเพิ่มขึ้น ตั้งแต่ช่วงนี้ลองสังเกตว่าปกติลูกดิ้นเมื่อไรบ้าง']},
- 29:{cm:39,k:'butternut',f:['笋瓜','ฟักทองบัตเตอร์นัต'],h:1,b:['骨骼和肌肉继续变得结实。宝宝的活动空间在变小，动作会从“踢腾”变成更多的伸展和翻滚。','กระดูกและกล้ามเนื้อแข็งแรงขึ้น พื้นที่ให้ลูกขยับน้อยลง การเคลื่อนไหวจะเปลี่ยนจากการถีบเป็นการยืดตัวและกลิ้งตัวมากขึ้น']},
- 30:{cm:40,k:'cabbage',f:['卷心菜','กะหล่ำปลี'],h:1,b:['大脑发育加快。宝宝在储存更多脂肪，为出生后调节体温做准备。','สมองพัฒนาเร็วขึ้น ลูกสะสมไขมันมากขึ้นเพื่อเตรียมควบคุมอุณหภูมิร่างกายหลังคลอด']},
- 31:{cm:41,k:'coconut',f:['椰子','มะพร้าว'],h:1,b:['五种感官都已经能工作了，体重在快速增加。','ประสาทสัมผัสทั้งห้าเริ่มทำงานแล้ว น้ำหนักตัวเพิ่มขึ้นอย่างรวดเร็ว']},
+ 21:{cm:27,k:'banana',f:['香蕉','กล้วย'],h:1,b:['眉毛和眼睑已经长出来，动作越来越协调。如果还没感觉到胎动，也不用着急，每个人感觉到的时间不一样。','คิ้วและเปลือกตาขึ้นแล้ว การเคลื่อนไหวประสานกันมากขึ้น หากยังไม่รู้สึกว่าลูกดิ้น ไม่ต้องรีบร้อน แต่ละคนรู้สึกไม่พร้อมกัน']},
+ 22:{cm:28,k:'carrot',f:['胡萝卜','แครอท'],h:1,b:['宝宝的触觉在发展，会摸摸自己的脸、抓抓脐带。睡觉和醒着的节奏开始慢慢形成。','ประสาทสัมผัสการสัมผัสพัฒนา ลูกอาจจับใบหน้าหรือสายสะดือ และเริ่มมีรอบหลับและตื่น']},
+ 23:{cm:29,k:'carrot',f:['胡萝卜','แครอท'],h:1,b:['宝宝对外界的声音有反应，突然的大声音可能让宝宝动一下。肺部在继续发育。','ลูกตอบสนองต่อเสียงภายนอก เสียงดังกะทันหันอาจทำให้ลูกสะดุ้งหรือดิ้น ปอดยังคงพัฒนาต่อเนื่อง']},
+ 24:{cm:30,k:'papaya',f:['木瓜','มะละกอ'],h:1,b:['脸部轮廓更清楚了，肺里的小气囊在继续发育。宝宝的动作更有力，你可能能感觉到明显的踢动。','โครงหน้าชัดเจนขึ้น ถุงลมเล็ก ๆ ในปอดกำลังพัฒนาต่อ ลูกเคลื่อนไหวแรงขึ้น คุณอาจรู้สึกถึงการถีบได้ชัดเจน']},
+ 25:{cm:34,k:'papaya',f:['木瓜','มะละกอ'],h:1,b:['宝宝的头发在长出来，手的抓握更有力，对你的声音和触摸都有反应。','ผมของลูกกำลังงอก มือกำแน่นขึ้น ตอบสนองต่อเสียงและการสัมผัสของคุณ']},
+ 26:{cm:35,k:'butternut',f:['笋瓜','ฟักทองบัตเตอร์นัต'],h:1,b:['眼睛开始能睁开，宝宝可能对强光有反应。肺部继续成熟，吸气和呼气的动作在练习。','ดวงตาเริ่มลืมได้ ลูกอาจตอบสนองต่อแสงจ้า ปอดพัฒนาต่อเนื่อง และเริ่มฝึกการหายใจเข้าออก']},
+ 27:{cm:37,k:'butternut',f:['笋瓜','ฟักทองบัตเตอร์นัต'],h:1,b:['大脑发育很快，宝宝有了自己的睡眠和活动节奏，你可能发现宝宝在某些时段特别爱动。孕中期到这里就结束了。','สมองพัฒนาเร็ว ลูกมีจังหวะหลับและตื่นเป็นของตัวเอง คุณอาจสังเกตว่าลูกดิ้นมากเป็นพิเศษในบางช่วงเวลา ไตรมาสที่สองสิ้นสุดลงที่สัปดาห์นี้']},
+ 28:{cm:38,k:'napa',f:['大白菜','ผักกาดขาว'],h:1,b:['眼睛能睁开、眨眼，大脑的沟回在增多。这个阶段起，可以开始留意宝宝平时一般什么时候比较爱动。','ลืมตาและกะพริบตาได้ รอยหยักของสมองเพิ่มขึ้น ตั้งแต่ช่วงนี้ลองสังเกตว่าปกติลูกดิ้นเมื่อไรบ้าง']},
+ 29:{cm:39,k:'napa',f:['大白菜','ผักกาดขาว'],h:1,b:['骨骼和肌肉继续变得结实。宝宝的活动空间在变小，动作会从“踢腾”变成更多的伸展和翻滚。','กระดูกและกล้ามเนื้อแข็งแรงขึ้น พื้นที่ให้ลูกขยับน้อยลง การเคลื่อนไหวจะเปลี่ยนจากการถีบเป็นการยืดตัวและกลิ้งตัวมากขึ้น']},
+ 30:{cm:40,k:'pineapple',f:['菠萝','สับปะรด'],h:1,b:['大脑发育加快。宝宝在储存更多脂肪，为出生后调节体温做准备。','สมองพัฒนาเร็วขึ้น ลูกสะสมไขมันมากขึ้นเพื่อเตรียมควบคุมอุณหภูมิร่างกายหลังคลอด']},
+ 31:{cm:41,k:'pineapple',f:['菠萝','สับปะรด'],h:1,b:['五种感官都已经能工作了，体重在快速增加。','ประสาทสัมผัสทั้งห้าเริ่มทำงานแล้ว น้ำหนักตัวเพิ่มขึ้นอย่างรวดเร็ว']},
  32:{cm:42,k:'radish',f:['白萝卜','หัวไชเท้า'],h:1,b:['指甲已经长到指尖。大多数宝宝在这个阶段开始头朝下，但也有的还没转过来，之后还有机会。','เล็บยาวถึงปลายนิ้วแล้ว ลูกส่วนใหญ่เริ่มกลับหัวลงในช่วงนี้ แต่บางคนยังไม่กลับ ยังมีโอกาสกลับได้อีก']},
- 33:{cm:44,k:'pineapple',f:['菠萝','สับปะรด'],h:1,b:['骨骼在变硬，不过头骨还是软的、没有完全合拢，这是为了顺利出生。免疫系统也在发展。','กระดูกแข็งขึ้น แต่กะโหลกยังอ่อนและยังไม่ติดกันสนิทเพื่อให้คลอดได้สะดวก ระบบภูมิคุ้มกันกำลังพัฒนา']},
- 34:{cm:45,k:'cantaloupe',f:['哈密瓜','แคนตาลูป'],h:1,b:['肺和中枢神经继续成熟，胎脂变得更厚。','ปอดและระบบประสาทส่วนกลางพัฒนาต่อเนื่อง ไขที่เคลือบผิวหนาขึ้น']},
- 35:{cm:46,k:'honeydew',f:['蜜瓜','เมลอนน้ำผึ้ง'],h:1,b:['肾脏已经发育完成。子宫里越来越挤，宝宝的动作会变成更多的扭动和伸展，而不是大幅度的踢腿。','ไตพัฒนาเสร็จสมบูรณ์ มดลูกเริ่มคับแคบ การเคลื่อนไหวของลูกจะเป็นการบิดตัวและยืดตัวมากกว่าการถีบแรง ๆ']},
- 36:{cm:47,k:'napa',f:['大白菜','ผักกาดขาว'],h:1,b:['很多宝宝已经头朝下，并开始往骨盆里降。体重继续增加。再过一周就算足月了（满 37 周）。','ลูกหลายคนกลับหัวลงและเริ่มเคลื่อนต่ำลงสู่อุ้งเชิงกราน น้ำหนักเพิ่มต่อเนื่อง อีกหนึ่งสัปดาห์ก็จะครบกำหนด (ครบ 37 สัปดาห์)']},
- 37:{cm:48,k:'wintermelon',f:['冬瓜','ฟักเขียว'],h:1,b:['从这一周起算足月。宝宝的器官基本已经能应付出生后的生活，还在继续长肉、长脂肪。','ตั้งแต่สัปดาห์นี้ถือว่าครบกำหนดแล้ว อวัยวะต่าง ๆ พร้อมสำหรับชีวิตหลังคลอดเป็นส่วนใหญ่ ลูกยังสะสมเนื้อและไขมันต่อไป']},
- 38:{cm:49,k:'leek',f:['大葱','ต้นหอมญี่ปุ่น'],h:1,b:['宝宝已经足月，随时准备好出生。头发、指甲还在长，胎脂在慢慢变少。','ลูกครบกำหนดและพร้อมจะเกิดได้ทุกเมื่อ ผมและเล็บยังยาวขึ้น ไขที่เคลือบผิวค่อย ๆ ลดลง']},
- 39:{cm:50,k:'watermelon',f:['小西瓜','แตงโมลูกเล็ก'],h:1,b:['宝宝在为出生做最后的准备，还在继续增加体重。每个宝宝的出生时间都不一样，提前或晚几天都很常见。','ลูกกำลังเตรียมตัวขั้นสุดท้ายก่อนเกิด น้ำหนักยังเพิ่มต่อไป เวลาเกิดของลูกแต่ละคนไม่เหมือนกัน ก่อนหรือหลังกำหนดไม่กี่วันเป็นเรื่องปกติ']},
- 40:{cm:51,k:'pumpkin',f:['小南瓜','ฟักทองลูกเล็ก'],h:1,b:['到预产期这一周了，宝宝已经准备好了。真正在预产期当天出生的宝宝并不多，早几天或晚几天都很常见。','ถึงสัปดาห์กำหนดคลอดแล้ว ลูกพร้อมแล้ว เด็กที่เกิดตรงวันกำหนดมีไม่มาก เร็วหรือช้ากว่ากำหนดไม่กี่วันเป็นเรื่องที่พบได้บ่อย']}
+ 33:{cm:44,k:'radish',f:['白萝卜','หัวไชเท้า'],h:1,b:['骨骼在变硬，不过头骨还是软的、没有完全合拢，这是为了顺利出生。免疫系统也在发展。','กระดูกแข็งขึ้น แต่กะโหลกยังอ่อนและยังไม่ติดกันสนิทเพื่อให้คลอดได้สะดวก ระบบภูมิคุ้มกันกำลังพัฒนา']},
+ 34:{cm:45,k:'radish',f:['白萝卜','หัวไชเท้า'],h:1,b:['肺和中枢神经继续成熟，胎脂变得更厚。','ปอดและระบบประสาทส่วนกลางพัฒนาต่อเนื่อง ไขที่เคลือบผิวหนาขึ้น']},
+ 35:{cm:46,k:'leek',f:['大葱','ต้นหอมญี่ปุ่น'],h:1,b:['肾脏已经发育完成。子宫里越来越挤，宝宝的动作会变成更多的扭动和伸展，而不是大幅度的踢腿。','ไตพัฒนาเสร็จสมบูรณ์ มดลูกเริ่มคับแคบ การเคลื่อนไหวของลูกจะเป็นการบิดตัวและยืดตัวมากกว่าการถีบแรง ๆ']},
+ 36:{cm:47,k:'leek',f:['大葱','ต้นหอมญี่ปุ่น'],h:1,b:['很多宝宝已经头朝下，并开始往骨盆里降。体重继续增加。再过一周就算足月了（满 37 周）。','ลูกหลายคนกลับหัวลงและเริ่มเคลื่อนต่ำลงสู่อุ้งเชิงกราน น้ำหนักเพิ่มต่อเนื่อง อีกหนึ่งสัปดาห์ก็จะครบกำหนด (ครบ 37 สัปดาห์)']},
+ 37:{cm:48,k:'leek',f:['大葱','ต้นหอมญี่ปุ่น'],h:1,b:['从这一周起算足月。宝宝的器官基本已经能应付出生后的生活，还在继续长肉、长脂肪。','ตั้งแต่สัปดาห์นี้ถือว่าครบกำหนดแล้ว อวัยวะต่าง ๆ พร้อมสำหรับชีวิตหลังคลอดเป็นส่วนใหญ่ ลูกยังสะสมเนื้อและไขมันต่อไป']},
+ 38:{cm:49,k:'wintermelon',f:['冬瓜','ฟักเขียว'],h:1,b:['宝宝已经足月，随时准备好出生。头发、指甲还在长，胎脂在慢慢变少。','ลูกครบกำหนดและพร้อมจะเกิดได้ทุกเมื่อ ผมและเล็บยังยาวขึ้น ไขที่เคลือบผิวค่อย ๆ ลดลง']},
+ 39:{cm:50,k:'wintermelon',f:['冬瓜','ฟักเขียว'],h:1,b:['宝宝在为出生做最后的准备，还在继续增加体重。每个宝宝的出生时间都不一样，提前或晚几天都很常见。','ลูกกำลังเตรียมตัวขั้นสุดท้ายก่อนเกิด น้ำหนักยังเพิ่มต่อไป เวลาเกิดของลูกแต่ละคนไม่เหมือนกัน ก่อนหรือหลังกำหนดไม่กี่วันเป็นเรื่องปกติ']},
+ 40:{cm:51,k:'wintermelon',f:['冬瓜','ฟักเขียว'],h:1,b:['到预产期这一周了，宝宝已经准备好了。真正在预产期当天出生的宝宝并不多，早几天或晚几天都很常见。','ถึงสัปดาห์กำหนดคลอดแล้ว ลูกพร้อมแล้ว เด็กที่เกิดตรงวันกำหนดมีไม่มาก เร็วหรือช้ากว่ากำหนดไม่กี่วันเป็นเรื่องที่พบได้บ่อย']}
 };
 
     function lang(){ try{ return U.lang(); }catch(e){ return 'zh'; } }
@@ -34511,6 +34520,39 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 })();
 
 </script>
+<script id="lunaPaidListTr">(function(){try{var E={"和伴侣分享状态（发链接，TA 不用装 App）":"Share your day with your partner (one link, no app needed)","导出医生报告 PDF（含就诊提问建议）":"Doctor report PDF export (with suggested questions)","完整健康报告（全部评估项）":"Full health report (all assessments)","身体规律洞察（症状高发期、情绪规律、半年趋势）":"Body pattern insights (symptom peaks, mood patterns, 6-month trends)"},V={"和伴侣分享状态（发链接，TA 不用装 App）":"Chia sẻ trạng thái với bạn đời (một liên kết, không cần cài app)","导出医生报告 PDF（含就诊提问建议）":"Xuất báo cáo bác sĩ PDF (kèm gợi ý câu hỏi khi khám)","完整健康报告（全部评估项）":"Báo cáo sức khỏe đầy đủ (tất cả mục đánh giá)","身体规律洞察（症状高发期、情绪规律、半年趋势）":"Phân tích quy luật cơ thể (giai đoạn triệu chứng, quy luật cảm xúc, xu hướng 6 tháng)"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
+<script id="lunaFreeListTr">(function(){try{var E={"记录与日历": "Tracking & calendar", "无限记录": "Unlimited logging", "经期、症状、心情、体重、用药": "Period, symptoms, mood, weight, medication", "完整日历 + 全年视图": "Full calendar + year view", "一页看完整年的周期": "See your whole year of cycles on one page", "经期与排卵预测": "Period & ovulation predictions", "每次记录后自动更新": "Updates every time you log", "搜索记录 · 误删可撤销": "Search logs · undo accidental deletes", "想找哪天都能找到": "Find any day you need", "怀孕与产后": "Pregnancy & postpartum", "备孕 · 怀孕 · 产后模式": "Trying to conceive · pregnancy · postpartum modes", "基础功能齐全": "All the basics included", "每周宝宝大小与发育": "Baby size & development each week", "用可爱的水果比大小": "Sizes compared with cute fruit & veg", "数胎动": "Kick counter", "自己记录宝宝的活动": "Log your baby's movements yourself", "宝宝百科": "Baby guide", "给新手妈妈的知识": "Know-how for new moms", "照顾自己": "Looking after yourself", "自我护理自测": "Self-care quizzes", "2 分钟更了解自己": "Know yourself better in 2 minutes", "随时导出数据": "Export your data anytime", "数据永远是你的": "Your data is always yours", "Luna 本月观察（免费体验 2 次）": "Luna's monthly insight (2 free tries)", "看看 Luna 从你的记录里读到什么": "See what Luna reads in your logs", "好玩的": "Just for fun", "Lumi 4 个免费房间": "4 free Lumi rooms", "布置、陪伴 Lumi": "Decorate and hang out with Lumi", "免费主题色 · 小游戏": "Free colour themes · mini games", "换个心情": "Change up the mood", "所有记录功能永久免费，没有期限 💗": "All tracking features are free forever, no time limit 💗"},V={"记录与日历": "Ghi chép & lịch", "无限记录": "Ghi chép không giới hạn", "经期、症状、心情、体重、用药": "Kinh nguyệt, triệu chứng, tâm trạng, cân nặng, thuốc", "完整日历 + 全年视图": "Lịch đầy đủ + xem cả năm", "一页看完整年的周期": "Xem chu kỳ cả năm trong một trang", "经期与排卵预测": "Dự đoán kỳ kinh & rụng trứng", "每次记录后自动更新": "Tự cập nhật sau mỗi lần ghi", "搜索记录 · 误删可撤销": "Tìm bản ghi · hoàn tác khi lỡ xóa", "想找哪天都能找到": "Tìm lại bất kỳ ngày nào", "怀孕与产后": "Mang thai & sau sinh", "备孕 · 怀孕 · 产后模式": "Chế độ chuẩn bị mang thai · mang thai · sau sinh", "基础功能齐全": "Đầy đủ tính năng cơ bản", "每周宝宝大小与发育": "Kích thước & sự phát triển của bé mỗi tuần", "用可爱的水果比大小": "So sánh kích thước với trái cây dễ thương", "数胎动": "Đếm cử động thai", "自己记录宝宝的活动": "Tự ghi lại cử động của bé", "宝宝百科": "Cẩm nang bé", "给新手妈妈的知识": "Kiến thức cho mẹ mới", "照顾自己": "Chăm sóc bản thân", "自我护理自测": "Bài tự kiểm tra chăm sóc bản thân", "2 分钟更了解自己": "Hiểu bản thân hơn trong 2 phút", "随时导出数据": "Xuất dữ liệu bất cứ lúc nào", "数据永远是你的": "Dữ liệu luôn là của bạn", "Luna 本月观察（免费体验 2 次）": "Luna nhận xét tháng này (dùng thử 2 lần)", "看看 Luna 从你的记录里读到什么": "Xem Luna đọc được gì từ ghi chép của bạn", "好玩的": "Vui vẻ", "Lumi 4 个免费房间": "4 phòng Lumi miễn phí", "布置、陪伴 Lumi": "Trang trí và chơi cùng Lumi", "免费主题色 · 小游戏": "Màu giao diện miễn phí · mini game", "换个心情": "Đổi tâm trạng một chút", "所有记录功能永久免费，没有期限 💗": "Mọi tính năng ghi chép đều miễn phí mãi mãi, không giới hạn thời gian 💗"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
+<script id="lunaFreeList">
+/* 免费清单（升级版）：分 4 组小卡片，每条一句小说明。付费页的"免费版本"和试用介绍页的"免费永久套餐"共用这一份。
+   window.lunaFreeListHTML(isTh) 返回 HTML；每个标题/说明各自是一个独立的文字节点，英文/越南文由翻译表直接对应。 */
+(function(){
+  var D=[["g1", "🌸", "#ffe8ef", ["记录与日历", "บันทึกและปฏิทิน"], [["✏️", ["无限记录", "บันทึกได้ไม่จำกัด"], ["经期、症状、心情、体重、用药", "ประจำเดือน อาการ อารมณ์ น้ำหนัก ยา"]], ["📅", ["完整日历 + 全年视图", "ปฏิทินเต็มรูปแบบ + มุมมองทั้งปี"], ["一页看完整年的周期", "ดูภาพรวมรอบเดือนทั้งปีในหน้าเดียว"]], ["🔮", ["经期与排卵预测", "คาดการณ์ประจำเดือนและวันไข่ตก"], ["每次记录后自动更新", "อัปเดตทุกครั้งที่คุณบันทึก"]], ["🔍", ["搜索记录 · 误删可撤销", "ค้นหาบันทึก · เลิกทำเมื่อลบพลาด"], ["想找哪天都能找到", "หาย้อนหลังได้ กดเลิกทำได้"]]]], ["g2", "🤰", "#e8f6ee", ["怀孕与产后", "ตั้งครรภ์และหลังคลอด"], [["🌱", ["备孕 · 怀孕 · 产后模式", "โหมดวางแผนตั้งครรภ์ · ตั้งครรภ์ · หลังคลอด"], ["基础功能齐全", "ฟังก์ชันพื้นฐานครบ"]], ["🍋", ["每周宝宝大小与发育", "ขนาดและพัฒนาการของลูกรายสัปดาห์"], ["用可爱的水果比大小", "เทียบขนาดกับผลไม้น่ารักๆ"]], ["👣", ["数胎动", "นับลูกดิ้น"], ["自己记录宝宝的活动", "บันทึกการดิ้นของลูกได้เอง"]], ["📖", ["宝宝百科", "คู่มือลูกน้อย"], ["给新手妈妈的知识", "ความรู้สำหรับคุณแม่มือใหม่"]]]], ["g3", "🧘", "#efe8fb", ["照顾自己", "ดูแลตัวเอง"], [["📝", ["自我护理自测", "แบบทดสอบดูแลตัวเอง"], ["2 分钟更了解自己", "รู้ตัวเองมากขึ้นใน 2 นาที"]], ["📤", ["随时导出数据", "ส่งออกข้อมูลได้ทุกเมื่อ"], ["数据永远是你的", "ข้อมูลเป็นของคุณ"]], ["🌙", ["Luna 本月观察（免费体验 2 次）", "Luna สรุปเดือนนี้ให้ฟรี 2 ครั้ง"], ["看看 Luna 从你的记录里读到什么", "ลองดูว่า Luna เห็นอะไรในบันทึกของคุณ"]]]], ["g4", "🎮", "#fff3dd", ["好玩的", "สนุกๆ"], [["🏠", ["Lumi 4 个免费房间", "Lumi ฟรี 4 ห้อง"], ["布置、陪伴 Lumi", "ตกแต่งและเล่นกับ Lumi"]], ["🎨", ["免费主题色 · 小游戏", "ธีมสีฟรี · มินิเกม"], ["换个心情", "เปลี่ยนบรรยากาศแอปได้"]]]]], FOOT=["所有记录功能永久免费，没有期限 💗", "การบันทึกทั้งหมดฟรีตลอดชีพ ไม่มีวันหมดอายุ 💗"];
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
+  window.lunaFreeAcc=function(hd){
+    try{ var g=hd.parentNode, bd=g.querySelector('.lfl-bd'), ar=g.querySelector('.lfl-ar'), open=bd.style.display!=='none';
+      var all=g.parentNode.querySelectorAll('.lfl-g');
+      for(var k=0;k<all.length;k++){ all[k].querySelector('.lfl-bd').style.display='none'; all[k].querySelector('.lfl-ar').style.transform=''; }
+      if(!open){ bd.style.display='block'; ar.style.transform='rotate(180deg)'; }
+    }catch(e){}
+  };
+  window.lunaFreeListHTML=function(isTh){
+    var i=isTh?1:0, h='';
+    for(var a=0;a<D.length;a++){
+      var g=D[a];
+      h+='<div class="lfl-g" style="background:rgba(255,255,255,.85);border-radius:14px;margin:0 0 8px;line-height:1.4;overflow:hidden;">'
+        +'<div role="button" tabindex="0" onclick="window.lunaFreeAcc(this)" style="display:flex;align-items:center;gap:7px;font-weight:700;color:#3d3556;padding:10px 11px;cursor:pointer;-webkit-tap-highlight-color:transparent;"><span style="width:24px;height:24px;border-radius:8px;background:'+g[2]+';display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:none;">'+g[1]+'</span><span style="flex:1;">'+esc(g[3][i])+'</span><span class="lfl-ar" style="color:#a79fc0;font-size:0.8em;transition:transform .2s;display:inline-block;">▾</span></div>'
+        +'<div class="lfl-bd" style="display:none;padding:0 11px 6px;">';
+      for(var b=0;b<g[4].length;b++){
+        var it=g[4][b];
+        h+='<div style="display:flex;gap:8px;padding:5px 0;'+(b?'border-top:1px dashed #ece6f6;':'')+'"><span style="flex:none;">'+it[0]+'</span><div><div>'+esc(it[1][i])+'</div><div style="color:#8b84a0;font-size:0.84em;margin-top:1px;">'+esc(it[2][i])+'</div></div></div>';
+      }
+      h+='</div></div>';
+    }
+    h+='<div style="margin-top:6px;text-align:center;color:#6c8a78;font-size:0.9em;line-height:1.6;">'+esc(FOOT[i])+'</div>';
+    return h;
+  };
+})();
+</script>
 <script id="lunaEnLayer">
 /* Luna English (US) + Vietnamese layer.
    Both languages run on the Chinese text path: when English or Vietnamese is on, luna_lang stays 'zh' (so every module picks
@@ -35512,9 +35554,10 @@ window.LunaYearCal=(function(){
   var MIN_W = 8;   // 从第几周开始显示入口（宝宝已经有人形）
   var CM = {6:.5,7:1,8:1.6,9:2.3,10:3.1,11:4.1,12:5.4,13:6.5,14:8,15:10,16:11.6,17:13,18:14,19:15,20:25,21:27,22:28,23:29,24:30,25:34,26:35,27:37,28:38,29:39,30:40,31:41,32:42,33:44,34:45,35:46,36:47,37:48,38:49,39:50,40:51};
   var FK = {6:'pea',7:'blueberry',8:'raspberry',9:'grape',10:'kumquat',11:'fig',12:'lime',13:'peach',14:'lemon',15:'pear',16:'avocado',
-    17:'pomegranate',18:'mango',19:'mango',20:'banana',21:'banana',22:'papaya',23:'papaya',24:'papaya',25:'pomelo',26:'pomelo',27:'pomelo',
-    28:'pineapple',29:'pineapple',30:'pineapple',31:'pineapple',32:'cantaloupe',33:'cantaloupe',34:'cantaloupe',35:'cantaloupe',36:'watermelon',37:'watermelon',38:'watermelon',39:'watermelon',40:'watermelon'};
+    17:'mango',18:'sweetpotato',19:'sweetpotato',20:'banana',21:'banana',22:'carrot',23:'carrot',24:'papaya',25:'papaya',26:'butternut',27:'butternut',
+    28:'napa',29:'napa',30:'pineapple',31:'pineapple',32:'radish',33:'radish',34:'radish',35:'leek',36:'leek',37:'leek',38:'wintermelon',39:'wintermelon',40:'wintermelon'};
   var FN = {
+    sweetpotato:['红薯','มันเทศ','a sweet potato','củ khoai lang'], carrot:['胡萝卜','แครอท','a carrot','củ cà rốt'], butternut:['笋瓜','ฟักทองบัตเตอร์นัต','a butternut squash','quả bí bơ'], napa:['大白菜','ผักกาดขาว','a napa cabbage','cây cải thảo'], radish:['白萝卜','หัวไชเท้า','a daikon radish','củ cải trắng'], leek:['大葱','ต้นหอมญี่ปุ่น','a leek','cây tỏi tây'], wintermelon:['冬瓜','ฟักเขียว','a winter melon','quả bí đao'],
     pea:['豌豆','เม็ดถั่วลันเตา','a pea','hạt đậu'], blueberry:['蓝莓','บลูเบอร์รี','a blueberry','quả việt quất'], raspberry:['覆盆子','ราสเบอร์รี','a raspberry','quả mâm xôi'],
     grape:['葡萄','องุ่น','a grape','quả nho'], kumquat:['金桔','ส้มจี๊ด','a kumquat','quả quất'], fig:['无花果','มะเดื่อ','a fig','quả sung'], lime:['青柠','มะนาว','a lime','quả chanh xanh'],
     peach:['桃子','ลูกพีช','a peach','quả đào'], lemon:['柠檬','เลมอน','a lemon','quả chanh vàng'], pear:['梨','ลูกแพร์','a pear','quả lê'], avocado:['牛油果','อะโวคาโด','an avocado','quả bơ'],
@@ -35590,9 +35633,10 @@ window.LunaYearCal=(function(){
     '<g class="bv-fetus" style="--bvs:'+s.toFixed(3)+'">'+(window.LunaFetusArt ? window.LunaFetusArt.svg(w) : '')+'</g></svg>';
   }
   function fruitSvg(w){
-    var k = FK[w] || null, A = window.LunaFruitArt; if(!k || !A || !A.has(k)) return '';
+    var k = FK[w] || null, A = window.LunaFruitArt; if(!k || !A) return '';
+    var art = A.has(k) ? A.get(k) : ((window.__lunaFlatArt && window.__lunaFlatArt[k]) || ''); if(!art) return '';
     var cm = CM[w] || 1, sc = 0.5 + 0.5 * Math.sqrt(Math.min(1, cm / 51)), px = Math.round(176 * sc);
-    return '<svg viewBox="0 0 100 100" width="'+px+'" height="'+px+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+A.get(k)+'</svg>';
+    return '<svg viewBox="0 0 100 100" width="'+px+'" height="'+px+'" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+art+'</svg>';
   }
   function txt(id){ var e = el(id); return e ? String(e.textContent || '').trim() : ''; }
 
@@ -37878,12 +37922,67 @@ var BKB = [
     var sp = document.getElementById('ptStop'); if(sp) sp.onclick = doStop;
   }
   function paywall(){ try{ window._lunaPaySrc = 'partner_share'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} }
+
+  /* ───── 非会员先看"功能介绍 + 示例"，再决定要不要开会员（不再一点就弹付费页）───── */
+  var IN = {
+    zh: { title: '和伴侣分享', sub: '让 TA 不用你每次解释，就懂你今天的状态。',
+      b: [['🔗', '发一条链接就够了', 'TA 不用装 App、不用注册，在 LINE / Facebook 里点开就能看。'], ['🎛️', '分享什么，你说了算', '阶段、贴心小贴士、心情、症状，每一项都有独立开关。'], ['👀', '知道 TA 有没有看', '能看到 TA 是否打开了链接、是否点了“我看过了”。'], ['🔒', '随时停止', '一键停止共享，链接立即失效，数据删除。']],
+      ex: '👇 TA 看到的样子（示例，不是真实数据）', mem: '记录功能永远免费；“和伴侣分享”是会员功能。', go: '了解会员，开启这个功能', later: '先不用', who: '小月 今天的状态' },
+    th: { title: 'แชร์กับคู่ของคุณ', sub: 'ให้เขาเข้าใจสถานะของคุณวันนี้ โดยไม่ต้องอธิบายซ้ำทุกครั้ง',
+      b: [['🔗', 'ส่งลิงก์เดียวก็พอ', 'เขาไม่ต้องติดตั้งแอปหรือสมัครสมาชิก กดเปิดจาก LINE / Facebook ได้เลย'], ['🎛️', 'คุณเลือกเองว่าจะแชร์อะไร', 'ช่วงของรอบเดือน คำแนะนำ อารมณ์ อาการ มีสวิตช์แยกทุกอย่าง'], ['👀', 'รู้ว่าเขาดูแล้วหรือยัง', 'เห็นว่าเขาเปิดลิงก์หรือกด “ฉันดูแล้ว” หรือไม่'], ['🔒', 'หยุดได้ทุกเมื่อ', 'กดหยุดแชร์ ลิงก์ใช้ไม่ได้ทันที และข้อมูลถูกลบ']],
+      ex: '👇 สิ่งที่เขาจะเห็น (ตัวอย่าง ไม่ใช่ข้อมูลจริง)', mem: 'การบันทึกใช้ฟรีตลอด ส่วน “แชร์กับคู่” เป็นฟีเจอร์สำหรับสมาชิก', go: 'ดูสิทธิ์สมาชิก เพื่อเปิดใช้ฟีเจอร์นี้', later: 'ไว้ก่อน', who: 'วันนี้ของ มะลิ' },
+    en: { title: 'Share with your partner', sub: 'Help them understand your day without explaining every time.',
+      b: [['🔗', 'One link is all it takes', 'No app and no sign-up for them; they can open it right from LINE or Facebook.'], ['🎛️', 'You choose what to share', 'Phase, tips, mood and symptoms each have their own switch.'], ['👀', 'Know if they have looked', 'See whether they opened the link and whether they tapped “I’ve seen it”.'], ['🔒', 'Stop any time', 'One tap ends sharing; the link stops working and the data is deleted.']],
+      ex: '👇 What they would see (example, not real data)', mem: 'Logging stays free forever; “Share with partner” is a Premium feature.', go: 'See Premium to unlock this', later: 'Not now', who: 'Mali’s day today' },
+    vi: { title: 'Chia sẻ với bạn đời', sub: 'Giúp họ hiểu hôm nay của bạn mà không cần giải thích mỗi lần.',
+      b: [['🔗', 'Chỉ cần một liên kết', 'Họ không cần cài app hay đăng ký, mở ngay từ LINE hoặc Facebook.'], ['🎛️', 'Bạn quyết định chia sẻ gì', 'Giai đoạn, gợi ý, tâm trạng, triệu chứng đều có công tắc riêng.'], ['👀', 'Biết họ đã xem chưa', 'Xem họ đã mở liên kết và đã bấm “Mình đã xem” chưa.'], ['🔒', 'Dừng bất cứ lúc nào', 'Một chạm là dừng, liên kết vô hiệu ngay và dữ liệu bị xóa.']],
+      ex: '👇 Họ sẽ thấy thế này (ví dụ, không phải dữ liệu thật)', mem: 'Ghi chép luôn miễn phí; “Chia sẻ với bạn đời” là tính năng hội viên.', go: 'Xem gói hội viên để mở tính năng này', later: 'Để sau', who: 'Hôm nay của Mali' }
+  };
+  var SAMPLE = {
+    normal: { e: '🩸', zh: ['经期 · 第 2 天', '容易疲倦，可能痛经，情绪也敏感。', ['备一个热水袋或热饮', '今天多分担家务', '煮点温热清淡的东西'], '腹部或腰部热敷常能缓解痛经。直接递过去，比问“要不要”更贴心。'],
+      th: ['มีประจำเดือน · วันที่ 2', 'ร่างกายเหนื่อยง่าย อาจปวดท้องและอารมณ์อ่อนไหว', ['เตรียมถุงน้ำร้อนหรือเครื่องดื่มอุ่นๆ', 'วันนี้ช่วยงานบ้านให้มากขึ้น', 'ทำอาหารอุ่นๆ รสอ่อน'], 'การประคบอุ่นที่ท้องหรือเอวช่วยให้ปวดท้องประจำเดือนดีขึ้นได้ ยื่นให้เลยดีกว่าถามว่า “เอาไหม”'],
+      en: ['On her period · day 2', 'Tires easily; cramps and a sensitive mood are common.', ['Bring a heat pack or a warm drink', 'Take more of the chores today', 'Make something warm and mild'], 'Warmth on the belly or lower back often eases cramps. Just hand it over rather than asking “do you want one?”'],
+      vi: ['Đang trong kỳ kinh · ngày 2', 'Dễ mệt, có thể đau bụng và nhạy cảm hơn.', ['Chuẩn bị túi sưởi hoặc đồ uống ấm', 'Hôm nay san sẻ việc nhà nhiều hơn', 'Nấu món ấm, nhạt'], 'Chườm ấm bụng hoặc lưng dưới thường giúp giảm đau bụng kinh. Cứ đưa luôn, đừng hỏi “có cần không?”'] },
+    ttc: { e: '💗', zh: ['易孕期', '今天是这个周期里受孕机会较高的几天之一。', ['轻松一点，别给压力', '安排一个小浪漫', '提醒彼此多喝水、早点睡'], '越放松越好。别把相处变成任务，多陪她聊聊天。'],
+      th: ['ช่วงเจริญพันธุ์', 'วันนี้เป็นหนึ่งในวันที่มีโอกาสตั้งครรภ์สูงของรอบนี้', ['ผ่อนคลายเข้าไว้ ไม่กดดัน', 'สร้างบรรยากาศโรแมนติกเล็กๆ', 'เตือนกันให้ดื่มน้ำและนอนเร็ว'], 'ยิ่งสบายใจยิ่งดี อย่าทำให้เป็นภารกิจ คุยกันให้มากหน่อย'],
+      en: ['Fertile window', 'Today is among the more fertile days this cycle.', ['Stay relaxed, no pressure', 'Plan something a little romantic', 'Remind each other to drink water and sleep well'], 'Calm is better. Do not turn closeness into a task; talk and enjoy each other.'],
+      vi: ['Cửa sổ thụ thai', 'Hôm nay là một trong những ngày dễ thụ thai hơn của chu kỳ.', ['Thoải mái, đừng tạo áp lực', 'Tạo chút lãng mạn', 'Nhắc nhau uống nước, ngủ sớm'], 'Càng thư giãn càng tốt. Đừng biến sự gần gũi thành nhiệm vụ.'] },
+    preg: { e: '🍌', zh: ['怀孕第 20 周', '第一次胎动可能已感觉到，身体变化更明显。', ['把手放在她肚子上，跟宝宝说话', '一起准备宝宝用品', '陪她散散步'], '这时宝宝能感受到声音和触碰，对你们俩都是很好的联结。'],
+      th: ['ตั้งครรภ์ สัปดาห์ที่ 20', 'รู้สึกลูกดิ้นครั้งแรกได้และการเปลี่ยนแปลงชัดขึ้น', ['วางมือที่ท้องแล้วคุยกับลูก', 'เตรียมของลูกไปด้วยกัน', 'เดินเล่นเบาๆ ไปกับเธอ'], 'ช่วงนี้ลูกรับรู้เสียงและสัมผัสได้ เป็นช่วงเวลาสร้างสายสัมพันธ์ที่ดีของทั้งสามคน'],
+      en: ['Pregnancy, week 20', 'First kicks may be felt and the changes are more visible.', ['Hand on her belly, talk to the baby', 'Prepare baby things together', 'Take an easy walk together'], 'The baby can sense sound and touch now; it is a lovely way to bond.'],
+      vi: ['Tuần thai thứ 20', 'Có thể cảm nhận cú đạp đầu tiên và thay đổi rõ hơn.', ['Đặt tay lên bụng và trò chuyện với bé', 'Cùng chuẩn bị đồ cho bé', 'Cùng đi dạo nhẹ nhàng'], 'Lúc này bé cảm nhận được âm thanh và cái chạm; đó là cách gắn kết rất đẹp.'] }
+  };
+  function showIntro(){
+    var lg = L(), t = IN[lg], m = mode(), sm = SAMPLE[m] || SAMPLE.normal, sd = sm[lg];
+    addCss(); close();
+    bg = document.createElement('div'); bg.id = 'lunaPtBg'; bg.innerHTML = '<div id="lunaPt"></div>';
+    bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
+    document.body.appendChild(bg); try{ document.body.style.overflow = 'hidden'; }catch(e){}
+    var box = bg.firstChild, CH = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c5cbf" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    var h = '<div class="hd">💞 ' + esc(t.title) + '<button id="ptX" aria-label="close">✕</button></div><div class="sb">' + esc(t.sub) + '</div>'
+      + '<div class="cd">' + t.b.map(function(x){ return '<div class="rw" style="gap:12px;justify-content:flex-start;align-items:flex-start"><div style="font-size:22px;line-height:1.2">' + x[0] + '</div><div><b>' + esc(x[1]) + '</b><small>' + esc(x[2]) + '</small></div></div>'; }).join('') + '</div>'
+      + '<div class="sb" style="padding-top:6px;font-weight:700;color:#7c5cbf">' + esc(t.ex) + '</div>'
+      + '<div class="cd" style="background:linear-gradient(180deg,#efe7fb,#fbeef5)"><div style="background:#fff;border-radius:18px;padding:14px 12px;text-align:center"><div style="font-size:12px;color:#8b84a0;font-weight:700">' + esc(t.who) + '</div><div style="font-size:40px;line-height:1.2;margin-top:4px">' + sm.e + '</div><div style="font-size:17px;font-weight:800;margin-top:4px">' + esc(sd[0]) + '</div><div style="font-size:12.5px;color:#6b6585;line-height:1.6;margin-top:2px">' + esc(sd[1]) + '</div></div>'
+      + '<div style="background:#fff;border-radius:16px;padding:4px 12px;margin-top:8px">' + sd[2].map(function(x, i){ return '<div class="ptAcc' + (i === 0 ? ' on' : '') + '" style="border-bottom:1px solid #f3eefa"><div class="ptAccH" style="display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13.5px;font-weight:700;cursor:pointer"><span>' + esc(x) + '</span>' + (i === 0 ? '<span style="margin-left:auto;transition:transform .3s">' + CH + '</span>' : '') + '</div>' + (i === 0 ? '<div class="ptAccB" style="display:grid;grid-template-rows:1fr;transition:grid-template-rows .3s ease"><div style="min-height:0;overflow:hidden"><p style="margin:0 0 10px;font-size:12.5px;line-height:1.65;color:#5b5575">' + esc(sd[3]) + '</p></div></div>' : '') + '</div>'; }).join('') + '</div></div>'
+      + '<div class="nt" style="text-align:center">' + esc(t.mem) + '</div>'
+      + '<button class="bt" id="ptGo">' + esc(t.go) + '</button><button class="b2" id="ptLater" style="width:calc(100% - 28px);margin:8px 14px 0">' + esc(t.later) + '</button>';
+    box.innerHTML = h;
+    Array.prototype.forEach.call(box.querySelectorAll('.ptAccH'), function(hd, ix){ if(ix > 0){ hd.style.cursor = 'default'; return; } hd.onclick = function(){
+      var a = hd.parentNode, on = a.className.indexOf(' on') < 0, b = a.querySelector('.ptAccB'), arrow = hd.lastChild;
+      a.className = 'ptAcc' + (on ? ' on' : ''); b.style.gridTemplateRows = on ? '1fr' : '0fr'; arrow.style.transform = on ? 'rotate(180deg)' : '';
+    }; });
+    box.querySelector('.ptAccH').lastChild.style.transform = 'rotate(180deg)';
+    document.getElementById('ptX').onclick = close; document.getElementById('ptLater').onclick = close;
+    document.getElementById('ptGo').onclick = function(){ try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_intro_upgrade'); }catch(e){} close(); setTimeout(paywall, 280); };
+    setTimeout(function(){ if(bg) bg.classList.add('on'); }, 20);
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_intro_view'); }catch(e){}
+  }
   var lastOpen = 0;
   function open(){
     var t = T(), m = mode();
     if(Date.now() - lastOpen < 700) return; lastOpen = Date.now();   // 连点只算一次
     if(m === 'pp'){ toast(t.noPP); return; }
-    if(!pro()){ paywall(); return; }
+    if(!pro()){ showIntro(); return; }   // 先让她看懂这个功能长什么样，再决定要不要开会员
     addCss(); close();
     bg = document.createElement('div'); bg.id = 'lunaPtBg'; bg.innerHTML = '<div id="lunaPt"></div>';
     bg.addEventListener('click', function(e){ if(e.target === bg) close(); });

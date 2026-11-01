@@ -37980,3 +37980,32 @@ var BKB = [
   window.LunaPartner = { open: open, close: close, _payload: payload, _push: push, _mount: mount };
 })();
 </script>
+<script id="lunaVerReport">
+/* 📲 版本上报：App 启动后悄悄把"当前 App 版本号"写进 users/{uid}/appVersion（后台"版本采用漏斗"用它统计谁装了最新版）。
+   只写版本号和时间，不含任何个人内容；同一版本 24 小时内只写一次；没有用户档案时不写（避免产生"幽灵账号"）；失败就静默放弃。 */
+(function(){
+  if (window.__lunaVerRep) return; window.__lunaVerRep = 1;
+  var tries = 0;
+  function go(){
+    try{
+      var A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+      if(!A || !A.getInfo) return;                       // 不是手机 App（比如网页预览）：不上报
+      var u = window.auth && window.auth.currentUser;
+      if(!u || !window._fb){ if(++tries < 40) setTimeout(go, 3000); return; }
+      A.getInfo().then(function(i){
+        if(!i || !i.version) return;
+        var v = String(i.version).slice(0, 20) + (i.build ? '(' + String(i.build).slice(0, 10) + ')' : '');
+        var K = 'luna_ver_sent', last = null; try{ last = JSON.parse(localStorage.getItem(K) || 'null'); }catch(e){}
+        if(last && last.v === v && last.u === u.uid && Date.now() - last.t < 86400000) return;
+        Promise.resolve(window._fb.get('users/' + u.uid + '/lastLogin')).then(function(ll){
+          if(!ll) return;
+          return Promise.resolve(window._fb.set('users/' + u.uid + '/appVersion', v)).then(function(){
+            return window._fb.set('users/' + u.uid + '/appVerAt', Date.now());
+          }).then(function(){ try{ localStorage.setItem(K, JSON.stringify({ v: v, u: u.uid, t: Date.now() })); }catch(e){} });
+        }).catch(function(){});
+      }, function(){});
+    }catch(e){}
+  }
+  setTimeout(go, 9000);
+})();
+</script>

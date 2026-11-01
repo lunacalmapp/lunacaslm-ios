@@ -37701,7 +37701,7 @@ var BKB = [
 <script id="lunaPartnerJs">
 /* 💞 和伴侣共享（轻量版，会员）：生成 lunacalm.app/p/xxxx 链接，伴侣不用装 App 就能看到"她今天的状态 + 怎么照顾她"。
    - App 只把"推算阶段所需的最少数据"发给服务器（上次经期开始日 / 周期天数 / 经期天数；怀孕模式只发预产期；今天心情 5 选 1），
-     不发症状、备注、历史记录。阶段由服务器在伴侣打开网页那一刻按日期现算。
+     不发备注、历史记录；今天的症状只有她单独打开"症状"开关才发（只发常见症状的名字，最多 4 个，不含出血量/颜色/备注）。阶段由服务器在伴侣打开网页那一刻按日期现算。
    - 分享用手机自带的分享面板（LINE / Facebook / WhatsApp / 短信都在里面），不接任何第三方 SDK。
    - 生成链接时复用"保存进度条"（window.LunaProg）。 */
 (function(){
@@ -37709,40 +37709,40 @@ var BKB = [
   var URL_MANAGE = 'https://asia-southeast1-sasomboon.cloudfunctions.net/partnerShareManage';
   var SITE = 'https://lunacalm.app/p/';
   var K_TOK = 'luna_partner_token', K_FLAGS = 'luna_partner_flags', K_NICK = 'luna_partner_nick';
-  var DEF = { phase: true, tips: true, ovu: true, week: true, mood: false };
+  var DEF = { phase: true, tips: true, ovu: true, week: true, mood: false, sym: false };
 
   function L(){ try{ if(localStorage.getItem('luna_lang') !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; }catch(e){} return 'zh'; }
   var I = {
-    th: { entry: 'แชร์กับคู่ของคุณ', entryD: 'ให้เขาเข้าใจสถานะของคุณวันนี้', on: 'กำลังแชร์', vip: 'สมาชิก',
+    th: { r_stat: 'วันนี้แชร์ {a} ครั้ง · เขากด “ฉันดูแล้ว” {b} ครั้ง', s_sym: 'อาการวันนี้', s_sym_d: 'แสดงเฉพาะชื่ออาการทั่วไป ไม่รวมปริมาณ สี หรือโน้ต', r_open0: 'เขายังไม่ได้เปิดลิงก์', r_open1: 'เขาเปิดลิงก์แล้ว · {t}', r_ack0: 'เขายังไม่ได้กด “ฉันดูแล้ว”', r_ack1: 'เขากด “ฉันดูแล้ว” · {t}', e_idle: 'แชร์อยู่ · เขายังไม่ได้เปิด', e_open: 'เขาเปิดดูลิงก์แล้ว', e_ack: 'เขาบอกว่าดูแล้ว 💜', toastAck: '💜 เขากด “ฉันดูแล้ว”', entry: 'แชร์กับคู่ของคุณ', entryD: 'ให้เขาเข้าใจสถานะของคุณวันนี้', on: 'กำลังแชร์', vip: 'สมาชิก',
       title: 'แชร์กับคู่ของคุณ', sub: 'ให้เขาเข้าใจว่าคุณรู้สึกอย่างไร โดยไม่ต้องอธิบายทุกครั้ง คุณเลือกได้ว่าจะแชร์อะไร',
       nick: 'ชื่อที่ให้เขาเห็น', nickPh: 'เช่น มะลิ', s_phase: 'ช่วงของรอบเดือน', s_phase_d: 'เช่น กำลังมีประจำเดือนวันที่ 2', s_tips: 'คำแนะนำให้คู่ดูแลคุณ', s_tips_d: 'ข้อความสั้นๆ ว่าวันนี้ช่วยอะไรได้',
-      s_ovu: 'ช่วงไข่ตก / โอกาสตั้งครรภ์', s_ovu_d: 'ช่วยให้วางแผนด้วยกัน', s_week: 'อายุครรภ์', s_week_d: 'สัปดาห์ที่เท่าไร และขนาดของลูก', s_mood: 'อารมณ์วันนี้', s_mood_d: 'ไม่แชร์อาการ บันทึก หรือรายละเอียดอื่น',
+      s_ovu: 'ช่วงไข่ตก / โอกาสตั้งครรภ์', s_ovu_d: 'ช่วยให้วางแผนด้วยกัน', s_week: 'อายุครรภ์', s_week_d: 'สัปดาห์ที่เท่าไร และขนาดของลูก', s_mood: 'อารมณ์วันนี้', s_mood_d: 'แสดงเป็นอีโมจิ 1 ใน 5 แบบ',
       gen: 'สร้างลิงก์เชิญ', copy: 'คัดลอกลิงก์', share: 'ส่งให้คู่ของคุณ', stop: 'หยุดแชร์ (ลิงก์จะใช้ไม่ได้ทันที)', stop2: 'แตะอีกครั้งเพื่อยืนยันหยุดแชร์', copied: 'คัดลอกแล้ว', stopped: 'หยุดแชร์แล้ว',
-      priv: '🔒 แชร์เฉพาะที่คุณเปิดไว้เท่านั้น ไม่แชร์อาการ บันทึก หรือประวัติรอบ ปิดลิงก์ได้ทุกเมื่อ', sharing: 'กำลังแชร์',
+      priv: '🔒 แชร์เฉพาะที่คุณเปิดไว้เท่านั้น ไม่แชร์บันทึกหรือประวัติรอบ ปิดลิงก์ได้ทุกเมื่อ', sharing: 'กำลังแชร์',
       shareTxt: '💜 เชิญดูสถานะของฉันวันนี้ 👉 ', noPP: 'โหมดหลังคลอดยังไม่รองรับการแชร์', noLogin: 'กรุณาเข้าสู่ระบบก่อน', noData: 'บันทึกประจำเดือนอย่างน้อย 1 ครั้งก่อนนะ', noPreg: 'ยังไม่มีวันกำหนดคลอด',
       fail: 'สร้างลิงก์ไม่สำเร็จ ลองใหม่อีกครั้ง', notPro: 'ฟีเจอร์นี้สำหรับสมาชิก', off: 'ฟีเจอร์นี้ปิดชั่วคราว', close: 'ปิด', netfail: 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง' },
-    zh: { entry: '和伴侣分享', entryD: '让 TA 懂你今天的状态', on: '共享中', vip: '会员',
+    zh: { r_stat: '今天分享 {a} 次 · TA 点了“我看过了” {b} 次', s_sym: '今天的症状', s_sym_d: '只显示常见症状名，不含出血量、颜色、备注', r_open0: 'TA 还没有打开网址', r_open1: 'TA 已打开网址 · {t}', r_ack0: 'TA 还没有点“我看过了”', r_ack1: 'TA 点了“我看过了” · {t}', e_idle: '共享中 · TA 还没打开', e_open: 'TA 打开看过网址', e_ack: 'TA 说看过了 💜', toastAck: '💜 TA 点了“我看过了”', entry: '和伴侣分享', entryD: '让 TA 懂你今天的状态', on: '共享中', vip: '会员',
       title: '和伴侣分享', sub: '让 TA 不用你每次解释，就懂你今天的状态。分享什么，由你决定。',
       nick: 'TA 看到的称呼', nickPh: '例如：小茉', s_phase: '周期阶段', s_phase_d: '例如：经期第 2 天', s_tips: '给 TA 的贴心建议', s_tips_d: '一两句话：今天可以怎么照顾我',
-      s_ovu: '排卵期 / 受孕机会', s_ovu_d: '方便一起计划', s_week: '孕周', s_week_d: '第几周，以及宝宝大小', s_mood: '今天的心情', s_mood_d: '不会分享症状、备注和其他细节',
+      s_ovu: '排卵期 / 受孕机会', s_ovu_d: '方便一起计划', s_week: '孕周', s_week_d: '第几周，以及宝宝大小', s_mood: '今天的心情', s_mood_d: '只显示 5 个固定表情之一',
       gen: '生成邀请链接', copy: '复制链接', share: '发给 TA', stop: '停止共享（链接立即失效）', stop2: '再点一次确认停止共享', copied: '已复制', stopped: '已停止共享',
-      priv: '🔒 只分享你打开的内容；不分享症状、备注和历史记录。随时可以关闭链接。', sharing: '共享中',
+      priv: '🔒 只分享你打开的内容；不分享备注和历史记录。随时可以关闭链接。', sharing: '共享中',
       shareTxt: '💜 邀请你看看我今天的状态 👉 ', noPP: '产后模式暂不支持共享', noLogin: '请先登录', noData: '先记录一次月经再来分享吧', noPreg: '还没有预产期',
       fail: '生成失败，请重试', notPro: '此功能为会员专属', off: '此功能暂时关闭', close: '关闭', netfail: '网络不通，请重试' },
-    en: { entry: 'Share with partner', entryD: 'Help them understand your day', on: 'Sharing', vip: 'Premium',
+    en: { r_stat: 'Shared {a}× today · tapped “I’ve seen it” {b}×', s_sym: "Today's symptoms", s_sym_d: 'Only common symptom names; never flow, colour or notes', r_open0: 'Not opened yet', r_open1: 'Opened the link · {t}', r_ack0: 'Has not tapped “I’ve seen it”', r_ack1: 'Tapped “I’ve seen it” · {t}', e_idle: 'Sharing · not opened yet', e_open: 'Opened the link', e_ack: 'Says they’ve seen it 💜', toastAck: '💜 They tapped “I’ve seen it”', entry: 'Share with partner', entryD: 'Help them understand your day', on: 'Sharing', vip: 'Premium',
       title: 'Share with your partner', sub: 'Help them understand how you feel today without explaining every time. You choose what is shared.',
       nick: 'Name they will see', nickPh: 'e.g. Mali', s_phase: 'Cycle phase', s_phase_d: 'e.g. Period, day 2', s_tips: 'Tips for your partner', s_tips_d: 'A line or two on how to support you today',
-      s_ovu: 'Ovulation / fertile window', s_ovu_d: 'Plan together', s_week: 'Pregnancy week', s_week_d: 'Which week, and baby size', s_mood: "Today's mood", s_mood_d: 'Symptoms, notes and other details are never shared',
+      s_ovu: 'Ovulation / fertile window', s_ovu_d: 'Plan together', s_week: 'Pregnancy week', s_week_d: 'Which week, and baby size', s_mood: "Today's mood", s_mood_d: 'Shown as one of 5 fixed emojis',
       gen: 'Create invite link', copy: 'Copy link', share: 'Send to partner', stop: 'Stop sharing (link stops working immediately)', stop2: 'Tap again to confirm', copied: 'Copied', stopped: 'Sharing stopped',
-      priv: '🔒 Only what you turn on is shared. No symptoms, notes or history. Turn the link off any time.', sharing: 'Sharing',
+      priv: '🔒 Only what you turn on is shared. Never notes or history. Turn the link off any time.', sharing: 'Sharing',
       shareTxt: "💜 I'd like to share how I'm doing today 👉 ", noPP: 'Postpartum mode does not support sharing yet', noLogin: 'Please sign in first', noData: 'Log a period first, then share', noPreg: 'No due date yet',
       fail: 'Could not create the link. Please try again.', notPro: 'This is a Premium feature', off: 'This feature is temporarily off', close: 'Close', netfail: 'No connection. Please try again.' },
-    vi: { entry: 'Chia sẻ với bạn đời', entryD: 'Giúp họ hiểu hôm nay của bạn', on: 'Đang chia sẻ', vip: 'Hội viên',
+    vi: { r_stat: 'Hôm nay chia sẻ {a} lần · đã bấm “Mình đã xem” {b} lần', s_sym: 'Triệu chứng hôm nay', s_sym_d: 'Chỉ hiện tên triệu chứng thông thường, không có lượng, màu hay ghi chú', r_open0: 'Chưa mở liên kết', r_open1: 'Đã mở liên kết · {t}', r_ack0: 'Chưa bấm “Mình đã xem”', r_ack1: 'Đã bấm “Mình đã xem” · {t}', e_idle: 'Đang chia sẻ · chưa mở', e_open: 'Đã mở liên kết', e_ack: 'Nói đã xem 💜', toastAck: '💜 Họ đã bấm “Mình đã xem”', entry: 'Chia sẻ với bạn đời', entryD: 'Giúp họ hiểu hôm nay của bạn', on: 'Đang chia sẻ', vip: 'Hội viên',
       title: 'Chia sẻ với bạn đời', sub: 'Giúp họ hiểu hôm nay bạn thế nào mà không cần giải thích mỗi lần. Bạn quyết định chia sẻ gì.',
       nick: 'Tên họ sẽ thấy', nickPh: 'ví dụ: Mali', s_phase: 'Giai đoạn chu kỳ', s_phase_d: 'ví dụ: ngày 2 của kỳ kinh', s_tips: 'Gợi ý cho bạn đời', s_tips_d: 'Một hai câu về cách quan tâm bạn hôm nay',
-      s_ovu: 'Rụng trứng / khả năng thụ thai', s_ovu_d: 'Cùng lên kế hoạch', s_week: 'Tuần thai', s_week_d: 'Tuần thứ mấy và kích thước em bé', s_mood: 'Tâm trạng hôm nay', s_mood_d: 'Không chia sẻ triệu chứng, ghi chú hay chi tiết khác',
+      s_ovu: 'Rụng trứng / khả năng thụ thai', s_ovu_d: 'Cùng lên kế hoạch', s_week: 'Tuần thai', s_week_d: 'Tuần thứ mấy và kích thước em bé', s_mood: 'Tâm trạng hôm nay', s_mood_d: 'Hiện một trong 5 biểu tượng cố định',
       gen: 'Tạo liên kết mời', copy: 'Sao chép liên kết', share: 'Gửi cho bạn đời', stop: 'Dừng chia sẻ (liên kết vô hiệu ngay)', stop2: 'Chạm lần nữa để xác nhận', copied: 'Đã sao chép', stopped: 'Đã dừng chia sẻ',
-      priv: '🔒 Chỉ chia sẻ phần bạn bật. Không chia sẻ triệu chứng, ghi chú hay lịch sử. Tắt liên kết bất cứ lúc nào.', sharing: 'Đang chia sẻ',
+      priv: '🔒 Chỉ chia sẻ phần bạn bật. Không chia sẻ ghi chú hay lịch sử. Tắt liên kết bất cứ lúc nào.', sharing: 'Đang chia sẻ',
       shareTxt: '💜 Mời bạn xem hôm nay mình thế nào 👉 ', noPP: 'Chế độ sau sinh chưa hỗ trợ chia sẻ', noLogin: 'Vui lòng đăng nhập trước', noData: 'Hãy ghi kỳ kinh một lần trước', noPreg: 'Chưa có ngày dự sinh',
       fail: 'Không tạo được liên kết. Vui lòng thử lại.', notPro: 'Tính năng dành cho hội viên', off: 'Tính năng tạm tắt', close: 'Đóng', netfail: 'Mất kết nối. Vui lòng thử lại.' }
   };
@@ -37780,20 +37780,43 @@ var BKB = [
       });
       if(found) o.mood = { k: found, d: tk }; else o.mood = null;
     }catch(e){}
+    // 今天症状：只发"常见症状名"的固定代号，最多 4 个（不发出血量/颜色/备注/自定义文字）
+    try{
+      var SYM = [['cramp', /ปวดท้อง|痛经|下腹/], ['headache', /ปวดหัว|ไมเกรน|头痛/], ['backache', /ปวดหลัง|ปวดเอว|背痛|腰痛|腰酸/], ['bloating', /ท้องอืด|胀气|腹胀/], ['fatigue', /เพลีย|疲劳|疲倦/], ['nausea', /คลื่นไส้|恶心/], ['insomnia', /นอนไม่หลับ|失眠|睡不好/], ['breast', /เจ็บอก|胸痛|胸胀/], ['acne', /สิว|痘/]], hit = {}, tk2 = key(new Date());
+      (window.logs || (typeof logs !== 'undefined' ? logs : [])).forEach(function(l){
+        if(!l || l.date !== tk2 || !l.symptoms) return;
+        l.symptoms.forEach(function(sn){ if(typeof sn !== 'string' || /（อารมณ์）|（ปริมาณ）|（สี）/.test(sn)) return; SYM.forEach(function(r){ if(r[1].test(sn)) hit[r[0]] = 1; }); });
+      });
+      var ks2 = SYM.map(function(r){ return r[0]; }).filter(function(k){ return hit[k]; }).slice(0, 4);
+      o.sym = ks2.length ? { k: ks2, d: tk2 } : null;
+    }catch(e){}
     return o;
   }
 
   /* ───── 调服务器 ───── */
+  function waitAuth(ms){   // 等登录状态恢复（刚打开 App 时 Firebase 要一两秒才认出你）
+    return new Promise(function(resolve){
+      var t0 = Date.now();
+      (function chk(){ var a = null; try{ a = (typeof auth !== 'undefined') ? auth : null; }catch(e){}
+        if(a && a.currentUser) return resolve(a.currentUser);
+        if(Date.now() - t0 >= ms) return resolve(null);
+        setTimeout(chk, 150); })();
+    });
+  }
   function call(body, ms){
     return new Promise(function(resolve, reject){
-      var a = null; try{ a = (typeof auth !== 'undefined') ? auth : null; }catch(e){}
-      if(!a || !a.currentUser){ reject({ code: 'noLogin' }); return; }
-      a.currentUser.getIdToken().then(function(tok){
-        var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null, to = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, ms || 15000);
-        fetch(URL_MANAGE, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
-          .then(function(r){ clearTimeout(to); return r.json().catch(function(){ return {}; }).then(function(j){ if(r.ok && j && j.ok) resolve(j); else reject({ code: (j && j.error) || ('http' + r.status), status: r.status }); }); })
-          .catch(function(){ clearTimeout(to); reject({ code: 'net' }); });
-      }, function(){ reject({ code: 'noLogin' }); });
+      try{ if(typeof navigator !== 'undefined' && navigator.onLine === false){ reject({ code: 'net' }); return; } }catch(e){}
+      waitAuth(3500).then(function(u){
+        if(!u){ reject({ code: 'noLogin' }); return; }
+        var tm = setTimeout(function(){ reject({ code: 'net' }); }, 10000), done = false;
+        u.getIdToken().then(function(tok){
+          if(done) return; clearTimeout(tm);
+          var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null, to = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, ms || 15000);
+          fetch(URL_MANAGE, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
+            .then(function(r){ clearTimeout(to); return r.json().catch(function(){ return {}; }).then(function(j){ if(r.ok && j && j.ok) resolve(j); else reject({ code: (j && j.error) || ('http' + r.status), status: r.status }); }); })
+            .catch(function(){ clearTimeout(to); reject({ code: 'net' }); });
+        }, function(err){ clearTimeout(tm); done = true; var c = err && err.code; reject({ code: (c === 'auth/network-request-failed') ? 'net' : 'noLogin' }); });
+      });
     });
   }
   function errMsg(e){ var t = T(), c = e && e.code; return c === 'noLogin' ? t.noLogin : c === 'not_pro' ? t.notPro : c === 'disabled' ? t.off : c === 'net' ? t.netfail : c === 'need_data' ? t.noData : t.fail; }
@@ -37812,17 +37835,38 @@ var BKB = [
     + '#lunaPt .st{display:block;text-align:center;margin:14px;color:#c0405f;font-size:13px;font-weight:600}#lunaPt .nt{margin:8px 18px;font-size:11.5px;color:#8b84a0;line-height:1.7}#lunaPt .gr{font-size:12px;color:#2e9e6b;font-weight:700;margin-bottom:8px}'
     + '#lunaPtEntry .pt-vip{display:inline-block;background:linear-gradient(135deg,#f2b84b,#e8799b);color:#fff;border-radius:8px;font-size:10.5px;padding:2px 7px;margin-left:6px}';
   function addCss(){ if(document.getElementById('lunaPartnerCss')) return; var s = document.createElement('style'); s.id = 'lunaPartnerCss'; s.textContent = css; document.head.appendChild(s); }
+  /* ───── 回执：对方"打开网址"和"点我看过了"是两件事，分开显示 ───── */
+  var SEEN = null, lastSeenPoll = 0;
+  function tfmt(ms){ var d = new Date(ms), n = new Date(), hm = pad(d.getHours()) + ':' + pad(d.getMinutes()); return (d.toDateString() === n.toDateString()) ? hm : (d.getDate() + '/' + (d.getMonth() + 1) + ' ' + hm); }
+  function rcHtml(){
+    var t = T(), o = SEEN && SEEN.openAt, a = SEEN && SEEN.ackAt;
+    return '<div id="ptRc" style="margin-top:10px;border-radius:14px;background:#f8f5fd;padding:4px 12px">'
+      + '<div style="display:flex;gap:8px;align-items:center;padding:8px 0;font-size:13px;border-bottom:1px solid #eee8f8;' + (o ? 'color:#2e9e6b;font-weight:700' : 'color:#a39bb8') + '"><span>👀</span><span>' + esc(o ? t.r_open1.replace('{t}', tfmt(o)) : t.r_open0) + '</span></div>'
+      + '<div style="display:flex;gap:8px;align-items:center;padding:8px 0;font-size:13px;' + (a ? 'color:#2e9e6b;font-weight:700' : 'color:#a39bb8') + '"><span>✅</span><span>' + esc(a ? t.r_ack1.replace('{t}', tfmt(a)) : t.r_ack0) + '</span></div>'
+      + (SEEN && SEEN.shares ? '<div style="padding:8px 0;border-top:1px solid #eee8f8;font-size:12px;color:#7c5cbf;font-weight:700">' + esc(t.r_stat.replace('{a}', SEEN.shares).replace('{b}', SEEN.acks || 0)) + '</div>' : '') + '</div>';
+  }
+  function applySeen(v){
+    SEEN = (v && typeof v === 'object') ? v : null;
+    var ack = SEEN && SEEN.ackAt;
+    if(ack && String(ls('luna_partner_ack') || '') !== String(ack)){ ls('luna_partner_ack', String(ack)); toast(T().toastAck); }   // 她不在 App 里时对方点的，下次打开 App 提示一次
+    updateEntry(); if(bg){ var r = document.getElementById('ptRc'); if(r) r.outerHTML = rcHtml(); }
+  }
+  function refreshSeen(force){
+    if(!ls(K_TOK) || !pro()) return;
+    if(!force && Date.now() - lastSeenPoll < 45000) return; lastSeenPoll = Date.now();
+    call({ action: 'status' }, 8000).then(function(r){ if(!r.active){ ls(K_TOK, null); SEEN = null; updateEntry(); render(); } else applySeen(r.seen); }, function(){});
+  }
   var bg = null, genBusy = false, stopArm = 0;
   function close(){ if(!bg) return; var b = bg; bg = null; b.classList.remove('on'); try{ document.body.style.overflow = ''; }catch(e){} setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 260); }
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function render(){
     if(!bg) return; var t = T(), m = mode(), f = flags(), tok = ls(K_TOK), box = bg.firstChild;
-    var rows = [['phase', 's_phase']]; rows.push(['tips', 's_tips']); if(m === 'ttc') rows.push(['ovu', 's_ovu']); if(m === 'preg') rows.push(['week', 's_week']); rows.push(['mood', 's_mood']);
+    var rows = [['phase', 's_phase']]; rows.push(['tips', 's_tips']); if(m === 'ttc') rows.push(['ovu', 's_ovu']); if(m === 'preg') rows.push(['week', 's_week']); rows.push(['mood', 's_mood']); rows.push(['sym', 's_sym']);
     var h = '<div class="hd">💞 ' + esc(t.title) + '<button id="ptX" aria-label="' + esc(t.close) + '">✕</button></div><div class="sb">' + esc(t.sub) + '</div>'
       + '<div class="cd"><b style="font-size:13px">' + esc(t.nick) + '</b><input id="ptNick" maxlength="20" placeholder="' + esc(t.nickPh) + '" value="' + esc(ls(K_NICK) || '') + '"></div>'
       + '<div class="cd">' + rows.map(function(r){ return '<div class="rw" data-k="' + r[0] + '"><div><b>' + esc(t[r[1]]) + '</b><small>' + esc(t[r[1] + '_d']) + '</small></div><div class="sw ' + (f[r[0]] ? 'on' : '') + '"></div></div>'; }).join('') + '</div>';
     if(!tok) h += '<button class="bt" id="ptGen">' + esc(t.gen) + '</button>';
-    else h += '<div class="cd"><div class="gr">● ' + esc(t.sharing) + '</div><div class="lk" id="ptLink">' + esc(url()) + '</div><button class="bt" id="ptShare" style="width:100%;margin:10px 0 0">' + esc(t.share) + '</button><button class="b2" id="ptCopy">' + esc(t.copy) + '</button></div><span class="st" id="ptStop">' + esc(t.stop) + '</span>';
+    else h += '<div class="cd"><div class="gr">● ' + esc(t.sharing) + '</div><div class="lk" id="ptLink">' + esc(url()) + '</div><button class="bt" id="ptShare" style="width:100%;margin:10px 0 0">' + esc(t.share) + '</button><button class="b2" id="ptCopy">' + esc(t.copy) + '</button>' + rcHtml() + '</div><span class="st" id="ptStop">' + esc(t.stop) + '</span>';
     h += '<div class="nt">' + esc(t.priv) + '</div>';
     box.innerHTML = h;
     document.getElementById('ptX').onclick = close;
@@ -37833,46 +37877,57 @@ var BKB = [
     var cp = document.getElementById('ptCopy'); if(cp) cp.onclick = doCopy;
     var sp = document.getElementById('ptStop'); if(sp) sp.onclick = doStop;
   }
+  function paywall(){ try{ window._lunaPaySrc = 'partner_share'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} }
+  var lastOpen = 0;
   function open(){
     var t = T(), m = mode();
+    if(Date.now() - lastOpen < 700) return; lastOpen = Date.now();   // 连点只算一次
     if(m === 'pp'){ toast(t.noPP); return; }
-    if(!pro()){ try{ window._lunaPaySrc = 'partner_share'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
+    if(!pro()){ paywall(); return; }
     addCss(); close();
     bg = document.createElement('div'); bg.id = 'lunaPtBg'; bg.innerHTML = '<div id="lunaPt"></div>';
     bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
     document.body.appendChild(bg); try{ document.body.style.overflow = 'hidden'; }catch(e){}
     render(); setTimeout(function(){ if(bg) bg.classList.add('on'); }, 20);
     try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_share_open'); }catch(e){}
-    if(ls(K_TOK)) call({ action: 'status' }, 8000).then(function(r){ if(!r.active){ ls(K_TOK, null); updateEntry(); render(); } }, function(){});
+    refreshSeen(true);
   }
   function create(){
     if(genBusy) return; var p = payload(), t = T();
     if(p.err){ toast(t[p.err]); return; }
     genBusy = true; p.action = 'create';
+    var gb = document.getElementById('ptGen'); if(gb){ gb.disabled = true; gb.style.opacity = '.6'; gb.textContent = '…'; }
     try{ window.LunaProg && window.LunaProg.start(); }catch(e){}
     call(p).then(function(r){
-      ls(K_TOK, r.token); ls('luna_partner_pfx', PFX[p.mode] || 'love'); ls(K_NICK, p.nick || ''); lastSig = sig(p);
+      SEEN = null; ls(K_TOK, r.token); ls('luna_partner_pfx', PFX[p.mode] || 'love'); ls(K_NICK, p.nick || ''); lastSig = sig(p);
       try{ window.LunaProg && window.LunaProg.done(); }catch(e){}
       setTimeout(function(){ genBusy = false; updateEntry(); render(); }, 380);
       try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_share_create'); }catch(e){}
     }, function(e){
       try{ window.LunaProg && window.LunaProg.done(); }catch(x){}
-      genBusy = false; toast(errMsg(e));
+      genBusy = false; render();
+      if(e && e.code === 'not_pro' && !window.IS_PLAY_BUILD){ close(); paywall(); return; }
+      toast(errMsg(e));
     });
   }
   var PFX = { normal: 'love', ttc: 'hope', preg: 'baby' };   // 好看的前缀；真正的"钥匙"是后面 10 位随机码
   function url(){ var tk = ls(K_TOK); return tk ? SITE + (ls('luna_partner_pfx') || 'love') + '-' + tk : ''; }
+  function markShared(){
+    call({ action: 'resetSeen' }, 8000).then(function(r){ ls('luna_partner_ack', null); SEEN = (r && r.seen) || null; applySeenQuiet(); }, function(){});
+  }
+  function applySeenQuiet(){ updateEntry(); if(bg){ var rc = document.getElementById('ptRc'); if(rc) rc.outerHTML = rcHtml(); } }
   function doShare(){
     var u = url(), t = T(); if(!u) return;
     var text = t.shareTxt + u, P = (window.Capacitor && window.Capacitor.Plugins) || {};
     try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_share_send'); }catch(e){}
+    markShared();   // 每分享一次算一轮：当天次数 +1，回执清零，对方页面的“我看过了”重新出现
     if(P.Share && typeof P.Share.share === 'function'){ P.Share.share({ text: text, dialogTitle: t.share }).catch(function(){}); return; }
     if(navigator.share){ navigator.share({ text: text }).catch(function(){}); return; }
     doCopy();
   }
   function doCopy(){
     var u = url(), t = T(); if(!u) return;
-    function ok(){ toast(t.copied); }
+    function ok(){ toast(t.copied); markShared(); }
     try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(u).then(ok, fb); return; } }catch(e){}
     fb();
     function fb(){ try{ var a = document.createElement('textarea'); a.value = u; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); document.body.removeChild(a); ok(); }catch(e){} }
@@ -37881,7 +37936,7 @@ var BKB = [
     var el = document.getElementById('ptStop'), t = T(); if(!el) return;
     if(Date.now() - stopArm > 3500){ stopArm = Date.now(); el.textContent = t.stop2; return; }
     stopArm = 0;
-    call({ action: 'revoke' }).then(function(){ ls(K_TOK, null); updateEntry(); render(); toast(t.stopped); },
+    call({ action: 'revoke' }).then(function(){ SEEN = null; ls(K_TOK, null); updateEntry(); render(); toast(t.stopped); },
       function(e){ if(e && (e.code === 'net')) toast(t.netfail); else { ls(K_TOK, null); updateEntry(); render(); } });
   }
 
@@ -37894,17 +37949,18 @@ var BKB = [
     var s = sig(p); if(!force && s === lastSig) return;
     if(Date.now() - lastPush < 20000 && !force) return;
     pushing = true; lastPush = Date.now(); p.action = 'update';
-    call(p, 12000).then(function(){ lastSig = s; pushing = false; }, function(e){ pushing = false; if(e && (e.code === 'no_share' || e.code === 'not_pro')){ if(e.code === 'no_share'){ ls(K_TOK, null); updateEntry(); } } });
+    call(p, 12000).then(function(r){ lastSig = s; pushing = false; if(r && r.seen !== undefined) applySeen(r.seen); }, function(e){ pushing = false; if(e && (e.code === 'no_share' || e.code === 'not_pro')){ if(e.code === 'no_share'){ ls(K_TOK, null); updateEntry(); } } });
   }
-  setInterval(function(){ if(!document.hidden) push(false); }, 90000);
-  document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(function(){ push(false); }, 1500); });
-  setTimeout(function(){ push(false); }, 8000);
+  setInterval(function(){ if(!document.hidden){ push(false); refreshSeen(false); } }, 90000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(function(){ push(false); refreshSeen(false); }, 1500); });
+  setTimeout(function(){ push(false); refreshSeen(true); }, 8000);
 
   /* ───── 入口：我的页面里加一行 ───── */
   function updateEntry(){
     var e = document.getElementById('lunaPtEntry'); if(!e) return; var t = T(), on = !!ls(K_TOK);
     e.querySelector('.pt-t').textContent = t.entry;
-    e.querySelector('.pt-d').innerHTML = on ? '<span style="color:#2e9e6b;font-weight:700">● ' + esc(t.on) + '</span>' : esc(t.entryD);
+    var st = SEEN && SEEN.ackAt ? t.e_ack : (SEEN && SEEN.openAt ? t.e_open : (on ? t.e_idle : ''));
+    e.querySelector('.pt-d').innerHTML = on ? '<span style="color:' + ((SEEN && SEEN.openAt) ? '#2e9e6b;font-weight:700' : '#8b84a0') + '">● ' + esc(st) + '</span>' : esc(t.entryD);
     e.querySelector('.pt-vip').textContent = t.vip;
   }
   function mount(){

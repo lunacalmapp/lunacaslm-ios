@@ -8514,7 +8514,7 @@ window.setLang = setLang;
     if(!fl) return _trialDays(); // 拿不到首登时间，先按满额给（极少见）
     // 过了几个完整 24 小时；用 correctedNow() 而不是裸的 Date.now()，防止用户调手机时间
     // 来刷新试用天数——校正后的"现在"就算设备时钟被人为改动，也基本还是准的
-    let passed = Math.floor((correctedNow() - fl) / 86400000);
+    let passed = Math.floor((((typeof correctedNow==='function') ? correctedNow() : Date.now()) - fl) / 86400000);   // 模块脚本还没跑完时 correctedNow 还不存在，先退回本机时间，避免加载早期报 ReferenceError
     if(passed < 0) passed = 0;
     let left = _trialDays() - passed;
     // 钳制在 0~试用天数，避免任何边界/时区问题导致显示超额或负数
@@ -33056,6 +33056,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         for(j = 0; j < l.symptoms.length; j++){
           x = l.symptoms[j]; if(typeof x !== 'string') continue;
           if(x.indexOf('บันทึก：') === 0 || x.indexOf('ไลฟ์：') === 0 || x.indexOf('อื่นๆ：') === 0) continue;
+          if(x.indexOf('（ปริมาณ）') >= 0 || x.indexOf('（สี）') >= 0) continue;   // 流量、颜色不算“症状”
           c = String(x).replace(/（อารมณ์）|（ปริมาณ）|（สี）/g, '').trim();
           var mk = MOOD_ZH[c] ? c : null;
           if(!mk){ for(var k in MOOD_ZH) if(MOOD_ZH[k] === c) mk = k; }
@@ -33071,6 +33072,23 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       r.moodTotal = 0; for(var k2 in mood) r.moodTotal += mood[k2];
       r.moodNeg = (mood['เศร้า'] || 0) + (mood['หงุดหงิด'] || 0) + (mood['กังวล'] || 0);
       r.nCycles = inRange.length;
+      try{   // 经期流量 / 近期备注（都是用户自己记录的）
+        var fl = { l: 0, m: 0, h: 0 }, nts = [], nFrom = fmt(addDays(today, -30)), li2, lj, lg, xs;
+        for(li2 = 0; li2 < arr.length; li2++){
+          lg = arr[li2]; if(!lg || typeof lg.date !== 'string' || !Array.isArray(lg.symptoms) || lg.date > tk || lg.date < fromKey) continue;
+          for(lj = 0; lj < lg.symptoms.length; lj++){
+            xs = lg.symptoms[lj]; if(typeof xs !== 'string') continue;
+            if(xs.indexOf('（ปริมาณ）') >= 0){
+              var fv = xs.replace('（ปริมาณ）', '').trim();
+              if(/น้อย|少|light|ít/i.test(fv)) fl.l++; else if(/กลาง|中|medium|vừa|trung/i.test(fv)) fl.m++; else if(/มาก|多|heavy|nhiều/i.test(fv)) fl.h++;
+            } else if(xs.indexOf('บันทึก：') === 0 && lg.date >= nFrom){
+              var nt = xs.slice('บันทึก：'.length).trim(); if(nt) nts.push({ d: lg.date, t: nt });
+            }
+          }
+        }
+        nts.sort(function(p, q2){ return p.d < q2.d ? 1 : -1; });
+        r.flow = fl; r.notes = nts.slice(0, 3);
+      }catch(e){}
       try{
         var P = window.LunaModeAnalysis && window.LunaModeAnalysis._pure;
         if(P && P.symStats){
@@ -33101,8 +33119,24 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     }
     function section(ctx, y, title){ txt(ctx, title, M, y, 34, C.ink, 700); ctx.fillStyle = C.line; ctx.fillRect(M, y + 16, W - 2 * M, 2); return y + 52; }
 
-    function draw(r, sample, q){
-      var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    function X4(a, b, c, d){   // 四种界面语言：中 / 泰 / 英 / 越（英、越走中文路径，所以先看开关）
+      var l = 'th'; try{ if(localStorage.getItem('luna_ui_en') === '1') l = 'en'; else if(localStorage.getItem('luna_ui_vi') === '1') l = 'vi'; else if(zh()) l = 'zh'; }catch(e){}
+      return l === 'zh' ? a : (l === 'en' ? c : (l === 'vi' ? d : b));
+    }
+    function suggest(r){   // 按数据自动列“想问医生的问题”（最多 3 条），没有异常就给一条通用的
+      var a = [], top = r.sym && r.sym.length ? String(r.sym[0][0]) : '';
+      if(r.recentGaps.length >= 3 && r.spread > 7) a.push(X4('我的周期长短差得比较多（相差 ' + r.spread + ' 天），需要做检查吗？', 'รอบเดือนของฉันยาวสั้นต่างกันค่อนข้างมาก (ต่างกัน ' + r.spread + ' วัน) ต้องตรวจไหม?', 'My cycle length varies a lot (' + r.spread + ' days apart). Should I get checked?', 'Độ dài chu kỳ của tôi chênh lệch khá nhiều (' + r.spread + ' ngày). Tôi có cần đi khám không?'));
+      else if(r.avgCycle && (r.avgCycle < 21 || r.avgCycle > 35)) a.push(X4('我的平均周期是 ' + r.avgCycle + ' 天，不在常见范围，需要检查吗？', 'รอบเดือนเฉลี่ยของฉันคือ ' + r.avgCycle + ' วัน อยู่นอกช่วงที่พบบ่อย ต้องตรวจไหม?', 'My average cycle is ' + r.avgCycle + ' days, outside the usual range. Should I get checked?', 'Chu kỳ trung bình của tôi là ' + r.avgCycle + ' ngày, ngoài khoảng thường gặp. Tôi có cần đi khám không?'));
+      if(r.avgPeriod && r.avgPeriod > 7) a.push(X4('我的经期平均有 ' + r.avgPeriod + ' 天，偏长，需要注意什么？', 'ประจำเดือนของฉันมาเฉลี่ย ' + r.avgPeriod + ' วัน ค่อนข้างนาน ต้องระวังอะไรไหม?', 'My period lasts about ' + r.avgPeriod + ' days, which seems long. Anything to watch for?', 'Kỳ kinh của tôi kéo dài khoảng ' + r.avgPeriod + ' ngày, hơi dài. Tôi cần lưu ý gì?'));
+      if(top && /痛经|ปวดท้อง|ปวดประจำเดือน|cramp|pain|đau bụng/i.test(top) && r.logDays && r.sym[0][1] / r.logDays >= 0.3) a.push(X4('经期疼痛比较频繁，有什么缓解或检查的建议？', 'ปวดท้องประจำเดือนบ่อย มีวิธีบรรเทาหรือควรตรวจอะไรไหม?', 'My period pain is fairly frequent. Any advice for relief or tests?', 'Tôi hay bị đau bụng kinh. Có cách giảm đau hoặc cần kiểm tra gì không?'));
+      if(r.moodTotal >= 5 && r.moodNeg / r.moodTotal >= 0.5) a.push(X4('我最近情绪起伏比较大，和激素变化有关吗？', 'ช่วงนี้อารมณ์ขึ้นลงบ่อย เกี่ยวกับฮอร์โมนไหม?', 'My mood has been up and down lately. Could it be hormonal?', 'Gần đây tâm trạng tôi thất thường. Có liên quan đến nội tiết không?'));
+      if(!a.length) a.push(X4('我的周期和经期看起来正常吗？有需要注意的吗？', 'รอบเดือนและประจำเดือนของฉันดูปกติไหม? มีอะไรต้องระวังไหม?', 'Do my cycle and period look normal? Anything I should watch for?', 'Chu kỳ và kỳ kinh của tôi có bình thường không? Tôi cần lưu ý gì?'));
+      return a.slice(0, 3);
+    }
+    var scratch = null;
+    function draw(r, sample, q, prog){
+      var P = (prog === undefined || prog === null) ? 1 : prog;
+      var cv; if(P < 1 && scratch) cv = scratch; else { cv = document.createElement('canvas'); cv.width = W; cv.height = H; if(P < 1) scratch = cv; }
       var ctx = cv.getContext('2d');
       ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
       // 头部
@@ -33130,64 +33164,103 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       for(i = 0; i < 4; i++){
         tx = M + i * (tw + 20);
         ctx.fillStyle = C.soft; rr(ctx, tx, y, tw, 150, 22); ctx.fill();
-        txt(ctx, tiles[i][0], tx + 22, y + 40, 23, C.mute, 400);
-        ctx.font = '700 ' + (tiles[i][1].length > 5 ? 38 : 46) + 'px ' + FF;
-        txt(ctx, tiles[i][1], tx + 22, y + 94, tiles[i][1].length > 5 ? 38 : 46, C.purple, 700);
-        txt(ctx, tiles[i][2], tx + 22, y + 130, 21, C.mute, 400);
+        var tmax = tw - 40;   // 字太长（越南文、泰文）时自动缩小字号，保证不超出小方块
+        function fitSz(str, sz, wt){ ctx.font = wt + ' ' + sz + 'px ' + FF; while(sz > 14 && ctx.measureText(str).width > tmax){ sz--; ctx.font = wt + ' ' + sz + 'px ' + FF; } return sz; }
+        txt(ctx, tiles[i][0], tx + 22, y + 40, fitSz(tiles[i][0], 23, 400), C.mute, 400);
+        var vSz = tiles[i][1].length > 5 ? 38 : 46;
+        txt(ctx, tiles[i][1], tx + 22, y + 94, fitSz(tiles[i][1], vSz, 700), C.purple, 700);
+        txt(ctx, tiles[i][2], tx + 22, y + 130, fitSz(tiles[i][2], 21, 400), C.mute, 400);
       }
       y += 150 + 40;
       txt(ctx, T('预计下次月经：', 'คาดว่าประจำเดือนครั้งถัดไป: ') + md(r.next) + T('（估计）', ' (โดยประมาณ)') + '     ' + T('预计排卵日：', 'คาดว่าตกไข่: ') + md(r.ovu) + T('（估计）', ' (โดยประมาณ)'), M, y, 26, C.ink, 400);
       y += 66;
 
-      // 周期长度图
+      // 周期长度图（打开预览时柱子从 0 长到真实数字：P 是 0→1 的进度，保存 PDF 时恒为 1）
       y = section(ctx, y, T('最近周期长度（天）', 'ความยาวรอบเดือนล่าสุด (วัน)'));
-      var gs = r.gaps.slice(-6), ch = 210, top0 = y + 2, base = top0 + ch, maxV = 40, minV = 15;
+      var gs = r.gaps.slice(-6), ch = 140, top0 = y + 2, base = top0 + ch, maxV = 40, minV = 15;
       function yy(v){ return base - (Math.min(Math.max(v, minV), maxV) - minV) / (maxV - minV) * ch; }
       if(!gs.length){
-        txt(ctx, T('还没有足够的连续记录来计算周期长度（至少需要 2 次月经开始日期）', 'ยังมีบันทึกต่อเนื่องไม่พอสำหรับคำนวณรอบ (ต้องมีวันเริ่มประจำเดือนอย่างน้อย 2 ครั้ง)'), M, top0 + 90, 26, C.mute, 400);
+        txt(ctx, T('还没有足够的连续记录来计算周期长度（至少需要 2 次月经开始日期）', 'ยังมีบันทึกต่อเนื่องไม่พอสำหรับคำนวณรอบ (ต้องมีวั'+'นเริ่มประจำเดือนอย่างน้อย 2 ครั้ง)'), M, y + 40, 26, C.mute, 400);
         y = base + 40;
       } else {
         ctx.fillStyle = C.band; ctx.fillRect(M, yy(35), W - 2 * M, yy(21) - yy(35));
         txt(ctx, T('常见范围 21–35 天', 'ช่วงที่พบบ่อย 21–35 วัน'), W - M, yy(35) - 12, 20, '#4f9a6c', 400, 'right');
         var bw = 104, gap = 66, total = gs.length * bw + (gs.length - 1) * gap, sx = M + ((W - 2 * M) - total) / 2;
         for(i = 0; i < gs.length; i++){
-          var v = gs[i].gap, bx = sx + i * (bw + gap), by = yy(v), out = v < 21 || v > 35;
-          var gr = ctx.createLinearGradient(0, by, 0, base); gr.addColorStop(0, out ? '#e57b7b' : '#9a7be3'); gr.addColorStop(1, out ? '#f0a6a6' : '#d7c7f4');
-          ctx.fillStyle = gr; rr(ctx, bx, by, bw, base - by, 14); ctx.fill();
-          txt(ctx, String(v), bx + bw / 2, by - 12, 28, out ? '#d05a5a' : C.purple, 700, 'center');
+          var v = gs[i].gap, bx = sx + i * (bw + gap), byF = yy(v), by = base - (base - byF) * P, out = v < 21 || v > 35;
+          if(base - by > 3){
+            var gr = ctx.createLinearGradient(0, by, 0, base); gr.addColorStop(0, out ? '#e57b7b' : '#9a7be3'); gr.addColorStop(1, out ? '#f0a6a6' : '#d7c7f4');
+            ctx.fillStyle = gr; rr(ctx, bx, by, bw, base - by, Math.min(14, (base - by) / 2)); ctx.fill();
+          }
+          txt(ctx, String(Math.round(v * P)), bx + bw / 2, by - 12, 28, out ? '#d05a5a' : C.purple, 700, 'center');
           txt(ctx, md(gs[i].start), bx + bw / 2, base + 34, 22, C.ink, 400, 'center');
           txt(ctx, T('经期 ', 'ประจำเดือน ') + gs[i].period + T(' 天', ' วัน'), bx + bw / 2, base + 62, 18, C.mute, 400, 'center');
         }
         ctx.fillStyle = C.line; ctx.fillRect(M, base, W - 2 * M, 2);
-        y = base + 96;
+        y = base + 70;
       }
-      y += 20;
 
-      // 症状
-      y = section(ctx, y, (window.lunaXT||String)(T('常见症状（最近 6 个月，共记录 ' + r.logDays + ' 天）', 'อาการที่พบบ่อย (6 เดือนล่าสุด บันทึก ' + r.logDays + ' วัน)')));
+      // ───── 下面几块按“剩余版面”自动取舍：想问医生的问题（预留）> 情绪 > 流量 > 症状 > 近期备注 ─────
+      var LIM = H - 84 - 22 - 16, y0 = y, hasFlow = !!(r.flow && (r.flow.l + r.flow.m + r.flow.h) > 0);
+      var tot = 0; r.mood.forEach(function(m){ tot += m[1]; });
+      // 想问医生的问题：用户写了就用用户的；没写就按数据给 1–3 条建议，再留一行手写
+      var qLines = [], sugg = [], sugL = [];
+      if(q){ ctx.font = '400 28px ' + FF; String(q).split(/\n+/).forEach(function(p){ if(p.trim()) qLines = qLines.concat(wrap(ctx, p.trim(), W - 2 * M)); }); }
+      else {
+        sugg = suggest(r); ctx.font = '400 26px ' + FF;
+        sugg.forEach(function(s){ sugL.push(wrap(ctx, s, W - 2 * M - 52)); });
+      }
+      function sugH(){ var h = 0; sugL.forEach(function(a){ h += a.length * 40 + 12; }); return h; }
+      var G = 40, qH = G + 52 + (qLines.length ? Math.max(2, Math.min(7, qLines.length)) * 52 : sugH() + 30);
+      var moodH = tot ? G + 52 + 34 + 50 + (r.moodPh ? 40 : 10) : G + 52 + 44, flowH = hasFlow ? G + 52 + 34 + 70 : 0, symFix = G + 52 + 12 + (r.symPh ? 36 : 10);
+      while(!qLines.length && sugL.length > 1 && Math.floor((LIM - y0 - qH - moodH - flowH - symFix) / 48) < 3){ sugL.pop(); qH = G + 52 + sugH() + 30; }
+      var rowsAvail = Math.floor((LIM - y0 - qH - moodH - flowH - symFix) / 48);
+      var maxRows = Math.max(2, Math.min(r.sym.length, rowsAvail));
+
+      // 经期流量（有记录才画）
+      if(hasFlow){
+        y += G; y = section(ctx, y, X4('经期流量', 'ปริมาณประจำเดือน', 'Period flow', 'Lượng kinh'));
+        var fT = r.flow.l + r.flow.m + r.flow.h, fx = M, fFull = W - 2 * M;
+        var FP = [[r.flow.l, '#f6bccb', X4('少量', 'น้อย', 'Light', 'Ít')], [r.flow.m, '#e8799b', X4('中等', 'กลาง', 'Medium', 'Vừa')], [r.flow.h, '#c4405f', X4('较多', 'มาก', 'Heavy', 'Nhiều')]];
+        ctx.save(); rr(ctx, M, y, fFull, 34, 17); ctx.clip();
+        FP.forEach(function(f){ var w = fFull * f[0] / fT; if(w > 0){ ctx.fillStyle = f[1]; ctx.fillRect(fx, y, w + 1, 34); fx += w; } });
+        ctx.restore();
+        var flx = M, fly = y + 78;
+        FP.forEach(function(f){
+          if(!f[0]) return;
+          var nm = f[2] + ' ' + Math.round(f[0] * 100 / fT) + '%（' + f[0] + X4(' 天', ' วัน', ' d', ' ngày') + '）';
+          ctx.font = '400 24px ' + FF; var w = ctx.measureText(nm).width + 44;
+          if(flx + w > W - M){ flx = M; fly += 40; }
+          ctx.fillStyle = f[1]; ctx.beginPath(); ctx.arc(flx + 10, fly - 8, 9, 0, 7); ctx.fill();
+          txt(ctx, nm, flx + 28, fly, 24, C.ink, 400); flx += w + 18;
+        });
+        y = fly + 20;
+      }
+
+      // 症状（每项带“占记录日 %”）
+      y += G; y = section(ctx, y, (window.lunaXT||String)(T('常见症状（最近 6 个月，共记录 ' + r.logDays + ' 天）', 'อาการที่พบบ่อย (6 เดือนล่าสุด บันทึก ' + r.logDays + ' วัน)')));
       if(!r.sym.length){
         txt(ctx, T('这段时间还没有症状记录', 'ช่วงนี้ยังไม่มีบันทึกอาการ'), M, y + 30, 26, C.mute, 400);
         y += 70;
       } else {
-        var maxC = r.sym[0][1], lblW = 250, barW = W - 2 * M - lblW - 110;
-        for(i = 0; i < r.sym.length; i++){
-          var ry = y + i * 48;
+        var maxC = r.sym[0][1], lblW = 250, barW = W - 2 * M - lblW - 250;
+        for(i = 0; i < maxRows; i++){
+          var ry = y + i * 48, pc = r.logDays ? Math.min(100, Math.round(r.sym[i][1] * 100 / r.logDays)) : 0;
           txt(ctx, symName(r.sym[i][0]), M, ry + 30, 26, C.ink, 400);
           ctx.fillStyle = '#f0ecf8'; rr(ctx, M + lblW, ry + 8, barW, 28, 14); ctx.fill();
           var fw = Math.max(28, barW * r.sym[i][1] / maxC);
           var bg = ctx.createLinearGradient(M + lblW, 0, M + lblW + fw, 0); bg.addColorStop(0, '#9a7be3'); bg.addColorStop(1, '#e88fbd');
           ctx.fillStyle = bg; rr(ctx, M + lblW, ry + 8, fw, 28, 14); ctx.fill();
-          txt(ctx, r.sym[i][1] + T(' 次', ' ครั้ง'), W - M, ry + 31, 24, C.mute, 400, 'right');
+          txt(ctx, r.sym[i][1] + X4(' 次 · 占记录日 ', ' ครั้ง · ', '× · ', ' lần · ') + pc + '%', W - M, ry + 31, 22, C.mute, 400, 'right');
         }
-        y += r.sym.length * 48 + 12;
-        if(r.symPh){ txt(ctx, (window.lunaXT||String)(T('症状多发阶段：', 'ช่วงที่มีอาการบ่อย: ') + PH[r.symPh.ph][zh() ? 0 : 1] + T('（占 ' + r.symPh.pct + '%）', ' (' + r.symPh.pct + '%)')), M, y + 10, 24, C.purple, 600); y += 48; }
+        y += maxRows * 48 + 12;
+        if(r.symPh){ txt(ctx, (window.lunaXT||String)(T('症状多发阶段：', 'ช่วงที่มีอาการบ่อย: ') + PH[r.symPh.ph][zh() ? 0 : 1] + T('（占 ' + r.symPh.pct + '%）', ' (' + r.symPh.pct + '%)')), M, y + 10, 24, C.purple, 400); y += 36; }
         else y += 10;
       }
 
       // 情绪
-      y += 26; y = section(ctx, y, T('情绪记录', 'อารมณ์ที่บันทึก'));
-      var tot = 0; r.mood.forEach(function(m){ tot += m[1]; });
-      if(!tot){ txt(ctx, T('这段时间还没有情绪记录', 'ช่วงนี้ยังไม่มีบันทึกอารมณ์'), M, y + 30, 26, C.mute, 400); y += 70; }
+      y += G; y = section(ctx, y, T('情绪记录', 'อารมณ์ที่บันทึก'));
+      if(!tot){ txt(ctx, T('这段时间还没有情绪记录', 'ช่วงนี้ยังไม่มีบันทึกอารมณ์'), M, y + 30, 26, C.mute, 400); y += 44; }
       else {
         var mx = M, full = W - 2 * M;
         ctx.save(); rr(ctx, M, y, full, 34, 17); ctx.clip();
@@ -33202,21 +33275,41 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
           txt(ctx, nm, lx + 28, ly, 24, C.ink, 400); lx += w + 18;
         });
         y = ly + 20;
-        if(r.moodPh){ txt(ctx, (window.lunaXT||String)(T('情绪波动多在：', 'อารมณ์แปรปรวนบ่อยช่วง: ') + PH[r.moodPh.ph][zh() ? 0 : 1] + T('（占 ' + r.moodPh.pct + '%）', ' (' + r.moodPh.pct + '%)')), M, y + 30, 24, C.purple, 600); y += 56; }
+        if(r.moodPh){ txt(ctx, (window.lunaXT||String)(T('情绪波动多在：', 'อารมณ์แปรปรวนบ่อยช่วง: ') + PH[r.moodPh.ph][zh() ? 0 : 1] + T('（占 ' + r.moodPh.pct + '%）', ' (' + r.moodPh.pct + '%)')), M, y + 30, 24, C.purple, 400); y += 48; }
         else y += 24;
       }
 
+      // 近期备注：用户自己写的备注（最近 30 天最多 3 条），版面有剩余才画
+      if(r.notes && r.notes.length){
+        var nRoom = Math.floor((LIM - qH - y - G - 52) / 46), nn = Math.min(r.notes.length, nRoom);
+        if(nn >= 1){
+          y += G; y = section(ctx, y, X4('近期备注', 'บันทึกล่าสุด', 'Recent notes', 'Ghi chú gần đây'));
+          for(i = 0; i < nn; i++){
+            var nd = parse(r.notes[i].d), ns = (nd ? md(nd) : r.notes[i].d) + '   ' + r.notes[i].t;
+            ctx.font = '400 26px ' + FF;
+            while(ns.length > 4 && ctx.measureText(ns).width > W - 2 * M){ ns = ns.slice(0, -2) + '…'; }
+            txt(ctx, ns, M, y + 30 + i * 46, 26, C.ink, 400);
+          }
+          y += nn * 46 + 6;
+        }
+      }
+
       // 想问医生的问题
-      y += 22; y = section(ctx, y, T('想问医生的问题', 'คำถามที่อยากถามแพทย์'));
-      var qLines = [];
-      if(q){ String(q).split(/\n+/).forEach(function(p){ if(p.trim()) qLines = qLines.concat(wrap(ctx, p.trim(), W - 2 * M)); }); }
+      y += G - 6; y = section(ctx, y, T('想问医生的问题', 'คำถามที่อยากถามแพทย์'));
       if(qLines.length){
         ctx.font = '400 28px ' + FF;
         var qMax = Math.max(2, Math.min(7, Math.floor(((H - 84 - 22) - y - 14) / 52)));
         if(qLines.length > qMax){ qLines = qLines.slice(0, qMax); qLines[qMax - 1] = qLines[qMax - 1].replace(/.{0,1}$/, '…'); }
         for(i = 0; i < qLines.length; i++){ txt(ctx, qLines[i], M, y + 34 + i * 52, 28, C.ink, 400); ctx.fillStyle = C.line; ctx.fillRect(M, y + 46 + i * 52, W - 2 * M, 2); }
       } else {
-        for(i = 0; i < 2; i++){ ctx.fillStyle = C.line; ctx.fillRect(M, y + 40 + i * 56, W - 2 * M, 2); }
+        // 根据数据自动列出的建议（带小方框，看诊时可以打勾），最后留一行手写
+        var sy = y + 8;
+        sugL.forEach(function(lines){
+          ctx.strokeStyle = C.purple; ctx.lineWidth = 3; rr(ctx, M, sy + 6, 26, 26, 6); ctx.stroke();
+          lines.forEach(function(ln, li){ txt(ctx, ln, M + 48, sy + 28 + li * 40, 26, C.ink, 400); });
+          sy += lines.length * 40 + 12;
+        });
+        if(sy + 46 < LIM) { ctx.fillStyle = C.line; ctx.fillRect(M, sy + 46, W - 2 * M, 2); }
       }
 
       // 页脚
@@ -33245,7 +33338,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       return { today: today, tk: fmt(today), cycles: cycles, inRange: cycles, gaps: cycles.filter(function(c){ return c.gap !== null; }), recentGaps: gapsArr.slice(),
                avgCycle: 32, spread: 8, avgPeriod: 6, last: cycles[cycles.length - 1], cl: 32, pl: 6, next: next, ovu: addDays(next, -14),
                sym: [['痛经', 26], ['疲劳', 22], ['背痛', 17], ['头痛', 14], ['情绪波动', 12]], mood: [['สงบ', 6], ['ดีใจ', 5], ['เศร้า', 4], ['หงุดหงิด', 3], ['กังวล', 2]], logDays: 40,
-               symTotal: 96, moodTotal: 20, moodNeg: 9, nCycles: 6, symPh: { ph: 'lut', pct: 46 }, moodPh: null };
+               flow: { l: 9, m: 18, h: 7 }, notes: [], symTotal: 96, moodTotal: 20, moodNeg: 9, nCycles: 6, symPh: { ph: 'lut', pct: 46 }, moodPh: null };
     }
 
     /* ───── 最简 PDF：一页 A4，把 JPEG 铺满 ───── */
@@ -33355,7 +33448,23 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         + T('保存 / 分享 PDF', 'บันทึก / แชร์ PDF') + '</button>'
         + '<div style="text-align:center;font-size:11.5px;color:rgba(255,255,255,.55);margin-top:8px;">' + T('可直接给医生看；报告只在你的手机上生成，不会上传。', 'ให้แพทย์ดูได้ทันที รายงานสร้างในเครื่องของคุณ ไม่อัปโหลด') + '</div></div>';
       document.body.appendChild(m); try{ document.body.style.overflow = 'hidden'; }catch(e){}
-      document.getElementById('lpgDocImg').src = jpg;
+      var pvImg = document.getElementById('lpgDocImg'); pvImg.src = jpg;
+      // 每次打开预览：周期长度的柱子从 0 慢慢长到真实数字，数字同步往上数
+      try{
+        var pvCv = document.createElement('canvas'); pvCv.id = 'lpgDocCv'; pvCv.width = W; pvCv.height = H; pvCv.style.cssText = pvImg.style.cssText;
+        pvImg.parentNode.insertBefore(pvCv, pvImg); pvImg.style.display = 'none';
+        var pvX = pvCv.getContext('2d'), pvT0 = null, pvLast = 0, PV_DELAY = 250, PV_DUR = 1200;
+        var pvDone = function(){ scratch = null; if(pvCv.parentNode) pvCv.parentNode.removeChild(pvCv); pvImg.style.display = 'block'; };
+        var pvFrame = function(ts){
+          if(!document.getElementById('lpgDocCv')){ scratch = null; return; }
+          if(pvT0 === null) pvT0 = ts;
+          var p = (ts - pvT0 - PV_DELAY) / PV_DUR; if(p < 0) p = 0;
+          if(p >= 1){ pvDone(); return; }
+          if(ts - pvLast >= 30){ pvLast = ts; try{ pvX.drawImage(draw(r, false, qIn, 1 - Math.pow(1 - p, 3)), 0, 0); }catch(e4){ pvDone(); return; } }
+          requestAnimationFrame(pvFrame);
+        };
+        pvX.drawImage(draw(r, false, qIn, 0), 0, 0); requestAnimationFrame(pvFrame);
+      }catch(e5){ try{ pvImg.style.display = 'block'; var oc = document.getElementById('lpgDocCv'); if(oc) oc.remove(); }catch(e6){} }
       document.getElementById('lpgDocX').onclick = close;
       document.getElementById('lpgDocEdit').onclick = function(){ askQuestion(qIn || '', function(q2){ open(q2); }, true); };
       document.getElementById('lpgDocSave').onclick = function(){
@@ -36863,8 +36972,14 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
   // lunaPeekHint：第一次见到可翻的卡片时，自己向左"偷看一眼"再弹回来，让用户知道能滑。每种模式只演示一次；用户自己翻过就不再演示
   var peeking = false, pkSince = 0;
   function pkMode(){ var b = document.body.classList; return b.contains('pp-mode') ? '' : b.contains('preg-mode') ? 'preg' : b.contains('ttc-mode') ? 'ttc' : 'normal'; }
-  function pkDone(m){ try{ return localStorage.getItem('luna_flip_peek_' + m) === '1'; }catch(e){ return true; } }
-  function pkMark(m){ try{ localStorage.setItem('luna_flip_peek_' + m, '1'); }catch(e){} }
+  // 第一次：照常演示；之后固定每隔 7 天再演示一次（用户自己翻过也照常）
+  function pkDone(m){ try{
+      if(localStorage.getItem('luna_flip_peek_' + m) !== '1') return false;
+      var ts = parseInt(localStorage.getItem('luna_flip_peek_ts_' + m) || '0', 10);
+      if(!ts){ localStorage.setItem('luna_flip_peek_ts_' + m, String(Date.now())); return true; }   // 旧版本演示过的：从现在起算 7 天
+      return (Date.now() - ts) < 7 * 864e5;
+    }catch(e){ return true; } }
+  function pkMark(m){ try{ localStorage.setItem('luna_flip_peek_' + m, '1'); localStorage.setItem('luna_flip_peek_ts_' + m, String(Date.now())); }catch(e){} }
   function pkBlocked(){
     var sel = '#onboardGate,#langGate,#consentOverlay,#trialIntroModal,#guestLoginModal,#sysPopupNotice,#achievePopup,#lunaRateSheet,#lunaBabyKbPanel,#ttcSettingModal.open,div#lunaSkel,#delLogModal,#moodlogPanel,#insightPanel', i, el;
     var list = document.querySelectorAll(sel); for(i = 0; i < list.length; i++){ el = list[i]; if(el.offsetHeight > 0 && getComputedStyle(el).display !== 'none' && getComputedStyle(el).visibility !== 'hidden') return true; }
@@ -36908,7 +37023,7 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
   function up(){
     if(!drag) return; drag = false; if(lock !== 1) return;
     var moved = theta - (page ? 180 : 0);
-    if(page === 0 && moved > 32){ var pm = pkMode(); if(pm) pkMark(pm); }
+    if(page === 0 && moved > 32){ var pm = pkMode(); if(pm){ try{ localStorage.setItem('luna_flip_peek_' + pm, '1'); if(!localStorage.getItem('luna_flip_peek_ts_' + pm)) localStorage.setItem('luna_flip_peek_ts_' + pm, String(Date.now())); }catch(e){} } }
     if(page === 0 && moved > 32) tween(180, 420); else if(page === 1 && moved < -32) tween(0, 420); else tween(page ? 180 : 0, 300);
   }
   document.addEventListener('touchstart', function(e){ if(e.target.closest && e.target.closest('#cycleCard')) down(e); }, { passive: true });
@@ -36927,16 +37042,16 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
 })();
 </script>
 <style id="lunaBabyKbCss">
-#lunaBabyKb{order:81;margin:6px 0 14px;}
-#lunaBabyKb .lbk-sec{display:flex;align-items:baseline;justify-content:space-between;margin:6px 4px 10px;}
+#lunaBabyKb{order:81;margin:6px 12px 14px;}
+#lunaBabyKb .lbk-sec{display:flex;align-items:baseline;justify-content:space-between;margin:6px 2px 10px;}
 #lunaBabyKb .lbk-sec b{font-size:17px;color:var(--home-fg,#2d2640);}
 #lunaBabyKb .lbk-sec span{font-size:12px;color:var(--home-fg-muted,#8a849e);}
-#lunaBabyKb .lbk-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-#lunaBabyKb .lbk-k{position:relative;border-radius:22px;padding:16px 14px 14px;min-height:118px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;will-change:transform;}
+#lunaBabyKb .lbk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+#lunaBabyKb .lbk-k{position:relative;border-radius:20px;padding:12px 13px 11px;min-height:92px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;will-change:transform;}
 #lunaBabyKb .lbk-k:active{filter:brightness(.97);}
-#lunaBabyKb .lbk-ic{font-size:30px;line-height:1;}
-#lunaBabyKb .lbk-t{font-size:15px;font-weight:800;margin-top:12px;line-height:1.3;}
-#lunaBabyKb .lbk-s{font-size:11.5px;opacity:.78;margin-top:3px;line-height:1.4;}
+#lunaBabyKb .lbk-ic{font-size:25px;line-height:1;}
+#lunaBabyKb .lbk-t{font-size:14.5px;font-weight:800;margin-top:6px;line-height:1.3;}
+#lunaBabyKb .lbk-s{font-size:11px;opacity:.78;margin-top:2px;line-height:1.35;}
 #lunaBabyKb .a{background:#ffe6d6;color:#a4551f;}#lunaBabyKb .b{background:#fff2c4;color:#8a6a00;}#lunaBabyKb .c{background:#d9f2e2;color:#2b7a4b;}
 #lunaBabyKb .d{background:#d8ecfb;color:#1f6a9c;}#lunaBabyKb .e{background:#fde0e8;color:#b23a5d;}#lunaBabyKb .f{background:#d8f0ee;color:#1f7a73;}
 #lunaBabyKb.lbk-dark .a{background:#4a3025;color:#ffbf99;}#lunaBabyKb.lbk-dark .b{background:#463d1c;color:#ffe08a;}#lunaBabyKb.lbk-dark .c{background:#1f3e2e;color:#8fe0b2;}
@@ -37091,7 +37206,7 @@ var BKB = [
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var sec = null, panel = null, lastLang = -1, lastTops = [], lastVis = false, dark = false, flipping = false;
   function phone(){ return document.querySelector('.phone'); }
-  function ttcOn(){ return document.body.classList.contains('ttc-mode'); }
+  function ttcOn(){ var c = document.body.classList; return c.contains('ttc-mode') || c.contains('preg-mode'); }
   function isDark(){
     var els = [document.querySelector('.phone'), document.body, document.documentElement], i, m;
     for(i = 0; i < els.length; i++){
@@ -37347,5 +37462,465 @@ var BKB = [
   document.addEventListener('visibilitychange', refresh);
   setInterval(refresh, 600); refresh();
   window.LunaCardDrop = { _s: function(){ return [dropMode, running, cur, tgt, lastKey]; } };
+})();
+</script>
+
+<script id="lunaTrialSumJs">
+(function(){
+  var I = {
+   th:{title:function(n){return 'Luna อยู่กับคุณมา '+n+' วัน'},sub:'นี่คือสิ่งที่ Luna เรียนรู้เกี่ยวกับคุณ',days:'วันที่บันทึก',mood:'อารมณ์ที่พบบ่อย',sym:'อาการที่พบบ่อย',cyc:'รอบเดือนของคุณ',cycv:function(n){return 'ประมาณ '+n+' วัน/รอบ'},msg:'นี่เป็นแค่จุดเริ่มต้น ยิ่งบันทึกต่อ Luna ยิ่งเข้าใจคุณมากขึ้น 🌙',go:'ให้ Luna อยู่ข้างคุณต่อ',later:'ไว้ทีหลัง',noT:'Luna ยังไม่ได้รู้จักคุณเลย',noS:'ช่วงทดลองใช้ยังไม่มีบันทึก เริ่มวันนี้ ใช้เวลาแค่ 10 วินาที',noGo:'ไปบันทึกวันนี้'},
+   zh:{title:function(n){return 'Luna 陪你的这 '+n+' 天'},sub:'这是 Luna 对你的了解',days:'记录天数',mood:'最常见的心情',sym:'最常出现的症状',cyc:'你的周期',cycv:function(n){return '约 '+n+' 天一轮'},msg:'这只是开始。继续记录，Luna 会越来越懂你 🌙',go:'让 Luna 继续陪我',later:'稍后再说',noT:'Luna 还不认识你呢',noS:'试用期间你还没有记录。今天开始，只要 10 秒',noGo:'去记录今天'},
+   en:{title:function(n){return 'Your '+n+' days with Luna'},sub:'Here is what Luna has learned about you',days:'Days logged',mood:'Most common mood',sym:'Most common symptom',cyc:'Your cycle',cycv:function(n){return 'About '+n+' days'},msg:'This is only the beginning. Keep logging and Luna will understand you better 🌙',go:'Keep Luna with me',later:'Maybe later',noT:'Luna does not know you yet',noS:'You have not logged anything during the trial. Starting today takes 10 seconds',noGo:'Log today'},
+   vi:{title:function(n){return n+' ngày bên Luna'},sub:'Đây là những gì Luna hiểu về bạn',days:'Số ngày đã ghi',mood:'Tâm trạng hay gặp',sym:'Triệu chứng hay gặp',cyc:'Chu kỳ của bạn',cycv:function(n){return 'Khoảng '+n+' ngày'},msg:'Đây mới chỉ là bắt đầu. Ghi chép tiếp, Luna sẽ hiểu bạn hơn 🌙',go:'Để Luna tiếp tục đồng hành',later:'Để sau',noT:'Luna chưa biết bạn',noS:'Trong thời gian dùng thử bạn chưa ghi gì. Bắt đầu hôm nay chỉ mất 10 giây',noGo:'Ghi chép hôm nay'}
+  };
+  var MOODN = { '😊': ['ดีใจ','开心','Happy','Vui'], '😌': ['สงบ','平静','Calm','Bình yên'], '😢': ['เศร้า','难过','Sad','Buồn'], '😤': ['หงุดหงิด','烦躁','Irritated','Cáu kỉnh'], '😰': ['กังวล','焦虑','Anxious','Lo lắng'] };
+  var FLAG = 'luna_trial_sum_shown', since = 0, tm = [], ov = null;
+  function lang(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+  function key(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function trialInfo(){
+    try{ var fl = parseInt(localStorage.getItem('luna_first_login') || '0', 10); if(!fl) return null;
+      var td = (window._remoteConfig && typeof window._remoteConfig.trialDays === 'number' && window._remoteConfig.trialDays > 0) ? window._remoteConfig.trialDays : 7;
+      var now = (typeof window.correctedNow === 'function') ? window.correctedNow() : Date.now(), passed = Math.max(0, Math.floor((now - fl) / 864e5));
+      return { fl: fl, td: td, ended: (td - passed) <= 0 }; }catch(e){ return null; }
+  }
+  function disp(raw){
+    var n = String(raw).replace(/（อารมณ์）|（ปริมาณ）|（สี）/g, '').trim(), l = lang();
+    try{ if(window.translateSym) n = window.translateSym(n); }catch(e){}
+    if(l === 'en' || l === 'vi'){ try{ if(typeof window.lunaEnT === 'function') n = window.lunaEnT(n); }catch(e){} }
+    return n;
+  }
+  function gather(t){
+    var out = { n: 0, mood: null, sym: null, cyc: 0 }, arr = [];
+    try{ if(typeof logs !== 'undefined' && Array.isArray(logs)) arr = logs; }catch(e){}
+    var from = key(new Date(t.fl)), to = key(new Date()), days = {}, mc = {}, sc = {}, i, j, l, s;
+    for(i = 0; i < arr.length; i++){ l = arr[i]; if(!l || typeof l.date !== 'string' || l.date < from || l.date > to) continue;
+      var has = false;
+      if(Array.isArray(l.symptoms)) for(j = 0; j < l.symptoms.length; j++){ s = l.symptoms[j]; if(typeof s !== 'string' || !s) continue; has = true;
+        var e = (l.emojis && l.emojis[j]) || '';
+        if(s.indexOf('（อารมณ์）') >= 0){ var mi = MOODN[e], mk = mi ? e : disp(s); mc[mk] = mc[mk] || { c: 0, e: e, n: mi ? mi[{ th: 0, zh: 1, en: 2, vi: 3 }[lang()]] : mk }; mc[mk].c++; }
+        else if(s.indexOf('（ปริมาณ）') < 0 && s.indexOf('（สี）') < 0 && s.indexOf('ไลฟ์：') !== 0 && s.indexOf('บันทึก') !== 0 && s.indexOf('อื่น') !== 0){ var sk = disp(s); sc[sk] = sc[sk] || { c: 0, e: e }; sc[sk].c++; } }
+      if(has || l.note || l.water > 0 || l.weight > 0) days[l.date] = 1; }
+    try{ if(typeof periodSet !== 'undefined' && periodSet && periodSet.forEach) periodSet.forEach(function(k){ if(typeof k === 'string' && k >= from && k <= to) days[k] = 1; }); }catch(e){}
+    out.n = Object.keys(days).length;
+    function top(o){ var b = null, k; for(k in o){ if(!b || o[k].c > b.c) b = { c: o[k].c, e: o[k].e, name: o[k].n || k }; } return b; }
+    out.mood = top(mc); out.sym = top(sc);
+    // 周期：至少要有两次经期开始日，才算得出间隔；否则不显示，不编造
+    try{ if(typeof periodSet !== 'undefined' && periodSet && periodSet.has){
+      var ks = Array.from(periodSet).filter(function(k){ return typeof k === 'string'; }).sort(), starts = [];
+      ks.forEach(function(k){ var p = key(new Date(new Date(k + 'T00:00:00').getTime() - 864e5)); if(!periodSet.has(p)) starts.push(k); });
+      if(starts.length >= 2){ var g = [], q; for(q = 1; q < starts.length; q++) g.push(Math.round((new Date(starts[q] + 'T00:00:00') - new Date(starts[q - 1] + 'T00:00:00')) / 864e5));
+        g = g.filter(function(v){ return v >= 15 && v <= 60; }); if(g.length){ out.cyc = Math.round(g.reduce(function(a, b){ return a + b; }, 0) / g.length); } } } }catch(e){}
+    return out;
+  }
+  function css(){
+    if(document.getElementById('lunaTrialSumCss')) return;
+    var st = document.createElement('style'); st.id = 'lunaTrialSumCss';
+    st.textContent = '#lunaTrialSum{position:fixed;inset:0;z-index:100020;overflow-y:auto;-webkit-overflow-scrolling:touch;background:linear-gradient(180deg,#f3eefc 0%,#fdf1f6 100%);opacity:0;transition:opacity .35s ease;color:#2d2640;}#lunaTrialSum.on{opacity:1;}' +
+    '#lunaTrialSum .ts-w{max-width:430px;margin:0 auto;padding:calc(54px + env(safe-area-inset-top,0px)) 22px calc(30px + env(safe-area-inset-bottom,0px));}' +
+    '#lunaTrialSum .ts-moon{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;background:radial-gradient(circle at 35% 30%,#fff3c4,#f6d98c 55%,#e8b95a);display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:0 8px 22px rgba(232,185,90,.45);animation:tsfl 3.2s ease-in-out infinite;}@keyframes tsfl{50%{transform:translateY(-6px)}}' +
+    '#lunaTrialSum h1{margin:0;text-align:center;font-size:23px;line-height:1.3;font-weight:800;color:#3b2f63;}#lunaTrialSum .ts-sub{text-align:center;color:#8a849e;font-size:13.5px;margin:6px 0 20px;line-height:1.6;}' +
+    '#lunaTrialSum .ts-ring{position:relative;width:150px;height:150px;margin:0 auto 18px;}#lunaTrialSum .ts-ring svg{transform:rotate(-90deg);}#lunaTrialSum .ts-n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}' +
+    '#lunaTrialSum .ts-n b{font-size:42px;color:#7c5cbf;line-height:1;display:inline-block;}#lunaTrialSum .ts-n b.pop{animation:tspop .3s cubic-bezier(.2,.9,.3,1.4);}@keyframes tspop{0%{transform:scale(.6);opacity:.4}100%{transform:scale(1);opacity:1}}#lunaTrialSum .ts-n small{font-size:12.5px;color:#8a849e;margin-top:4px;font-weight:600;}' +
+    '#lunaTrialSum .ts-cs{display:flex;flex-direction:column;gap:10px;}#lunaTrialSum .ts-c{display:flex;align-items:center;gap:14px;background:#fff;border-radius:20px;padding:14px 16px;box-shadow:0 8px 22px -14px rgba(124,92,191,.45);opacity:0;transform:translateY(14px);}' +
+    '#lunaTrialSum .ts-c.in{opacity:1;transform:none;transition:opacity .5s ease,transform .6s cubic-bezier(.2,.9,.25,1);}#lunaTrialSum .ts-ic{width:46px;height:46px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none;}' +
+    '#lunaTrialSum .ts-c.m .ts-ic{background:#fff2c4}#lunaTrialSum .ts-c.s .ts-ic{background:#fde0e8}#lunaTrialSum .ts-c.y .ts-ic{background:#d8ecfb}#lunaTrialSum .ts-t{font-size:12px;color:#8a849e;font-weight:600}#lunaTrialSum .ts-v{font-size:16.5px;font-weight:800;margin-top:2px}' +
+    '#lunaTrialSum .ts-msg{text-align:center;color:#6c5a9f;font-size:13.5px;line-height:1.7;margin:20px 6px 18px;opacity:0;}#lunaTrialSum .ts-msg.in{opacity:1;transition:opacity .6s ease;}' +
+    '#lunaTrialSum .ts-btn{display:block;width:100%;height:52px;border:none;border-radius:26px;background:linear-gradient(135deg,#8a67d1,#6f4fb8);color:#fff;font-size:16px;font-weight:800;font-family:inherit;box-shadow:0 10px 24px -8px rgba(111,79,184,.65);opacity:0;}#lunaTrialSum .ts-btn.in{opacity:1;transition:opacity .5s;}' +
+    '#lunaTrialSum .ts-later{display:block;text-align:center;margin-top:12px;padding:8px;color:#8a849e;font-size:13.5px;opacity:0;}#lunaTrialSum .ts-later.in{opacity:1;transition:opacity .5s;}';
+    document.head.appendChild(st);
+  }
+  function close(after){
+    tm.forEach(clearTimeout); tm = []; if(!ov) return; var o = ov; ov = null; o.classList.remove('on'); setTimeout(function(){ if(o.parentNode) o.parentNode.removeChild(o); }, 360);
+    try{ document.body.style.overflow = ''; }catch(e){}
+    if(typeof after === 'function') setTimeout(after, 380);
+  }
+  function show(t){
+    css(); var T = I[lang()], d = gather(t), h, C = 2 * Math.PI * 62;
+    try{ localStorage.setItem(FLAG, '1'); }catch(e){}
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('trial_summary_shown', { days: d.n }); }catch(e){}
+    ov = document.createElement('div'); ov.id = 'lunaTrialSum';
+    if(!d.n){
+      h = '<div class="ts-w"><div class="ts-moon">🌙</div><h1>' + esc(T.noT) + '</h1><div class="ts-sub">' + esc(T.noS) + '</div><button class="ts-btn" id="tsGo">' + esc(T.noGo) + '</button><a class="ts-later" id="tsLater">' + esc(T.later) + '</a></div>';
+    } else {
+      h = '<div class="ts-w"><div class="ts-moon">🌙</div><h1>' + esc(T.title(t.td)) + '</h1><div class="ts-sub">' + esc(T.sub) + '</div><div class="ts-ring"><svg width="150" height="150"><defs><linearGradient id="tsg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8a67d1"/><stop offset="1" stop-color="#f3a6c8"/></linearGradient></defs><circle cx="75" cy="75" r="62" fill="none" stroke="#e5ddf7" stroke-width="12"/><circle id="tsArc" cx="75" cy="75" r="62" fill="none" stroke="url(#tsg)" stroke-width="12" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + C + '"/></svg><div class="ts-n"><b id="tsNum">0</b><small>' + esc(T.days) + '</small></div></div><div class="ts-cs">';
+      if(d.mood) h += '<div class="ts-c m"><div class="ts-ic">' + esc(d.mood.e || '😊') + '</div><div><div class="ts-t">' + esc(T.mood) + '</div><div class="ts-v">' + esc(d.mood.name) + '</div></div></div>';
+      if(d.sym) h += '<div class="ts-c s"><div class="ts-ic">' + esc(d.sym.e || '🩹') + '</div><div><div class="ts-t">' + esc(T.sym) + '</div><div class="ts-v">' + esc(d.sym.name) + '</div></div></div>';
+      if(d.cyc) h += '<div class="ts-c y"><div class="ts-ic">🌸</div><div><div class="ts-t">' + esc(T.cyc) + '</div><div class="ts-v">' + esc(T.cycv(d.cyc)) + '</div></div></div>';
+      h += '</div><div class="ts-msg" id="tsMsg">' + esc(T.msg) + '</div><button class="ts-btn" id="tsGo">' + esc(T.go) + '</button><a class="ts-later" id="tsLater">' + esc(T.later) + '</a></div>';
+    }
+    ov.innerHTML = h; document.body.appendChild(ov); try{ document.body.style.overflow = 'hidden'; }catch(e){}
+    void ov.offsetWidth; ov.classList.add('on');
+    ov.querySelector('#tsLater').addEventListener('click', function(){ close(); });
+    ov.querySelector('#tsGo').addEventListener('click', function(){
+      if(!d.n) close(function(){ try{ if(window.LunaLog && LunaLog.open) LunaLog.open(); }catch(e){} });
+      else close(function(){ try{ window._lunaPaySrc = 'trial_summary'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} });
+    });
+    var delay = 0;
+    if(d.n){
+      var arc = ov.querySelector('#tsArc'), num = ov.querySelector('#tsNum'), n = d.n, STEP = 300, T0 = 450, frac;
+      // 一个一个数：1、2、3…数到记录天数就停住不动；圆环跟着每数一下涨一格
+      function tickNum(i){ num.textContent = i; num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); arc.style.transition = 'stroke-dashoffset .28s ease-out'; arc.style.strokeDashoffset = C * (1 - Math.min(1, i / t.td)); }
+      for(var q = 1; q <= n; q++){ (function(i){ tm.push(setTimeout(function(){ if(ov) tickNum(i); }, T0 + (i - 1) * STEP)); })(q); }
+      var after = T0 + n * STEP + 250;
+      var cs = ov.querySelectorAll('.ts-c'); cs.forEach(function(c, i){ tm.push(setTimeout(function(){ c.classList.add('in'); }, after + i * 420)); });
+      delay = after + cs.length * 420 + 200; tm.push(setTimeout(function(){ var m = ov && ov.querySelector('#tsMsg'); if(m) m.classList.add('in'); }, delay)); delay += 350;
+    } else delay = 300;
+    tm.push(setTimeout(function(){ if(!ov) return; ov.querySelector('#tsGo').classList.add('in'); ov.querySelector('#tsLater').classList.add('in'); }, delay));
+  }
+  function blocked(){
+    var sel = '#onboardGate,#langGate,#consentOverlay,#trialIntroModal,#guestLoginModal,#sysPopupNotice,#achievePopup,#lunaRateSheet,#lunaBabyKbPanel,#ttcSettingModal.open,div#lunaSkel,#delLogModal,#moodlogPanel,#insightPanel,#vipPaywallModal,#lunaTrialSum', i, el, list = document.querySelectorAll(sel);
+    for(i = 0; i < list.length; i++){ el = list[i]; var cs = getComputedStyle(el); if(el.offsetHeight > 0 && cs.display !== 'none' && cs.visibility !== 'hidden') return true; }
+    try{ if(window.LunaLog && LunaLog.isOpen()) return true; }catch(e){}
+    return false;
+  }
+  function tick(){
+    try{
+      if(ov || localStorage.getItem(FLAG) === '1'){ since = 0; return; }
+      if(typeof window.isPro !== 'function' || window.isPro()){ since = 0; return; }
+      var t = trialInfo(); if(!t || !t.ended){ since = 0; return; }
+      var card = document.getElementById('cycleCard'), home = document.querySelector('.phone');
+      if(!home || !home.offsetParent || document.hidden || blocked() || document.body.style.overflow === 'hidden'){ since = 0; return; }
+      if(!since){ since = Date.now(); return; }
+      if(Date.now() - since >= 2500){ since = 0; show(t); }
+    }catch(e){}
+  }
+  setInterval(tick, 800);
+  window.LunaTrialSum = { show: function(){ var t = trialInfo() || { fl: Date.now() - 7 * 864e5, td: 7, ended: true }; show(t); }, _s: function(){ return [localStorage.getItem(FLAG), !!ov]; } };
+})();
+</script>
+
+<script id="lunaRptTeaseJs">
+(function(){
+  var I = {
+   th:{a1:'รายงานรูปแบบรอบเดือนของคุณพร้อมแล้ว',a2:'ใหม่',a3:function(n){return 'จากบันทึก '+n+' วันที่ผ่านมา'},a4:'🔒 สำหรับสมาชิก',b1:'Luna พบรูปแบบของคุณแล้ว',b2:function(n){return 'จากบันทึก '+n+' วัน Luna วิเคราะห์ออกมาเป็นรายงานเฉพาะของคุณ'},i1:'รอบเดือนเฉลี่ยของคุณ',i2:'วันที่มีไข่ตกมากที่สุด',i3:'วันที่อาการมักมาบ่อย',b3:'ปลดล็อกรายงานของฉัน',b4:'ไว้ทีหลัง',d:' วัน',wd:['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'],mo:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']},
+   zh:{a1:'你的周期规律报告已生成',a2:'新',a3:function(n){return '基于你已记录的 '+n+' 天'},a4:'🔒 会员可查看',b1:'Luna 发现了你的规律',b2:function(n){return '根据你 '+n+' 天的记录，Luna 整理出了只属于你的报告。'},i1:'你的平均周期',i2:'最可能排卵的日子',i3:'症状容易出现的日子',b3:'解锁我的报告',b4:'稍后再说',d:' 天',wd:['周日','周一','周二','周三','周四','周五','周六'],mo:null},
+   en:{a1:'Your cycle pattern report is ready',a2:'New',a3:function(n){return 'Based on your '+n+' logged days'},a4:'🔒 Members only',b1:'Luna found your patterns',b2:function(n){return 'From your '+n+' days of logs, Luna put together a report made just for you.'},i1:'Your average cycle',i2:'Most likely ovulation days',i3:'Days when symptoms tend to show',b3:'Unlock my report',b4:'Maybe later',d:' days',wd:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],mo:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']},
+   vi:{a1:'Báo cáo quy luật chu kỳ của bạn đã sẵn sàng',a2:'Mới',a3:function(n){return 'Dựa trên '+n+' ngày bạn đã ghi'},a4:'🔒 Dành cho hội viên',b1:'Luna đã tìm ra quy luật của bạn',b2:function(n){return 'Từ '+n+' ngày ghi chép, Luna đã tổng hợp một báo cáo dành riêng cho bạn.'},i1:'Chu kỳ trung bình của bạn',i2:'Những ngày dễ rụng trứng nhất',i3:'Những ngày hay xuất hiện triệu chứng',b3:'Mở khóa báo cáo của tôi',b4:'Để sau',d:' ngày',wd:['CN','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'],mo:null}
+  };
+  var MIN = 14, card = null, sheet = null, seenKey = 'luna_rpt_tease_first', hideKey = 'luna_rpt_tease_hide_until';
+  function lang(){ try{ var l = localStorage.getItem('luna_lang') || 'th'; if(l !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; return 'zh'; }catch(e){ return 'th'; } }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+  function key(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function minDays(){ try{ var v = window._remoteConfig && window._remoteConfig.reportTeaserDays; return (typeof v === 'number' && v > 0) ? v : MIN; }catch(e){ return MIN; } }
+  function gather(){
+    var out = { n: 0, cyc: 0, ovu: '', wd: '' }, days = {}, arr = [], i, j, l, s, wdc = {};
+    try{ if(typeof logs !== 'undefined' && Array.isArray(logs)) arr = logs; }catch(e){}
+    for(i = 0; i < arr.length; i++){ l = arr[i]; if(!l || typeof l.date !== 'string') continue; var has = false;
+      if(Array.isArray(l.symptoms)) for(j = 0; j < l.symptoms.length; j++){ s = l.symptoms[j];
+        if(typeof s === 'string' && s){ has = true; if(s.indexOf('（อารมณ์）') < 0 && s.indexOf('（ปริมาณ）') < 0 && s.indexOf('（สี）') < 0 && s.indexOf('ไลฟ์：') !== 0){ var w = new Date(l.date + 'T00:00:00').getDay(); wdc[w] = (wdc[w] || 0) + 1; } } }
+      if(has || l.note || l.water > 0 || l.weight > 0) days[l.date] = 1; }
+    var starts = [];
+    try{ if(typeof periodSet !== 'undefined' && periodSet && periodSet.has){
+      var ks = Array.from(periodSet).filter(function(k){ return typeof k === 'string'; }).sort(); ks.forEach(function(k){ days[k] = 1; var p = key(new Date(new Date(k + 'T00:00:00').getTime() - 864e5)); if(!periodSet.has(p)) starts.push(k); }); } }catch(e){}
+    out.n = Object.keys(days).length;
+    if(starts.length >= 2){ var g = [], q; for(q = 1; q < starts.length; q++) g.push(Math.round((new Date(starts[q] + 'T00:00:00') - new Date(starts[q - 1] + 'T00:00:00')) / 864e5));
+      g = g.filter(function(v){ return v >= 15 && v <= 60; }); if(g.length) out.cyc = Math.round(g.reduce(function(a, b){ return a + b; }, 0) / g.length); }
+    if(out.cyc && starts.length){ var ov = new Date(new Date(starts[starts.length - 1] + 'T00:00:00').getTime() + (out.cyc - 14) * 864e5); out.ovu = ov; }
+    var best = -1, bc = 0, k; for(k in wdc){ if(wdc[k] > bc){ bc = wdc[k]; best = +k; } } if(bc >= 2) out.wd = best;
+    return out;
+  }
+  function fmtDate(d, T, l){ if(!d) return ''; var m = d.getMonth(), dd = d.getDate(); if(l === 'zh') return (m + 1) + '月' + dd + '日'; if(l === 'vi') return dd + '/' + (m + 1); if(l === 'en') return T.mo[m] + ' ' + dd; return dd + ' ' + T.mo[m]; }
+  function css(){
+    if(document.getElementById('lunaRptTeaseCss')) return; var st = document.createElement('style'); st.id = 'lunaRptTeaseCss';
+    st.textContent = '#lunaRptTease{margin:6px 12px 12px;position:relative;background:linear-gradient(135deg,#fff,#f3eefc);border-radius:24px;padding:16px 16px 14px;box-shadow:0 10px 26px -14px rgba(124,92,191,.55);cursor:pointer;overflow:hidden;animation:rtpop .7s cubic-bezier(.2,.9,.25,1) both;}@keyframes rtpop{from{opacity:0;transform:translateY(16px) scale(.97)}}' +
+    '#lunaRptTease .rt-t{display:flex;align-items:center;gap:8px;padding-right:22px;}#lunaRptTease .rt-t b{font-size:15.5px;color:#3b2f63;line-height:1.3;}#lunaRptTease .rt-new{font-size:10.5px;font-weight:800;color:#fff;background:#f06f98;border-radius:10px;padding:2px 8px;flex:none;}' +
+    '#lunaRptTease .rt-s{font-size:12.5px;color:#8a849e;margin:4px 0 12px;}#lunaRptTease .rt-ch{height:74px;border-radius:14px;background:#fff;position:relative;overflow:hidden;filter:blur(5px);}#lunaRptTease .rt-ch svg{position:absolute;inset:0;width:100%;height:100%;}' +
+    '#lunaRptTease .rt-lk{position:absolute;left:0;right:0;bottom:14px;height:74px;display:flex;align-items:center;justify-content:center;pointer-events:none;}#lunaRptTease .rt-lb{background:rgba(255,255,255,.92);color:#7c5cbf;font-weight:800;font-size:13px;border-radius:20px;padding:8px 16px;box-shadow:0 6px 16px -6px rgba(124,92,191,.5);}' +
+    '#lunaRptTease .rt-x{position:absolute;right:6px;top:4px;width:34px;height:34px;border:none;background:none;color:#a79bc9;font-size:20px;line-height:34px;}' +
+    '#lunaRptSheetBg{position:fixed;inset:0;z-index:100020;background:rgba(45,38,64,.4);opacity:0;transition:opacity .3s;}#lunaRptSheetBg.on{opacity:1;}' +
+    '#lunaRptSheet{position:fixed;left:0;right:0;bottom:0;z-index:100021;max-width:430px;margin:0 auto;background:#fff;border-radius:28px 28px 0 0;padding:22px 20px calc(26px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.9,.25,1);color:#2d2640;}#lunaRptSheet.on{transform:none;}' +
+    '#lunaRptSheet h2{margin:0 0 4px;font-size:19px;color:#3b2f63;}#lunaRptSheet p{margin:0 0 14px;color:#8a849e;font-size:13px;line-height:1.55;}#lunaRptSheet .rt-i{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border-radius:16px;background:#f6f3fb;margin-bottom:8px;font-size:13.5px;font-weight:600;gap:10px;}' +
+    '#lunaRptSheet .rt-v{display:inline-block;min-width:74px;text-align:right;filter:blur(6px);-webkit-user-select:none;user-select:none;color:#7c5cbf;font-weight:800;}#lunaRptSheet .rt-go{display:block;width:100%;height:50px;border:none;border-radius:25px;background:linear-gradient(135deg,#8a67d1,#6f4fb8);color:#fff;font-size:15.5px;font-weight:800;font-family:inherit;margin-top:10px;box-shadow:0 10px 24px -8px rgba(111,79,184,.65);}#lunaRptSheet .rt-lt{display:block;text-align:center;margin-top:10px;padding:6px;color:#8a849e;font-size:13px;}';
+    document.head.appendChild(st);
+  }
+  function openSheet(){
+    if(sheet) return; css(); var l = lang(), T = I[l], d = gather(), v1 = d.cyc ? (d.cyc + T.d) : '██', v2 = d.ovu ? fmtDate(d.ovu, T, l) + ' ±2' : '██ ██', v3 = d.wd !== '' ? T.wd[d.wd] : '██ ██';
+    var bg = document.createElement('div'); bg.id = 'lunaRptSheetBg'; sheet = document.createElement('div'); sheet.id = 'lunaRptSheet';
+    sheet.innerHTML = '<h2>' + esc(T.b1) + '</h2><p>' + esc(T.b2(d.n)) + '</p><div class="rt-i"><span>' + esc(T.i1) + '</span><span class="rt-v">' + esc(v1) + '</span></div><div class="rt-i"><span>' + esc(T.i2) + '</span><span class="rt-v">' + esc(v2) + '</span></div><div class="rt-i"><span>' + esc(T.i3) + '</span><span class="rt-v">' + esc(v3) + '</span></div><button class="rt-go" type="button">' + esc(T.b3) + '</button><a class="rt-lt">' + esc(T.b4) + '</a>';
+    document.body.appendChild(bg); document.body.appendChild(sheet); void sheet.offsetWidth; bg.classList.add('on'); sheet.classList.add('on');
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('report_teaser_open', { days: d.n }); }catch(e){}
+    function close(after){ var s = sheet; sheet = null; bg.classList.remove('on'); s.classList.remove('on'); setTimeout(function(){ if(s.parentNode) s.parentNode.removeChild(s); if(bg.parentNode) bg.parentNode.removeChild(bg); if(typeof after === 'function') after(); }, 460); }
+    bg.addEventListener('click', function(){ close(); }); sheet.querySelector('.rt-lt').addEventListener('click', function(){ close(); });
+    sheet.querySelector('.rt-go').addEventListener('click', function(){ close(function(){ try{ window._lunaPaySrc = 'report_teaser'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} }); });
+  }
+  function build(d){
+    css(); var l = lang(), T = I[l], first = 0; try{ first = parseInt(localStorage.getItem(seenKey) || '0', 10); if(!first){ first = Date.now(); localStorage.setItem(seenKey, String(first)); } }catch(e){}
+    var isNew = (Date.now() - first) < 3 * 864e5;
+    card = document.createElement('div'); card.id = 'lunaRptTease';
+    card.innerHTML = '<button class="rt-x" type="button" aria-label="close">×</button><div class="rt-t"><span>📈</span><b>' + esc(T.a1) + '</b>' + (isNew ? '<span class="rt-new">' + esc(T.a2) + '</span>' : '') + '</div><div class="rt-s">' + esc(T.a3(d.n)) + '</div><div class="rt-ch"><svg viewBox="0 0 300 74" preserveAspectRatio="none"><path d="M0 52 C30 20 55 62 90 34 S150 12 185 40 S250 58 300 22" fill="none" stroke="#8a67d1" stroke-width="5"/><circle cx="185" cy="40" r="7" fill="#f06f98"/></svg></div><div class="rt-lk"><div class="rt-lb">' + esc(T.a4) + '</div></div>';
+    card.addEventListener('click', function(e){ if(e.target.closest && e.target.closest('.rt-x')) return; openSheet(); });
+    card.querySelector('.rt-x').addEventListener('click', function(e){ e.stopPropagation(); try{ localStorage.setItem(hideKey, String(Date.now() + 14 * 864e5)); }catch(_){} remove(); });
+    card.dataset.lang = l; card.dataset.n = d.n;
+  }
+  function remove(){ if(card && card.parentNode) card.parentNode.removeChild(card); card = null; }
+  function tick(){
+    try{
+      var b = document.body.classList, ph = document.querySelector('.phone');
+      var pro = (typeof window.isPro !== 'function') || window.isPro();
+      var hidden = false; try{ hidden = parseInt(localStorage.getItem(hideKey) || '0', 10) > Date.now(); }catch(e){}
+      if(!ph || pro || hidden || b.contains('preg-mode') || b.contains('pp-mode')){ remove(); return; }
+      var d = gather(); if(d.n < minDays()){ remove(); return; }
+      if(card && (card.dataset.lang !== lang() || card.dataset.n !== String(d.n))) remove();
+      if(!card) build(d);
+      if(card.parentNode !== ph){ var ref = document.getElementById('lunaFeelCard'); if(ref && ref.parentNode === ph) ph.insertBefore(card, ref); else { var sub = document.getElementById('lpgSub'); if(sub && sub.parentNode === ph) ph.insertBefore(card, sub); else ph.appendChild(card); } }
+    }catch(e){}
+  }
+  setInterval(tick, 1500);
+  window.LunaRptTease = { open: openSheet, _s: function(){ return [!!card, gather()]; } };
+})();
+</script>
+<script id="lunaSymThFix">
+/* 症状名翻译补丁：新加的“更多记录”分类（性行为/分泌物/食欲/消化/其他/运动…）原来的 translateSym 对泰文界面不认，
+   报告 PDF、统计里会露出中文。这里在原函数没翻译成功时，用 App 自己的 LANG 表（中↔泰）补一次；原来能翻的不受影响。 */
+(function(){
+  if (window.__lunaSymThFix) return; window.__lunaSymThFix = 1;
+  var orig = (typeof window.translateSym === 'function') ? window.translateSym : null;
+  if (!orig) return;
+  var zt = null;
+  function build(){
+    zt = {};
+    try{
+      var z = LANG.zh, t = LANG.th, k;
+      for (k in z){ if (typeof z[k] === 'string' && typeof t[k] === 'string' && !zt[z[k]]) zt[z[k]] = t[k]; }
+    }catch(e){}
+  }
+  window.translateSym = function(name){
+    var out = orig(name);
+    try{
+      if (out === name && typeof name === 'string' && _appLang !== 'zh' && /[一-鿿]/.test(name)){
+        if (!zt) build();
+        if (zt[name]) return zt[name];
+      }
+    }catch(e){}
+    return out;
+  };
+  try{ translateSym = window.translateSym; }catch(e){}
+})();
+</script>
+<script id="lunaPartnerJs">
+/* 💞 和伴侣共享（轻量版，会员）：生成 lunacalm.app/p/xxxx 链接，伴侣不用装 App 就能看到"她今天的状态 + 怎么照顾她"。
+   - App 只把"推算阶段所需的最少数据"发给服务器（上次经期开始日 / 周期天数 / 经期天数；怀孕模式只发预产期；今天心情 5 选 1），
+     不发症状、备注、历史记录。阶段由服务器在伴侣打开网页那一刻按日期现算。
+   - 分享用手机自带的分享面板（LINE / Facebook / WhatsApp / 短信都在里面），不接任何第三方 SDK。
+   - 生成链接时复用"保存进度条"（window.LunaProg）。 */
+(function(){
+  if (window.LunaPartner) return;
+  var URL_MANAGE = 'https://asia-southeast1-sasomboon.cloudfunctions.net/partnerShareManage';
+  var SITE = 'https://lunacalm.app/p/';
+  var K_TOK = 'luna_partner_token', K_FLAGS = 'luna_partner_flags', K_NICK = 'luna_partner_nick';
+  var DEF = { phase: true, tips: true, ovu: true, week: true, mood: false };
+
+  function L(){ try{ if(localStorage.getItem('luna_lang') !== 'zh') return 'th'; if(localStorage.getItem('luna_ui_en') === '1') return 'en'; if(localStorage.getItem('luna_ui_vi') === '1') return 'vi'; }catch(e){} return 'zh'; }
+  var I = {
+    th: { entry: 'แชร์กับคู่ของคุณ', entryD: 'ให้เขาเข้าใจสถานะของคุณวันนี้', on: 'กำลังแชร์', vip: 'สมาชิก',
+      title: 'แชร์กับคู่ของคุณ', sub: 'ให้เขาเข้าใจว่าคุณรู้สึกอย่างไร โดยไม่ต้องอธิบายทุกครั้ง คุณเลือกได้ว่าจะแชร์อะไร',
+      nick: 'ชื่อที่ให้เขาเห็น', nickPh: 'เช่น มะลิ', s_phase: 'ช่วงของรอบเดือน', s_phase_d: 'เช่น กำลังมีประจำเดือนวันที่ 2', s_tips: 'คำแนะนำให้คู่ดูแลคุณ', s_tips_d: 'ข้อความสั้นๆ ว่าวันนี้ช่วยอะไรได้',
+      s_ovu: 'ช่วงไข่ตก / โอกาสตั้งครรภ์', s_ovu_d: 'ช่วยให้วางแผนด้วยกัน', s_week: 'อายุครรภ์', s_week_d: 'สัปดาห์ที่เท่าไร และขนาดของลูก', s_mood: 'อารมณ์วันนี้', s_mood_d: 'ไม่แชร์อาการ บันทึก หรือรายละเอียดอื่น',
+      gen: 'สร้างลิงก์เชิญ', copy: 'คัดลอกลิงก์', share: 'ส่งให้คู่ของคุณ', stop: 'หยุดแชร์ (ลิงก์จะใช้ไม่ได้ทันที)', stop2: 'แตะอีกครั้งเพื่อยืนยันหยุดแชร์', copied: 'คัดลอกแล้ว', stopped: 'หยุดแชร์แล้ว',
+      priv: '🔒 แชร์เฉพาะที่คุณเปิดไว้เท่านั้น ไม่แชร์อาการ บันทึก หรือประวัติรอบ ปิดลิงก์ได้ทุกเมื่อ', sharing: 'กำลังแชร์',
+      shareTxt: '💜 เชิญดูสถานะของฉันวันนี้ 👉 ', noPP: 'โหมดหลังคลอดยังไม่รองรับการแชร์', noLogin: 'กรุณาเข้าสู่ระบบก่อน', noData: 'บันทึกประจำเดือนอย่างน้อย 1 ครั้งก่อนนะ', noPreg: 'ยังไม่มีวันกำหนดคลอด',
+      fail: 'สร้างลิงก์ไม่สำเร็จ ลองใหม่อีกครั้ง', notPro: 'ฟีเจอร์นี้สำหรับสมาชิก', off: 'ฟีเจอร์นี้ปิดชั่วคราว', close: 'ปิด', netfail: 'เชื่อมต่อไม่ได้ ลองใหม่อีกครั้ง' },
+    zh: { entry: '和伴侣分享', entryD: '让 TA 懂你今天的状态', on: '共享中', vip: '会员',
+      title: '和伴侣分享', sub: '让 TA 不用你每次解释，就懂你今天的状态。分享什么，由你决定。',
+      nick: 'TA 看到的称呼', nickPh: '例如：小茉', s_phase: '周期阶段', s_phase_d: '例如：经期第 2 天', s_tips: '给 TA 的贴心建议', s_tips_d: '一两句话：今天可以怎么照顾我',
+      s_ovu: '排卵期 / 受孕机会', s_ovu_d: '方便一起计划', s_week: '孕周', s_week_d: '第几周，以及宝宝大小', s_mood: '今天的心情', s_mood_d: '不会分享症状、备注和其他细节',
+      gen: '生成邀请链接', copy: '复制链接', share: '发给 TA', stop: '停止共享（链接立即失效）', stop2: '再点一次确认停止共享', copied: '已复制', stopped: '已停止共享',
+      priv: '🔒 只分享你打开的内容；不分享症状、备注和历史记录。随时可以关闭链接。', sharing: '共享中',
+      shareTxt: '💜 邀请你看看我今天的状态 👉 ', noPP: '产后模式暂不支持共享', noLogin: '请先登录', noData: '先记录一次月经再来分享吧', noPreg: '还没有预产期',
+      fail: '生成失败，请重试', notPro: '此功能为会员专属', off: '此功能暂时关闭', close: '关闭', netfail: '网络不通，请重试' },
+    en: { entry: 'Share with partner', entryD: 'Help them understand your day', on: 'Sharing', vip: 'Premium',
+      title: 'Share with your partner', sub: 'Help them understand how you feel today without explaining every time. You choose what is shared.',
+      nick: 'Name they will see', nickPh: 'e.g. Mali', s_phase: 'Cycle phase', s_phase_d: 'e.g. Period, day 2', s_tips: 'Tips for your partner', s_tips_d: 'A line or two on how to support you today',
+      s_ovu: 'Ovulation / fertile window', s_ovu_d: 'Plan together', s_week: 'Pregnancy week', s_week_d: 'Which week, and baby size', s_mood: "Today's mood", s_mood_d: 'Symptoms, notes and other details are never shared',
+      gen: 'Create invite link', copy: 'Copy link', share: 'Send to partner', stop: 'Stop sharing (link stops working immediately)', stop2: 'Tap again to confirm', copied: 'Copied', stopped: 'Sharing stopped',
+      priv: '🔒 Only what you turn on is shared. No symptoms, notes or history. Turn the link off any time.', sharing: 'Sharing',
+      shareTxt: "💜 I'd like to share how I'm doing today 👉 ", noPP: 'Postpartum mode does not support sharing yet', noLogin: 'Please sign in first', noData: 'Log a period first, then share', noPreg: 'No due date yet',
+      fail: 'Could not create the link. Please try again.', notPro: 'This is a Premium feature', off: 'This feature is temporarily off', close: 'Close', netfail: 'No connection. Please try again.' },
+    vi: { entry: 'Chia sẻ với bạn đời', entryD: 'Giúp họ hiểu hôm nay của bạn', on: 'Đang chia sẻ', vip: 'Hội viên',
+      title: 'Chia sẻ với bạn đời', sub: 'Giúp họ hiểu hôm nay bạn thế nào mà không cần giải thích mỗi lần. Bạn quyết định chia sẻ gì.',
+      nick: 'Tên họ sẽ thấy', nickPh: 'ví dụ: Mali', s_phase: 'Giai đoạn chu kỳ', s_phase_d: 'ví dụ: ngày 2 của kỳ kinh', s_tips: 'Gợi ý cho bạn đời', s_tips_d: 'Một hai câu về cách quan tâm bạn hôm nay',
+      s_ovu: 'Rụng trứng / khả năng thụ thai', s_ovu_d: 'Cùng lên kế hoạch', s_week: 'Tuần thai', s_week_d: 'Tuần thứ mấy và kích thước em bé', s_mood: 'Tâm trạng hôm nay', s_mood_d: 'Không chia sẻ triệu chứng, ghi chú hay chi tiết khác',
+      gen: 'Tạo liên kết mời', copy: 'Sao chép liên kết', share: 'Gửi cho bạn đời', stop: 'Dừng chia sẻ (liên kết vô hiệu ngay)', stop2: 'Chạm lần nữa để xác nhận', copied: 'Đã sao chép', stopped: 'Đã dừng chia sẻ',
+      priv: '🔒 Chỉ chia sẻ phần bạn bật. Không chia sẻ triệu chứng, ghi chú hay lịch sử. Tắt liên kết bất cứ lúc nào.', sharing: 'Đang chia sẻ',
+      shareTxt: '💜 Mời bạn xem hôm nay mình thế nào 👉 ', noPP: 'Chế độ sau sinh chưa hỗ trợ chia sẻ', noLogin: 'Vui lòng đăng nhập trước', noData: 'Hãy ghi kỳ kinh một lần trước', noPreg: 'Chưa có ngày dự sinh',
+      fail: 'Không tạo được liên kết. Vui lòng thử lại.', notPro: 'Tính năng dành cho hội viên', off: 'Tính năng tạm tắt', close: 'Đóng', netfail: 'Mất kết nối. Vui lòng thử lại.' }
+  };
+  function T(){ return I[L()]; }
+  function ls(k, v){ try{ if(v === undefined) return localStorage.getItem(k); if(v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){} return null; }
+  function flags(){ var o = {}, s = null; try{ s = JSON.parse(ls(K_FLAGS) || 'null'); }catch(e){} for(var k in DEF) o[k] = (s && typeof s[k] === 'boolean') ? s[k] : DEF[k]; return o; }
+  function toast(m){ try{ if(typeof window.showToast === 'function') window.showToast(m); }catch(e){} }
+  function pro(){ try{ return !!(window.isPro && window.isPro()); }catch(e){ return false; } }
+  function mode(){ var b = document.body; if(b.classList.contains('pp-mode')) return 'pp'; if(b.classList.contains('preg-mode')) return 'preg'; if(b.classList.contains('ttc-mode')) return 'ttc'; return 'normal'; }
+  function pad(n){ return (n < 10 ? '0' : '') + n; }
+  function key(d){ return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+  /* ───── 要发给服务器的"最少数据" ───── */
+  function payload(){
+    var m = mode(), o = { mode: m, lang: L(), tz: -new Date().getTimezoneOffset(), nick: ls(K_NICK) || '', flags: flags() };
+    if(m === 'preg'){
+      var st = null; try{ st = window.LunaPreg && window.LunaPreg.get(); }catch(e){}
+      if(!st || !st.dueDate) return { err: 'noPreg' };
+      o.preg = { due: st.dueDate };
+    } else {
+      var ks = []; try{ if(typeof periodSet !== 'undefined' && periodSet) ks = Array.from(periodSet); }catch(e){}
+      ks = ks.filter(function(k){ return /^\d{4}-\d{2}-\d{2}$/.test(k); }).sort();
+      if(!ks.length) return { err: 'noData' };
+      var i = ks.length - 1, run = 1;   // 找最近一次经期的开始日和天数
+      while(i > 0 && Math.round((Date.parse(ks[i] + 'T00:00:00Z') - Date.parse(ks[i - 1] + 'T00:00:00Z')) / 86400000) <= 2){ i--; run++; }
+      var len = 28; try{ if(window.__lunaCycleLen > 20 && window.__lunaCycleLen < 46) len = Math.round(window.__lunaCycleLen); }catch(e){}
+      o.cyc = { start: ks[i], len: len, plen: Math.max(2, Math.min(10, run)) };
+    }
+    // 今天心情：只取 5 个固定表情之一
+    try{
+      var MAP = { '😊': 'happy', '😌': 'calm', '😢': 'sad', '😤': 'angry', '😰': 'anxious' }, tk = key(new Date()), found = null;
+      (window.logs || (typeof logs !== 'undefined' ? logs : [])).forEach(function(l){
+        if(!l || l.date !== tk || !l.symptoms) return;
+        l.symptoms.forEach(function(s, idx){ if(typeof s === 'string' && s.indexOf('（อารมณ์）') >= 0){ var e = l.emojis && l.emojis[idx]; if(MAP[e]) found = MAP[e]; } });
+      });
+      if(found) o.mood = { k: found, d: tk }; else o.mood = null;
+    }catch(e){}
+    return o;
+  }
+
+  /* ───── 调服务器 ───── */
+  function call(body, ms){
+    return new Promise(function(resolve, reject){
+      var a = null; try{ a = (typeof auth !== 'undefined') ? auth : null; }catch(e){}
+      if(!a || !a.currentUser){ reject({ code: 'noLogin' }); return; }
+      a.currentUser.getIdToken().then(function(tok){
+        var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null, to = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, ms || 15000);
+        fetch(URL_MANAGE, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify(body), signal: ctl ? ctl.signal : undefined })
+          .then(function(r){ clearTimeout(to); return r.json().catch(function(){ return {}; }).then(function(j){ if(r.ok && j && j.ok) resolve(j); else reject({ code: (j && j.error) || ('http' + r.status), status: r.status }); }); })
+          .catch(function(){ clearTimeout(to); reject({ code: 'net' }); });
+      }, function(){ reject({ code: 'noLogin' }); });
+    });
+  }
+  function errMsg(e){ var t = T(), c = e && e.code; return c === 'noLogin' ? t.noLogin : c === 'not_pro' ? t.notPro : c === 'disabled' ? t.off : c === 'net' ? t.netfail : c === 'need_data' ? t.noData : t.fail; }
+
+  /* ───── 面板 ───── */
+  var css = '#lunaPtBg{position:fixed;inset:0;z-index:100030;background:rgba(40,28,70,.5);opacity:0;transition:opacity .25s;display:flex;align-items:flex-end;justify-content:center}'
+    + '#lunaPtBg.on{opacity:1}#lunaPt{width:100%;max-width:480px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#faf7ff;border-radius:26px 26px 0 0;padding:18px 0 calc(22px + env(safe-area-inset-bottom,0px));transform:translateY(40px);transition:transform .3s cubic-bezier(.2,.8,.2,1);font-family:inherit;color:#2d2640}'
+    + '#lunaPtBg.on #lunaPt{transform:none}#lunaPt .hd{padding:0 18px 4px;font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px}#lunaPt .hd button{margin-left:auto;border:0;background:#eee8f8;color:#7c5cbf;width:32px;height:32px;border-radius:50%;font-size:16px}'
+    + '#lunaPt .sb{padding:0 18px 10px;font-size:12.5px;color:#8b84a0;line-height:1.6}#lunaPt .cd{margin:10px 14px;background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 14px rgba(124,92,191,.12)}'
+    + '#lunaPt .rw{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #f3eefa}#lunaPt .rw:last-child{border:0}#lunaPt .rw b{font-size:14px}#lunaPt .rw small{display:block;color:#8b84a0;font-size:11.5px;margin-top:2px;line-height:1.4}'
+    + '#lunaPt .sw{width:44px;height:26px;border-radius:13px;background:#d9d2e8;position:relative;flex:none;transition:.2s}#lunaPt .sw:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}'
+    + '#lunaPt .sw.on{background:#7c5cbf}#lunaPt .sw.on:after{left:21px}#lunaPt input{width:100%;border:1.5px solid #e3dbf1;border-radius:12px;padding:11px 12px;font-size:14px;font-family:inherit;margin-top:6px;outline:0;background:#fff;color:#2d2640}'
+    + '#lunaPt .bt{display:block;width:calc(100% - 28px);margin:12px 14px 0;padding:14px;border:0;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#d97fb0);color:#fff;font-size:15px;font-weight:700;font-family:inherit}'
+    + '#lunaPt .b2{display:block;width:100%;margin-top:8px;padding:12px;border:1.5px solid #e3dbf1;border-radius:14px;background:#fff;color:#7c5cbf;font-size:14px;font-weight:700;font-family:inherit}'
+    + '#lunaPt .lk{background:#f6f2fc;border-radius:12px;padding:11px;font-size:13px;color:#7c5cbf;word-break:break-all;font-weight:600;text-align:center;user-select:all;-webkit-user-select:all}'
+    + '#lunaPt .st{display:block;text-align:center;margin:14px;color:#c0405f;font-size:13px;font-weight:600}#lunaPt .nt{margin:8px 18px;font-size:11.5px;color:#8b84a0;line-height:1.7}#lunaPt .gr{font-size:12px;color:#2e9e6b;font-weight:700;margin-bottom:8px}'
+    + '#lunaPtEntry .pt-vip{display:inline-block;background:linear-gradient(135deg,#f2b84b,#e8799b);color:#fff;border-radius:8px;font-size:10.5px;padding:2px 7px;margin-left:6px}';
+  function addCss(){ if(document.getElementById('lunaPartnerCss')) return; var s = document.createElement('style'); s.id = 'lunaPartnerCss'; s.textContent = css; document.head.appendChild(s); }
+  var bg = null, genBusy = false, stopArm = 0;
+  function close(){ if(!bg) return; var b = bg; bg = null; b.classList.remove('on'); try{ document.body.style.overflow = ''; }catch(e){} setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); }, 260); }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function render(){
+    if(!bg) return; var t = T(), m = mode(), f = flags(), tok = ls(K_TOK), box = bg.firstChild;
+    var rows = [['phase', 's_phase']]; rows.push(['tips', 's_tips']); if(m === 'ttc') rows.push(['ovu', 's_ovu']); if(m === 'preg') rows.push(['week', 's_week']); rows.push(['mood', 's_mood']);
+    var h = '<div class="hd">💞 ' + esc(t.title) + '<button id="ptX" aria-label="' + esc(t.close) + '">✕</button></div><div class="sb">' + esc(t.sub) + '</div>'
+      + '<div class="cd"><b style="font-size:13px">' + esc(t.nick) + '</b><input id="ptNick" maxlength="20" placeholder="' + esc(t.nickPh) + '" value="' + esc(ls(K_NICK) || '') + '"></div>'
+      + '<div class="cd">' + rows.map(function(r){ return '<div class="rw" data-k="' + r[0] + '"><div><b>' + esc(t[r[1]]) + '</b><small>' + esc(t[r[1] + '_d']) + '</small></div><div class="sw ' + (f[r[0]] ? 'on' : '') + '"></div></div>'; }).join('') + '</div>';
+    if(!tok) h += '<button class="bt" id="ptGen">' + esc(t.gen) + '</button>';
+    else h += '<div class="cd"><div class="gr">● ' + esc(t.sharing) + '</div><div class="lk" id="ptLink">' + esc(url()) + '</div><button class="bt" id="ptShare" style="width:100%;margin:10px 0 0">' + esc(t.share) + '</button><button class="b2" id="ptCopy">' + esc(t.copy) + '</button></div><span class="st" id="ptStop">' + esc(t.stop) + '</span>';
+    h += '<div class="nt">' + esc(t.priv) + '</div>';
+    box.innerHTML = h;
+    document.getElementById('ptX').onclick = close;
+    var nk = document.getElementById('ptNick'); nk.onchange = nk.onblur = function(){ var v = nk.value.replace(/[<>&"'`\\]/g, '').trim().slice(0, 20); if(v !== (ls(K_NICK) || '')){ ls(K_NICK, v); push(true); } };
+    Array.prototype.forEach.call(box.querySelectorAll('.rw'), function(r){ r.onclick = function(){ var k = r.getAttribute('data-k'), ff = flags(); ff[k] = !ff[k]; ls(K_FLAGS, JSON.stringify(ff)); r.querySelector('.sw').classList.toggle('on', ff[k]); push(true); }; });
+    var g = document.getElementById('ptGen'); if(g) g.onclick = create;
+    var sh = document.getElementById('ptShare'); if(sh) sh.onclick = doShare;
+    var cp = document.getElementById('ptCopy'); if(cp) cp.onclick = doCopy;
+    var sp = document.getElementById('ptStop'); if(sp) sp.onclick = doStop;
+  }
+  function open(){
+    var t = T(), m = mode();
+    if(m === 'pp'){ toast(t.noPP); return; }
+    if(!pro()){ try{ window._lunaPaySrc = 'partner_share'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
+    addCss(); close();
+    bg = document.createElement('div'); bg.id = 'lunaPtBg'; bg.innerHTML = '<div id="lunaPt"></div>';
+    bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
+    document.body.appendChild(bg); try{ document.body.style.overflow = 'hidden'; }catch(e){}
+    render(); setTimeout(function(){ if(bg) bg.classList.add('on'); }, 20);
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_share_open'); }catch(e){}
+    if(ls(K_TOK)) call({ action: 'status' }, 8000).then(function(r){ if(!r.active){ ls(K_TOK, null); updateEntry(); render(); } }, function(){});
+  }
+  function create(){
+    if(genBusy) return; var p = payload(), t = T();
+    if(p.err){ toast(t[p.err]); return; }
+    genBusy = true; p.action = 'create';
+    try{ window.LunaProg && window.LunaProg.start(); }catch(e){}
+    call(p).then(function(r){
+      ls(K_TOK, r.token); ls('luna_partner_pfx', PFX[p.mode] || 'love'); ls(K_NICK, p.nick || ''); lastSig = sig(p);
+      try{ window.LunaProg && window.LunaProg.done(); }catch(e){}
+      setTimeout(function(){ genBusy = false; updateEntry(); render(); }, 380);
+      try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_share_create'); }catch(e){}
+    }, function(e){
+      try{ window.LunaProg && window.LunaProg.done(); }catch(x){}
+      genBusy = false; toast(errMsg(e));
+    });
+  }
+  var PFX = { normal: 'love', ttc: 'hope', preg: 'baby' };   // 好看的前缀；真正的"钥匙"是后面 10 位随机码
+  function url(){ var tk = ls(K_TOK); return tk ? SITE + (ls('luna_partner_pfx') || 'love') + '-' + tk : ''; }
+  function doShare(){
+    var u = url(), t = T(); if(!u) return;
+    var text = t.shareTxt + u, P = (window.Capacitor && window.Capacitor.Plugins) || {};
+    try{ if(typeof window.trackEvent === 'function') window.trackEvent('partner_share_send'); }catch(e){}
+    if(P.Share && typeof P.Share.share === 'function'){ P.Share.share({ text: text, dialogTitle: t.share }).catch(function(){}); return; }
+    if(navigator.share){ navigator.share({ text: text }).catch(function(){}); return; }
+    doCopy();
+  }
+  function doCopy(){
+    var u = url(), t = T(); if(!u) return;
+    function ok(){ toast(t.copied); }
+    try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(u).then(ok, fb); return; } }catch(e){}
+    fb();
+    function fb(){ try{ var a = document.createElement('textarea'); a.value = u; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); document.execCommand('copy'); document.body.removeChild(a); ok(); }catch(e){} }
+  }
+  function doStop(){
+    var el = document.getElementById('ptStop'), t = T(); if(!el) return;
+    if(Date.now() - stopArm > 3500){ stopArm = Date.now(); el.textContent = t.stop2; return; }
+    stopArm = 0;
+    call({ action: 'revoke' }).then(function(){ ls(K_TOK, null); updateEntry(); render(); toast(t.stopped); },
+      function(e){ if(e && (e.code === 'net')) toast(t.netfail); else { ls(K_TOK, null); updateEntry(); render(); } });
+  }
+
+  /* ───── 自动同步（阶段/心情有变化时悄悄更新；只在共享中才做）───── */
+  var lastSig = '', lastPush = 0, pushing = false;
+  function sig(p){ var c = {}; for(var k in p) if(k !== 'action') c[k] = p[k]; return JSON.stringify(c); }
+  function push(force){
+    if(!ls(K_TOK) || pushing || !pro()) return;
+    var p = payload(); if(p.err) return;
+    var s = sig(p); if(!force && s === lastSig) return;
+    if(Date.now() - lastPush < 20000 && !force) return;
+    pushing = true; lastPush = Date.now(); p.action = 'update';
+    call(p, 12000).then(function(){ lastSig = s; pushing = false; }, function(e){ pushing = false; if(e && (e.code === 'no_share' || e.code === 'not_pro')){ if(e.code === 'no_share'){ ls(K_TOK, null); updateEntry(); } } });
+  }
+  setInterval(function(){ if(!document.hidden) push(false); }, 90000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) setTimeout(function(){ push(false); }, 1500); });
+  setTimeout(function(){ push(false); }, 8000);
+
+  /* ───── 入口：我的页面里加一行 ───── */
+  function updateEntry(){
+    var e = document.getElementById('lunaPtEntry'); if(!e) return; var t = T(), on = !!ls(K_TOK);
+    e.querySelector('.pt-t').textContent = t.entry;
+    e.querySelector('.pt-d').innerHTML = on ? '<span style="color:#2e9e6b;font-weight:700">● ' + esc(t.on) + '</span>' : esc(t.entryD);
+    e.querySelector('.pt-vip').textContent = t.vip;
+  }
+  function mount(){
+    if(document.getElementById('lunaPtEntry')) return true;
+    var ach = document.getElementById('achieveTitle'), anchor = ach && ach.closest ? ach.closest('.s-title') : null;
+    if(!anchor || !anchor.parentNode) return false;
+    addCss();
+    var wrap = document.createElement('div'); wrap.id = 'lunaPtEntry';
+    wrap.innerHTML = '<div class="s-group" style="padding:14px 16px;cursor:pointer;border:1px solid var(--mine-surface-border);box-shadow:var(--mine-surface-shadow);display:flex;align-items:center;gap:12px;margin-bottom:14px">'
+      + '<div style="font-size:26px">💞</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700"><span class="pt-t"></span><span class="pt-vip"></span></div><div class="pt-d" style="font-size:12px;opacity:.7;margin-top:2px"></div></div><div style="opacity:.4;font-size:20px">›</div></div>';
+    wrap.firstChild.onclick = open;
+    anchor.parentNode.insertBefore(wrap, anchor);
+    updateEntry(); return true;
+  }
+  var tries = 0, iv = setInterval(function(){ if(mount() || ++tries > 40) clearInterval(iv); }, 500);
+  document.addEventListener('luna-lang-changed', updateEntry);
+  window.LunaPartner = { open: open, close: close, _payload: payload, _push: push, _mount: mount };
 })();
 </script>

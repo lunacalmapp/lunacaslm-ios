@@ -300,8 +300,8 @@
         // 🩹 系统公告弹窗：这个函数就定义在这同一个早期<script>标签里（往下看），不存在"函数还没
         // 定义好"这种时序问题，可以直接调用，不用像上面两个一样做 typeof 存在性检查再委托后面兜底
         try{ window._showSystemPopupNotice(); }catch(e){}
-      }).catch(function(){ /* 请求失败就用上面的默认值，不影响app正常使用 */ });
-    }catch(e){}
+      }).catch(function(){ /* 请求失败就用上面的默认值，不影响app正常使用 */ }).then(function(){ window.__lunaRcDone = true; });
+    }catch(e){ window.__lunaRcDone = true; }
   })();
 
   // 🆕 Capgo 热更新：告诉原生层"这个网页包加载成功了，不用回滚到上一个版本"。
@@ -3066,6 +3066,283 @@ window.installPWA = function() {
 </div>
 
 <div class="phone">
+<!-- 🦴 首页骨架屏（信息流式加载）：每次冷启动打开 App，首页先显示"和真实内容一样形状"的灰色骨架，
+     数据到了（页面安静下来）后，真实内容按 头像 → 标题 → 图片块 从上到下每块错开 60ms 淡入 + 上移 8px，骨架同步淡出。
+     ① 骨架的形状来自"上一次打开时真实首页的样子"（圆头像、标题条、图片块的位置和大小都记下来），所以跟真实卡片位置、尺寸一致；
+        第一次装 App 还没有记录时，用一套通用形状；
+     ② 所有骨架共用一道斜向柔光带，每 1.5 秒从左往右扫过一次；手机开了"减少动画"就不动；
+     ③ 真实内容的位置一点都没改（只是临时透明度/位移，播完立刻还原），所以整页不跳；
+     ④ 最长 5 秒一定收起；会等云端数据读完、首页刷完再让真实内容出来，不会卡住；关掉方法：Firebase remoteConfig/featureFlags 里写 homeSkeleton:false。 -->
+<style id="lunaHomeSkCss">
+#lunaHomeSk{position:absolute;left:0;right:0;top:0;bottom:0;z-index:60;background:inherit;overflow:hidden;opacity:1;transition:opacity .34s ease;}
+#lunaHomeSk.lsk-out{opacity:0;pointer-events:none;}
+#lunaHomeSk .lsk-f{position:absolute;box-sizing:border-box;background:rgba(var(--purple-rgb,124,92,191),.05);border:1px solid rgba(var(--purple-rgb,124,92,191),.07);}
+#lunaHomeSk .lsk-s{position:absolute;background-color:rgba(var(--purple-rgb,124,92,191),.12);
+  background-image:linear-gradient(105deg,rgba(255,255,255,0) 40%,rgba(255,255,255,.5) 50%,rgba(255,255,255,0) 60%);
+  background-repeat:no-repeat;background-size:var(--lsk-w,390px) var(--lsk-h,900px);
+  background-position:calc(var(--ox) * -1 + var(--lsk-s0,-330px)) calc(var(--oy) * -1);
+  animation:lskSweep 1.5s linear infinite;}
+@keyframes lskSweep{
+  from{background-position:calc(var(--ox) * -1 + var(--lsk-s0,-330px)) calc(var(--oy) * -1);}
+  to{background-position:calc(var(--ox) * -1 + var(--lsk-s1,330px)) calc(var(--oy) * -1);}
+}
+@media (prefers-reduced-motion:reduce){#lunaHomeSk .lsk-s{animation:none;background-image:none;}}
+</style>
+<script id="lunaHomeSkJs">
+(function(){
+  if(window.LunaHomeSk) return;
+  var KEY = 'luna_home_sk_v1', MIN_MS = 700, QUIET_MS = 450, NET_QUIET_MS = 600, MAX_MS = 5000, NO_NET_MS = 2200, RC_MS = 3000, STEP = 60, SHIFT = 8;
+  var phone = document.querySelector('.phone');
+  if(!phone) return;
+  try{ var lp = sessionStorage.getItem('luna_lastPage'); if(lp === 'mine' || lp === 'cal' || lp === 'stats') return; }catch(e){}
+  var ov = null, t0 = Date.now(), lastMut = t0, finished = false, timer = 0, mo = null;
+  var hasUid = false; try{ hasUid = !!localStorage.getItem('luna_uid'); }catch(e){}
+
+  /* ── 盯着"云端读取"：App 是先用本地缓存画一遍首页，再等云端数据回来补刷一次。
+        骨架要一直撑到这些读取都回来、首页也刷完，才让真实内容出来，这样真实内容出来之后就不会再刷了。 ── */
+  var net = {pending:0, started:0, last:t0, wrapGet:null, wrapOn:null};
+  // 会让首页内容变化的云端数据：经期日、记录、备孕、怀孕、产后、历史周期、Lumi、成就、头像框、月光值，以及整个 userdata/账号
+  var HOME_PATH = /^userdata\/[^\/]+(\/(periodDays|logs|ttc|ttcLogs|pregnancy|postpartum|periodArchive|lumi|achievements|avatarFrame|moonPoints|settings|profile))?$/;
+  // window._fb 一被 App 赋值就立刻包上（不等轮询），这样最早发出的那几个云端读取也算进去
+  try{
+    var _fbCur = window._fb;
+    Object.defineProperty(window, '_fb', {configurable:true, enumerable:true, get:function(){ return _fbCur; }, set:function(v){ _fbCur = v; try{ netWatch(); }catch(e){} }});
+  }catch(e){}
+  function netWatch(){
+    try{
+      var fb = window._fb; if(!fb) return;
+      if(typeof fb.get === 'function' && fb.get !== net.wrapGet){
+        var og = fb.get;
+        net.wrapGet = fb.get = function(path){
+          if(!HOME_PATH.test(String(path || ''))) return og.apply(this, arguments);   // 跟首页无关的读取（提醒、备份、AI 记录等）不用等
+          var pr; net.pending++; net.started++; net.last = Date.now();
+          function done(){ net.pending = Math.max(0, net.pending - 1); net.last = Date.now(); }
+          try{ pr = og.apply(this, arguments); }catch(e){ done(); throw e; }
+          try{ pr.then(done, done); }catch(e){ done(); }
+          return pr;
+        };
+      }
+      if(typeof fb.on === 'function' && fb.on !== net.wrapOn){
+        var oo = fb.on;
+        net.wrapOn = fb.on = function(p, cb){
+          if(!HOME_PATH.test(String(p || ''))) return oo.apply(this, arguments);
+          var fired = false; net.pending++; net.started++; net.last = Date.now();
+          function once(){ if(fired) return; fired = true; net.pending = Math.max(0, net.pending - 1); net.last = Date.now(); }
+          setTimeout(once, 4000);
+          return oo.call(this, p, function(){ once(); return cb.apply(this, arguments); });
+        };
+      }
+    }catch(e){}
+  }
+
+  function W(){ return Math.round(phone.getBoundingClientRect().width) || window.innerWidth || 390; }
+  function esc(n){ return Math.round(n); }
+
+  /* ── 没有记录时用的通用形状 ── */
+  function defaults(w){
+    var pad = 12, cw = w - pad * 2, y = parseInt(getComputedStyle(phone).paddingTop, 10) || 16, B = [];
+    B.push({x:pad,y:y,w:cw,h:250,r:24,p:[['c',(w-150)/2,y+22,150,150,75],['b',(w-130)/2,y+190,130,18,9],['b',(w-200)/2,y+218,200,12,6]]}); y += 250 + 14;
+    B.push({x:pad,y:y,w:cw,h:130,r:20,p:[['i',pad+22,y+34,62,62,18],['b',pad+100,y+40,120,16,8],['b',pad+100,y+68,180,12,6]]}); y += 130 + 14;
+    var cx = [], k; for(k = 0; k < 4; k++) cx.push(['c',pad+22+k*((cw-44-52)/3),y+54,52,52,26]);
+    B.push({x:pad,y:y,w:cw,h:173,r:20,p:[['b',pad+22,y+24,140,16,8],['b',pad+cw-22-70,y+26,70,12,6]].concat(cx)}); y += 173 + 14;
+    B.push({x:pad,y:y,w:cw,h:150,r:20,p:[['b',pad+22,y+22,160,16,8],['b',pad+22,y+50,cw-44,12,6],['i',pad+22,y+76,cw-44,56,16]]});
+    return B;
+  }
+
+  function load(w){
+    try{
+      var j = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if(j && j.v === 1 && j.b && j.b.length && Math.abs(j.w - w) <= 6) return j.b;
+    }catch(e){}
+    return defaults(w);
+  }
+
+  function build(){
+    var w = W(), blocks = load(w), h = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0, 900);
+    ov = document.createElement('div'); ov.id = 'lunaHomeSk'; ov.setAttribute('aria-hidden', 'true');
+    ov.style.setProperty('--lsk-w', w + 'px'); ov.style.setProperty('--lsk-h', h + 'px');
+    ov.style.setProperty('--lsk-s0', esc(-0.85 * w) + 'px'); ov.style.setProperty('--lsk-s1', esc(0.85 * w) + 'px');
+    var html = '';
+    for(var i = 0; i < blocks.length; i++){
+      var b = blocks[i];
+      if(b.f !== 0) html += '<div class="lsk-f" style="left:' + esc(b.x) + 'px;top:' + esc(b.y) + 'px;width:' + esc(b.w) + 'px;height:' + esc(b.h) + 'px;border-radius:' + esc(b.r) + 'px"></div>';
+      for(var k = 0; k < b.p.length; k++){
+        var p = b.p[k];
+        html += '<div class="lsk-s" style="left:' + esc(p[1]) + 'px;top:' + esc(p[2]) + 'px;width:' + esc(p[3]) + 'px;height:' + esc(p[4]) + 'px;border-radius:' + esc(p[5]) + 'px;--ox:' + esc(p[1]) + 'px;--oy:' + esc(p[2]) + 'px"></div>';
+      }
+    }
+    ov.innerHTML = html;
+    phone.insertBefore(ov, phone.firstChild);
+  }
+
+  /* ── 读真实首页：找出每张卡片，和卡片里的"头像 / 标题条 / 图片块" ── */
+  var EMOJI = /^[\s‍️←-⯿\u{1F000}-\u{1FAFF}]+$/u;
+  function vis(e, cs){
+    if(cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return false;
+    var r = e.getBoundingClientRect(); return r.width >= 4 && r.height >= 4;
+  }
+  function textRect(e){
+    var rg = document.createRange(), any = false, L = 1e9, T = 1e9, R = -1e9, B = -1e9;
+    for(var n = e.firstChild; n; n = n.nextSibling){
+      if(n.nodeType === 3 && n.nodeValue.replace(/\s+/g, '') !== ''){
+        rg.selectNodeContents(n); var rs = rg.getClientRects();
+        for(var i = 0; i < rs.length; i++){ var q = rs[i]; if(q.width < 1) continue; any = true; L = Math.min(L, q.left); T = Math.min(T, q.top); R = Math.max(R, q.right); B = Math.max(B, q.bottom); }
+      }
+    }
+    return any ? {left:L, top:T, width:R - L, height:B - T} : null;
+  }
+  function hasText(e){ for(var n = e.firstChild; n; n = n.nextSibling){ if(n.nodeType === 3 && n.nodeValue.replace(/\s+/g, '') !== '') return true; } return false; }
+  function boxy(cs){
+    var bg = cs.backgroundColor, a = 0, m = bg.match(/rgba?\(([^)]+)\)/);
+    if(m){ var q = m[1].split(','); a = q.length > 3 ? parseFloat(q[3]) : 1; }
+    return a > 0.05 || (cs.backgroundImage && cs.backgroundImage !== 'none') || parseFloat(cs.borderTopWidth) > 0 || (cs.boxShadow && cs.boxShadow !== 'none');
+  }
+  /* 返回 [{el, type, x,y,w,h,r}]（坐标相对 .phone 左上角） */
+  function partsOf(block, pr){
+    var out = [], MAXP = 18;
+    function add(el, t, r, rad){
+      if(out.length >= MAXP) return;
+      var w = r.width, h = r.height; if(w * h < 48) return;
+      var x = r.left - pr.left, y = r.top - pr.top;
+      var br = block.getBoundingClientRect(), cx = r.left + w / 2, cy = r.top + h / 2;
+      if(cx < br.left || cx > br.right || cy < br.top || cy > br.bottom) return;   // 中心不在这张卡片里的（装饰、溢出的）不算
+      if(w > br.width * 1.02 && h > 60) return;
+      for(var i = 0; i < out.length; i++){ var o = out[i]; var ix = Math.min(x + w, o.x + o.w) - Math.max(x, o.x), iy = Math.min(y + h, o.y + o.h) - Math.max(y, o.y); if(ix > 0 && iy > 0 && ix * iy > 0.6 * Math.min(w * h, o.w * o.h)) return; }
+      out.push({el:el, t:t, x:x, y:y, w:w, h:h, r:rad});
+    }
+    function walk(e, d){
+      if(d > 7 || out.length >= MAXP) return;
+      for(var c = e.firstElementChild; c; c = c.nextElementSibling){
+        var tg = c.tagName; if(tg === 'SCRIPT' || tg === 'STYLE' || tg === 'NOSCRIPT') continue;
+        var cs = getComputedStyle(c); if(!vis(c, cs)) continue;
+        if(cs.position === 'fixed') continue;
+        var r = c.getBoundingClientRect();
+        if(tg === 'IMG' || tg === 'SVG' || tg === 'svg' || tg === 'CANVAS' || tg === 'VIDEO'){ var sq = Math.abs(r.width - r.height) <= 2 && r.width >= 24 && r.width <= 240 && parseFloat(cs.borderTopLeftRadius) >= r.width * 0.4; add(c, sq ? 'c' : 'i', r, sq ? r.width / 2 : Math.min(16, parseFloat(cs.borderTopLeftRadius) || 8)); continue; }
+        var rad = parseFloat(cs.borderTopLeftRadius) || 0;
+        if(Math.abs(r.width - r.height) <= 2 && r.width >= 24 && r.width <= 240 && rad >= r.width * 0.4 && (boxy(cs) || c.querySelector('svg,img') || EMOJI.test(c.textContent || ''))){ add(c, 'c', r, r.width / 2); continue; }
+        if(hasText(c)){
+          var fs = parseFloat(cs.fontSize) || 14, txt = (c.textContent || '').trim();
+          if(fs >= 24 && EMOJI.test(txt)){ var er = textRect(c) || r, s = Math.min(Math.round(fs * 1.35), 240); add(c, 'c', {left:er.left + (er.width - s) / 2, top:er.top + (er.height - s) / 2, width:s, height:s}, s / 2); continue; }
+          if(c.tagName === 'BUTTON' || (boxy(cs) && r.width >= 40 && r.height >= 28)){ add(c, 'i', r, Math.min(rad, r.height / 2)); continue; }
+          var tr = textRect(c);
+          if(tr){ var th = Math.min(tr.height, Math.round(fs * 1.25)); add(c, 'b', {left:tr.left, top:tr.top + (tr.height - th) / 2, width:Math.max(24, tr.width), height:th}, th / 2); }
+          if(!c.firstElementChild) continue;
+        } else if(c.tagName === 'BUTTON' || (boxy(cs) && r.width >= 40 && r.height >= 28 && !c.firstElementChild)){
+          add(c, 'i', r, Math.min(rad, r.height / 2)); continue;
+        }
+        walk(c, d + 1);
+      }
+    }
+    walk(block, 0);
+    out.sort(function(a, b){ return (Math.abs(a.y - b.y) < 6) ? a.x - b.x : a.y - b.y; });
+    return out;
+  }
+  function realBlocks(){
+    var pr = phone.getBoundingClientRect(), list = [], kids = phone.children;
+    for(var i = 0; i < kids.length; i++){
+      var e = kids[i]; if(e === ov) continue;
+      var tg = e.tagName; if(tg === 'SCRIPT' || tg === 'STYLE' || tg === 'NOSCRIPT') continue;
+      var cs = getComputedStyle(e);
+      if(cs.display === 'none' || cs.visibility === 'hidden' || cs.position === 'fixed' || cs.position === 'absolute') continue;
+      var r = e.getBoundingClientRect(); if(r.width < 120 || r.height < 24) continue;
+      list.push({el:e, x:r.left - pr.left, y:r.top - pr.top, w:r.width, h:r.height, r:parseFloat(cs.borderTopLeftRadius) || 0, f:boxy(cs) ? 1 : 0, p:partsOf(e, pr), top:r.top});
+    }
+    list.sort(function(a, b){ return a.top - b.top; });
+    return list;
+  }
+
+  /* ── 记下这次真实首页的样子，下次冷启动当骨架用 ── */
+  function snap(){
+    try{
+      var nav = document.getElementById('nav-home'); if(nav && nav.className.indexOf('active') < 0) return;
+      var mp = document.getElementById('mine-panel'); if(mp && getComputedStyle(mp).display !== 'none') return;
+      if((window.pageYOffset || 0) > 4) return;
+      var bl = realBlocks(), save = [], total = 0;
+      for(var i = 0; i < bl.length && total < 60; i++){
+        var b = bl[i]; if(b.y > 1600) break;
+        var ps = []; for(var k = 0; k < b.p.length; k++){ var p = b.p[k]; ps.push([p.t, esc(p.x), esc(p.y), esc(p.w), esc(p.h), esc(p.r)]); total++; }
+        save.push({x:esc(b.x), y:esc(b.y), w:esc(b.w), h:esc(b.h), r:esc(b.r), f:b.f, p:ps});
+      }
+      if(save.length && total > 2) localStorage.setItem(KEY, JSON.stringify({v:1, w:W(), b:save}));
+    }catch(e){}
+  }
+
+  /* ── 数据到了：真实内容错开 60ms 依次浮现，骨架同步淡出 ── */
+  function reveal(){
+    if(finished) return; finished = true;
+    try{ clearInterval(timer); if(mo) mo.disconnect(); }catch(e){}
+    var items = [], saved = [], reduce = false;
+    try{ reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+    var maxEnd = 0;
+    try{
+      if(!reduce){
+        var bl = realBlocks(), n = 0, i, k;
+        for(i = 0; i < bl.length; i++) n += Math.max(1, bl[i].p.length);
+        var step = n > 0 ? Math.min(STEP, Math.floor(840 / n)) : STEP, idx = 0;
+        for(i = 0; i < bl.length; i++){
+          var b = bl[i]; items.push({el:b.el, d:idx * step});
+          for(k = 0; k < b.p.length; k++){ items.push({el:b.p[k].el, d:idx * step}); idx++; }
+          if(!b.p.length) idx++;
+        }
+        for(i = 0; i < items.length; i++){
+          var it = items[i], e = it.el, st = e.style, cs = getComputedStyle(e);
+          it.old = {o:st.opacity, t:st.transform, tr:st.transition, p:st.position, tp:st.top};
+          var mode = 'fade';
+          if(cs.position === 'static' && cs.display === 'inline') mode = 'top';
+          else if(cs.position !== 'absolute' && cs.position !== 'fixed' && cs.transform === 'none' && cs.display !== 'inline') mode = 'tf';
+          it.mode = mode;
+          st.transition = 'none'; st.opacity = '0';
+          if(mode === 'tf') st.transform = 'translateY(' + SHIFT + 'px)';
+          else if(mode === 'top'){ st.position = 'relative'; st.top = SHIFT + 'px'; }
+        }
+        void phone.offsetWidth;
+        for(i = 0; i < items.length; i++){
+          var it2 = items[i], s2 = it2.el.style, dl = it2.d + 'ms';
+          s2.transition = 'opacity .38s ease ' + dl + ',transform .38s ease ' + dl + ',top .38s ease ' + dl;
+          s2.opacity = '1';
+          if(it2.mode === 'tf') s2.transform = 'translateY(0)'; else if(it2.mode === 'top') s2.top = '0px';
+          if(it2.d > maxEnd) maxEnd = it2.d;
+        }
+      }
+    }catch(e){}
+    if(ov){ ov.classList.add('lsk-out'); }
+    setTimeout(function(){
+      try{ if(ov && ov.parentNode) ov.parentNode.removeChild(ov); }catch(e){}
+      for(var j = 0; j < items.length; j++){
+        var q = items[j], sq = q.el.style, o = q.old; if(!o) continue;
+        sq.opacity = o.o; sq.transform = o.t; sq.transition = o.tr; sq.position = o.p; sq.top = o.tp;
+        if(sq.length === 0) q.el.removeAttribute('style');
+      }
+      setTimeout(snap, 400);
+    }, maxEnd + 460);
+  }
+
+  function skip(){ finished = true; try{ clearInterval(timer); if(mo) mo.disconnect(); if(ov && ov.parentNode) ov.parentNode.removeChild(ov); }catch(e){} }
+
+  try{
+    build();
+    mo = new MutationObserver(function(ms){
+      for(var i = 0; i < ms.length; i++){ var t = ms[i].target; if(ov && (t === ov || ov.contains(t))) continue; lastMut = Date.now(); return; }
+    });
+    mo.observe(phone, {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['style','class']});
+    timer = setInterval(function(){
+      if(finished) return;
+      var now = Date.now(), el = now - t0;
+      try{ if(typeof window._isFeatureEnabled === 'function' && window._isFeatureEnabled('homeSkeleton') === false){ skip(); return; } }catch(e){}
+      netWatch();
+      var domQuiet = (el >= MIN_MS && now - lastMut >= QUIET_MS && document.readyState === 'complete');
+      var netQuiet = (net.pending === 0 && now - net.last >= NET_QUIET_MS);
+      // 登录用户：必须等到云端读取开始过、并且全部回来；如果一直没有任何云端读取（断网/没加载出来），超过 NO_NET_MS 就只看页面是否安静
+      var netOk = !hasUid || (net.started > 0 ? netQuiet : el >= NO_NET_MS);
+      // 远程配置（公告横幅等）也是会让首页多出一块东西的，等它回来；最多等到 RC_MS，断网时不会卡住
+      var rcOk = (window.__lunaRcDone === true) || el >= RC_MS;
+      if(el >= MAX_MS || (domQuiet && netOk && rcOk)) reveal();
+    }, 100);
+  }catch(e){ skip(); }
+  window.LunaHomeSk = {skip:skip, reveal:reveal, snap:snap, _parts:function(){ return realBlocks(); }, _net:function(){ return {pending:net.pending, started:net.started, sinceLast:Date.now()-net.last, sinceMut:Date.now()-lastMut, fin:finished, el:Date.now()-t0}; }};
+})();
+</script>
+
 
   <!-- 🌌 极光紫境·环境层：跨越整个首页的星空+极光光带（仅该主题显示），莲夜水没有这一层，是两者最大的结构性区别 -->
   <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;display:var(--home-aurora-deco-display);">
@@ -9430,6 +9707,26 @@ window.setLang = setLang;
       const now = Date.now();
       if(rc.startAt && now < rc.startAt){ el.style.display='none'; return; } // 还没到开始时间
       if(rc.endAt && now > rc.endAt){ el.style.display='none'; return; }     // 已经过了结束时间
+      // 版本到了就自动消失：后台填了"这个版本及以上不再显示"(hideFromVer)，用户装的版本达到它，横幅就不再出现；
+      // 旧版本App没有这段代码，仍然会一直显示（它们正是需要去更新的人）。拿不到版本号就照常显示，不会误藏。
+      try{
+        if(rc.hideFromVer){
+          if(window.__lunaBannerVer === undefined){
+            window.__lunaBannerVer = null;
+            var _A = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+            if(_A && _A.getInfo){ _A.getInfo().then(function(i){ window.__lunaBannerVer = (i && i.version) || null; try{ _applyRemoteBanner(); }catch(e){} }, function(){}); }
+          }
+          var _cv = window.__lunaBannerVer;
+          if(_cv){
+            var _a = String(_cv).split('.'), _b = String(rc.hideFromVer).split('.'), _ok = true;
+            for(var _i = 0; _i < Math.max(_a.length, _b.length); _i++){
+              var _x = parseInt(_a[_i], 10) || 0, _y = parseInt(_b[_i], 10) || 0;
+              if(_x !== _y){ _ok = _x > _y; break; }
+            }
+            if(_ok){ el.style.display='none'; return; }
+          }
+        }
+      }catch(e){}
       const isZh = (window._appLang || window._gateLang) === 'zh';
       // lunaRcFallback：本语言那栏没填，就退用另一种语言的文案，避免"后台填了却因为某种语言空着而整条不显示"
       const title = (rc.title && ((isZh ? rc.title.zh : rc.title.th) || rc.title.zh || rc.title.th)) || '';
@@ -9456,13 +9753,13 @@ window.setLang = setLang;
         }
       }catch(e){}
       el.dataset.link = lk;
-      // 有跳转链接时，右侧显示一个明显的按钮（文字可在后台自定义，不填就按语言用默认的"去下载"）
+      // 有跳转链接时，右侧显示一个明显的按钮（文字可在后台自定义，不填就按语言用默认的"更新"）
       try{
         const bt = document.getElementById('homeAnnounceBannerBtn');
         if(bt){
           if(lk){
             let L = ''; try{ L = localStorage.getItem('luna_ui_en')==='1' ? 'en' : (localStorage.getItem('luna_ui_vi')==='1' ? 'vi' : ''); }catch(e){}
-            const def = isZh ? (L==='en' ? 'Download' : L==='vi' ? 'Tải về' : '去下载') : 'ดาวน์โหลด';
+            const def = isZh ? (L==='en' ? 'Update' : L==='vi' ? 'Cập nhật' : '更新') : 'อัปเดต';
             bt.textContent = (rc.btn && ((isZh ? rc.btn.zh : rc.btn.th) || rc.btn.zh || rc.btn.th)) || def;
             bt.style.display = 'inline-block';
           } else { bt.style.display = 'none'; }

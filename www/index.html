@@ -5798,6 +5798,13 @@ _markFbReady();
 function trackEvent(name, extra){
   try{
     if(!window._fb || typeof window._fb.set !== 'function') return;
+    // 🩹 只有真正装在手机里的 App 才记「打开App」：用浏览器/电脑直接打开 html、预览、爬虫访问，
+    // 都不再产生 app_open，后台「访客」列表就不会凭空多出这些没有真实安装的访客
+    if(name === 'app_open'){
+      let _native = false;
+      try{ _native = !!(window.Capacitor && ((window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web'))); }catch(e){}
+      if(!_native) return;
+    }
     // 🩹 修复："打开App"这个漏斗数字比"注册"还低的根本原因就在这里——app_open 在登录之前
     // 就打点了，那时候读不到真实 uid，之前是直接退回写死的字符串 'anonymous'，导致所有
     // 还没登录的用户（不管实际是几十上百个不同的人）在"按独立用户数"统计时全部被合并成
@@ -34400,24 +34407,40 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
   function now(){ try{ return (typeof window.correctedNow === 'function') ? window.correctedNow() : Date.now(); }catch(e){ return Date.now(); } }
   function today(){ return dk(now()); }
   function key(){ try{ return window._acctKey ? window._acctKey('luna_daily') : 'luna_daily'; }catch(e){ return 'luna_daily'; } }
-  function load(){ try{ var v = JSON.parse(LS.getItem(key()) || '{}'); return isObj(v) ? v : {}; }catch(e){ return {}; } }
+  function load(){
+    try{
+      var k = key(), raw = LS.getItem(k);
+      // 游客时记的数据存在 luna_daily；登录后 key 变成 luna_daily_<uid>，第一次登录时把游客数据搬过来，不然会"消失"
+      if(raw == null && k !== 'luna_daily'){ var g = LS.getItem('luna_daily'); if(g){ try{ LS.setItem(k, g); LS.removeItem('luna_daily'); }catch(e){} raw = g; } }
+      var v = JSON.parse(raw || '{}'); return isObj(v) ? v : {};
+    }catch(e){ return {}; }
+  }
   function queue(path, d){ try{ var q = JSON.parse(LS.getItem('luna_pending_sync') || '{}'); q[path] = { value:d, ts:Date.now() }; LS.setItem('luna_pending_sync', JSON.stringify(q)); }catch(e){} }
   function push(d){
     try{
       var code = LS.getItem('luna_uid'); if(!code) return;
       var path = 'userdata/' + code + '/daily';
-      if(window._fb && window._fb.set){ window._fb.set(path, d).catch(function(){ queue(path, d); }); } else queue(path, d);
+      queue(path, d);   // 先记进待同步队列：上传成功就清掉，中途被打断/断网，下次打开会自动补传
+      if(window._fb && window._fb.set){
+        window._fb.set(path, d).then(function(){ unqueue(path); }).catch(function(){});
+      }
     }catch(e){}
   }
+  function unqueue(path){ try{ var q = JSON.parse(LS.getItem('luna_pending_sync') || '{}'); if(q[path]){ delete q[path]; LS.setItem('luna_pending_sync', JSON.stringify(q)); } }catch(e){} }
+  var pushTimer = null;
+  function pushSoon(d){ try{ clearTimeout(pushTimer); }catch(e){} pushTimer = setTimeout(function(){ pushTimer = null; push(load()); }, 1200); }
+  function flushPush(){ if(pushTimer){ try{ clearTimeout(pushTimer); }catch(e){} pushTimer = null; push(load()); } }
   function prune(d){ try{ var cut = dk(now() - 400*86400000); Object.keys(d).forEach(function(k){ if(k < cut) delete d[k]; }); }catch(e){} return d; }
-  function save(d){ d = prune(d); try{ LS.setItem(key(), JSON.stringify(d)); }catch(e){} push(d); }
+  function save(d, soon){ d = prune(d); try{ LS.setItem(key(), JSON.stringify(d)); }catch(e){} if(soon) pushSoon(d); else { try{ clearTimeout(pushTimer); }catch(e){} pushTimer = null; push(d); } }
 
   // ── 云端合并：同一天同一项以本机为准，其余互补 ──
-  var pulledFor = '';
-  function pull(){
+  var pulledFor = '', lastPull = 0;
+  function pull(force){
     try{
-      var code = LS.getItem('luna_uid'); if(!code || pulledFor === code) return;
+      var code = LS.getItem('luna_uid'); if(!code) return;
+      if(!force && pulledFor === code && Date.now() - lastPull < 20000) return;   // 同一账号 20 秒内不重复拉
       if(!(window._fb && window._fb.get)) return;
+      lastPull = Date.now();
       window._fb.get('userdata/' + code + '/daily').then(function(c){
         pulledFor = code;
         if(!isObj(c)) { var l0 = load(); if(Object.keys(l0).length) push(l0); return; }
@@ -34425,7 +34448,9 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         for(k in c) ks[k] = 1; for(k in l) ks[k] = 1;
         Object.keys(ks).forEach(function(d){
           var a = isObj(c[d]) ? c[d] : {}, b = isObj(l[d]) ? l[d] : {}, o = {}, f;
-          for(f in a) o[f] = a[f]; for(f in b) o[f] = b[f];
+          // 两边都有更新时间(u)：整天以更新的那边为准(这样别的设备上"清除"也能同步过来)；有一边是老数据没有 u：字段互补，本机优先
+          if(a.u && b.u){ o = (b.u >= a.u) ? b : a; }
+          else { for(f in a) o[f] = a[f]; for(f in b) o[f] = b[f]; }
           if(Object.keys(o).length) m[d] = o;
         });
         var ms = JSON.stringify(m);
@@ -34468,6 +34493,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 
   // ── 弹出的小面板 ──
   var S = null; // 草稿 { k, ... }
+  var wtT = null;
   function mask(){
     var m = $('lunaDailyMask');
     if(m) return m;
@@ -34475,10 +34501,10 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     m.innerHTML = '<div class="ld-pop" id="lunaDailyPop"></div>';
     document.body.appendChild(m);
     m.addEventListener('click', function(e){ if(e.target === m){ close(); return; } var a = e.target.closest ? e.target.closest('[data-act]') : null; if(a) act(a.getAttribute('data-act'), a.getAttribute('data-v')); });
-    m.addEventListener('input', function(e){ if(!S) return; if(e.target.id === 'ldOther') S.o = e.target.value; if(e.target.id === 'ldWt') S.v = e.target.value; });
+    m.addEventListener('input', function(e){ if(!S) return; if(e.target.id === 'ldOther') S.o = e.target.value; if(e.target.id === 'ldWt'){ S.v = e.target.value; clearTimeout(wtT); wtT = setTimeout(function(){ if(S && S.k === 'wt') commit(false, true); }, 700); } });
     return m;
   }
-  function close(){ var m = $('lunaDailyMask'); if(m) m.classList.remove('on'); S = null; }
+  function close(){ try{ if(S && S.k === 'wt'){ clearTimeout(wtT); commit(false, true); } }catch(e){} var m = $('lunaDailyMask'); if(m) m.classList.remove('on'); S = null; flushPush(); }
   function toast(m){ try{ if(typeof window.showToast === 'function') window.showToast(m); }catch(e){} }
   function lastWeight(){
     var d = load(), ks = Object.keys(d).sort().reverse(), tk = today(), i;
@@ -34540,9 +34566,10 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     else if(a === 'wt-' || a === 'wt+'){ var x = parseFloat(String(S.v).replace(',', '.')); if(isNaN(x)) x = S.lw != null ? S.lw : 55; x = Math.round((x + (a === 'wt+' ? 0.1 : -0.1)) * 10) / 10; S.v = String(Math.max(20, Math.min(300, x))); }
     else if(a === 'ok'){ commit(false); return; }
     else if(a === 'clr'){ commit(true); return; }
+    commit(false, true);   // 每次点选都自动存一份
     paint();
   }
-  function commit(clear){
+  function commit(clear, keep){
     var d = load(), tk = today(), r = d[tk] || {}, k = S.k;
     if(!clear){
       if(k === 'sl'){ r.sl = { h: S.h }; if(S.q != null) r.sl.q = S.q; }
@@ -34554,12 +34581,14 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       }
       if(k === 'wt'){
         var x = parseFloat(String(S.v).replace(',', '.'));
-        if(isNaN(x) || x < 20 || x > 300){ toast(t('badWt')); return; }
+        if(isNaN(x) || x < 20 || x > 300){ if(!keep) toast(t('badWt')); return; }
         r.wt = Math.round(x * 10) / 10;
       }
     } else { delete r[k]; }
-    if(Object.keys(r).length) d[tk] = r; else delete d[tk];
-    save(d); render(); close();
+    r.u = now();   // 更新时间：多设备同步时靠它判断谁更新；全清空也留一条只有 u 的记录，当作"已清除"的标记
+    d[tk] = r;
+    if(keep){ save(d, true); S.had = !!r[k]; render(); return; }   // 点一下就自动保存，不用再按"记录"
+    save(d); render(); S = null; close();
     toast(clear ? t('cleared') : t('saved'));
   }
 
@@ -34683,6 +34712,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     var p = pageEl(); paintPage(); p.style.display = 'block'; p.scrollTop = 0;
     p.classList.remove('subpage-anim'); void p.offsetWidth; p.classList.add('subpage-anim');
     document.body.style.overflow = 'hidden'; PAGE_OPEN = true;
+    try{ pull(); }catch(e){}
     try{ if(typeof window.trackEvent === 'function') window.trackEvent('daily_page_open'); }catch(e){}
   }
   function closePage(){ var p = $('lunaDailyPage'); if(p) p.style.display = 'none'; document.body.style.overflow = ''; PAGE_OPEN = false; }
@@ -34698,6 +34728,11 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       try{ new MutationObserver(function(){ if(lm.classList.contains('open')){ render(); pull(); } }).observe(lm, { attributes:true, attributeFilter:['class'] }); }catch(e){}
     }
     render(); fillTile(); watchLang(); setInterval(watchLang, 1000);
+    if(!bind._ev){ bind._ev = 1;
+      try{ document.addEventListener('visibilitychange', function(){ if(!document.hidden){ pull(); } else flushPush(); }); }catch(e){}
+      try{ window.addEventListener('online', function(){ pull(true); }); window.addEventListener('pagehide', flushPush); }catch(e){}
+      setInterval(function(){ try{ var c = LS.getItem('luna_uid'); if(c && c !== pulledFor) pull(); }catch(e){} }, 5000);   // 登录完成后自动拉一次云端
+    }
   }
   window.LunaDaily = { openPage:openPage, closePage:closePage, open:open, close:close, render:render, summary:summary, pull:pull, _load:load, _today:today };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();

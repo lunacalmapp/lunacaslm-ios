@@ -38098,45 +38098,48 @@ window.LunaYearCal=(function(){
 </script>
 <script id="lunaElastic">
 (function(){
-  // 首页（备孕期/孕期）到顶或到底继续拖时，整页被橡皮筋拉出一点再弹回去。
+  // 首页（所有模式）到顶或到底继续拖时，整页被橡皮筋拉出一点再弹回去。
   // 安卓没有系统回弹，iPhone 实测这两种模式的首页也没有；如果系统自己已经在回弹（滚动位置越界），这里自动让位，不叠加。
   var ua = navigator.userAgent || '', isIOS = /iPhone|iPad|iPod/.test(ua);
   try{ if(window.Capacitor && Capacitor.getPlatform && Capacitor.getPlatform() === 'ios') isIOS = true; }catch(e){}
   var sy = 0, sx = 0, mode = 0, el = null, pulled = 0, dir = 0, locked = false;
   function homeOn(){
-    var b = document.body; if(!b || !(b.classList.contains('preg-mode') || b.classList.contains('ttc-mode'))) return false;
+    var b = document.body; if(!b) return false;   // 所有模式的首页都有回弹(原来只有备孕/孕期)
     try{ if((sessionStorage.getItem('luna_lastPage') || 'home') !== 'home') return false; }catch(e){}
     if(b.style.overflow === 'hidden') return false;
     var ph = document.querySelector('.phone'); return !!(ph && ph.offsetParent !== null);
   }
+  // 只动页面里的内容块；悬浮的东西(小助手球、弹窗)不动——给 .phone 整体加 transform 会让里面 position:fixed 的元素错位
+  var kids = null;
+  function fx(ph){ var a = [], i, c; for(i = 0; i < ph.children.length; i++){ c = ph.children[i]; try{ if(getComputedStyle(c).position !== 'fixed') a.push(c); }catch(e){} } return a; }
+  function setT(a, tr, tf){ if(!a) return; for(var i = 0; i < a.length; i++){ if(tr !== null) a[i].style.transition = tr; if(tf !== null) a[i].style.transform = tf; } }
   function se(){ return document.scrollingElement || document.documentElement; }
   function atTop(){ return se().scrollTop <= 0; }
   function atBottom(){ var s = se(); return s.scrollTop + window.innerHeight >= s.scrollHeight - 1; }
   document.addEventListener('touchstart', function(e){
     locked = false; pulled = 0; dir = 0;
     if(e.touches.length !== 1 || !homeOn()) { el = null; return; }
-    el = document.querySelector('.phone'); sy = e.touches[0].clientY; sx = e.touches[0].clientX;
+    el = document.querySelector('.phone'); kids = null; sy = e.touches[0].clientY; sx = e.touches[0].clientX;
     var t = e.target; try{ if(t.closest && t.closest('input,textarea,select,.car,.mr-carousel,[data-no-elastic]')) { el = null; return; } }catch(_){}
-    if(el){ el.style.transition = 'none'; }
+    if(el){ kids = fx(el); setT(kids, 'none', ''); }
   }, { passive: true });
   document.addEventListener('touchmove', function(e){
     if(!el || locked) return;
     var dy = e.touches[0].clientY - sy, dx = e.touches[0].clientX - sx;
-    var q = se(); if(q.scrollTop < 0 || q.scrollTop + window.innerHeight > q.scrollHeight + 1){ el.style.transition = 'none'; el.style.transform = ''; pulled = 0; locked = true; return; }   // 系统自己已经在回弹了，就不叠加
+    var q = se(); if(q.scrollTop < 0 || q.scrollTop + window.innerHeight > q.scrollHeight + 1){ setT(kids, 'none', ''); pulled = 0; locked = true; return; }   // 系统自己已经在回弹了，就不叠加
     if(!dir){
       if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ locked = true; return; }   // 横向滑动不管
       if(dy > 4 && atTop()) dir = 1; else if(dy < -4 && atBottom()) dir = -1; else return;
     }
-    if((dir === 1 && dy <= 0) || (dir === -1 && dy >= 0)){ pulled = 0; el.style.transform = ''; return; }
+    if((dir === 1 && dy <= 0) || (dir === -1 && dy >= 0)){ pulled = 0; setT(kids, null, ''); return; }
     var raw = Math.abs(dy) - 4, v = Math.min(80, raw * 0.38);      // 越拉越吃力，最多拉出 80px
-    pulled = v * dir; el.style.transform = 'translate3d(0,' + pulled + 'px,0)';
+    pulled = v * dir; setT(kids, null, 'translate3d(0,' + pulled + 'px,0)');
   }, { passive: true });
   function end(){
-    if(!el) return; var p = el; el = null;
-    if(!pulled){ p.style.transition = ''; p.style.transform = ''; return; }
-    p.style.transition = 'transform .55s cubic-bezier(.2,1.5,.4,1)';   // 带一点过冲，弹一下
-    p.style.transform = 'translate3d(0,0,0)'; pulled = 0;
-    setTimeout(function(){ p.style.transition = ''; p.style.transform = ''; }, 600);
+    if(!el) return; var ks = kids; el = null; kids = null;
+    if(!pulled){ setT(ks, '', ''); return; }
+    setT(ks, 'transform .55s cubic-bezier(.2,1.5,.4,1)', 'translate3d(0,0,0)'); pulled = 0;   // 带一点过冲，弹一下
+    setTimeout(function(){ setT(ks, '', ''); }, 600);
   }
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', end, { passive: true });

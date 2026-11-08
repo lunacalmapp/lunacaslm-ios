@@ -70,6 +70,16 @@ workflows:
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
+      - name: 诊断：打印真正的失败原因（只看，不影响打包）
+        script: |
+          cd "$CM_BUILD_DIR/ios/App"
+          echo "== Package.swift（cap sync 之后的样子） =="
+          cat CapApp-SPM/Package.swift
+          echo "== 解析 Swift 包依赖 =="
+          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App 2>&1 | tail -60
+          echo "== 再试一次读取 build settings =="
+          xcodebuild -project App.xcodeproj -scheme App -showBuildSettings 2>&1 | head -60
+          true
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \

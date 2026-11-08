@@ -70,16 +70,20 @@ workflows:
           /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST"
       - name: Set up code signing settings on Xcode project
         script: xcode-project use-profiles
-      - name: 诊断：打印真正的失败原因（只看，不影响打包）
+      - name: 预先下载 Swift 依赖包（GitHub 偶尔 504，失败自动重试最多 6 次）
         script: |
           cd "$CM_BUILD_DIR/ios/App"
-          echo "== Package.swift（cap sync 之后的样子） =="
-          cat CapApp-SPM/Package.swift
-          echo "== 解析 Swift 包依赖 =="
-          xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App 2>&1 | tail -60
-          echo "== 再试一次读取 build settings =="
-          xcodebuild -project App.xcodeproj -scheme App -showBuildSettings 2>&1 | head -60
-          true
+          for i in 1 2 3 4 5 6; do
+            echo "== 第 $i 次尝试下载依赖包 =="
+            if xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App; then
+              echo "✅ 依赖包下载成功"
+              exit 0
+            fi
+            echo "⚠️ 下载失败（多半是 GitHub 临时 504），等 40 秒后重试"
+            sleep 40
+          done
+          echo "❌ 重试 6 次仍失败，请稍后重新运行构建"
+          exit 1
       - name: Build ipa for distribution
         script: |
           xcode-project build-ipa \

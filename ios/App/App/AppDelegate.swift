@@ -13,7 +13,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
         // 用来把"苹果原始设备编号"翻译成 Firebase 真正认识的推送令牌（读取项目里已有的 GoogleService-Info.plist，不用额外配置）。
         FirebaseApp.configure()
+        // 开启 iOS 原生回弹（Capacitor 默认可能关着）。网页界面是稍后才创建的，所以隔一会儿再设几次。
+        for delay in [0.2, 0.8, 2.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.enableNativeBounce()
+            }
+        }
         return true
+    }
+
+    // 打开 iOS 原生回弹：和 Safari、系统设置一样的橡皮筋拉伸 + 惯性减速
+    private func enableNativeBounce() {
+        guard let root = window?.rootViewController as? CAPBridgeViewController,
+              let sv = root.webView?.scrollView else { return }
+        sv.bounces = true
+        sv.alwaysBounceVertical = true
+        sv.alwaysBounceHorizontal = false
+        sv.decelerationRate = .normal
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
@@ -31,6 +47,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
+        enableNativeBounce()   // 每次回到前台再确认一次
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     }
 

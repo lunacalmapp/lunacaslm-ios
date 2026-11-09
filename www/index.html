@@ -38687,7 +38687,10 @@ window.__LUNA_TW_T="喫茶小舖>喫茶小舖|張棟樑>張棟樑|林國樑>林�
   function start(){
     if(mo || !isOn()) return;
     try{ document.documentElement.lang='zh-Hant-TW'; }catch(e){}
+    var gT=0,gN=0;
     mo=new MutationObserver(function(list){
+      // 安全阀：如果别的程序和这里来回抢着改同一段文字（短时间内改个不停），就停手，宁可留一小段简体，也不能让页面卡死
+      var now=Date.now(); if(now-gT>400){ gT=now; gN=0; } gN+=list.length; if(gN>6000){ stop(); try{ console.log('LunaTw loop guard: stopped'); }catch(e){} return; }
       for(var i=0;i<list.length;i++){
         var m=list[i];
         if(m.type==='childList'){ for(var j=0;j<m.addedNodes.length;j++) walk(m.addedNodes[j]); }
@@ -38722,6 +38725,8 @@ window.__LUNA_TW_T="喫茶小舖>喫茶小舖|張棟樑>張棟樑|林國樑>林�
   function ls(k, v){ try{ if(v === undefined) return localStorage.getItem(k); if(v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){ return null; } }
   function isTw(){ return ls('luna_lang') === 'zh' && ls(FL) === '1' && ls('luna_ui_en') !== '1' && ls('luna_ui_vi') !== '1'; }
   window.lunaIsTw = isTw;
+  // 很多模块（孕期周卡片等）会先比较「屏幕上的字 = 要显示的字」才写入；繁体时要拿转换后的字去比，不然两边会来回抢着改
+  (function(){ var o = window.lunaEnT; window.lunaEnT = function(s){ if(typeof s === 'string' && isTw() && window.lunaS2T) return window.lunaS2T(s); return typeof o === 'function' ? o(s) : s; }; })();
   function reload(){ setTimeout(function(){ try{ location.reload(); }catch(e){} }, 60); }
   // 「我的」页语言菜单：选中态 + 当前语言文字
   function menu(){

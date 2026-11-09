@@ -102,6 +102,7 @@
     </button>
     <div class="langmenu" id="langMenu" role="menu">
       <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')" role="menuitem">🇨🇳 中文</button>
+      <button class="lang-btn inactive" id="btnTw" onclick="setLang('tw')" role="menuitem">🇹🇼 繁體中文</button>
       <button class="lang-btn active"   id="btnTh" onclick="setLang('th')" role="menuitem">🇹🇭 ภาษาไทย</button>
       <button class="lang-btn inactive" id="btnEn" onclick="setLang('en')" role="menuitem">🇺🇸 English</button>
       <button class="lang-btn inactive" id="btnVi" onclick="setLang('vi')" role="menuitem">🇻🇳 Tiếng Việt</button>
@@ -371,6 +372,75 @@ const CONTENT = {
     s11body: '如有关于隐私政策的问题，或需要行使您的数据权利，请通过邮箱联系我们：<strong>lunacalm00@gmail.com</strong><br><br>个人数据控制者：Luna Calm 应用开发者。对于您行使权利（查阅、更正、删除、撤回同意、反对处理）的请求，我们会在收到后 60 天内答复。若您认为我们未遵守个人数据保护法律，有权向泰国个人数据保护委员会办公室（PDPC）投诉，网站：<a href="https://www.pdpc.or.th" target="_blank" rel="noopener" style="color:#7c5cbf;">www.pdpc.or.th</a>',
     backBtn: '← 返回',
   },
+  tw: {
+    pageTitle: '隱私政策',
+    pageSubtitle: 'Luna Calm · 您的資料安全有保障',
+    updatedTxt: '最後更新：2026年11月 (v9)',
+    s1title: '關於本App',
+    s1body: 'Luna Calm 是一款用於記錄和追蹤月經週期、症狀與心情的應用。我們尊重您的隱私，本政策說明我們如何收集、使用和保護您的資料。',
+    s2title: '我們收集的資料',
+    s2i1: '健康資料：您填寫的經期日期、症狀、心情、性行為、分泌物、體力活動、喝水量、體重和記錄（藥名與提醒時間只儲存在您的手機上，不會上傳到伺服器）',
+    s2i2: '帳號資訊：使用 Google 登入時，我們會獲取您的姓名、電子郵件和大頭貼',
+    s2i3: '會員資訊：會員碼、啟用狀態和到期日期',
+    s2i4: '裝置資訊：用於安全和訪問控制的裝置識別碼',
+    s2i5: '使用者識別碼：User ID 和 Firebase UID，用於在系統中識別您的帳號',
+    s2i6: '推送通知：用於推送通知的裝置令牌（Firebase Cloud Messaging Token），用於傳送經期提醒和健康提醒',
+    sLumiTitle: 'Lumi 陪伴功能與情緒資料',
+    sLumiI1: 'Lumi 是應用內的虛擬陪伴角色，會根據您記錄的週期資料展示不同狀態和話語，給予輕量的情緒陪伴',
+    sLumiI2: '如果您在"祕密空間"（記錄祕密 / 記錄心事 / 記錄節日心得）中寫下文字，這些內容會儲存在您的裝置上，並像其他資料一樣同步至 Firebase，以便 Lumi 能"記得"您寫過的事，並在之後關心詢問',
+    sLumiI3: '"記錄祕密"類型的內容不會被用於情緒分析或觸發任何回應，我們只為您保管，不做處理',
+    sLumiI4: 'Lumi 的回應基於預設關鍵詞匹配等規則自動生成，不涉及人工分析，也不構成任何心理或醫療建議',
+    sLumiI5: '您可以隨時刪除祕密空間中的記錄，也可以在 我的 → 刪除資料 中一併清除',
+    s3title: '如何使用資料',
+    s3i1: '用於記錄、分析和預測您的月經週期',
+    s3i2: '用於提供健康分析和會員功能',
+    s3i3: '我們不會為廣告目的出售或分享您的資料給第三方',
+    s4title: '資料儲存與第三方服務',
+    s4i1: '資料儲存在您的裝置上，並同步至 Google Firebase 以便備份和跨裝置使用',
+    s4i2: 'Firebase 伺服器位於新加坡區域（東南亞）',
+    s4i3: '我們使用 Google 登入進行身份驗證，使用 Firebase 儲存資料，這些服務受 Google 隱私政策約束',
+    s4i4: '資料訪問受身份驗證保護，只有您本人可以訪問自己的健康資料',
+    s4i5: '使用本應用即表示您同意：您的資料可能被傳輸並儲存於泰國境外（包括新加坡）的伺服器',
+    s4i6: '若您通過 Google Play 安裝本應用，會員付費將通過 Google Play Billing 進行結算，該流程受 Google 的隱私政策與支付政策約束',
+    s4i7: '若您通過 Apple App Store 安裝本應用，會員付費將通過 Apple 的 App 內購買（In-App Purchase）系統進行結算，該流程受 Apple 的隱私政策與支付政策約束，開發者不會看到您的銀行卡資訊或付款明細',
+    sNewTitle: '新功能相關的補充說明',
+    sNewI1: '備孕、懷孕與產後模式：您記錄的體重、產檢日期、胎動、體溫等屬于敏感健康資料，僅用於 App 內展示、提醒和計算，不用於廣告',
+    sNewI2: '雲端備份：當您點選“立即備份”時，您的資料會以快照形式儲存在 Firebase。可訪問者僅限您本人和系統管理員（用於排查故障或協助使用者），刪除帳號時一併刪除',
+    sNewI3: 'AI 小助手（Luna 小助手與 AI 分析）：您輸入的文字以及回答所需的週期資料摘要，會經由我們的伺服器傳送至 Google Gemini 服務以生成回答。結果僅供參考，不構成醫療建議',
+    sNewI4: '會員訂閱：我們使用 RevenueCat 服務來核驗訂閱狀態和購買憑證，並與您的使用者識別碼關聯。我們不會看到您的銀行卡號或付款明細',
+    sNewI5: '刪除帳號：您可以在 App 內 我的 → 永久刪除帳號 中自行刪除帳號及全部資料',
+    sNewI6: '資料位置與跨境傳輸：我們的資料庫和雲函式位於 Google Firebase 新加坡區域；發往 Google Gemini（AI 小助手）和 RevenueCat（訂閱核驗）的請求，可能依據這些服務商的資料中心所在地在泰國境外（包括美國）處理。我們只傳送該功能所必需的資料',
+    sNewI7: '當您在 App 內點選“刪除資料”或“永久刪除帳號”後，您的健康資料和雲端備份會從我們的系統中刪除。Apple、Google 和 RevenueCat 儲存的訂閱記錄，以及伺服器執行日誌，按各服務商自己的政策保留，不在我們控制範圍內',
+    sNewI8: '與伴侶分享（會員功能，需您主動開啟）：當您生成邀請連結時，我們會在伺服器（Firebase）上儲存顯示狀態所必需的資訊：您設定的稱呼、上次經期開始日、週期與經期天數（懷孕模式為預產期）、今天的心情（5 選 1，僅在您開啟時）、今天的常見症狀名稱（最多 4 個，僅在您單獨開啟症狀開關時；不含出血量、顏色、備註），以及您選擇分享的內容。我們還會記錄對方是否開啟過連結、是否點選“我看過了”、是否傳送簡短回應（如“抱抱”）及發生時間（預覽機器人不計），僅您本人可見。此功能不會儲存或分享您的備註、歷史記錄或電子郵件。任何拿到連結的人都能在不登入的情況下檢視該狀態頁面，請只發給您信任的人。您可以隨時停止共享，已儲存的資料會立即刪除、連結隨即失效；會員到期或刪除帳號後，共享也會自動停止。',
+    sNewI9: '產後護理與排卵試紙記錄：產後模式裡的餵奶、惡露、睡眠記錄和提醒設定，以及排卵試紙的日期和結果（陰性/弱陽/強陽），會在您登入後自動同步儲存到 Firebase（不需要點“立即備份”），方便您換手機後找回。這些屬于敏感健康資料，僅用於 App 內展示、提醒和計算，不用於廣告；刪除帳號時一併刪除',
+    sNewI10: '排卵試紙照片：當您拍照或從相簿選圖時，App 只會在您點按的那一刻請求相機或相簿許可權。照片只儲存在您自己的手機裡，不會上傳到我們的伺服器（約保留 3 個月），刪除 App 後也會消失',
+    s5title: '安全性',
+    s5i1: '資料庫訪問受身份驗證控制，我們採取合理措施保護您的資料',
+    s5i2: '建議在裝置上設定密碼或PIN碼以增強安全',
+    s6title: '您的權利',
+    s6i1: '您可以隨時在App內檢視和修改自己的資料',
+    s6i2: '您可以在 我的 → 刪除資料 中刪除所有資料',
+    s6i3: '您可以撤回同意或要求刪除資料，請通過下方電子郵件聯絡我們',
+    s7title: '資料保留期限',
+    s7body: '在您的帳號處於活躍狀態期間，我們會保留您的資料。如果您刪除資料或要求刪除帳號，我們會將您的健康資料從系統中刪除。<br><br>與 Luna 小助手的聊天記錄僅儲存在您的裝置本地，不會上傳到我們的伺服器，每條訊息按傳送當天計算，最多保留 3 天，超過後會在開啟 App 時自動清除；您也可以隨時在小助手中刪除聊天記錄。<br><br>你儲存過的健康報告和醫生報告（PDF）會在你的手機本地保留一份歷史記錄，不會上傳到我們的伺服器，最多保留 30 天或最近 5 份，先到的先生效，到期會自動刪除。你可以隨時在健康報告頁檢視剩余天數，也可以手動刪除。',
+    s8title: '未成年人',
+    s8body: '本應用建議在監護人知情的情況下使用。若您未滿 20 週歲（泰國法定成年年齡），請在父母或監護人同意下使用本服務。若使用者填寫的年齡未滿 13 歲，App 會關閉會把資料傳送給 AI 服務的功能（Luna 小助手與 AI 分析）以及備孕、懷孕模式，其他記錄類功能仍可使用。',
+    s9title: '健康免責聲明',
+    s9body: 'Luna Calm 不是醫療器械（Medical Device），未經認證或註冊用於任何疾病的診斷、治療或預防。App 中的資訊和分析僅供參考，不能替代專業醫療建議、診斷或避孕措施。如有健康方面的顧慮，請諮詢醫生。<br><br>' +
+      '<strong>📚 參考資料來源：</strong>App 內健康內容參考以下權威機構的公開資料整理：' +
+      '<ul style="margin:8px 0 0 18px;padding:0;">' +
+      '<li style="margin-bottom:4px;"><a href="https://www.who.int/news-room/fact-sheets/detail/menstrual-health" target="_blank" rel="noopener" style="color:#7c5cbf;">世界衛生組織（WHO）</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/healthy-lifestyle/womens-health/in-depth/menstrual-cycle/art-20047186" target="_blank" rel="noopener" style="color:#7c5cbf;">妙佑醫療國際（Mayo Clinic）– 月經週期</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034" target="_blank" rel="noopener" style="color:#7c5cbf;">Mayo Clinic – 缺鐵性貧血</a></li>' +
+      '<li style="margin-bottom:4px;"><a href="https://www.cdc.gov/uti/about/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">美國疾控中心（CDC）– 尿路感染</a></li>' +
+      '<li><a href="https://www.cdc.gov/hpv/index.html" target="_blank" rel="noopener" style="color:#7c5cbf;">CDC – HPV 與 HPV 疫苗</a></li>' +
+      '</ul>',
+    s10title: '政策變更',
+    s10body: '我們可能會不時更新本政策。任何變更將在本頁面顯示，並附上更新日期。',
+    s11title: '聯絡我們',
+    s11body: '如有關於隱私政策的問題，或需要行使您的資料權利，請通過電子郵件聯絡我們：<strong>lunacalm00@gmail.com</strong><br><br>個人資料控制者：Luna Calm 應用開發者。對於您行使權利（查閱、更正、刪除、撤回同意、反對處理）的請求，我們會在收到後 60 天內答覆。若您認為我們未遵守個人資料保護法律，有權向泰國個人資料保護委員會辦公室（PDPC）投訴，網站：<a href="https://www.pdpc.or.th" target="_blank" rel="noopener" style="color:#7c5cbf;">www.pdpc.or.th</a>',
+    backBtn: '← 返回',
+  },
   en: {
   "pageTitle": "Privacy Policy",
   "pageSubtitle": "Luna Calm · Your data is safe with us",
@@ -518,21 +588,23 @@ function setLang(lang) {
   const bz=document.getElementById('btnZh'), bt=document.getElementById('btnTh'), be=document.getElementById('btnEn');
   if(bz) bz.className = 'lang-btn ' + (lang==='zh' ? 'active' : 'inactive');
   if(bt) bt.className = 'lang-btn ' + (lang==='th' ? 'active' : 'inactive');
+  const btw=document.getElementById('btnTw'); if(btw) btw.className = 'lang-btn ' + (lang==='tw' ? 'active' : 'inactive');
   const bvi=document.getElementById('btnVi'); if(bvi) bvi.className = 'lang-btn ' + (lang==='vi' ? 'active' : 'inactive');
   if(be) be.className = 'lang-btn ' + (lang==='en' ? 'active' : 'inactive');
   const cur = document.getElementById('langCurrent');
-  if(cur) cur.textContent = lang==='zh' ? '中文' : (lang==='en' ? 'English' : (lang==='vi' ? 'Tiếng Việt' : 'ไทย'));
-  document.documentElement.lang = lang==='zh' ? 'zh-CN' : (lang==='en' ? 'en' : (lang==='vi' ? 'vi' : 'th'));
+  if(cur) cur.textContent = lang==='zh' ? '中文' : lang==='tw' ? '繁體中文' : (lang==='en' ? 'English' : (lang==='vi' ? 'Tiếng Việt' : 'ไทย'));
+  document.documentElement.lang = lang==='zh' ? 'zh-CN' : lang==='tw' ? 'zh-Hant-TW' : (lang==='en' ? 'en' : (lang==='vi' ? 'vi' : 'th'));
   try{
-    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang','zh'); }
-    else if(lang==='vi'){ localStorage.setItem('luna_ui_vi','1'); localStorage.removeItem('luna_ui_en'); localStorage.setItem('luna_lang','zh'); }
-    else { localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang', lang); }
+    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.removeItem('luna_ui_vi'); localStorage.removeItem('luna_ui_tw'); localStorage.setItem('luna_lang','zh'); }
+    else if(lang==='vi'){ localStorage.setItem('luna_ui_vi','1'); localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_tw'); localStorage.setItem('luna_lang','zh'); }
+    else if(lang==='tw'){ localStorage.setItem('luna_ui_tw','1'); localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang','zh'); }
+    else { localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_vi'); localStorage.removeItem('luna_ui_tw'); localStorage.setItem('luna_lang', lang); }
   }catch(e){}
   toggleLangMenu(false);
 }
 
 let savedLang = 'th';
-try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; else if(localStorage.getItem('luna_ui_vi')==='1' && savedLang==='zh') savedLang='vi'; }catch(e){}
+try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; else if(localStorage.getItem('luna_ui_vi')==='1' && savedLang==='zh') savedLang='vi'; else if(localStorage.getItem('luna_ui_tw')==='1' && savedLang==='zh') savedLang='tw'; }catch(e){}
 setLang(savedLang);
 </script>
 </body>

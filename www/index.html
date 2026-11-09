@@ -273,6 +273,7 @@
       var dbBase = 'https://sasomboon-default-rtdb.asia-southeast1.firebasedatabase.app';
       fetch(dbBase + '/remoteConfig.json').then(function(r){ return r && r.ok ? r.json() : null; }).then(function(rc){
         if(!rc || typeof rc !== 'object') return;
+        window.__lunaRcOk = true;   // 远程配置确实读到了（兼容连接的“单独关闭”只在这种情况下才生效，读不到时绝不乱清）
         if(typeof rc.trialDays === 'number' && rc.trialDays > 0) window._remoteConfig.trialDays = rc.trialDays;
         if(typeof rc.trialAiPoints === 'number' && rc.trialAiPoints >= 0) window._remoteConfig.trialAiPoints = rc.trialAiPoints;
         if(typeof rc.supportEmail === 'string' && rc.supportEmail.indexOf('@') > 0) window._remoteConfig.supportEmail = rc.supportEmail;
@@ -5754,6 +5755,22 @@ window._fb = { get: async p=>{const s=await get(ref(db,p));return s.exists()?s.v
       try{
         var ff = window._remoteConfig && window._remoteConfig.featureFlags;
         if(ff && ff.forceLongPolling === true && localStorage.getItem('luna_rtdb_lp') !== '1') localStorage.setItem('luna_rtdb_lp','1');
+        // 单个用户的兼容连接：后台把这位用户的 uid 写进 featureFlags.forceLongPollingUsers（值为 true）。
+        // 打开：本机还没开兼容连接 → 开启并记下“这是后台单独开的”(luna_rtdb_lp_u)；这次还没连上数据库就立刻重开一次（本次最多一次，防循环），已连上的下次启动生效。
+        // 关闭：后台把这位用户从名单里拿掉，且当初是后台单独开的、全员开关也没开 → 下次启动起恢复普通连接。自动切换/全员开关开的不受影响。
+        try{
+          var me = ''; try{ me = localStorage.getItem('luna_uid') || ''; }catch(e){}
+          var mine = !!(ff && me && ff.forceLongPollingUsers && typeof ff.forceLongPollingUsers === 'object' && ff.forceLongPollingUsers[me] === true);
+          if(mine){
+            if(localStorage.getItem('luna_rtdb_lp') !== '1'){
+              localStorage.setItem('luna_rtdb_lp','1'); localStorage.setItem('luna_rtdb_lp_u','1');
+              var tried2 = ''; try{ tried2 = sessionStorage.getItem('luna_rtdb_lp_try2') || ''; }catch(e){}
+              if(!connected && !tried2){ try{ sessionStorage.setItem('luna_rtdb_lp_try2','1'); }catch(e){} setTimeout(function(){ try{ location.reload(); }catch(e){} }, 400); }
+            }
+          } else if(window.__lunaRcOk === true && localStorage.getItem('luna_rtdb_lp_u') === '1' && !(ff && ff.forceLongPolling === true)){
+            localStorage.removeItem('luna_rtdb_lp'); localStorage.removeItem('luna_rtdb_lp_u');
+          }
+        }catch(e){}
       }catch(e){}
     }, 6000);
     setTimeout(function(){
@@ -12186,7 +12203,7 @@ window.setLang = setLang;
       const wrap=document.createElement('div'); wrap.id='aiTopicMenu';
       wrap.style.cssText='display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:6px;padding:12px;background:#f7f1fb;border-radius:18px;';
       const tip=document.createElement('div');
-      tip.textContent = zh()?'เลือกหัวข้อที่อยากถามนะคะ 🌙':'เลือกหัวข้อที่อยากถามนะคะ 🌙';
+      tip.textContent = zh()?'选一个想问的话题吧 🌙':'เลือกหัวข้อที่อยากถามนะคะ 🌙';   // 🩹 原来中文分支也写成了泰文，切到中/英/越南语仍显示泰文
       tip.style.cssText='width:100%;text-align:center;font-size:12.5px;color:#9d7bd6;margin-bottom:4px;font-weight:600;';
       wrap.appendChild(tip);
       const names=TOPIC_NAMES[zh()?'zh':'th'];
@@ -37719,6 +37736,7 @@ body.preg-mode .preg-trk-row{flex-direction:column !important;gap:12px !importan
 
 </script>
 <script id="lunaPaidListTr">(function(){try{var E={"和伴侣分享状态（发链接，TA 不用装 App）":"Share your day with your partner (one link, no app needed)","导出医生报告 PDF（含就诊提问建议）":"Doctor report PDF export (with suggested questions)","完整健康报告（全部评估项）":"Full health report (all assessments)","身体规律洞察（症状高发期、情绪规律、半年趋势）":"Body pattern insights (symptom peaks, mood patterns, 6-month trends)"},V={"和伴侣分享状态（发链接，TA 不用装 App）":"Chia sẻ trạng thái với bạn đời (một liên kết, không cần cài app)","导出医生报告 PDF（含就诊提问建议）":"Xuất báo cáo bác sĩ PDF (kèm gợi ý câu hỏi khi khám)","完整健康报告（全部评估项）":"Báo cáo sức khỏe đầy đủ (tất cả mục đánh giá)","身体规律洞察（症状高发期、情绪规律、半年趋势）":"Phân tích quy luật cơ thể (giai đoạn triệu chứng, quy luật cảm xúc, xu hướng 6 tháng)"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
+<script id="lunaAiTopicTipTr">(function(){try{var E={"选一个想问的话题吧 🌙":"Pick a topic to ask about 🌙"},V={"选一个想问的话题吧 🌙":"Chọn một chủ đề bạn muốn hỏi nhé 🌙"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
 <script id="lunaFreeListTr">(function(){try{var E={"记录与日历": "Tracking & calendar", "无限记录": "Unlimited logging", "经期、症状、心情、体重、用药": "Period, symptoms, mood, weight, medication", "完整日历 + 全年视图": "Full calendar + year view", "一页看完整年的周期": "See your whole year of cycles on one page", "经期与排卵预测": "Period & ovulation predictions", "每次记录后自动更新": "Updates every time you log", "搜索记录 · 误删可撤销": "Search logs · undo accidental deletes", "想找哪天都能找到": "Find any day you need", "怀孕与产后": "Pregnancy & postpartum", "备孕 · 怀孕 · 产后模式": "Trying to conceive · pregnancy · postpartum modes", "基础功能齐全": "All the basics included", "每周宝宝大小与发育": "Baby size & development each week", "用可爱的水果比大小": "Sizes compared with cute fruit & veg", "数胎动": "Kick counter", "自己记录宝宝的活动": "Log your baby's movements yourself", "宝宝百科": "Baby guide", "给新手妈妈的知识": "Know-how for new moms", "照顾自己": "Looking after yourself", "自我护理自测": "Self-care quizzes", "2 分钟更了解自己": "Know yourself better in 2 minutes", "随时导出数据": "Export your data anytime", "数据永远是你的": "Your data is always yours", "Luna 本月观察（免费体验 2 次）": "Luna's monthly insight (2 free tries)", "看看 Luna 从你的记录里读到什么": "See what Luna reads in your logs", "好玩的": "Just for fun", "Lumi 4 个免费房间": "4 free Lumi rooms", "布置、陪伴 Lumi": "Decorate and hang out with Lumi", "免费主题色 · 小游戏": "Free colour themes · mini games", "换个心情": "Change up the mood", "所有记录功能永久免费，没有期限 💗": "All tracking features are free forever, no time limit 💗"},V={"记录与日历": "Ghi chép & lịch", "无限记录": "Ghi chép không giới hạn", "经期、症状、心情、体重、用药": "Kinh nguyệt, triệu chứng, tâm trạng, cân nặng, thuốc", "完整日历 + 全年视图": "Lịch đầy đủ + xem cả năm", "一页看完整年的周期": "Xem chu kỳ cả năm trong một trang", "经期与排卵预测": "Dự đoán kỳ kinh & rụng trứng", "每次记录后自动更新": "Tự cập nhật sau mỗi lần ghi", "搜索记录 · 误删可撤销": "Tìm bản ghi · hoàn tác khi lỡ xóa", "想找哪天都能找到": "Tìm lại bất kỳ ngày nào", "怀孕与产后": "Mang thai & sau sinh", "备孕 · 怀孕 · 产后模式": "Chế độ chuẩn bị mang thai · mang thai · sau sinh", "基础功能齐全": "Đầy đủ tính năng cơ bản", "每周宝宝大小与发育": "Kích thước & sự phát triển của bé mỗi tuần", "用可爱的水果比大小": "So sánh kích thước với trái cây dễ thương", "数胎动": "Đếm cử động thai", "自己记录宝宝的活动": "Tự ghi lại cử động của bé", "宝宝百科": "Cẩm nang bé", "给新手妈妈的知识": "Kiến thức cho mẹ mới", "照顾自己": "Chăm sóc bản thân", "自我护理自测": "Bài tự kiểm tra chăm sóc bản thân", "2 分钟更了解自己": "Hiểu bản thân hơn trong 2 phút", "随时导出数据": "Xuất dữ liệu bất cứ lúc nào", "数据永远是你的": "Dữ liệu luôn là của bạn", "Luna 本月观察（免费体验 2 次）": "Luna nhận xét tháng này (dùng thử 2 lần)", "看看 Luna 从你的记录里读到什么": "Xem Luna đọc được gì từ ghi chép của bạn", "好玩的": "Vui vẻ", "Lumi 4 个免费房间": "4 phòng Lumi miễn phí", "布置、陪伴 Lumi": "Trang trí và chơi cùng Lumi", "免费主题色 · 小游戏": "Màu giao diện miễn phí · mini game", "换个心情": "Đổi tâm trạng một chút", "所有记录功能永久免费，没有期限 💗": "Mọi tính năng ghi chép đều miễn phí mãi mãi, không giới hạn thời gian 💗"},k;window.LUNA_EN=window.LUNA_EN||{};window.LUNA_VI=window.LUNA_VI||{};for(k in E){ if(!(k in window.LUNA_EN)) window.LUNA_EN[k]=E[k]; }for(k in V){ if(!(k in window.LUNA_VI)) window.LUNA_VI[k]=V[k]; }}catch(e){}})();</script>
 <script id="lunaFreeList">
 /* 免费清单（升级版）：分 4 组小卡片，每条一句小说明。付费页的"免费版本"和试用介绍页的"免费永久套餐"共用这一份。

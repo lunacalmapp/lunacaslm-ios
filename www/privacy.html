@@ -110,7 +110,7 @@
 </div>
 
 <div class="container">
-  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: พฤศจิกายน 2026 (v8)</div>
+  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: พฤศจิกายน 2026 (v9)</div>
 
   <!-- 1 关于 -->
   <div class="section">
@@ -170,6 +170,8 @@
     <div class="item"><span class="bullet">•</span><span id="sNewI6"></span></div>
     <div class="item"><span class="bullet">•</span><span id="sNewI7"></span></div>
     <div class="item"><span class="bullet">•</span><span id="sNewI8"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sNewI9"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sNewI10"></span></div>
   </div>
 
   <!-- 5 安全 -->
@@ -234,7 +236,7 @@ const CONTENT = {
   th: {
     pageTitle: 'นโยบายความเป็นส่วนตัว',
     pageSubtitle: 'Luna Calm · ข้อมูลของคุณปลอดภัย',
-    updatedTxt: 'อัปเดตล่าสุด: พฤศจิกายน 2026 (v8)',
+    updatedTxt: 'อัปเดตล่าสุด: พฤศจิกายน 2026 (v9)',
     s1title: 'เกี่ยวกับแอปนี้',
     s1body: 'Luna Calm เป็นแอปสำหรับบันทึกและติดตามรอบเดือน อาการ และอารมณ์ เราเคารพความเป็นส่วนตัวของคุณ และนโยบายนี้อธิบายว่าเราเก็บ ใช้ และปกป้องข้อมูลของคุณอย่างไร',
     s2title: 'ข้อมูลที่เราเก็บ',
@@ -270,7 +272,9 @@ const CONTENT = {
     sNewI5: 'การลบบัญชี: คุณสามารถลบบัญชีและข้อมูลทั้งหมดได้เองในแอปที่ โปรไฟล์ → ลบบัญชีถาวร',
     sNewI6: 'ที่ตั้งและการส่งข้อมูลออกนอกประเทศ: ฐานข้อมูลและฟังก์ชันคลาวด์ของเราอยู่ที่ Google Firebase ภูมิภาคสิงคโปร์ ส่วนคำขอไปยัง Google Gemini (ผู้ช่วย AI) และ RevenueCat (ตรวจสอบการสมัครสมาชิก) อาจถูกประมวลผลนอกประเทศไทย รวมถึงสหรัฐอเมริกา ตามที่ตั้งศูนย์ข้อมูลของผู้ให้บริการเหล่านั้น เราส่งเฉพาะข้อมูลที่จำเป็นต่อฟีเจอร์นั้น ๆ',
     sNewI7: 'เมื่อคุณกด "ลบข้อมูล" หรือ "ลบบัญชีถาวร" ในแอป ข้อมูลสุขภาพและข้อมูลสำรองบนคลาวด์ของคุณจะถูกลบออกจากระบบของเรา ส่วนประวัติการสมัครสมาชิกที่ Apple, Google และ RevenueCat เก็บไว้ และบันทึกการทำงานของเซิร์ฟเวอร์ ถูกเก็บตามนโยบายของผู้ให้บริการแต่ละราย ซึ่งอยู่นอกเหนือการควบคุมของเรา',
-    sNewI8: 'การแชร์กับคู่ (ฟีเจอร์สำหรับสมาชิก ต้องเปิดเอง): เมื่อคุณสร้างลิงก์เชิญ เราจะเก็บบนเซิร์ฟเวอร์ (Firebase) เฉพาะข้อมูลที่จำเป็นต่อการแสดงสถานะ ได้แก่ ชื่อที่คุณตั้งให้คู่เห็น วันเริ่มประจำเดือนล่าสุด ความยาวรอบและระยะมีประจำเดือน (โหมดตั้งครรภ์เก็บวันกำหนดคลอด) อารมณ์วันนี้แบบ 5 ตัวเลือก (เฉพาะเมื่อคุณเปิด) และตัวเลือกว่าจะแชร์อะไร เราไม่เก็บและไม่แชร์อาการ บันทึกส่วนตัว ประวัติ หรืออีเมลของคุณในฟีเจอร์นี้ ใครก็ตามที่มีลิงก์จะเปิดดูหน้าสถานะได้โดยไม่ต้องล็อกอิน จึงควรส่งให้เฉพาะคนที่คุณไว้ใจ คุณหยุดแชร์ได้ทุกเมื่อ ข้อมูลที่เก็บไว้จะถูกลบทันทีและลิงก์จะใช้ไม่ได้ และเมื่อสมาชิกหมดอายุหรือคุณลบบัญชี การแชร์จะหยุดโดยอัตโนมัติ',
+    sNewI8: 'การแชร์กับคู่ (ฟีเจอร์สำหรับสมาชิก ต้องเปิดเอง): เมื่อคุณสร้างลิงก์เชิญ เราจะเก็บบนเซิร์ฟเวอร์ (Firebase) เฉพาะข้อมูลที่จำเป็นต่อการแสดงสถานะ ได้แก่ ชื่อที่คุณตั้งให้คู่เห็น วันเริ่มประจำเดือนล่าสุด ความยาวรอบและระยะมีประจำเดือน (โหมดตั้งครรภ์เก็บวันกำหนดคลอด) อารมณ์วันนี้แบบ 5 ตัวเลือก (เฉพาะเมื่อคุณเปิด) ชื่ออาการทั่วไปของวันนี้ไม่เกิน 4 อย่าง (เฉพาะเมื่อคุณเปิดสวิตช์อาการแยกต่างหาก ไม่รวมปริมาณ สี หรือโน้ต) และตัวเลือกว่าจะแชร์อะไร เรายังบันทึกว่าคู่ของคุณเปิดลิงก์หรือกด “ฉันดูแล้ว” หรือส่งการตอบกลับสั้นๆ (เช่น ส่งกอด) หรือไม่ และเวลาที่ทำ (บอทพรีวิวไม่นับ) ซึ่งมีเพียงคุณเท่านั้นที่เห็น เราไม่เก็บและไม่แชร์บันทึกส่วนตัว ประวัติ หรืออีเมลของคุณในฟีเจอร์นี้ ใครก็ตามที่มีลิงก์จะเปิดดูหน้าสถานะได้โดยไม่ต้องล็อกอิน จึงควรส่งให้เฉพาะคนที่คุณไว้ใจ คุณหยุดแชร์ได้ทุกเมื่อ ข้อมูลที่เก็บไว้จะถูกลบทันทีและลิงก์จะใช้ไม่ได้ และเมื่อสมาชิกหมดอายุหรือคุณลบบัญชี การแชร์จะหยุดโดยอัตโนมัติ',
+    sNewI9: 'บันทึกหลังคลอดและผลตรวจไข่ตก: บันทึกการให้นม น้ำคาวปลา การนอนหลับ และการตั้งค่าการเตือนในโหมดหลังคลอด รวมถึงวันที่และผลของที่ตรวจไข่ตก (ลบ/เส้นจาง/บวกชัด) จะซิงค์ไปเก็บบน Firebase โดยอัตโนมัติเมื่อคุณเข้าสู่ระบบ (ไม่ต้องกด "สำรองข้อมูลทันที") เพื่อให้กู้คืนได้เมื่อเปลี่ยนเครื่อง ข้อมูลเหล่านี้เป็นข้อมูลสุขภาพที่ละเอียดอ่อน ใช้เพื่อแสดงผล เตือน และคำนวณภายในแอปเท่านั้น ไม่ใช้เพื่อการโฆษณา และจะถูกลบพร้อมกับบัญชีเมื่อคุณลบบัญชี',
+    sNewI10: 'รูปถ่ายที่ตรวจไข่ตก: เมื่อคุณถ่ายภาพหรือเลือกภาพจากอัลบั้ม แอปจะขอสิทธิ์ใช้กล้องหรือคลังรูปภาพเฉพาะตอนที่คุณกดเท่านั้น รูปจะถูกเก็บไว้ในเครื่องของคุณเท่านั้น ไม่อัปโหลดไปยังเซิร์ฟเวอร์ของเรา (เก็บไว้ประมาณ 3 เดือน) และจะหายไปเมื่อคุณลบแอป',
     s5title: 'ความปลอดภัย',
     s5i1: 'การเข้าถึงฐานข้อมูลถูกควบคุมด้วยการยืนยันตัวตน และเราใช้มาตรการที่เหมาะสมในการปกป้องข้อมูล',
     s5i2: 'แนะนำให้ตั้งรหัสผ่านหรือ PIN บนอุปกรณ์เพื่อความปลอดภัยเพิ่มเติม',
@@ -301,7 +305,7 @@ const CONTENT = {
   zh: {
     pageTitle: '隐私政策',
     pageSubtitle: 'Luna Calm · 您的数据安全有保障',
-    updatedTxt: '最后更新：2026年11月 (v8)',
+    updatedTxt: '最后更新：2026年11月 (v9)',
     s1title: '关于本App',
     s1body: 'Luna Calm 是一款用于记录和追踪月经周期、症状与心情的应用。我们尊重您的隐私，本政策说明我们如何收集、使用和保护您的数据。',
     s2title: '我们收集的数据',
@@ -337,7 +341,9 @@ const CONTENT = {
     sNewI5: '删除账号：您可以在 App 内 我的 → 永久删除账号 中自行删除账号及全部数据',
     sNewI6: '数据位置与跨境传输：我们的数据库和云函数位于 Google Firebase 新加坡区域；发往 Google Gemini（AI 小助手）和 RevenueCat（订阅核验）的请求，可能依据这些服务商的数据中心所在地在泰国境外（包括美国）处理。我们只发送该功能所必需的数据',
     sNewI7: '当您在 App 内点击“删除数据”或“永久删除账号”后，您的健康数据和云端备份会从我们的系统中删除。Apple、Google 和 RevenueCat 保存的订阅记录，以及服务器运行日志，按各服务商自己的政策保留，不在我们控制范围内',
-    sNewI8: '与伴侣分享（会员功能，需您主动开启）：当您生成邀请链接时，我们会在服务器（Firebase）上保存显示状态所必需的信息：您设置的称呼、上次经期开始日、周期与经期天数（怀孕模式为预产期）、今天的心情（5 选 1，仅在您开启时），以及您选择分享的内容。此功能不会保存或分享您的症状、备注、历史记录或邮箱。任何拿到链接的人都能在不登录的情况下查看该状态页面，请只发给您信任的人。您可以随时停止共享，已保存的数据会立即删除、链接随即失效；会员到期或删除账号后，共享也会自动停止。',
+    sNewI8: '与伴侣分享（会员功能，需您主动开启）：当您生成邀请链接时，我们会在服务器（Firebase）上保存显示状态所必需的信息：您设置的称呼、上次经期开始日、周期与经期天数（怀孕模式为预产期）、今天的心情（5 选 1，仅在您开启时）、今天的常见症状名称（最多 4 个，仅在您单独开启症状开关时；不含出血量、颜色、备注），以及您选择分享的内容。我们还会记录对方是否打开过链接、是否点击“我看过了”、是否发送简短回应（如“抱抱”）及发生时间（预览机器人不计），仅您本人可见。此功能不会保存或分享您的备注、历史记录或邮箱。任何拿到链接的人都能在不登录的情况下查看该状态页面，请只发给您信任的人。您可以随时停止共享，已保存的数据会立即删除、链接随即失效；会员到期或删除账号后，共享也会自动停止。',
+    sNewI9: '产后护理与排卵试纸记录：产后模式里的喂奶、恶露、睡眠记录和提醒设置，以及排卵试纸的日期和结果（阴性/弱阳/强阳），会在您登录后自动同步保存到 Firebase（不需要点“立即备份”），方便您换手机后找回。这些属于敏感健康数据，仅用于 App 内展示、提醒和计算，不用于广告；删除账号时一并删除',
+    sNewI10: '排卵试纸照片：当您拍照或从相册选图时，App 只会在您点按的那一刻请求相机或相册权限。照片只保存在您自己的手机里，不会上传到我们的服务器（约保留 3 个月），删除 App 后也会消失',
     s5title: '安全性',
     s5i1: '数据库访问受身份验证控制，我们采取合理措施保护您的数据',
     s5i2: '建议在设备上设置密码或PIN码以增强安全',
@@ -368,7 +374,7 @@ const CONTENT = {
   en: {
   "pageTitle": "Privacy Policy",
   "pageSubtitle": "Luna Calm · Your data is safe with us",
-  "updatedTxt": "Last updated: November 2026 (v8)",
+  "updatedTxt": "Last updated: November 2026 (v9)",
   "s1title": "About this app",
   "s1body": "Luna Calm is an app for logging and tracking your menstrual cycle, symptoms, and mood. We respect your privacy. This policy explains how we collect, use, and protect your data.",
   "s2title": "Data we collect",
@@ -404,7 +410,9 @@ const CONTENT = {
   "sNewI5": "Deleting your account: you can delete your account and all of your data yourself in the app under Me → Delete account permanently",
   "sNewI6": "Data location and cross-border transfers: our database and cloud functions are in the Google Firebase Singapore region. Requests sent to Google Gemini (AI assistant) and RevenueCat (subscription verification) may be processed outside Thailand (including in the United States), depending on where those providers' data centers are. We send only the data a feature needs",
   "sNewI7": "When you tap \"Delete data\" or \"Delete account permanently\" in the app, your health data and cloud backups are deleted from our systems. Subscription records kept by Apple, Google, and RevenueCat, as well as server operation logs, are retained under each provider's own policies and are outside our control",
-  "sNewI8": "Sharing with a partner (a membership feature that you turn on yourself): when you create an invite link, we store on our server (Firebase) only what is needed to show your status: the name you choose for your partner to see, your last period start date, cycle and period length (the due date in pregnancy mode), today's mood as one of 5 options (only if you turn it on), and your choices of what to share. We do not store or share your symptoms, notes, history or email for this feature. Anyone who has the link can open the status page without signing in, so send it only to people you trust. You can stop sharing at any time: the stored data is deleted immediately and the link stops working. Sharing also stops automatically when your membership ends or you delete your account.",
+  "sNewI8": "Sharing with a partner (a membership feature that you turn on yourself): when you create an invite link, we store on our server (Firebase) only what is needed to show your status: the name you choose for your partner to see, your last period start date, cycle and period length (the due date in pregnancy mode), today's mood as one of 5 options (only if you turn it on), up to 4 common symptom names for today (only if you turn on the separate symptoms switch; never flow, colour or notes), and your choices of what to share. We also record whether your partner opened the link or tapped “I've seen it” or sent a short reply (such as a hug), and when (link-preview bots are not counted); only you can see this. We do not store or share your notes, history or email for this feature. Anyone who has the link can open the status page without signing in, so send it only to people you trust. You can stop sharing at any time: the stored data is deleted immediately and the link stops working. Sharing also stops automatically when your membership ends or you delete your account.",
+  "sNewI9": "Postpartum care and ovulation-test records: the feeding, lochia and sleep logs and reminder settings in postpartum mode, plus the date and result of ovulation tests (negative / faint / positive), are automatically synced and stored on Firebase when you are signed in (you do not need to tap \"Back up now\"), so you can restore them on a new phone. This is sensitive health data, used only for display, reminders and calculations inside the app, never for advertising, and it is deleted together with your account when you delete the account",
+  "sNewI10": "Ovulation-test photos: when you take a photo or choose one from your gallery, the app asks for camera or photo-library permission only at the moment you tap. The photos are kept only on your own phone and are not uploaded to our servers (kept for about 3 months); they disappear when you delete the app",
   "s5title": "Security",
   "s5i1": "Database access is controlled by authentication, and we take reasonable measures to protect your data",
   "s5i2": "We recommend setting a passcode or PIN on your device for extra security",
@@ -428,7 +436,7 @@ const CONTENT = {
   vi: {
  "pageTitle": "Chính sách quyền riêng tư",
  "pageSubtitle": "Luna Calm · Dữ liệu của bạn được an toàn với chúng tôi",
- "updatedTxt": "Cập nhật lần cuối: tháng 11/2026 (v8)",
+ "updatedTxt": "Cập nhật lần cuối: tháng 11/2026 (v9)",
  "s1title": "Về ứng dụng này",
  "s1body": "Luna Calm là ứng dụng ghi chép và theo dõi chu kỳ kinh nguyệt, triệu chứng và tâm trạng của bạn. Chúng tôi tôn trọng quyền riêng tư của bạn. Chính sách này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn.",
  "s2title": "Dữ liệu chúng tôi thu thập",
@@ -464,7 +472,9 @@ const CONTENT = {
  "sNewI5": "Xóa tài khoản: bạn có thể tự xóa tài khoản và toàn bộ dữ liệu của mình trong ứng dụng tại Tôi → Xóa vĩnh viễn tài khoản",
  "sNewI6": "Vị trí dữ liệu và chuyển dữ liệu xuyên biên giới: cơ sở dữ liệu và các hàm đám mây của chúng tôi nằm ở khu vực Google Firebase Singapore. Các yêu cầu gửi tới Google Gemini (trợ lý AI) và RevenueCat (xác minh đăng ký) có thể được xử lý bên ngoài Thái Lan (bao gồm cả tại Hoa Kỳ), tùy thuộc vào vị trí trung tâm dữ liệu của các nhà cung cấp đó. Chúng tôi chỉ gửi những dữ liệu mà một tính năng cần",
  "sNewI7": "Khi bạn chạm \"Xóa dữ liệu\" hoặc \"Xóa vĩnh viễn tài khoản\" trong ứng dụng, dữ liệu sức khỏe và các bản sao lưu đám mây của bạn sẽ bị xóa khỏi hệ thống của chúng tôi. Các bản ghi đăng ký do Apple, Google và RevenueCat lưu giữ, cũng như nhật ký vận hành máy chủ, được giữ lại theo chính sách riêng của từng nhà cung cấp và nằm ngoài tầm kiểm soát của chúng tôi",
- "sNewI8": "Chia sẻ với bạn đời (tính năng dành cho hội viên, do bạn tự bật): khi bạn tạo liên kết mời, chúng tôi chỉ lưu trên máy chủ (Firebase) những thông tin cần để hiển thị trạng thái: tên bạn chọn cho bạn đời thấy, ngày bắt đầu kỳ kinh gần nhất, độ dài chu kỳ và kỳ kinh (chế độ thai kỳ lưu ngày dự sinh), tâm trạng hôm nay trong 5 lựa chọn (chỉ khi bạn bật), và lựa chọn nội dung chia sẻ. Chúng tôi không lưu hay chia sẻ triệu chứng, ghi chú, lịch sử hoặc email của bạn cho tính năng này. Bất kỳ ai có liên kết đều mở được trang trạng thái mà không cần đăng nhập, vì vậy chỉ gửi cho người bạn tin tưởng. Bạn có thể dừng chia sẻ bất cứ lúc nào: dữ liệu đã lưu bị xóa ngay và liên kết ngừng hoạt động. Việc chia sẻ cũng tự dừng khi gói hội viên hết hạn hoặc bạn xóa tài khoản.",
+ "sNewI8": "Chia sẻ với bạn đời (tính năng dành cho hội viên, do bạn tự bật): khi bạn tạo liên kết mời, chúng tôi chỉ lưu trên máy chủ (Firebase) những thông tin cần để hiển thị trạng thái: tên bạn chọn cho bạn đời thấy, ngày bắt đầu kỳ kinh gần nhất, độ dài chu kỳ và kỳ kinh (chế độ thai kỳ lưu ngày dự sinh), tâm trạng hôm nay trong 5 lựa chọn (chỉ khi bạn bật), tối đa 4 tên triệu chứng thông thường của hôm nay (chỉ khi bạn bật riêng công tắc triệu chứng; không gồm lượng, màu hay ghi chú), và lựa chọn nội dung chia sẻ. Chúng tôi cũng ghi lại việc bạn đời có mở liên kết hoặc bấm “Mình đã xem” hay gửi lời nhắn ngắn (như một cái ôm) hay không và thời điểm (bot xem trước không tính); chỉ bạn nhìn thấy. Chúng tôi không lưu hay chia sẻ ghi chú, lịch sử hoặc email của bạn cho tính năng này. Bất kỳ ai có liên kết đều mở được trang trạng thái mà không cần đăng nhập, vì vậy chỉ gửi cho người bạn tin tưởng. Bạn có thể dừng chia sẻ bất cứ lúc nào: dữ liệu đã lưu bị xóa ngay và liên kết ngừng hoạt động. Việc chia sẻ cũng tự dừng khi gói hội viên hết hạn hoặc bạn xóa tài khoản.",
+ "sNewI9": "Ghi chép sau sinh và que thử rụng trứng: nhật ký cho bú, sản dịch, giấc ngủ cùng cài đặt nhắc nhở trong chế độ sau sinh, và ngày cùng kết quả que thử rụng trứng (âm tính / vạch nhạt / dương tính) sẽ được tự động đồng bộ và lưu trên Firebase khi bạn đăng nhập (không cần chạm \"Sao lưu ngay\"), để bạn khôi phục khi đổi điện thoại. Đây là dữ liệu sức khỏe nhạy cảm, chỉ dùng để hiển thị, nhắc nhở và tính toán trong ứng dụng, không dùng cho quảng cáo, và sẽ bị xóa cùng tài khoản khi bạn xóa tài khoản",
+ "sNewI10": "Ảnh que thử rụng trứng: khi bạn chụp ảnh hoặc chọn ảnh từ thư viện, ứng dụng chỉ xin quyền camera hoặc thư viện ảnh vào đúng lúc bạn chạm. Ảnh chỉ được lưu trên điện thoại của bạn, không tải lên máy chủ của chúng tôi (giữ khoảng 3 tháng) và sẽ mất khi bạn xóa ứng dụng",
  "s5title": "Bảo mật",
  "s5i1": "Quyền truy cập cơ sở dữ liệu được kiểm soát bằng xác thực, và chúng tôi thực hiện các biện pháp hợp lý để bảo vệ dữ liệu của bạn",
  "s5i2": "Chúng tôi khuyên bạn đặt mật mã hoặc mã PIN cho thiết bị để tăng thêm bảo mật",

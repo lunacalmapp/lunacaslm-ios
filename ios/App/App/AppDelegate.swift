@@ -93,3 +93,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+// ───────── 换桌面图标插件（App 里调用 Capacitor.Plugins.LunaAppIcon.setIcon({name})）─────────
+// 图标图片放在 Assets.xcassets 里，名字叫 Icon-xxx；name = "luna" 表示恢复默认图标。
+// iOS 每次换图标都会弹出系统自带的提示（"您已更改图标"），这个无法去掉，也不能改文字。
+@objc(LunaAppIconPlugin)
+public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "LunaAppIconPlugin"
+    public let jsName = "LunaAppIcon"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "setIcon", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func setIcon(_ call: CAPPluginCall) {
+        let name = call.getString("name") ?? "luna"
+        DispatchQueue.main.async {
+            guard UIApplication.shared.supportsAlternateIcons else {
+                call.reject("alternate icons not supported")
+                return
+            }
+            let target: String? = (name == "luna") ? nil : "Icon-" + name
+            UIApplication.shared.setAlternateIconName(target) { error in
+                if let error = error {
+                    call.reject(error.localizedDescription)
+                } else {
+                    call.resolve()
+                }
+            }
+        }
+    }
+}
+
+// 让 Capacitor 在网页加载之前就认识上面这个插件
+@objc(MainViewController)
+class MainViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(LunaAppIconPlugin())
+    }
+}

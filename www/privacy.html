@@ -111,7 +111,7 @@
 </div>
 
 <div class="container">
-  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: พฤศจิกายน 2026 (v9)</div>
+  <div class="updated" id="updatedTxt">อัปเดตล่าสุด: พฤศจิกายน 2026 (v10)</div>
 
   <!-- 1 关于 -->
   <div class="section">
@@ -173,6 +173,9 @@
     <div class="item"><span class="bullet">•</span><span id="sNewI8"></span></div>
     <div class="item"><span class="bullet">•</span><span id="sNewI9"></span></div>
     <div class="item"><span class="bullet">•</span><span id="sNewI10"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sNewI11"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sNewI12"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sNewI13"></span></div>
   </div>
 
   <!-- 5 安全 -->
@@ -237,7 +240,7 @@ const CONTENT = {
   th: {
     pageTitle: 'นโยบายความเป็นส่วนตัว',
     pageSubtitle: 'Luna Calm · ข้อมูลของคุณปลอดภัย',
-    updatedTxt: 'อัปเดตล่าสุด: พฤศจิกายน 2026 (v9)',
+    updatedTxt: 'อัปเดตล่าสุด: พฤศจิกายน 2026 (v10)',
     s1title: 'เกี่ยวกับแอปนี้',
     s1body: 'Luna Calm เป็นแอปสำหรับบันทึกและติดตามรอบเดือน อาการ และอารมณ์ เราเคารพความเป็นส่วนตัวของคุณ และนโยบายนี้อธิบายว่าเราเก็บ ใช้ และปกป้องข้อมูลของคุณอย่างไร',
     s2title: 'ข้อมูลที่เราเก็บ',
@@ -276,6 +279,9 @@ const CONTENT = {
     sNewI8: 'การแชร์กับคู่ (ฟีเจอร์สำหรับสมาชิก ต้องเปิดเอง): เมื่อคุณสร้างลิงก์เชิญ เราจะเก็บบนเซิร์ฟเวอร์ (Firebase) เฉพาะข้อมูลที่จำเป็นต่อการแสดงสถานะ ได้แก่ ชื่อที่คุณตั้งให้คู่เห็น วันเริ่มประจำเดือนล่าสุด ความยาวรอบและระยะมีประจำเดือน (โหมดตั้งครรภ์เก็บวันกำหนดคลอด) อารมณ์วันนี้แบบ 5 ตัวเลือก (เฉพาะเมื่อคุณเปิด) ชื่ออาการทั่วไปของวันนี้ไม่เกิน 4 อย่าง (เฉพาะเมื่อคุณเปิดสวิตช์อาการแยกต่างหาก ไม่รวมปริมาณ สี หรือโน้ต) และตัวเลือกว่าจะแชร์อะไร เรายังบันทึกว่าคู่ของคุณเปิดลิงก์หรือกด “ฉันดูแล้ว” หรือส่งการตอบกลับสั้นๆ (เช่น ส่งกอด) หรือไม่ และเวลาที่ทำ (บอทพรีวิวไม่นับ) ซึ่งมีเพียงคุณเท่านั้นที่เห็น เราไม่เก็บและไม่แชร์บันทึกส่วนตัว ประวัติ หรืออีเมลของคุณในฟีเจอร์นี้ ใครก็ตามที่มีลิงก์จะเปิดดูหน้าสถานะได้โดยไม่ต้องล็อกอิน จึงควรส่งให้เฉพาะคนที่คุณไว้ใจ คุณหยุดแชร์ได้ทุกเมื่อ ข้อมูลที่เก็บไว้จะถูกลบทันทีและลิงก์จะใช้ไม่ได้ และเมื่อสมาชิกหมดอายุหรือคุณลบบัญชี การแชร์จะหยุดโดยอัตโนมัติ',
     sNewI9: 'บันทึกหลังคลอดและผลตรวจไข่ตก: บันทึกการให้นม น้ำคาวปลา การนอนหลับ และการตั้งค่าการเตือนในโหมดหลังคลอด รวมถึงวันที่และผลของที่ตรวจไข่ตก (ลบ/เส้นจาง/บวกชัด) จะซิงค์ไปเก็บบน Firebase โดยอัตโนมัติเมื่อคุณเข้าสู่ระบบ (ไม่ต้องกด "สำรองข้อมูลทันที") เพื่อให้กู้คืนได้เมื่อเปลี่ยนเครื่อง ข้อมูลเหล่านี้เป็นข้อมูลสุขภาพที่ละเอียดอ่อน ใช้เพื่อแสดงผล เตือน และคำนวณภายในแอปเท่านั้น ไม่ใช้เพื่อการโฆษณา และจะถูกลบพร้อมกับบัญชีเมื่อคุณลบบัญชี',
     sNewI10: 'รูปถ่ายที่ตรวจไข่ตก: เมื่อคุณถ่ายภาพหรือเลือกภาพจากอัลบั้ม แอปจะขอสิทธิ์ใช้กล้องหรือคลังรูปภาพเฉพาะตอนที่คุณกดเท่านั้น รูปจะถูกเก็บไว้ในเครื่องของคุณเท่านั้น ไม่อัปโหลดไปยังเซิร์ฟเวอร์ของเรา (เก็บไว้ประมาณ 3 เดือน) และจะหายไปเมื่อคุณลบแอป',
+    sNewI11: 'โหมดส่วนตัว (ล็อกแอปใช้ฟรี ไอคอนบางแบบเป็นฟีเจอร์สำหรับสมาชิก): PIN ของการล็อกแอปจะถูกเก็บไว้ในเครื่องของคุณในรูปแบบค่าแฮชเท่านั้น ไม่อัปโหลดขึ้นเซิร์ฟเวอร์ และเราไม่สามารถกู้คืนให้คุณได้ ส่วน Face ID / ลายนิ้วมือ ระบบของโทรศัพท์เป็นผู้ตรวจสอบ แอปไม่ได้รับใบหน้าหรือลายนิ้วมือของคุณ "ซ่อนหน้าจอเมื่อสลับไปแอปอื่น" จะบังภาพตัวอย่างในหน้าสลับแอปของโทรศัพท์เท่านั้น การเปลี่ยนไอคอนบนหน้าจอหลักเปลี่ยนแค่หน้าตาไอคอนบนโทรศัพท์ ไม่เก็บข้อมูลเพิ่มเติม หากลืม PIN การกด "ลืม PIN" ที่หน้าจอล็อกจะออกจากระบบและล้างข้อมูลในเครื่องนี้ ข้อมูลที่สำรองไว้บนคลาวด์แล้วจะกลับมาเมื่อเข้าสู่ระบบด้วยบัญชีเดิม',
+    sNewI12: 'สถิติการใช้งาน: เพื่อปรับปรุงฟีเจอร์ เราบันทึกว่าคุณใช้ฟีเจอร์ใดในแอป (เช่น เปิดหน้าไหน เลือกธีมสีอะไร เปิดโหมดส่วนตัวหรือไม่ เลือกไอคอนหน้าจอหลักแบบไหน) บันทึกเหล่านี้เชื่อมกับรหัสบัญชีของคุณ (หากยังไม่ได้เข้าสู่ระบบจะเป็นรหัสอุปกรณ์แบบไม่ระบุตัวตนที่สุ่มสร้างขึ้น) และใช้เพื่อดูว่าฟีเจอร์ใดใช้งานดีเท่านั้น ไม่รวมข้อมูลสุขภาพ บันทึก หรือข้อความแชตที่คุณกรอก',
+    sNewI13: 'สรุปรอบเดือน: สร้างขึ้นบนโทรศัพท์ของคุณจากข้อมูลที่คุณบันทึกไว้แล้ว ไม่มีการอัปโหลดข้อมูลเพิ่มเพื่อฟีเจอร์นี้',
     s5title: 'ความปลอดภัย',
     s5i1: 'การเข้าถึงฐานข้อมูลถูกควบคุมด้วยการยืนยันตัวตน และเราใช้มาตรการที่เหมาะสมในการปกป้องข้อมูล',
     s5i2: 'แนะนำให้ตั้งรหัสผ่านหรือ PIN บนอุปกรณ์เพื่อความปลอดภัยเพิ่มเติม',
@@ -306,7 +312,7 @@ const CONTENT = {
   zh: {
     pageTitle: '隐私政策',
     pageSubtitle: 'Luna Calm · 您的数据安全有保障',
-    updatedTxt: '最后更新：2026年11月 (v9)',
+    updatedTxt: '最后更新：2026年11月 (v10)',
     s1title: '关于本App',
     s1body: 'Luna Calm 是一款用于记录和追踪月经周期、症状与心情的应用。我们尊重您的隐私，本政策说明我们如何收集、使用和保护您的数据。',
     s2title: '我们收集的数据',
@@ -345,6 +351,9 @@ const CONTENT = {
     sNewI8: '与伴侣分享（会员功能，需您主动开启）：当您生成邀请链接时，我们会在服务器（Firebase）上保存显示状态所必需的信息：您设置的称呼、上次经期开始日、周期与经期天数（怀孕模式为预产期）、今天的心情（5 选 1，仅在您开启时）、今天的常见症状名称（最多 4 个，仅在您单独开启症状开关时；不含出血量、颜色、备注），以及您选择分享的内容。我们还会记录对方是否打开过链接、是否点击“我看过了”、是否发送简短回应（如“抱抱”）及发生时间（预览机器人不计），仅您本人可见。此功能不会保存或分享您的备注、历史记录或邮箱。任何拿到链接的人都能在不登录的情况下查看该状态页面，请只发给您信任的人。您可以随时停止共享，已保存的数据会立即删除、链接随即失效；会员到期或删除账号后，共享也会自动停止。',
     sNewI9: '产后护理与排卵试纸记录：产后模式里的喂奶、恶露、睡眠记录和提醒设置，以及排卵试纸的日期和结果（阴性/弱阳/强阳），会在您登录后自动同步保存到 Firebase（不需要点“立即备份”），方便您换手机后找回。这些属于敏感健康数据，仅用于 App 内展示、提醒和计算，不用于广告；删除账号时一并删除',
     sNewI10: '排卵试纸照片：当您拍照或从相册选图时，App 只会在您点按的那一刻请求相机或相册权限。照片只保存在您自己的手机里，不会上传到我们的服务器（约保留 3 个月），删除 App 后也会消失',
+    sNewI11: '私密模式（应用锁免费，部分桌面图标为会员功能）：应用锁的 PIN 只以加密摘要（哈希）的形式保存在您的手机上，不会上传到服务器，我们也无法帮您找回；Face ID／指纹由手机系统验证，App 拿不到您的脸或指纹。“切到后台时隐藏画面”只在您的手机上遮住多任务界面里的预览。更换桌面图标只改变手机桌面上图标的样子，不会收集额外数据。忘记 PIN 时，在锁屏点“忘记 PIN”会退出登录并清除这台手机上的本地数据；已经备份到云端的数据，用同一个账号重新登录即可找回。',
+    sNewI12: '使用统计：为了改进功能，我们会记录您在 App 里用了哪些功能（例如打开了哪个页面、选了哪个主题色、是否开启私密模式、换了哪个桌面图标），这些记录与您的账号 ID（未登录时为随机生成的设备匿名 ID）关联，只用于了解功能好不好用；不包含您记录的健康内容、备注或聊天文字。',
+    sNewI13: '周期回顾：根据您已经记录的数据在您的手机上生成，不会为此额外上传数据。',
     s5title: '安全性',
     s5i1: '数据库访问受身份验证控制，我们采取合理措施保护您的数据',
     s5i2: '建议在设备上设置密码或PIN码以增强安全',
@@ -375,7 +384,7 @@ const CONTENT = {
   tw: {
     pageTitle: '隱私政策',
     pageSubtitle: 'Luna Calm · 您的資料安全有保障',
-    updatedTxt: '最後更新：2026年11月 (v9)',
+    updatedTxt: '最後更新：2026年11月 (v10)',
     s1title: '關於本App',
     s1body: 'Luna Calm 是一款用於記錄和追蹤月經週期、症狀與心情的應用。我們尊重您的隱私，本政策說明我們如何收集、使用和保護您的資料。',
     s2title: '我們收集的資料',
@@ -414,6 +423,9 @@ const CONTENT = {
     sNewI8: '與伴侶分享（會員功能，需您主動開啟）：當您生成邀請連結時，我們會在伺服器（Firebase）上儲存顯示狀態所必需的資訊：您設定的稱呼、上次經期開始日、週期與經期天數（懷孕模式為預產期）、今天的心情（5 選 1，僅在您開啟時）、今天的常見症狀名稱（最多 4 個，僅在您單獨開啟症狀開關時；不含出血量、顏色、備註），以及您選擇分享的內容。我們還會記錄對方是否開啟過連結、是否點選“我看過了”、是否傳送簡短回應（如“抱抱”）及發生時間（預覽機器人不計），僅您本人可見。此功能不會儲存或分享您的備註、歷史記錄或電子郵件。任何拿到連結的人都能在不登入的情況下檢視該狀態頁面，請只發給您信任的人。您可以隨時停止共享，已儲存的資料會立即刪除、連結隨即失效；會員到期或刪除帳號後，共享也會自動停止。',
     sNewI9: '產後護理與排卵試紙記錄：產後模式裡的餵奶、惡露、睡眠記錄和提醒設定，以及排卵試紙的日期和結果（陰性/弱陽/強陽），會在您登入後自動同步儲存到 Firebase（不需要點“立即備份”），方便您換手機後找回。這些屬于敏感健康資料，僅用於 App 內展示、提醒和計算，不用於廣告；刪除帳號時一併刪除',
     sNewI10: '排卵試紙照片：當您拍照或從相簿選圖時，App 只會在您點按的那一刻請求相機或相簿許可權。照片只儲存在您自己的手機裡，不會上傳到我們的伺服器（約保留 3 個月），刪除 App 後也會消失',
+    sNewI11: '私密模式（應用鎖免費，部分桌面圖示為會員功能）：應用鎖的 PIN 只以加密摘要（雜湊）的形式儲存在您的手機上，不會上傳到伺服器，我們也無法幫您找回；Face ID／指紋由手機系統驗證，App 拿不到您的臉或指紋。「切到背景時隱藏畫面」只在您的手機上遮住多工介面裡的預覽。更換桌面圖示只改變手機桌面上圖示的樣子，不會收集額外資料。忘記 PIN 時，在鎖定畫面點「忘記 PIN」會登出並清除這支手機上的本機資料；已經備份到雲端的資料，用同一個帳號重新登入即可找回。',
+    sNewI12: '使用統計：為了改進功能，我們會記錄您在 App 裡用了哪些功能（例如開啟了哪個頁面、選了哪個主題色、是否開啟私密模式、換了哪個桌面圖示），這些記錄與您的帳號 ID（未登入時為隨機產生的裝置匿名 ID）關聯，只用於了解功能好不好用；不包含您記錄的健康內容、備註或聊天文字。',
+    sNewI13: '週期回顧：根據您已經記錄的資料在您的手機上產生，不會為此額外上傳資料。',
     s5title: '安全性',
     s5i1: '資料庫訪問受身份驗證控制，我們採取合理措施保護您的資料',
     s5i2: '建議在裝置上設定密碼或PIN碼以增強安全',
@@ -444,7 +456,7 @@ const CONTENT = {
   en: {
   "pageTitle": "Privacy Policy",
   "pageSubtitle": "Luna Calm · Your data is safe with us",
-  "updatedTxt": "Last updated: November 2026 (v9)",
+  "updatedTxt": "Last updated: November 2026 (v10)",
   "s1title": "About this app",
   "s1body": "Luna Calm is an app for logging and tracking your menstrual cycle, symptoms, and mood. We respect your privacy. This policy explains how we collect, use, and protect your data.",
   "s2title": "Data we collect",
@@ -483,6 +495,9 @@ const CONTENT = {
   "sNewI8": "Sharing with a partner (a membership feature that you turn on yourself): when you create an invite link, we store on our server (Firebase) only what is needed to show your status: the name you choose for your partner to see, your last period start date, cycle and period length (the due date in pregnancy mode), today's mood as one of 5 options (only if you turn it on), up to 4 common symptom names for today (only if you turn on the separate symptoms switch; never flow, colour or notes), and your choices of what to share. We also record whether your partner opened the link or tapped “I've seen it” or sent a short reply (such as a hug), and when (link-preview bots are not counted); only you can see this. We do not store or share your notes, history or email for this feature. Anyone who has the link can open the status page without signing in, so send it only to people you trust. You can stop sharing at any time: the stored data is deleted immediately and the link stops working. Sharing also stops automatically when your membership ends or you delete your account.",
   "sNewI9": "Postpartum care and ovulation-test records: the feeding, lochia and sleep logs and reminder settings in postpartum mode, plus the date and result of ovulation tests (negative / faint / positive), are automatically synced and stored on Firebase when you are signed in (you do not need to tap \"Back up now\"), so you can restore them on a new phone. This is sensitive health data, used only for display, reminders and calculations inside the app, never for advertising, and it is deleted together with your account when you delete the account",
   "sNewI10": "Ovulation-test photos: when you take a photo or choose one from your gallery, the app asks for camera or photo-library permission only at the moment you tap. The photos are kept only on your own phone and are not uploaded to our servers (kept for about 3 months); they disappear when you delete the app",
+  "sNewI11": "Private mode (the app lock is free; some home-screen icons are a membership feature): your app-lock PIN is stored on your phone only as a hash and is never uploaded, and we cannot recover it for you. Face ID / fingerprint is checked by your phone's operating system — the app never receives your face or fingerprint. \"Hide screen when in background\" only covers the preview in your phone's app switcher. Changing the home-screen icon only changes how the icon looks on your phone and collects no extra data. If you forget your PIN, tapping \"Forgot PIN\" on the lock screen signs you out and clears the local data on this phone; data already backed up to the cloud comes back when you sign in again with the same account.",
+  "sNewI12": "Usage statistics: to improve the app, we record which features you use (for example which page you open, which theme color you pick, whether you turn on private mode, or which home-screen icon you choose). These records are linked to your account ID (or to a randomly generated anonymous device ID when you are not signed in) and are used only to understand which features work well. They do not include the health content, notes, or chat text you enter.",
+  "sNewI13": "Cycle recap: it is generated on your phone from the data you have already logged, and no extra data is uploaded for it.",
   "s5title": "Security",
   "s5i1": "Database access is controlled by authentication, and we take reasonable measures to protect your data",
   "s5i2": "We recommend setting a passcode or PIN on your device for extra security",
@@ -506,7 +521,7 @@ const CONTENT = {
   vi: {
  "pageTitle": "Chính sách quyền riêng tư",
  "pageSubtitle": "Luna Calm · Dữ liệu của bạn được an toàn với chúng tôi",
- "updatedTxt": "Cập nhật lần cuối: tháng 11/2026 (v9)",
+ "updatedTxt": "Cập nhật lần cuối: tháng 11/2026 (v10)",
  "s1title": "Về ứng dụng này",
  "s1body": "Luna Calm là ứng dụng ghi chép và theo dõi chu kỳ kinh nguyệt, triệu chứng và tâm trạng của bạn. Chúng tôi tôn trọng quyền riêng tư của bạn. Chính sách này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu của bạn.",
  "s2title": "Dữ liệu chúng tôi thu thập",
@@ -545,6 +560,9 @@ const CONTENT = {
  "sNewI8": "Chia sẻ với bạn đời (tính năng dành cho hội viên, do bạn tự bật): khi bạn tạo liên kết mời, chúng tôi chỉ lưu trên máy chủ (Firebase) những thông tin cần để hiển thị trạng thái: tên bạn chọn cho bạn đời thấy, ngày bắt đầu kỳ kinh gần nhất, độ dài chu kỳ và kỳ kinh (chế độ thai kỳ lưu ngày dự sinh), tâm trạng hôm nay trong 5 lựa chọn (chỉ khi bạn bật), tối đa 4 tên triệu chứng thông thường của hôm nay (chỉ khi bạn bật riêng công tắc triệu chứng; không gồm lượng, màu hay ghi chú), và lựa chọn nội dung chia sẻ. Chúng tôi cũng ghi lại việc bạn đời có mở liên kết hoặc bấm “Mình đã xem” hay gửi lời nhắn ngắn (như một cái ôm) hay không và thời điểm (bot xem trước không tính); chỉ bạn nhìn thấy. Chúng tôi không lưu hay chia sẻ ghi chú, lịch sử hoặc email của bạn cho tính năng này. Bất kỳ ai có liên kết đều mở được trang trạng thái mà không cần đăng nhập, vì vậy chỉ gửi cho người bạn tin tưởng. Bạn có thể dừng chia sẻ bất cứ lúc nào: dữ liệu đã lưu bị xóa ngay và liên kết ngừng hoạt động. Việc chia sẻ cũng tự dừng khi gói hội viên hết hạn hoặc bạn xóa tài khoản.",
  "sNewI9": "Ghi chép sau sinh và que thử rụng trứng: nhật ký cho bú, sản dịch, giấc ngủ cùng cài đặt nhắc nhở trong chế độ sau sinh, và ngày cùng kết quả que thử rụng trứng (âm tính / vạch nhạt / dương tính) sẽ được tự động đồng bộ và lưu trên Firebase khi bạn đăng nhập (không cần chạm \"Sao lưu ngay\"), để bạn khôi phục khi đổi điện thoại. Đây là dữ liệu sức khỏe nhạy cảm, chỉ dùng để hiển thị, nhắc nhở và tính toán trong ứng dụng, không dùng cho quảng cáo, và sẽ bị xóa cùng tài khoản khi bạn xóa tài khoản",
  "sNewI10": "Ảnh que thử rụng trứng: khi bạn chụp ảnh hoặc chọn ảnh từ thư viện, ứng dụng chỉ xin quyền camera hoặc thư viện ảnh vào đúng lúc bạn chạm. Ảnh chỉ được lưu trên điện thoại của bạn, không tải lên máy chủ của chúng tôi (giữ khoảng 3 tháng) và sẽ mất khi bạn xóa ứng dụng",
+ "sNewI11": "Chế độ riêng tư (khóa ứng dụng miễn phí; một số biểu tượng ngoài màn hình là tính năng dành cho hội viên): mã PIN khóa ứng dụng chỉ được lưu trên điện thoại của bạn dưới dạng mã băm, không được tải lên máy chủ và chúng tôi không thể khôi phục giúp bạn. Face ID / vân tay do hệ điều hành của điện thoại xác minh — ứng dụng không nhận được khuôn mặt hay vân tay của bạn. \"Ẩn màn hình khi chuyển sang nền\" chỉ che phần xem trước trong trình chuyển ứng dụng của điện thoại. Đổi biểu tượng ngoài màn hình chỉ thay đổi hình dáng biểu tượng trên điện thoại và không thu thập thêm dữ liệu. Nếu quên PIN, chạm \"Quên PIN\" ở màn hình khóa sẽ đăng xuất và xóa dữ liệu lưu trên điện thoại này; dữ liệu đã sao lưu lên đám mây sẽ trở lại khi bạn đăng nhập lại cùng tài khoản.",
+ "sNewI12": "Thống kê sử dụng: để cải thiện tính năng, chúng tôi ghi lại bạn dùng những tính năng nào (ví dụ mở trang nào, chọn màu chủ đề nào, có bật chế độ riêng tư hay không, chọn biểu tượng ngoài màn hình nào). Các bản ghi này gắn với ID tài khoản của bạn (hoặc ID thiết bị ẩn danh được tạo ngẫu nhiên khi chưa đăng nhập) và chỉ dùng để hiểu tính năng nào hữu ích. Chúng không bao gồm nội dung sức khỏe, ghi chú hay văn bản trò chuyện bạn nhập.",
+ "sNewI13": "Tóm tắt chu kỳ: được tạo ngay trên điện thoại của bạn từ dữ liệu bạn đã ghi, không tải thêm dữ liệu nào lên.",
  "s5title": "Bảo mật",
  "s5i1": "Quyền truy cập cơ sở dữ liệu được kiểm soát bằng xác thực, và chúng tôi thực hiện các biện pháp hợp lý để bảo vệ dữ liệu của bạn",
  "s5i2": "Chúng tôi khuyên bạn đặt mật mã hoặc mã PIN cho thiết bị để tăng thêm bảo mật",

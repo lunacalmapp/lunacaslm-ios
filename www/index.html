@@ -42200,7 +42200,11 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
   };
   function T(){ return TX[L()] || TX.en; }
   function rd(){ try{ var o=JSON.parse(LS.getItem(K)||'null'); return (o&&typeof o==='object')?o:null; }catch(e){ return null; } }
-  function wr(o){ try{ if(o) LS.setItem(K,JSON.stringify(o)); else LS.removeItem(K); }catch(e){} }
+  function wr(o){ try{ if(o) LS.setItem(K,JSON.stringify(o)); else LS.removeItem(K); }catch(e){} try{ syncNative(); }catch(e){} }
+  /* 告诉手机原生层：要不要在切到后台时遮住画面（网页层来不及，系统截图时已经晚了） */
+  var _nat=null;
+  function syncNative(){ var o=rd(); var v=(o&&o.on&&o.hide!==0)?1:0; if(_nat===v) return; var P=plug(); if(P.LunaAppIcon&&P.LunaAppIcon.setCover){ try{ P.LunaAppIcon.setCover({on:!!v}).then(function(){ _nat=v; }).catch(function(){}); }catch(e){} } }
+  function natPause(ms){ try{ var P=plug(); if(P.LunaAppIcon&&P.LunaAppIcon.pauseCover) P.LunaAppIcon.pauseCover({ms:ms}).catch(function(){}); }catch(e){} }
   function curIcon(){ try{ return LS.getItem(K_ICON)||'luna'; }catch(e){ return 'luna'; } }
   function iconDef(id){ for(var i=0;i<ICONS.length;i++) if(ICONS[i][1]===id) return ICONS[i]; return ICONS[0]; }
   function isMember(){ try{ return (typeof isPro==='function'&&isPro()) || (typeof inTrial==='function'&&inTrial()); }catch(e){ return false; } }
@@ -42226,8 +42230,8 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       return P.NativeBiometric.isAvailable().then(function(r){ return !!(r&&r.isAvailable); }).catch(function(){ return false; }); }catch(e){ return Promise.resolve(false); }
   }
   function bioAuth(){
-    var k=bioKind(), P=plug(); if(!k) return Promise.resolve(false); bioBusy=true;
-    var done=function(v){ setTimeout(function(){ bioBusy=false; },800); return v; };
+    var k=bioKind(), P=plug(); if(!k) return Promise.resolve(false); bioBusy=true; natPause(20000);
+    var done=function(v){ natPause(1); setTimeout(function(){ bioBusy=false; },800); return v; };
     try{ if(k==='ba') return P.BiometricAuth.authenticate({reason:'LUNA',allowDeviceCredential:false}).then(function(){ return done(true); }).catch(function(){ return done(false); });
       return P.NativeBiometric.verifyIdentity({reason:'LUNA',useFallback:false}).then(function(){ return done(true); }).catch(function(){ return done(false); }); }catch(e){ return Promise.resolve(done(false)); }
   }
@@ -42432,6 +42436,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
   /* ── 启动：开着应用锁就立刻上锁 ── */
   function boot(){ try{ var o=rd(); if(o&&o.on&&o.h) showLock(); else document.documentElement.classList.remove('luna-locked'); }catch(e){ document.documentElement.classList.remove('luna-locked'); } }
   boot();
+  syncNative(); setInterval(function(){ try{ syncNative(); }catch(e){} },2500);
   window.LunaPrivacy={open:openPage,lock:showLock};
 })();
 

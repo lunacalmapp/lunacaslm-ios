@@ -305,7 +305,7 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit Icon-daisy Icon-tea Icon-moonsleep Icon-berry Icon-paw";
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -329,7 +329,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit Icon-daisy Icon-tea Icon-moonsleep Icon-berry Icon-paw";
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

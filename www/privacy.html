@@ -176,6 +176,7 @@
     <div class="item"><span class="bullet">•</span><span id="sNewI11"></span></div>
     <div class="item"><span class="bullet">•</span><span id="sNewI12"></span></div>
     <div class="item"><span class="bullet">•</span><span id="sNewI13"></span></div>
+    <div class="item"><span class="bullet">•</span><span id="sNewI14"></span></div>
   </div>
 
   <!-- 5 安全 -->
@@ -259,7 +260,7 @@ const CONTENT = {
     s3title: 'วิธีใช้ข้อมูล',
     s3i1: 'เพื่อบันทึก วิเคราะห์ และทำนายรอบเดือนของคุณ',
     s3i2: 'เพื่อให้บริการวิเคราะห์สุขภาพและฟีเจอร์สมาชิก',
-    s3i3: 'เราไม่ขายหรือแบ่งปันข้อมูลของคุณกับบุคคลภายนอกเพื่อการโฆษณา',
+    s3i3: 'เราไม่ขายข้อมูลของคุณ และไม่ใช้ข้อมูลสุขภาพเพื่อโฆษณา การวัดผลโฆษณาจะส่งเหตุการณ์พื้นฐานและรหัสอุปกรณ์ให้ Meta และ TikTok (ดูหัวข้อ "การวัดผลโฆษณา" ด้านล่าง)',
     s4title: 'การจัดเก็บและบริการภายนอก',
     s4i1: 'ข้อมูลถูกจัดเก็บบนอุปกรณ์ของคุณ และซิงค์ไปยัง Google Firebase เพื่อสำรองและใช้งานข้ามอุปกรณ์',
     s4i2: 'เซิร์ฟเวอร์ Firebase ตั้งอยู่ในภูมิภาคสิงคโปร์ (เอเชียตะวันออกเฉียงใต้)',
@@ -282,6 +283,7 @@ const CONTENT = {
     sNewI11: 'โหมดส่วนตัว (ล็อกแอปใช้ฟรี ไอคอนบางแบบเป็นฟีเจอร์สำหรับสมาชิก): PIN ของการล็อกแอปจะถูกเก็บไว้ในเครื่องของคุณในรูปแบบค่าแฮชเท่านั้น ไม่อัปโหลดขึ้นเซิร์ฟเวอร์ และเราไม่สามารถกู้คืนให้คุณได้ ส่วน Face ID / ลายนิ้วมือ ระบบของโทรศัพท์เป็นผู้ตรวจสอบ แอปไม่ได้รับใบหน้าหรือลายนิ้วมือของคุณ "ซ่อนหน้าจอเมื่อสลับไปแอปอื่น" จะบังภาพตัวอย่างในหน้าสลับแอปของโทรศัพท์เท่านั้น การเปลี่ยนไอคอนบนหน้าจอหลักเปลี่ยนแค่หน้าตาไอคอนบนโทรศัพท์ ไม่เก็บข้อมูลเพิ่มเติม หากลืม PIN การกด "ลืม PIN" ที่หน้าจอล็อกจะออกจากระบบและล้างข้อมูลในเครื่องนี้ ข้อมูลที่สำรองไว้บนคลาวด์แล้วจะกลับมาเมื่อเข้าสู่ระบบด้วยบัญชีเดิม',
     sNewI12: 'สถิติการใช้งาน: เพื่อปรับปรุงฟีเจอร์ เราบันทึกว่าคุณใช้ฟีเจอร์ใดในแอป (เช่น เปิดหน้าไหน เลือกธีมสีอะไร เปิดโหมดส่วนตัวหรือไม่ เลือกไอคอนหน้าจอหลักแบบไหน) บันทึกเหล่านี้เชื่อมกับรหัสบัญชีของคุณ (หากยังไม่ได้เข้าสู่ระบบจะเป็นรหัสอุปกรณ์แบบไม่ระบุตัวตนที่สุ่มสร้างขึ้น) และใช้เพื่อดูว่าฟีเจอร์ใดใช้งานดีเท่านั้น ไม่รวมข้อมูลสุขภาพ บันทึก หรือข้อความแชตที่คุณกรอก',
     sNewI13: 'สรุปรอบเดือน: สร้างขึ้นบนโทรศัพท์ของคุณจากข้อมูลที่คุณบันทึกไว้แล้ว ไม่มีการอัปโหลดข้อมูลเพิ่มเพื่อฟีเจอร์นี้',
+    sNewI14: 'การวัดผลโฆษณา: แอปใช้ SDK ของ Meta (Facebook) และ TikTok เพื่อวัดว่าการติดตั้งแอปมาจากโฆษณาหรือไม่ SDK เหล่านี้เก็บเหตุการณ์พื้นฐาน เช่น การติดตั้งและการเปิดแอป พร้อมรหัสอุปกรณ์ (บน iOS จะอ่าน IDFA เฉพาะเมื่อคุณอนุญาตการติดตามในหน้าต่างของระบบ บน Android ใช้รหัสโฆษณาของอุปกรณ์) และข้อมูลอุปกรณ์กับเครือข่ายทั่วไป แอปไม่ส่งเนื้อหาสุขภาพที่คุณบันทึก เช่น รอบเดือน การตั้งครรภ์ อาการ อารมณ์ หรือบันทึก ให้บริษัทเหล่านี้ คุณปิดการติดตามได้ที่ การตั้งค่า > ความเป็นส่วนตัวและความปลอดภัย > การติดตาม (iPhone) หรือรีเซ็ต/ลบรหัสโฆษณาที่ การตั้งค่า > ความเป็นส่วนตัว > โฆษณา (Android) เส้นทางอาจต่างกันเล็กน้อยตามรุ่นโทรศัพท์',
     s5title: 'ความปลอดภัย',
     s5i1: 'การเข้าถึงฐานข้อมูลถูกควบคุมด้วยการยืนยันตัวตน และเราใช้มาตรการที่เหมาะสมในการปกป้องข้อมูล',
     s5i2: 'แนะนำให้ตั้งรหัสผ่านหรือ PIN บนอุปกรณ์เพื่อความปลอดภัยเพิ่มเติม',
@@ -331,7 +333,7 @@ const CONTENT = {
     s3title: '如何使用数据',
     s3i1: '用于记录、分析和预测您的月经周期',
     s3i2: '用于提供健康分析和会员功能',
-    s3i3: '我们不会为广告目的出售或分享您的数据给第三方',
+    s3i3: '我们不出售您的数据，也不会把健康数据用于广告。推广效果衡量会向 Meta 与 TikTok 提供基础事件和设备标识，见下方“广告效果衡量”。',
     s4title: '数据存储与第三方服务',
     s4i1: '数据存储在您的设备上，并同步至 Google Firebase 以便备份和跨设备使用',
     s4i2: 'Firebase 服务器位于新加坡区域（东南亚）',
@@ -354,6 +356,7 @@ const CONTENT = {
     sNewI11: '私密模式（应用锁免费，部分桌面图标为会员功能）：应用锁的 PIN 只以加密摘要（哈希）的形式保存在您的手机上，不会上传到服务器，我们也无法帮您找回；Face ID／指纹由手机系统验证，App 拿不到您的脸或指纹。“切到后台时隐藏画面”只在您的手机上遮住多任务界面里的预览。更换桌面图标只改变手机桌面上图标的样子，不会收集额外数据。忘记 PIN 时，在锁屏点“忘记 PIN”会退出登录并清除这台手机上的本地数据；已经备份到云端的数据，用同一个账号重新登录即可找回。',
     sNewI12: '使用统计：为了改进功能，我们会记录您在 App 里用了哪些功能（例如打开了哪个页面、选了哪个主题色、是否开启私密模式、换了哪个桌面图标），这些记录与您的账号 ID（未登录时为随机生成的设备匿名 ID）关联，只用于了解功能好不好用；不包含您记录的健康内容、备注或聊天文字。',
     sNewI13: '周期回顾：根据您已经记录的数据在您的手机上生成，不会为此额外上传数据。',
+    sNewI14: '广告效果衡量：本 App 集成了 Meta（Facebook）和 TikTok 的 SDK，用于判断应用安装是否来自广告。这些 SDK 会自动收集安装、打开等基础事件，以及设备标识（iOS 仅在您于系统弹窗中允许跟踪后读取 IDFA；安卓使用广告 ID）和常规设备与网络信息。本 App 不会把您记录的经期、怀孕、症状、心情或备注等健康内容发送给这两家公司。您可以在 iPhone 的 设置 → 隐私与安全性 → 跟踪 中关闭本 App 的跟踪，或在安卓的 设置 → 隐私 → 广告 中重置或删除广告 ID（不同手机路径可能略有不同）。',
     s5title: '安全性',
     s5i1: '数据库访问受身份验证控制，我们采取合理措施保护您的数据',
     s5i2: '建议在设备上设置密码或PIN码以增强安全',
@@ -403,7 +406,7 @@ const CONTENT = {
     s3title: '如何使用資料',
     s3i1: '用於記錄、分析和預測您的月經週期',
     s3i2: '用於提供健康分析和會員功能',
-    s3i3: '我們不會為廣告目的出售或分享您的資料給第三方',
+    s3i3: '我們不出售您的資料，也不會把健康資料用於廣告。推廣成效衡量會向 Meta 與 TikTok 提供基礎事件與裝置識別碼，見下方「廣告成效衡量」。',
     s4title: '資料儲存與第三方服務',
     s4i1: '資料儲存在您的裝置上，並同步至 Google Firebase 以便備份和跨裝置使用',
     s4i2: 'Firebase 伺服器位於新加坡區域（東南亞）',
@@ -426,6 +429,7 @@ const CONTENT = {
     sNewI11: '私密模式（應用鎖免費，部分桌面圖示為會員功能）：應用鎖的 PIN 只以加密摘要（雜湊）的形式儲存在您的手機上，不會上傳到伺服器，我們也無法幫您找回；Face ID／指紋由手機系統驗證，App 拿不到您的臉或指紋。「切到背景時隱藏畫面」只在您的手機上遮住多工介面裡的預覽。更換桌面圖示只改變手機桌面上圖示的樣子，不會收集額外資料。忘記 PIN 時，在鎖定畫面點「忘記 PIN」會登出並清除這支手機上的本機資料；已經備份到雲端的資料，用同一個帳號重新登入即可找回。',
     sNewI12: '使用統計：為了改進功能，我們會記錄您在 App 裡用了哪些功能（例如開啟了哪個頁面、選了哪個主題色、是否開啟私密模式、換了哪個桌面圖示），這些記錄與您的帳號 ID（未登入時為隨機產生的裝置匿名 ID）關聯，只用於了解功能好不好用；不包含您記錄的健康內容、備註或聊天文字。',
     sNewI13: '週期回顧：根據您已經記錄的資料在您的手機上產生，不會為此額外上傳資料。',
+    sNewI14: '廣告成效衡量：本 App 整合了 Meta（Facebook）和 TikTok 的 SDK，用於判斷應用程式安裝是否來自廣告。這些 SDK 會自動收集安裝、開啟等基礎事件，以及裝置識別碼（iOS 僅在您於系統視窗中允許追蹤後讀取 IDFA；Android 使用廣告 ID）和一般裝置與網路資訊。本 App 不會把您記錄的經期、懷孕、症狀、心情或備註等健康內容傳送給這兩家公司。您可以在 iPhone 的 設定 → 隱私權與安全性 → 追蹤 中關閉本 App 的追蹤，或在 Android 的 設定 → 隱私權 → 廣告 中重設或刪除廣告 ID（不同手機路徑可能略有不同）。',
     s5title: '安全性',
     s5i1: '資料庫訪問受身份驗證控制，我們採取合理措施保護您的資料',
     s5i2: '建議在裝置上設定密碼或PIN碼以增強安全',
@@ -475,7 +479,7 @@ const CONTENT = {
   "s3title": "How we use your data",
   "s3i1": "To record, analyze, and predict your menstrual cycle",
   "s3i2": "To provide health analysis and membership features",
-  "s3i3": "We do not sell your data or share it with third parties for advertising purposes",
+  "s3i3": "We do not sell your data, and we do not use health data for advertising. Ad-performance measurement shares basic events and device identifiers with Meta and TikTok (see \"Advertising measurement\" below).",
   "s4title": "Data storage and third-party services",
   "s4i1": "Your data is stored on your device and synced to Google Firebase for backup and use across devices",
   "s4i2": "Firebase servers are located in the Singapore region (Southeast Asia)",
@@ -498,6 +502,7 @@ const CONTENT = {
   "sNewI11": "Private mode (the app lock is free; some home-screen icons are a membership feature): your app-lock PIN is stored on your phone only as a hash and is never uploaded, and we cannot recover it for you. Face ID / fingerprint is checked by your phone's operating system — the app never receives your face or fingerprint. \"Hide screen when in background\" only covers the preview in your phone's app switcher. Changing the home-screen icon only changes how the icon looks on your phone and collects no extra data. If you forget your PIN, tapping \"Forgot PIN\" on the lock screen signs you out and clears the local data on this phone; data already backed up to the cloud comes back when you sign in again with the same account.",
   "sNewI12": "Usage statistics: to improve the app, we record which features you use (for example which page you open, which theme color you pick, whether you turn on private mode, or which home-screen icon you choose). These records are linked to your account ID (or to a randomly generated anonymous device ID when you are not signed in) and are used only to understand which features work well. They do not include the health content, notes, or chat text you enter.",
   "sNewI13": "Cycle recap: it is generated on your phone from the data you have already logged, and no extra data is uploaded for it.",
+  "sNewI14": "Advertising measurement: the app uses the Meta (Facebook) and TikTok SDKs to measure whether an install came from an ad. These SDKs automatically collect basic events such as installs and app opens, device identifiers (on iOS the IDFA is read only if you allow tracking in the system prompt; on Android the advertising ID is used), and general device and network information. The app does not send the health content you record, such as cycle dates, pregnancy details, symptoms, mood or notes, to these companies. You can turn off tracking on iPhone in Settings > Privacy & Security > Tracking, or reset or delete the advertising ID on Android in Settings > Privacy > Ads (menu names vary by phone).",
   "s5title": "Security",
   "s5i1": "Database access is controlled by authentication, and we take reasonable measures to protect your data",
   "s5i2": "We recommend setting a passcode or PIN on your device for extra security",
@@ -540,7 +545,7 @@ const CONTENT = {
  "s3title": "Cách chúng tôi sử dụng dữ liệu của bạn",
  "s3i1": "Để ghi chép, phân tích và dự đoán chu kỳ kinh nguyệt của bạn",
  "s3i2": "Để cung cấp phân tích sức khỏe và các tính năng dành cho hội viên",
- "s3i3": "Chúng tôi không bán dữ liệu của bạn và không chia sẻ cho bên thứ ba vì mục đích quảng cáo",
+ "s3i3": "Chúng tôi không bán dữ liệu của bạn và không dùng dữ liệu sức khỏe cho quảng cáo. Đo lường hiệu quả quảng cáo sẽ chia sẻ sự kiện cơ bản và mã định danh thiết bị với Meta và TikTok (xem \"Đo lường quảng cáo\" bên dưới).",
  "s4title": "Lưu trữ dữ liệu và dịch vụ của bên thứ ba",
  "s4i1": "Dữ liệu của bạn được lưu trên thiết bị và đồng bộ lên Google Firebase để sao lưu và dùng trên nhiều thiết bị",
  "s4i2": "Máy chủ Firebase đặt tại khu vực Singapore (Đông Nam Á)",
@@ -563,6 +568,7 @@ const CONTENT = {
  "sNewI11": "Chế độ riêng tư (khóa ứng dụng miễn phí; một số biểu tượng ngoài màn hình là tính năng dành cho hội viên): mã PIN khóa ứng dụng chỉ được lưu trên điện thoại của bạn dưới dạng mã băm, không được tải lên máy chủ và chúng tôi không thể khôi phục giúp bạn. Face ID / vân tay do hệ điều hành của điện thoại xác minh — ứng dụng không nhận được khuôn mặt hay vân tay của bạn. \"Ẩn màn hình khi chuyển sang nền\" chỉ che phần xem trước trong trình chuyển ứng dụng của điện thoại. Đổi biểu tượng ngoài màn hình chỉ thay đổi hình dáng biểu tượng trên điện thoại và không thu thập thêm dữ liệu. Nếu quên PIN, chạm \"Quên PIN\" ở màn hình khóa sẽ đăng xuất và xóa dữ liệu lưu trên điện thoại này; dữ liệu đã sao lưu lên đám mây sẽ trở lại khi bạn đăng nhập lại cùng tài khoản.",
  "sNewI12": "Thống kê sử dụng: để cải thiện tính năng, chúng tôi ghi lại bạn dùng những tính năng nào (ví dụ mở trang nào, chọn màu chủ đề nào, có bật chế độ riêng tư hay không, chọn biểu tượng ngoài màn hình nào). Các bản ghi này gắn với ID tài khoản của bạn (hoặc ID thiết bị ẩn danh được tạo ngẫu nhiên khi chưa đăng nhập) và chỉ dùng để hiểu tính năng nào hữu ích. Chúng không bao gồm nội dung sức khỏe, ghi chú hay văn bản trò chuyện bạn nhập.",
  "sNewI13": "Tóm tắt chu kỳ: được tạo ngay trên điện thoại của bạn từ dữ liệu bạn đã ghi, không tải thêm dữ liệu nào lên.",
+ "sNewI14": "Đo lường quảng cáo: ứng dụng dùng SDK của Meta (Facebook) và TikTok để đo xem lượt cài đặt có đến từ quảng cáo hay không. Các SDK này tự động thu thập sự kiện cơ bản như cài đặt và mở ứng dụng, mã định danh thiết bị (trên iOS chỉ đọc IDFA khi bạn cho phép theo dõi trong hộp thoại hệ thống; trên Android dùng mã quảng cáo) và thông tin thiết bị, mạng thông thường. Ứng dụng không gửi cho hai công ty này nội dung sức khỏe bạn ghi, như ngày chu kỳ, thai kỳ, triệu chứng, tâm trạng hay ghi chú. Bạn có thể tắt theo dõi trên iPhone tại Cài đặt > Quyền riêng tư & Bảo mật > Theo dõi, hoặc đặt lại/xóa mã quảng cáo trên Android tại Cài đặt > Quyền riêng tư > Quảng cáo (tên mục có thể khác tùy máy).",
  "s5title": "Bảo mật",
  "s5i1": "Quyền truy cập cơ sở dữ liệu được kiểm soát bằng xác thực, và chúng tôi thực hiện các biện pháp hợp lý để bảo vệ dữ liệu của bạn",
  "s5i2": "Chúng tôi khuyên bạn đặt mật mã hoặc mã PIN cho thiết bị để tăng thêm bảo mật",

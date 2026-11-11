@@ -5874,10 +5874,13 @@ trackEvent('app_open');
 // 之后想在TikTok Events Manager的"Test Events"里重新验证数据有没有正常送达，
 // 可以临时改成true；验证完一定要改回false，不然收集到的都是测试数据，不计入正式归因。
 // ══════════════════════════════════════════════════════════
+// ★ 广告SDK总开关（Facebook + TikTok + iOS跟踪授权弹窗）：false=暂时不启动（代码和插件都保留）；要恢复就改成 true
+window.LUNA_AD_SDK_ENABLED = false;
 (async function initTiktokAppEvents(){
   try{
     const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     if(!isNative) return;
+    if(window.LUNA_AD_SDK_ENABLED!==true) return;   // 广告SDK总开关：目前关闭
     const platform = window.Capacitor.getPlatform();
     const isIOS = platform === 'ios';
 
@@ -5911,6 +5914,7 @@ trackEvent('app_open');
   try{
     const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     if(!isNative) return;
+    if(window.LUNA_AD_SDK_ENABLED!==true) return;   // 广告SDK总开关：目前关闭
     const FA = window.Capacitor.Plugins && window.Capacitor.Plugins.FacebookAnalytics;
     if(!FA) return;   // 插件还没装/没同步，安静跳过，不影响App正常使用
     // 只有真的拿到了跟踪授权(iOS)，才打开广告主跟踪；安卓没有ATT这个概念，直接打开

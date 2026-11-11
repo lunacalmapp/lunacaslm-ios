@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
+<script id="lunaLockEarly">try{var __l=JSON.parse(localStorage.getItem("luna_lock")||"null");if(__l&&__l.on&&__l.h){document.documentElement.className+=" luna-locked";setTimeout(function(){if(!document.getElementById("lunaLock"))document.documentElement.classList.remove("luna-locked")},6000)}}catch(e){}</script><style id="lunaLockEarlyCss">html.luna-locked body>*:not(#lunaLock){visibility:hidden!important}</style>
+
 <meta charset="UTF-8">
 <!-- 🔒 基础 CSP：禁止加载白名单之外的第三方脚本/连接，堵住"注入一段外部 <script src> 就能为所欲为"
      这类最典型的 XSS 利用路径；object-src/base-uri/frame-ancestors 顺手收紧。
@@ -6942,7 +6944,7 @@ window.signOutGoogle = async function() {
   localStorage.removeItem('luna_uid');
   localStorage.removeItem('luna_activated');
   localStorage.removeItem('luna_display_name');
-  localStorage.removeItem('luna_email');
+  localStorage.removeItem('luna_email'); try{localStorage.removeItem('luna_lock');}catch(_e){}
   localStorage.removeItem('luna_photo_url');
   /*lunaLogoutKeep2*/ // 账号归属标记退出时保留：下次进来仍认得是老号，换号登录时才会清；永久删除账号走另一条路径，会全清
   sessionStorage.removeItem('luna_uid');
@@ -11938,16 +11940,18 @@ window.setLang = setLang;
         menu.style.cssText='position:absolute;top:-38px;'+(who==='me'?'right:0;':'left:0;')+'z-index:5;display:flex;gap:2px;background:#2d2640;border-radius:12px;padding:4px;box-shadow:0 4px 16px rgba(0,0,0,0.25);';
         const zh=_appLang==='zh';
         const copyBtn=document.createElement('div');
-        copyBtn.textContent=zh?'复制':'คัดลอก';
+        var lgc=''; try{ lgc=localStorage.getItem('luna_lang')||''; }catch(_){}
+        copyBtn.textContent=zh?'复制':(lgc==='en'?'Copy':(lgc==='vi'?'Sao chép':'คัดลอก'));
         copyBtn.style.cssText='color:#fff;font-size:12.5px;padding:6px 12px;border-radius:8px;cursor:pointer;';
         copyBtn.onclick=(ev)=>{ ev.stopPropagation();
-          try{ navigator.clipboard.writeText(text); }catch(e){
-            const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(_){}ta.remove();
+          var shown=b.textContent||text;
+          try{ navigator.clipboard.writeText(shown); }catch(e){
+            const ta=document.createElement('textarea');ta.value=shown;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(_){}ta.remove();
           }
           menu.remove();
         };
         const delBtn=document.createElement('div');
-        delBtn.textContent=zh?'删除':'ลบ';
+        delBtn.textContent=zh?'删除':(lgc==='en'?'Delete':(lgc==='vi'?'Xóa':'ลบ'));
         delBtn.style.cssText='color:#ff9a9a;font-size:12.5px;padding:6px 12px;border-radius:8px;cursor:pointer;';
         delBtn.onclick=(ev)=>{ ev.stopPropagation(); wrap.remove(); menu.remove(); };
         menu.appendChild(copyBtn); menu.appendChild(delBtn);
@@ -28598,6 +28602,8 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
 
   document.addEventListener('touchstart', function(e){
     if(refreshing) return;
+    // 2026-11-10：在悬浮球 / 它的面板 / AI 面板上拖动，不触发下拉刷新（以前往下拖面板，后面的首页会被一起拉动）
+    try{ if(e.target && e.target.closest && e.target.closest('#lunaOrbPanel,#lunaOrb,#orbSubToday,#orbSubAI,#aiPanel,#lpgRec1,#lpgRecBar,[data-no-elastic]')){ pulling = false; return; } }catch(err){}
     // ✨ 只在首页允许下拉刷新，其他页面（我的/日历/统计）容易被误触，直接禁用
     var _curPage = 'home';
     try { _curPage = sessionStorage.getItem('luna_lastPage') || 'home'; } catch(err){}
@@ -31865,6 +31871,7 @@ body.lpg-rec1 #lpgRec1{display:block;margin:0 12px 16px;}
 #lpgRec1 button{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:56px;border:none;border-radius:999px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;color:#fff;
   background:linear-gradient(135deg,var(--purple,#7c5cbf),var(--purple-light,#b49de0));box-shadow:0 6px 16px rgba(var(--purple-rgb,124,92,191),.28);-webkit-tap-highlight-color:transparent;}
 #lpgRec1 button:active{transform:scale(.985);}
+#lpgRec1 button,#lpgRecBar button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 </style>
 <script>
 (function lunaRecToday(){
@@ -35514,8 +35521,8 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 @keyframes odBreathe{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(143,92,198,0),0 4px 14px -8px rgba(143,92,198,.3)}50%{transform:scale(1.02);box-shadow:0 0 22px 2px rgba(143,92,198,.32),0 8px 20px -8px rgba(143,92,198,.45)}}
 @keyframes odRipple{0%{opacity:.75;transform:scale(1)}100%{opacity:0;transform:scale(1.07,1.3)}}
 @media (prefers-reduced-motion:reduce){#lunaDailyTile.od-hint,#lunaDailyTile.od-hint::before,#lunaDailyTile.od-hint::after{animation:none}#lunaDailyTile.od-hint{box-shadow:0 0 0 3px rgba(143,92,198,.35)}}
-/* 运动页（第 2 页）与翻页 */
-.od-pager{display:flex;align-items:flex-start;transition:height .3s ease;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -12px;overscroll-behavior-x:contain}
+/* 运动页（第 2 页）与翻页。2026-11-10：容器只允许左右翻页，不能上下滚——否则第 1 页(矮)里藏着第 2 页(高)多出来的一截，iOS 上手指一碰内容就上下漂 */
+.od-pager{display:flex;align-items:flex-start;transition:height .3s ease;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -12px;overscroll-behavior-x:contain}
 .od-pager::-webkit-scrollbar{display:none}
 .od-pg{flex:0 0 100%;box-sizing:border-box;padding:0 12px;scroll-snap-align:center;scroll-snap-stop:always;transition:opacity .35s,transform .35s;opacity:.35;transform:scale(.94)}
 .od-pg.cur{opacity:1;transform:none}
@@ -35790,7 +35797,8 @@ body.preg-mode #lunaCycleInfo,body.pp-mode #lunaCycleInfo{display:none!important
 #lunaCycleInfo .cy-h{margin:18px 4px 10px;font-size:15px;font-weight:700;color:var(--text,#2d2640)}
 .cy-top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px}
 .cy-top b{font-size:15px;color:var(--text,#2d2640)}
-.cy-top a{font-size:13px;color:var(--text-muted,#8a849e);cursor:pointer;white-space:nowrap}
+.cy-top b{min-width:0}
+.cy-top a{font-size:13px;color:var(--text-muted,#8a849e);cursor:pointer;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;min-height:44px;margin:-14px -12px -14px 8px;padding:0 12px 0 16px;position:relative;z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .cy-row{position:relative;padding:13px 40px 13px 0;border-top:1px solid rgba(124,92,191,.12);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .cy-row:active{background:rgba(124,92,191,.04)}
 .cy-row .t{font-size:15px;font-weight:700;color:var(--text,#2d2640)}
@@ -35809,6 +35817,13 @@ body.preg-mode #lunaCycleInfo,body.pp-mode #lunaCycleInfo{display:none!important
 .cy-nav{position:relative;display:flex;align-items:center;justify-content:center;height:52px;margin-bottom:6px}
 .cy-nav .bk{position:absolute;left:-4px;top:4px;width:44px;height:44px;border:0;background:transparent;font-size:30px;line-height:44px;color:var(--text,#2d2640);cursor:pointer}
 .cy-nav b{font-size:17px;color:var(--text,#2d2640)}
+.cy-recap{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:13px 16px;border-radius:var(--radius,20px);background:linear-gradient(135deg,var(--purple,#7c5cbf),var(--purple-light,#b49de0));color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cy-recap.off{background:var(--card,#fff);color:var(--text-muted,#8a849e);box-shadow:var(--shadow,none);cursor:default}
+.cy-recap .rci{font-size:26px;flex-shrink:0}
+.cy-recap .rct{flex:1;min-width:0}
+.cy-recap .rct b{display:block;font-size:15px}
+.cy-recap .rct em{display:block;font-style:normal;font-size:12.5px;opacity:.9;margin-top:2px;line-height:1.4}
+.cy-recap .ch{font-size:20px;opacity:.85}
 .cy-chips{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -14px 14px;padding:2px 14px}
 .cy-chips::-webkit-scrollbar{display:none}
 .cy-chips button{flex:none;border:0;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;font-family:inherit;color:#6a6280;background:#e9e4f3;cursor:pointer;white-space:nowrap}
@@ -36053,6 +36068,7 @@ body.preg-mode #lunaCycleInfo,body.pp-mode #lunaCycleInfo{display:none!important
       if(filt===1) list=all.slice(0,3); else if(filt===2) list=all.slice(0,6); else if(filt===3) list=all.filter(function(c){ return c.start.getFullYear()===yr-1; });
       CYC=all;
       var h='<div class="cy-nav"><button class="bk" id="cyBk" aria-label="back">‹</button><b>'+esc(cy.hist)+'</b></div>';
+      try{ if(window.lunaCycleRecapInfo){ var ri=window.lunaCycleRecapInfo(); h+='<div class="cy-recap'+(ri.ok?'':' off')+'" id="cyRecap"><span class="rci">🌙</span><span class="rct"><b>'+esc(ri.title)+'</b><em>'+esc(ri.sub)+'</em></span><span class="ch">›</span></div>'; } }catch(e){}
       h+='<div class="cy-chips" id="cyChips">'+cy.chips.map(function(x,i){ return '<button data-f="'+(i===0?0:i===1?1:i===2?2:3)+'" class="'+((filt===(i===0?0:i))?'on':'')+'">'+esc(x)+'</button>'; }).join('')+'</div>';
       h+='<div class="cy-pcard"><div class="cy-leg"><span><i style="background:#f4608f"></i>'+esc(cy.lg[0])+'</span><span><i style="background:#8fd3cf"></i>'+esc(cy.lg[1])+'</span><span><i style="background:#1a9a9a"></i>'+esc(cy.lg[2])+'</span></div>';
       if(!list.length) h+='<div class="cy-empty">'+esc(all.length?cy.emptyY:cy.empty)+'</div>';
@@ -36060,6 +36076,7 @@ body.preg-mode #lunaCycleInfo,body.pp-mode #lunaCycleInfo{display:none!important
       h+='</div>';
       pg.innerHTML=h;
       pg.querySelector('#cyBk').onclick=function(){ pageClose(pg); };
+      var rcb=pg.querySelector('#cyRecap'); if(rcb) rcb.onclick=function(){ if(!rcb.classList.contains('off') && window.lunaCycleRecapOpen) window.lunaCycleRecapOpen(); };
       Array.prototype.forEach.call(pg.querySelectorAll('#cyChips button'),function(b){ b.onclick=function(){ filt=+b.getAttribute('data-f'); render(); }; });
       var on0=pg.querySelector('#cyChips .on'), ch=pg.querySelector('#cyChips'); if(on0&&ch){ ch.scrollLeft=Math.max(0,on0.offsetLeft-(ch.clientWidth-on0.offsetWidth)/2); }
       Array.prototype.forEach.call(pg.querySelectorAll('.cy-row'),function(r){ r.onclick=function(){ openDet(+r.getAttribute('data-i')); }; });
@@ -39847,7 +39864,9 @@ window.__LUNA_TW_T="喫茶小舖>喫茶小舖|張棟樑>張棟樑|林國樑>林�
         if(++okTicks >= 4){ stop(); show(); }                      // 备孕模式 + 干净首页连续 4 秒才弹
       }catch(e){ stop(); }
     }
-    if(!ls(K)) timer = setInterval(tick, 1000);
+    // 2026-11-10：产后护理功能已经上线，不用再问用户"想不想用"了——这里不再启动定时器，这个问卷永远不会弹出。
+    // （整段代码保留，需要时把下面一行改回 if(!ls(K)) timer = setInterval(tick, 1000); 就能恢复）
+    // if(!ls(K)) timer = setInterval(tick, 1000);
     window.LunaPostcarePoll = { show: show, remove: remove, _ok: function(){ return ttcOn() && homeClear(); } };
   }catch(e){ try{ console.log('LunaPostcarePoll 初始化失败（已忽略）:', e); }catch(_){} }
 })();
@@ -40202,7 +40221,7 @@ window.__LUNA_TW_T="喫茶小舖>喫茶小舖|張棟樑>張棟樑|林國樑>林�
     locked = false; pulled = 0; dir = 0;
     if(e.touches.length !== 1 || !homeOn()) { el = null; return; }
     el = document.querySelector('.phone'); kids = null; sy = e.touches[0].clientY; sx = e.touches[0].clientX;
-    var t = e.target; try{ if(t.closest && t.closest('input,textarea,select,.car,.mr-carousel,[data-no-elastic]')) { el = null; return; } }catch(_){}
+    var t = e.target; try{ if(t.closest && t.closest('input,textarea,select,.car,.mr-carousel,[data-no-elastic],#lunaOrbPanel,#lunaOrb,#orbSubToday,#orbSubAI,#aiPanel,#lpgRec1,#lpgRecBar')) { el = null; return; } }catch(_){}
     if(el){ kids = fx(el); setT(kids, 'none', ''); }
   }, { passive: true });
   document.addEventListener('touchmove', function(e){
@@ -41702,9 +41721,11 @@ var BKB = [
     if(!anchor || !anchor.parentNode) return false;
     addCss();
     var wrap = document.createElement('div'); wrap.id = 'lunaPtEntry';
-    wrap.innerHTML = '<div class="s-group" style="padding:14px 16px;cursor:pointer;border:1px solid var(--mine-surface-border);box-shadow:var(--mine-surface-shadow);display:flex;align-items:center;gap:12px;margin-bottom:14px">'
-      + '<div style="font-size:26px">💞</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700"><span class="pt-t"></span><span class="pt-vip"></span></div><div class="pt-d" style="font-size:12px;opacity:.7;margin-top:2px"></div></div><div style="opacity:.4;font-size:20px">›</div></div>';
-    wrap.firstChild.onclick = open;
+    wrap.innerHTML = '<div class="s-group" style="padding:0;border:1px solid var(--mine-surface-border);box-shadow:var(--mine-surface-shadow);margin-bottom:14px;overflow:hidden">'
+      + '<div class="pt-row1" style="padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px">'
+      + '<div style="font-size:26px">💞</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700"><span class="pt-t"></span><span class="pt-vip"></span></div><div class="pt-d" style="font-size:12px;opacity:.7;margin-top:2px"></div></div><div style="opacity:.4;font-size:20px">›</div></div>'
+      + '<div id="lunaPrivRow"></div></div>';
+    wrap.querySelector('.pt-row1').onclick = open;
     anchor.parentNode.insertBefore(wrap, anchor);
     updateEntry(); return true;
   }
@@ -41743,4 +41764,634 @@ var BKB = [
   }
   setTimeout(go, 9000);
 })();
+</script>
+
+<!-- lunaCycleRecap: 周期回顾（走完一个周期后的竖屏卡片；第1张免费，其余会员/试用） -->
+<style id="lunaRecapCss">
+#lunaRecapEntry{margin:0 12px 14px;position:relative;animation:fadeUp .5s ease both}
+body.preg-mode #lunaRecapEntry,body.pp-mode #lunaRecapEntry{display:none!important}
+#lunaRecapEntry .rc-e{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--radius,22px);background:var(--rc-eg,linear-gradient(135deg,#8f6fd6 0%,#c77ab8 60%,#f08aa6 100%));color:#fff;box-shadow:0 8px 22px rgba(124,92,191,.28);cursor:pointer;-webkit-tap-highlight-color:transparent}
+#lunaRecapEntry .rc-e:active{transform:scale(.985)}
+#lunaRecapEntry .rc-ei{font-size:30px;flex-shrink:0}
+#lunaRecapEntry .rc-et{flex:1;min-width:0}
+#lunaRecapEntry .rc-et b{display:block;font-size:15px;line-height:1.35}
+#lunaRecapEntry .rc-et span{display:block;font-size:12.5px;opacity:.9;margin-top:2px;line-height:1.4}
+#lunaRecapEntry .rc-go{font-size:20px;opacity:.9;flex-shrink:0}
+#lunaRecapEntry .rc-x{position:absolute;top:-8px;right:-4px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;opacity:.85;z-index:2}
+#lunaRecapEntry .rc-x i{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-style:normal}
+#lunaRecap{text-shadow:0 1px 10px rgba(0,0,0,.16);position:fixed;left:0;top:0;right:0;bottom:0;z-index:9500;background:#2d2160;color:#fff;display:flex;flex-direction:column;opacity:0;transition:opacity .25s ease,background .4s ease;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none}
+#lunaRecap.on{opacity:1}
+#lunaRecap .rc-bars{display:flex;gap:4px;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 0;flex-shrink:0}
+#lunaRecap .rc-bars i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.28);overflow:hidden}
+#lunaRecap .rc-bars i.d{background:#fff}
+#lunaRecap .rc-top{display:flex;align-items:center;justify-content:space-between;padding:8px 14px 0;flex-shrink:0;font-size:13px;opacity:.9}
+#lunaRecap .rc-close{width:44px;height:44px;margin:-6px -10px -6px 0;display:flex;align-items:center;justify-content:center;font-size:20px}
+#lunaRecap .rc-stage{flex:1;position:relative;overflow:hidden;min-height:0}
+#lunaRecap .rc-card{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 28px calc(env(safe-area-inset-bottom,0px) + 40px);animation:rcIn .4s ease both}
+@keyframes rcIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes rcPop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+#lunaRecap .rc-k{font-size:15px;opacity:.88;line-height:1.5;max-width:300px}
+#lunaRecap .rc-big{font-size:96px;font-weight:800;line-height:1.05;margin:8px 0 2px;animation:rcPop .55s .1s cubic-bezier(.2,.9,.3,1.2) both}
+#lunaRecap .rc-big small{font-size:26px;font-weight:700;margin-left:6px}
+#lunaRecap .rc-sub{font-size:16px;line-height:1.55;max-width:310px;margin-top:6px}
+#lunaRecap .rc-chip{display:inline-block;margin-top:16px;padding:7px 16px;border-radius:20px;background:rgba(255,255,255,.18);font-size:13.5px;line-height:1.4}
+#lunaRecap .rc-note{font-size:12.5px;opacity:.7;margin-top:18px;line-height:1.5;max-width:290px}
+#lunaRecap .rc-dots{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:320px;margin:22px 0 14px}
+#lunaRecap .rc-dots i{width:15px;height:15px;border-radius:50%;background:rgba(255,255,255,.22);position:relative;animation:rcPop .35s both}
+#lunaRecap .rc-dots i.p{background:#ff7aa8}
+#lunaRecap .rc-dots i.f{background:#8fe0d8}
+#lunaRecap .rc-dots i.o{background:#25c9b8;box-shadow:0 0 0 3px rgba(37,201,184,.35)}
+#lunaRecap .rc-dots i.l:after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:#fff}
+#lunaRecap .rc-lg{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:12px;opacity:.85}
+#lunaRecap .rc-lg span:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px;background:rgba(255,255,255,.4)}
+#lunaRecap .rc-lg .a:before{background:#ff7aa8}#lunaRecap .rc-lg .b:before{background:#8fe0d8}#lunaRecap .rc-lg .c:before{background:#25c9b8}#lunaRecap .rc-lg .d:before{background:#fff}
+#lunaRecap .rc-rank{width:100%;max-width:310px;margin-top:20px;text-align:left}
+#lunaRecap .rc-row{margin-bottom:14px;animation:rcIn .5s both}
+#lunaRecap .rc-row b{display:flex;justify-content:space-between;font-size:15px;margin-bottom:6px;gap:10px}
+#lunaRecap .rc-row b em{font-style:normal;opacity:.8;font-weight:500;flex-shrink:0}
+#lunaRecap .rc-bar{height:9px;border-radius:5px;background:rgba(255,255,255,.2);overflow:hidden}
+#lunaRecap .rc-bar u{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#ffb3cf,#ff7aa8);text-decoration:none}
+#lunaRecap .rc-grid{display:flex;gap:10px;margin-top:22px;width:100%;max-width:320px;justify-content:center}
+#lunaRecap .rc-cell{flex:1;min-width:0;padding:16px 6px;border-radius:18px;background:rgba(255,255,255,.14);animation:rcIn .5s both}
+#lunaRecap .rc-cell div{font-size:26px}
+#lunaRecap .rc-cell b{display:block;font-size:22px;margin:6px 0 2px}
+#lunaRecap .rc-cell span{font-size:12px;opacity:.85;line-height:1.35;display:block}
+#lunaRecap .rc-ring{width:170px;height:170px;margin:18px 0 6px;position:relative;animation:rcPop .55s both}
+#lunaRecap .rc-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+#lunaRecap .rc-ring div{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#lunaRecap .rc-ring div b{font-size:44px;line-height:1}
+#lunaRecap .rc-ring div span{font-size:13px;opacity:.8;margin-top:4px}
+#lunaRecap .rc-btn{margin-top:22px;padding:13px 34px;border-radius:26px;background:#fff;color:var(--rc-ink,#6a45b8);font-size:16px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+#lunaRecap .rc-btn2{margin-top:6px;padding:12px 24px;font-size:14px;opacity:.8}
+#lunaRecap .rc-lock{font-size:46px;margin-bottom:6px}
+#lunaRecap .rc-ul{list-style:none;margin:16px 0 0;padding:0;text-align:left;font-size:15px;line-height:1.9}
+#lunaRecap .rc-ul li:before{content:"✨ "}
+#lunaRecap .rc-tap{position:absolute;left:0;top:0;bottom:0;width:30%;z-index:1}
+#lunaRecap .rc-tap.r{left:auto;right:0;width:70%}
+#lunaRecap .rc-card{pointer-events:none;z-index:2}
+#lunaRecap .rc-card .rc-btn,#lunaRecap .rc-card .rc-btn2{pointer-events:auto}
+#lunaRecap .rc-pk{width:40px;height:44px;margin:-6px 0 -6px 0;display:flex;align-items:center;justify-content:center;font-size:19px}
+#lunaRecap .rc-pal{display:none;position:absolute;left:14px;right:14px;top:calc(env(safe-area-inset-top,0px) + 64px);z-index:6;padding:11px 12px;border-radius:20px;background:rgba(30,22,50,.38);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);justify-content:space-between;gap:6px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+#lunaRecap .rc-pal.on{display:flex}
+#lunaRecap .rc-sw{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.85);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+#lunaRecap .rc-sw.sel{box-shadow:0 0 0 3px rgba(255,255,255,.95)}
+#lunaRecap.lt{color:var(--rc-fg);text-shadow:none}
+#lunaRecap.lt .rc-pal{background:rgba(255,255,255,.6)}
+#lunaRecap.lt .rc-sw{border-color:rgba(255,255,255,.95)}
+#lunaRecap.lt .rc-sw.sel{box-shadow:0 0 0 3px var(--rc-fg)}
+#lunaRecap.lt .rc-bars i,#lunaRecap.lt .rc-bar,#lunaRecap.lt .rc-chip,#lunaRecap.lt .rc-cell,#lunaRecap.lt .rc-dots i{background:var(--rc-soft)}
+#lunaRecap.lt .rc-bars i.d{background:var(--rc-fg)}
+#lunaRecap.lt .rc-dots i.p{background:#e8508a}#lunaRecap.lt .rc-dots i.f{background:#58c9bd}#lunaRecap.lt .rc-dots i.o{background:#12988b;box-shadow:0 0 0 3px rgba(18,152,139,.3)}
+#lunaRecap.lt .rc-dots i.l:after{background:var(--rc-fg)}
+#lunaRecap.lt .rc-lg span:before{background:var(--rc-soft)}
+#lunaRecap.lt .rc-lg .a:before{background:#e8508a}#lunaRecap.lt .rc-lg .b:before{background:#58c9bd}#lunaRecap.lt .rc-lg .c:before{background:#12988b}#lunaRecap.lt .rc-lg .d:before{background:var(--rc-fg)}
+#lunaRecap.lt .rc-bar u{background:linear-gradient(90deg,#f7a1c0,#e8508a)}
+#lunaRecap.lt .rc-btn{background:var(--rc-fg);color:#fff;box-shadow:0 6px 16px rgba(0,0,0,.12)}
+#lunaRecap.lt .rc-ring circle:first-child{stroke:var(--rc-soft)}
+#lunaRecap.lt .rc-ring circle:last-child{stroke:var(--rc-fg)}
+</style>
+<script id="lunaRecapJs">
+(function(){
+  var LS = window.localStorage;
+  function L(){ try{ var l=LS.getItem('luna_lang'); if(l!=='zh') return 'th'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; if(LS.getItem('luna_ui_en')==='1') return 'en'; return 'zh'; }catch(e){ return 'zh'; } }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  var MON = {
+    en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    th:['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+  };
+  function fd(d){ var l=L(), m=d.getMonth(), n=d.getDate(); if(l==='zh') return (m+1)+'月'+n+'日'; if(l==='vi') return n+' thg '+(m+1); if(l==='th') return n+' '+MON.th[m]; return MON.en[m]+' '+n; }
+  var TX = {
+    zh:{ nope:'记满一个完整周期后就能看', tag:'周期回顾', et:'你的周期回顾好了', es:function(n){ return '刚走完的这 '+n+' 天，来看看它的故事'; },
+      c1k:'你刚走完的这个周期', d:'天', same:'和上个周期一样长', longer:function(n){ return '比上个周期长 '+n+' 天'; }, shorter:function(n){ return '比上个周期短 '+n+' 天'; }, first:'这是你的第一个完整周期',
+      inR:'在常见范围内 ✓', lo:'比常见范围短一些', hi:'比常见范围长一些', c1n:'常见范围是 21–35 天；偶尔偏离很正常，持续不规律再请医生看看。',
+      c2k:'这个周期的节奏', c2s:function(p,o){ return '经期 '+p+' 天 · 预估排卵日在第 '+o+' 天'; }, lgP:'经期', lgF:'易孕期', lgO:'排卵日', lgL:'有记录',
+      c3k:'这个周期你最常记下的', c3n:'这个周期没记下症状。下次多记几笔，回顾会更有意思 💜', times:function(n){ return n+' 天'; },
+      c4k:'你的生活小数据', sl:'平均睡眠', slu:function(h){ return h+' 小时'; }, wa:'每天喝水', wau:function(w){ return w+' 杯'; }, sp:'运动', spu:function(n){ return n+' 天'; }, c4n:'没记的项目这里不显示。多记睡眠、喝水和运动，下次会更完整。', c4e:'这个周期还没有睡眠、喝水或运动的记录。下个周期试试在首页记一记 🌿',
+      c5k:'这个周期，你记录了', of:function(n){ return '共 '+n+' 天'; }, c5a:'你很用心地在了解自己 💜', c5b:'每多记一天，预测就更懂你一点。', c5c:'没关系，记得下来的就很有价值。',
+      c6k:'下一个周期', c6s:function(d){ return '预计 '+d+' 开始'; }, c6a:'你的周期很稳定，继续保持。', c6b:'周期有些变化，不用紧张，继续记录就能看出规律。', c6done:'完成', c6n:'预测只是参考，以你实际的记录为准。',
+      lkT:'解锁完整回顾', lkL:['周期节奏图','最常见的症状','睡眠 · 喝水 · 运动','记录天数','下个周期预告'], lkB:'开通会员', lkL2:'以后再说' },
+    th:{ nope:'บันทึกครบ 1 รอบเดือนแล้วจะดูได้', tag:'สรุปรอบเดือน', et:'สรุปรอบเดือนของคุณพร้อมแล้ว', es:function(n){ return 'รอบ '+n+' วันที่เพิ่งผ่านไป มาดูเรื่องราวของมันกัน'; },
+      c1k:'รอบเดือนที่คุณเพิ่งผ่านมา', d:'วัน', same:'ยาวเท่ากับรอบที่แล้ว', longer:function(n){ return 'ยาวกว่ารอบที่แล้ว '+n+' วัน'; }, shorter:function(n){ return 'สั้นกว่ารอบที่แล้ว '+n+' วัน'; }, first:'นี่คือรอบเดือนแรกที่ครบสมบูรณ์ของคุณ',
+      inR:'อยู่ในช่วงปกติ ✓', lo:'สั้นกว่าช่วงที่พบบ่อยเล็กน้อย', hi:'ยาวกว่าช่วงที่พบบ่อยเล็กน้อย', c1n:'ช่วงที่พบบ่อยคือ 21–35 วัน เปลี่ยนไปบ้างเป็นเรื่องปกติ ถ้าไม่สม่ำเสมอต่อเนื่องควรปรึกษาแพทย์',
+      c2k:'จังหวะของรอบนี้', c2s:function(p,o){ return 'ประจำเดือน '+p+' วัน · คาดว่าไข่ตกวันที่ '+o; }, lgP:'ประจำเดือน', lgF:'ช่วงเสี่ยงมีบุตร', lgO:'วันไข่ตก', lgL:'มีบันทึก',
+      c3k:'อาการที่คุณบันทึกบ่อยที่สุดในรอบนี้', c3n:'รอบนี้ยังไม่ได้บันทึกอาการ ลองบันทึกเพิ่มอีกหน่อย สรุปจะสนุกขึ้นนะ 💜', times:function(n){ return n+' วัน'; },
+      c4k:'ข้อมูลชีวิตประจำวันของคุณ', sl:'นอนเฉลี่ย', slu:function(h){ return h+' ชม.'; }, wa:'ดื่มน้ำต่อวัน', wau:function(w){ return w+' แก้ว'; }, sp:'ออกกำลังกาย', spu:function(n){ return n+' วัน'; }, c4n:'รายการที่ไม่ได้บันทึกจะไม่แสดง บันทึกการนอน น้ำ และออกกำลังกายเพิ่ม รอบหน้าจะครบขึ้น', c4e:'รอบนี้ยังไม่มีบันทึกการนอน การดื่มน้ำ หรือการออกกำลังกาย รอบหน้าลองบันทึกที่หน้าแรกดูนะ 🌿',
+      c5k:'รอบนี้ คุณบันทึกไว้', of:function(n){ return 'จากทั้งหมด '+n+' วัน'; }, c5a:'คุณใส่ใจทำความเข้าใจตัวเองมากเลย 💜', c5b:'ยิ่งบันทึกมาก การคาดการณ์ก็ยิ่งเข้าใจคุณมากขึ้น', c5c:'ไม่เป็นไร แค่ที่บันทึกไว้ก็มีค่ามากแล้ว',
+      c6k:'รอบถัดไป', c6s:function(d){ return 'คาดว่าจะเริ่ม '+d; }, c6a:'รอบเดือนของคุณค่อนข้างสม่ำเสมอ รักษาไว้นะ', c6b:'รอบเดือนเปลี่ยนไปบ้าง ไม่ต้องกังวล บันทึกต่อไปเรื่อยๆ จะเห็นรูปแบบเอง', c6done:'เสร็จสิ้น', c6n:'การคาดการณ์เป็นเพียงข้อมูลอ้างอิง ให้ยึดบันทึกจริงของคุณเป็นหลัก',
+      lkT:'ปลดล็อกสรุปฉบับเต็ม', lkL:['กราฟจังหวะรอบเดือน','อาการที่พบบ่อยที่สุด','การนอน · น้ำ · ออกกำลังกาย','จำนวนวันที่บันทึก','คาดการณ์รอบถัดไป'], lkB:'สมัครสมาชิก', lkL2:'ไว้ทีหลัง' },
+    en:{ nope:'Available once you have logged one full cycle', tag:'Cycle recap', et:'Your cycle recap is ready', es:function(n){ return 'The '+n+' days you just finished — here is their story'; },
+      c1k:'The cycle you just completed', d:'days', same:'Same length as your last cycle', longer:function(n){ return n+' days longer than your last cycle'; }, shorter:function(n){ return n+' days shorter than your last cycle'; }, first:'This is your first full cycle',
+      inR:'Within the typical range ✓', lo:'A little shorter than typical', hi:'A little longer than typical', c1n:'Typical is 21–35 days. Small swings are normal; if it stays irregular, check with a doctor.',
+      c2k:'The rhythm of this cycle', c2s:function(p,o){ return 'Period '+p+' days · estimated ovulation on day '+o; }, lgP:'Period', lgF:'Fertile', lgO:'Ovulation', lgL:'Logged',
+      c3k:'What you logged most this cycle', c3n:'No symptoms logged this cycle. Log a few more next time and this gets more fun 💜', times:function(n){ return n+(n===1?' day':' days'); },
+      c4k:'Your everyday numbers', sl:'Avg. sleep', slu:function(h){ return h+' h'; }, wa:'Water / day', wau:function(w){ return w+' cups'; }, sp:'Workouts', spu:function(n){ return n+(n===1?' day':' days'); }, c4n:'Items you did not log are hidden. Log sleep, water and workouts to fill this in next time.', c4e:'No sleep, water or workout logs this cycle. Try logging them on the home screen next cycle 🌿',
+      c5k:'This cycle, you logged', of:function(n){ return 'of '+n+' days'; }, c5a:'You are really getting to know yourself 💜', c5b:'Every extra day makes your predictions understand you better.', c5c:'That is okay — whatever you logged is valuable.',
+      c6k:'Your next cycle', c6s:function(d){ return 'Expected to start '+d; }, c6a:'Your cycle has been steady. Keep it up.', c6b:'Your cycle shifted a bit. No need to worry — keep logging and the pattern will show.', c6done:'Done', c6n:'Predictions are only a guide. Your actual logs always come first.',
+      lkT:'Unlock the full recap', lkL:['Cycle rhythm chart','Most common symptoms','Sleep · water · workouts','Days logged','Next cycle preview'], lkB:'Get membership', lkL2:'Maybe later' },
+    vi:{ nope:'Xem được sau khi ghi đủ 1 chu kỳ', tag:'Tóm tắt chu kỳ', et:'Tóm tắt chu kỳ của bạn đã sẵn sàng', es:function(n){ return n+' ngày vừa qua — cùng xem câu chuyện của nó'; },
+      c1k:'Chu kỳ bạn vừa hoàn thành', d:'ngày', same:'Dài bằng chu kỳ trước', longer:function(n){ return 'Dài hơn chu kỳ trước '+n+' ngày'; }, shorter:function(n){ return 'Ngắn hơn chu kỳ trước '+n+' ngày'; }, first:'Đây là chu kỳ đầy đủ đầu tiên của bạn',
+      inR:'Trong khoảng thường gặp ✓', lo:'Hơi ngắn hơn mức thường gặp', hi:'Hơi dài hơn mức thường gặp', c1n:'Khoảng thường gặp là 21–35 ngày. Lệch nhẹ là bình thường; nếu kéo dài không đều, hãy hỏi bác sĩ.',
+      c2k:'Nhịp của chu kỳ này', c2s:function(p,o){ return 'Kỳ kinh '+p+' ngày · dự kiến rụng trứng ngày '+o; }, lgP:'Kỳ kinh', lgF:'Dễ thụ thai', lgO:'Rụng trứng', lgL:'Có ghi chép',
+      c3k:'Điều bạn ghi nhiều nhất trong chu kỳ này', c3n:'Chu kỳ này chưa ghi triệu chứng nào. Lần sau ghi thêm nhé, bản tóm tắt sẽ thú vị hơn 💜', times:function(n){ return n+' ngày'; },
+      c4k:'Số liệu đời sống của bạn', sl:'Ngủ trung bình', slu:function(h){ return h+' giờ'; }, wa:'Uống nước/ngày', wau:function(w){ return w+' ly'; }, sp:'Vận động', spu:function(n){ return n+' ngày'; }, c4n:'Mục nào không ghi sẽ không hiển thị. Ghi thêm giấc ngủ, nước và vận động để lần sau đầy đủ hơn.', c4e:'Chu kỳ này chưa có ghi chép giấc ngủ, nước hay vận động. Chu kỳ sau thử ghi ở màn hình chính nhé 🌿',
+      c5k:'Chu kỳ này, bạn đã ghi', of:function(n){ return 'trên '+n+' ngày'; }, c5a:'Bạn thật sự đang hiểu rõ bản thân 💜', c5b:'Mỗi ngày ghi thêm giúp dự đoán hiểu bạn hơn.', c5c:'Không sao, những gì bạn ghi được đều có giá trị.',
+      c6k:'Chu kỳ tiếp theo', c6s:function(d){ return 'Dự kiến bắt đầu '+d; }, c6a:'Chu kỳ của bạn khá đều. Cứ giữ nhé.', c6b:'Chu kỳ có chút thay đổi. Đừng lo, cứ ghi tiếp sẽ thấy quy luật.', c6done:'Xong', c6n:'Dự đoán chỉ để tham khảo. Hãy lấy ghi chép thực tế của bạn làm chuẩn.',
+      lkT:'Mở khóa bản tóm tắt đầy đủ', lkL:['Biểu đồ nhịp chu kỳ','Triệu chứng hay gặp nhất','Giấc ngủ · nước · vận động','Số ngày đã ghi','Xem trước chu kỳ sau'], lkB:'Đăng ký thành viên', lkL2:'Để sau' }
+  };
+  function T(){ return TX[L()] || TX.en; }
+
+  // ── 数据 ──
+  function keyOf(base){ try{ return (typeof window._acctKey==='function')?window._acctKey(base):base; }catch(e){ return base; } }
+  function readJ(k, dflt){ try{ var v=JSON.parse(LS.getItem(k)); return v==null?dflt:v; }catch(e){ return dflt; } }
+  function pl(k){ var a=k.split('-'); return new Date(+a[0],+a[1]-1,+a[2]); }
+  function iso(d){ var m=d.getMonth()+1, n=d.getDate(); return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(n<10?'0':'')+n; }
+  function addD(d,n){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n); }
+  function pdays(){ var a=readJ(keyOf('luna_period_days'),[]); return (a&&a.length!==undefined)?a.filter(function(x){ return typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x); }).sort():[]; }
+  function runsOf(){
+    var s=pdays(), runs=[], r=null, i;
+    for(i=0;i<s.length;i++){ if(r && (pl(s[i])-pl(r[r.length-1]))/864e5<=2) r.push(s[i]); else { r=[s[i]]; runs.push(r); } }
+    return runs;
+  }
+  // 最近一个"已走完"的周期：倒数第2次经期开始 → 最近一次经期开始前一天
+  function build(){
+    var runs=runsOf(), n=runs.length;
+    if(n<2) return null;
+    var a=pl(runs[n-2][0]), b=pl(runs[n-1][0]), len=Math.round((b-a)/864e5);
+    if(len<15 || len>90) return null;
+    var per=Math.round((pl(runs[n-2][runs[n-2].length-1])-a)/864e5)+1;
+    var gaps=[], j; for(j=1;j<n;j++) gaps.push(Math.round((pl(runs[j][0])-pl(runs[j-1][0]))/864e5));
+    var avg=Math.max(21,Math.min(45,Math.round(gaps.reduce(function(x,y){ return x+y; },0)/gaps.length)));
+    var prev=(n>=3)?Math.round((a-pl(runs[n-3][0]))/864e5):null;
+    var ov=len-14, from=iso(a), to=iso(addD(b,-1));
+    var logs=readJ(keyOf('luna_logs'),[]), daily=readJ(keyOf('luna_daily'),{}), cnt={}, logged={}, k, i2;
+    if(!daily || typeof daily!=='object') daily={};
+    for(i2=0;i2<logs.length;i2++){ var lg=logs[i2]; if(!lg||!lg.date||lg.date<from||lg.date>to) continue; logged[lg.date]=1;
+      (lg.symptoms||[]).forEach(function(s){ s=String(s||'').trim(); if(s) cnt[s]=(cnt[s]||0)+1; }); }
+    var slS=0, slN=0, waS=0, waN=0, spN=0;
+    for(k in daily){ if(k<from||k>to) continue; var r=daily[k]; if(!r||typeof r!=='object') continue;
+      if(r.sl && +r.sl.h>0){ slS+=+r.sl.h; slN++; logged[k]=1; }
+      if(+r.wa>0){ waS+=+r.wa; waN++; logged[k]=1; }
+      if(r.sp && r.sp.t){ spN++; logged[k]=1; } }
+    for(i2=0;i2<runs[n-2].length;i2++) logged[runs[n-2][i2]]=1;
+    var top=Object.keys(cnt).sort(function(x,y){ return cnt[y]-cnt[x]; }).slice(0,3).map(function(x){ return [x,cnt[x]]; });
+    return { start:a, next:b, from:from, len:len, per:per, avg:avg, prev:prev, ov:ov, top:top,
+      sl:slN?Math.round(slS/slN*10)/10:0, wa:waN?Math.round(waS/waN*10)/10:0, sp:spN,
+      logged:Object.keys(logged).length, logDates:logged, nextPred:addD(b,avg), key:from };
+  }
+  function allowed(){ try{ return (typeof isPro==='function'&&isPro()) || (typeof inTrial==='function'&&inTrial()); }catch(e){ return false; } }
+
+  // ── 跟随主题色：从 --purple / --purple-light 算出深浅渐变 ──
+  function hex2rgb(s){
+    s=String(s||'').trim(); var m;
+    if((m=/^#([0-9a-f]{3})$/i.exec(s))){ s='#'+m[1].split('').map(function(c){ return c+c; }).join(''); }
+    if((m=/^#([0-9a-f]{6})$/i.exec(s))){ var n=parseInt(m[1],16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+    if((m=/^rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)/i.exec(s))) return [+m[1],+m[2],+m[3]];
+    return null;
+  }
+  function cv(name,dflt){ var v=null; try{ v=hex2rgb(getComputedStyle(document.documentElement).getPropertyValue(name)); }catch(e){} return v||hex2rgb(dflt); }
+  function lum(c){ return (0.299*c[0]+0.587*c[1]+0.114*c[2])/255; }
+  function shade(c,k){ return [Math.round(c[0]*k),Math.round(c[1]*k),Math.round(c[2]*k)]; }
+  function mix(a,b,t){ return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)]; }
+  function dark(c){ var n=0; while(lum(c)>0.55 && n<14){ c=shade(c,0.94); n++; } return c; }
+  function hx(c){ return '#'+c.map(function(v){ v=Math.max(0,Math.min(255,v)); return (v<16?'0':'')+v.toString(16); }).join(''); }
+  function themeCols(){
+    var P=cv('--purple','#7c5cbf'), Lt=cv('--purple-light','#b49de0'), K=[[.92,.45],[.85,.7],[1,.3],[.88,.8],[.95,.55],[.9,.4]], out=[], i;
+    for(i=0;i<K.length;i++) out.push([hx(dark(shade(P,K[i][0]))), hx(dark(mix(P,Lt,K[i][1])))]);
+    return { bg:out, ink:hx(shade(P,0.8)), a:hx(dark(P)), b:hx(dark(mix(P,Lt,0.35))), c:hx(dark(mix(P,Lt,0.75))), sig:hx(P) };
+  }
+  // ── 用户自选配色：跟随主题（默认）+ 几款浅色 + 夜空 ──
+  var STYLES = [
+    {id:'theme'},
+    {id:'blush', a:'#ffe6ee', b:'#ffc2d6', fg:'#6b2a4a', lt:1},
+    {id:'mint',  a:'#dcf7ec', b:'#a9e6cf', fg:'#1f5043', lt:1},
+    {id:'sky',   a:'#e0eeff', b:'#b3d2ff', fg:'#23406b', lt:1},
+    {id:'lav',   a:'#eee6ff', b:'#cbbbff', fg:'#41307e', lt:1},
+    {id:'butter',a:'#fff4d6', b:'#ffd88e', fg:'#6b4a12', lt:1},
+    {id:'night', a:'#2d2160', b:'#6a45b8', fg:'#fff', lt:0}
+  ];
+  function curStyle(){ var id='theme'; try{ id=LS.getItem('luna_recap_style')||'theme'; }catch(e){} for(var i=0;i<STYLES.length;i++) if(STYLES[i].id===id) return STYLES[i]; return STYLES[0]; }
+  function palHtml(){
+    var TC=themeCols(), cur=curStyle().id, h='';
+    STYLES.forEach(function(s){
+      var bg = s.id==='theme' ? 'linear-gradient(135deg,'+TC.a+','+TC.c+')' : 'linear-gradient(135deg,'+s.a+','+s.b+')';
+      h+='<div class="rc-sw'+(s.id===cur?' sel':'')+'" data-rc="sty:'+s.id+'" style="background:'+bg+'">'+(s.id==='theme'?'✦':'')+'</div>';
+    });
+    return h;
+  }
+  // ── 卡片 ──
+  var D=null, idx=0, root=null, startX=0, startY=0;
+  function dotsH(d){
+    var h='', i, c;
+    for(i=1;i<=d.len;i++){
+      c=''; if(i>=d.ov-5&&i<=d.ov+1) c='f'; if(i===d.ov) c='o'; if(i<=d.per) c='p';
+      var dt=iso(addD(d.start,i-1)); if(d.logDates[dt]) c+=' l';
+      h+='<i class="'+c+'" style="animation-delay:'+Math.min(i*18,700)+'ms"></i>';
+    }
+    return h;
+  }
+  function card(i){
+    var t=T(), d=D, h='', diff;
+    if(i===0){
+      diff = d.prev==null ? t.first : (d.len===d.prev ? t.same : (d.len>d.prev ? t.longer(d.len-d.prev) : t.shorter(d.prev-d.len)));
+      var rng = d.len<21 ? t.lo : (d.len>35 ? t.hi : t.inR);
+      h='<div class="rc-k">'+esc(t.c1k)+'</div><div class="rc-big">'+d.len+'<small>'+esc(t.d)+'</small></div>'
+        +'<div class="rc-sub">'+esc(fd(d.start)+' – '+fd(addD(d.next,-1)))+'</div><div class="rc-chip">'+esc(diff)+'</div><div class="rc-chip" style="margin-top:8px">'+esc(rng)+'</div><div class="rc-note">'+esc(t.c1n)+'</div>';
+    } else if(i===1){
+      h='<div class="rc-k">'+esc(t.c2k)+'</div><div class="rc-dots">'+dotsH(d)+'</div><div class="rc-lg"><span class="a">'+esc(t.lgP)+'</span><span class="b">'+esc(t.lgF)+'</span><span class="c">'+esc(t.lgO)+'</span><span class="d">'+esc(t.lgL)+'</span></div><div class="rc-sub" style="margin-top:20px">'+esc(t.c2s(d.per,d.ov))+'</div>';
+    } else if(i===2){
+      if(!d.top.length) h='<div class="rc-k">'+esc(t.c3k)+'</div><div class="rc-sub" style="margin-top:20px">'+esc(t.c3n)+'</div>';
+      else { var mx=d.top[0][1]; h='<div class="rc-k">'+esc(t.c3k)+'</div><div class="rc-rank">';
+        d.top.forEach(function(p,j){ h+='<div class="rc-row" style="animation-delay:'+(j*140)+'ms"><b><span>'+esc(p[0])+'</span><em>'+esc(t.times(p[1]))+'</em></b><div class="rc-bar"><u style="width:'+Math.max(12,Math.round(p[1]/mx*100))+'%"></u></div></div>'; });
+        h+='</div>'; }
+    } else if(i===3){
+      if(!d.sl && !d.wa && !d.sp) h='<div class="rc-k">'+esc(t.c4k)+'</div><div class="rc-sub" style="margin-top:20px">'+esc(t.c4e)+'</div>';
+      else { h='<div class="rc-k">'+esc(t.c4k)+'</div><div class="rc-grid">';
+        if(d.sl) h+='<div class="rc-cell"><div>😴</div><b>'+esc(t.slu(d.sl))+'</b><span>'+esc(t.sl)+'</span></div>';
+        if(d.wa) h+='<div class="rc-cell" style="animation-delay:120ms"><div>💧</div><b>'+esc(t.wau(d.wa))+'</b><span>'+esc(t.wa)+'</span></div>';
+        if(d.sp) h+='<div class="rc-cell" style="animation-delay:240ms"><div>🏃‍♀️</div><b>'+esc(t.spu(d.sp))+'</b><span>'+esc(t.sp)+'</span></div>';
+        h+='</div><div class="rc-note">'+esc(t.c4n)+'</div>'; }
+    } else if(i===4){
+      var pct=Math.min(1,d.logged/d.len), C=2*Math.PI*70, msg = pct>=0.6 ? t.c5a : (pct>=0.3 ? t.c5b : t.c5c);
+      h='<div class="rc-k">'+esc(t.c5k)+'</div><div class="rc-ring"><svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="12"/><circle cx="80" cy="80" r="70" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(C*(1-pct)).toFixed(1)+'"/></svg><div><b>'+d.logged+'</b><span>'+esc(t.of(d.len))+'</span></div></div><div class="rc-sub">'+esc(msg)+'</div>';
+    } else {
+      var steady = Math.abs(d.len-d.avg)<=2;
+      h='<div class="rc-k">'+esc(t.c6k)+'</div><div class="rc-big" style="font-size:44px;margin:14px 0 4px">🌙</div><div class="rc-sub" style="font-size:19px;font-weight:700">'+esc(t.c6s(fd(d.nextPred)))+'</div><div class="rc-sub">'+esc(steady?t.c6a:t.c6b)+'</div><div class="rc-note">'+esc(t.c6n)+'</div><div class="rc-btn" data-rc="close">'+esc(t.c6done)+'</div>';
+    }
+    return h;
+  }
+  function lockCard(){
+    var t=T(), h='<div class="rc-lock">🔒</div><div class="rc-sub" style="font-size:20px;font-weight:700">'+esc(t.lkT)+'</div><ul class="rc-ul">';
+    t.lkL.forEach(function(x){ h+='<li>'+esc(x)+'</li>'; });
+    return h+'</ul><div class="rc-btn" data-rc="pay">'+esc(t.lkB)+'</div><div class="rc-btn2" data-rc="close">'+esc(t.lkL2)+'</div>';
+  }
+  var TOTAL=6;
+  function show(i){
+    if(!root) return;
+    var ok=allowed(), locked=(!ok && i>=1);
+    if(i<0) i=0; if(i>=TOTAL) i=TOTAL-1;
+    if(locked) i=1;
+    idx=i;
+    var TC=themeCols(), SS=curStyle(), pair=locked?[TC.a,TC.c]:TC.bg[i];
+    if(SS.id!=='theme') pair=[SS.a,SS.b];
+    root.style.background='linear-gradient('+(160+(SS.id==='theme'?0:i*10))+'deg,'+pair[0]+','+pair[1]+')';
+    root.style.setProperty('--rc-ink',TC.ink);
+    if(SS.id!=='theme' && SS.lt){ root.classList.add('lt'); root.style.setProperty('--rc-fg',SS.fg); root.style.setProperty('--rc-soft','rgba(0,0,0,.09)'); }
+    else { root.classList.remove('lt'); if(SS.id==='night') root.style.setProperty('--rc-ink','#4a2f95'); }
+    var bars='', j; for(j=0;j<TOTAL;j++) bars+='<i class="'+(j<=i?'d':'')+'"></i>';
+    root.querySelector('.rc-bars').innerHTML=bars;
+    var st=root.querySelector('.rc-stage'), old=st.querySelector('.rc-card'); if(old) old.remove();
+    var c=document.createElement('div'); c.className='rc-card'; c.innerHTML = locked ? lockCard() : card(i);
+    st.insertBefore(c, st.firstChild);
+  }
+  function close(){
+    if(!root) return;
+    var r=root; root=null; r.classList.remove('on');
+    setTimeout(function(){ if(r.parentNode) r.parentNode.removeChild(r); },260);
+    try{ document.body.style.overflow=''; }catch(e){}
+  }
+  function openRecap(){
+    D=build(); if(!D) return;
+    if(root) return;
+    root=document.createElement('div'); root.id='lunaRecap'; root.setAttribute('data-no-elastic','1');
+    root.innerHTML='<div class="rc-bars"></div><div class="rc-top"><span>🌙 '+esc(T().tag)+'</span><div style="display:flex;align-items:center"><div class="rc-pk" data-rc="pal">🎨</div><div class="rc-close" data-rc="close">✕</div></div></div><div class="rc-pal"></div><div class="rc-stage"><div class="rc-tap l" data-rc="prev"></div><div class="rc-tap r" data-rc="next"></div></div>';
+    document.body.appendChild(root);
+    try{ document.body.style.overflow='hidden'; }catch(e){}
+    root.addEventListener('click',function(e){
+      var a=e.target.closest&&e.target.closest('[data-rc]'); if(!a) return;
+      var k=a.getAttribute('data-rc');
+      if(k==='close') close();
+      else if(k==='pal'){ var pl2=root.querySelector('.rc-pal'); if(pl2.classList.contains('on')) pl2.classList.remove('on'); else { pl2.innerHTML=palHtml(); pl2.classList.add('on'); } }
+      else if(k.indexOf('sty:')===0){ try{ LS.setItem('luna_recap_style',k.slice(4)); }catch(_){} var pl3=root.querySelector('.rc-pal'); pl3.innerHTML=palHtml(); show(idx); }
+      else if(k==='prev') show(idx-1);
+      else if(k==='next') show(idx+1);
+      else if(k==='pay'){ try{ window._lunaPaySrc='cycle_recap'; if(typeof window.showVipPaywall==='function') window.showVipPaywall(); }catch(_){} }
+    });
+    root.addEventListener('touchstart',function(e){ var t=e.touches[0]; startX=t.clientX; startY=t.clientY; },{passive:true});
+    root.addEventListener('touchmove',function(e){ e.preventDefault(); },{passive:false});
+    root.addEventListener('touchend',function(e){
+      var t=e.changedTouches[0], dx=t.clientX-startX, dy=t.clientY-startY;
+      if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.5){ e.preventDefault(); show(dx<0?idx+1:idx-1); }
+      else if(dy>110 && Math.abs(dy)>Math.abs(dx)*1.5){ close(); }
+    },{passive:false});
+    show(0);
+    requestAnimationFrame(function(){ if(root) root.classList.add('on'); });
+    try{ LS.setItem(keyOf('luna_recap_seen'), D.key); }catch(e){}
+    try{ if(typeof window.lunaTrack==='function') window.lunaTrack('cycle_recap_open'); }catch(e){}
+  }
+  window.lunaCycleRecapOpen = openRecap;
+  window._lunaThemeCols = themeCols;
+  window.lunaCycleRecapInfo = function(){ var d=null; try{ d=build(); }catch(e){} var t=T(); return { ok:!!d, title:t.tag, sub:d?t.es(d.len):t.nope }; };
+
+  // ── 首页入口 ──
+  function modeOK(){
+    try{ var b=document.body; if(b.classList.contains('preg-mode')||b.classList.contains('pp-mode')) return false; }catch(e){}
+    return true;
+  }
+  function entry(){
+    var host=document.getElementById('lunaCycleInfo'), el=document.getElementById('lunaRecapEntry');
+    var d = modeOK() ? build() : null, show1=false;
+    if(d){
+      var days=Math.round((new Date()-d.next)/864e5);
+      var dis=''; try{ dis=LS.getItem(keyOf('luna_recap_dismiss'))||''; }catch(e){}
+      show1 = days>=0 && days<=35 && dis!==d.key;
+    }
+    if(!show1 || !host || !host.parentNode){ if(el && el.parentNode) el.parentNode.removeChild(el); return; }
+    var t=T(), TC=themeCols(), sig=L()+'|'+d.key+'|'+d.len+'|'+TC.sig;
+    if(!el){ el=document.createElement('div'); el.id='lunaRecapEntry'; el.setAttribute('data-sig',''); }
+    if(el.nextElementSibling!==host){ host.parentNode.insertBefore(el,host); }
+    if(el.getAttribute('data-sig')!==sig){
+      el.setAttribute('data-sig',sig);
+      el.innerHTML='<div class="rc-e" data-rc="open" style="--rc-eg:linear-gradient(135deg,'+TC.a+' 0%,'+TC.b+' 55%,'+TC.c+' 100%)"><div class="rc-ei">🌙</div><div class="rc-et"><b>'+esc(t.et)+'</b><span>'+esc(t.es(d.len))+'</span></div><div class="rc-go">›</div></div><div class="rc-x" data-rc="dismiss"><i>✕</i></div>';
+    }
+  }
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('#lunaRecapEntry [data-rc]'); if(!a) return;
+    var k=a.getAttribute('data-rc');
+    if(k==='open') openRecap();
+    else if(k==='dismiss'){ e.stopPropagation(); try{ var d=build(); if(d) LS.setItem(keyOf('luna_recap_dismiss'), d.key); }catch(_){} entry(); }
+  });
+  setInterval(function(){ try{ entry(); }catch(e){} }, 2500);
+  setTimeout(function(){ try{ entry(); }catch(e){} }, 1200);
+})();
+</script>
+<script id="lunaPrivJs">
+/* 🔒 私密模式（会员）：应用锁(PIN+可选生物识别) + 换桌面图标。入口在“我的”页，和“和伴侣共享”合并成一张卡。 */
+(function(){
+  if(window.LunaPrivacy) return;
+  var LS = window.localStorage, K='luna_lock', K_ICON='luna_app_icon';
+  var FREE_PER_GROUP = 1;   // ★每类免费开放几个图标（每类取前 N 个）；想多开放就改这个数字
+  function L(){ try{ var l=LS.getItem('luna_lang'); if(l!=='zh') return 'th'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; if(LS.getItem('luna_ui_en')==='1') return 'en'; return 'zh'; }catch(e){ return 'zh'; } }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function $(id){ return document.getElementById(id); }
+  var SV={};
+function petal(rot,cx,cy,d,fill){ return '<path d="'+d+'" fill="'+fill+'" transform="rotate('+rot+' '+cx+' '+cy+')"/>'; }
+SV.luna='<defs><mask id="lm"><rect width="100" height="100" fill="#000"/><circle cx="47" cy="52" r="29" fill="#fff"/><circle cx="62" cy="43" r="25" fill="#000"/></mask><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffe3f1"/></linearGradient></defs><rect width="100" height="100" fill="url(#lg)" mask="url(#lm)"/><path d="M74 24 C75 30 78 33 84 34 C78 35 75 38 74 44 C73 38 70 35 64 34 C70 33 73 30 74 24Z" fill="#fff"/><circle cx="66" cy="70" r="2.5" fill="#fff" opacity=".8"/>';
+SV.drop='<defs><linearGradient id="dg" x1="0.2" y1="0" x2="0.7" y2="1"><stop offset="0" stop-color="#ff8497"/><stop offset=".55" stop-color="#ee3d63"/><stop offset="1" stop-color="#c41c4a"/></linearGradient></defs><path d="M50 14 C50 14 25 44 25 60 A25 25 0 0 0 75 60 C75 44 50 14 50 14Z" fill="url(#dg)"/><path d="M37 60 C37 66 40 71 45 74" stroke="#fff" stroke-width="4.5" stroke-linecap="round" fill="none" opacity=".75"/><ellipse cx="40" cy="47" rx="3" ry="6" fill="#fff" opacity=".35" transform="rotate(25 40 47)"/>';
+var pet="M50 52 C40 42 34 28 41 17 C45 19 48 22 50 26 C52 22 55 19 59 17 C66 28 60 42 50 52Z";
+SV.sakura='<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe6ee"/><stop offset=".6" stop-color="#ffa6c1"/><stop offset="1" stop-color="#f4668f"/></linearGradient></defs>'+[0,72,144,216,288].map(function(r){return petal(r,50,52,pet,'url(#sg)');}).join('')+'<circle cx="50" cy="52" r="5" fill="#f0507f"/>'+[0,72,144,216,288].map(function(r){var a=r*Math.PI/180;return '<circle cx="'+(50+11*Math.sin(a)).toFixed(1)+'" cy="'+(52-11*Math.cos(a)).toFixed(1)+'" r="2" fill="#f0507f"/>';}).join('');
+SV.phase='<defs><clipPath id="pc"><circle cx="50" cy="50" r="25"/></clipPath></defs><circle cx="50" cy="50" r="25" fill="#fbf4ff"/><circle cx="66" cy="46" r="24" fill="#3f3590" clip-path="url(#pc)"/><circle cx="24" cy="26" r="2" fill="#fff" opacity=".85"/><circle cx="78" cy="76" r="2.2" fill="#fff" opacity=".8"/><circle cx="74" cy="22" r="1.5" fill="#fff" opacity=".7"/>';
+SV.cal='<defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7739a"/><stop offset="1" stop-color="#dc3d6b"/></linearGradient></defs><rect x="21" y="25" width="58" height="56" rx="12" fill="#fff"/><path d="M21 37 A12 12 0 0 1 33 25 L67 25 A12 12 0 0 1 79 37 L79 43 L21 43Z" fill="url(#cg)"/><rect x="34" y="17" width="7" height="15" rx="3.5" fill="#b92a58"/><rect x="59" y="17" width="7" height="15" rx="3.5" fill="#b92a58"/>'+[[35,56],[50,56],[65,56],[35,69],[65,69]].map(function(p){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.4" fill="#e9d9e0"/>';}).join('')+'<circle cx="50" cy="69" r="7" fill="#f0507f"/><path d="M50 65 C50 65 46.5 69 46.5 71 A3.5 3.5 0 0 0 53.5 71 C53.5 69 50 65 50 65Z" fill="#fff"/>';
+SV.sprout='<defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9be9b2"/><stop offset="1" stop-color="#38ad73"/></linearGradient><linearGradient id="lg2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c7f4a8"/><stop offset="1" stop-color="#52bf7a"/></linearGradient></defs><path d="M50 84 C50 74 50 68 50 58" stroke="#3b9d68" stroke-width="5" stroke-linecap="round" fill="none"/><path d="M50 66 C28 68 20 50 22 34 C42 33 54 46 50 66Z" fill="url(#lg1)"/><path d="M50 58 C50 40 62 27 80 26 C82 46 70 60 50 58Z" fill="url(#lg2)"/><path d="M50 62 C44 54 38 48 30 42" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".55" fill="none"/><ellipse cx="50" cy="85" rx="16" ry="3.5" fill="#8a6a4a" opacity=".25"/>';
+var wl="M48 49 C34 18 12 24 18 44 C22 55 38 55 48 49Z", wl2="M48 53 C36 58 26 64 31 76 C36 85 46 72 48 53Z";
+SV.butter='<defs><linearGradient id="bw1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7fb7ff"/><stop offset="1" stop-color="#a47df0"/></linearGradient><linearGradient id="bw2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9fd3ff"/><stop offset="1" stop-color="#c78df0"/></linearGradient></defs><g><path d="'+wl+'" fill="url(#bw1)"/><path d="'+wl2+'" fill="url(#bw2)"/></g><g transform="translate(100 0) scale(-1 1)"><path d="'+wl+'" fill="url(#bw1)"/><path d="'+wl2+'" fill="url(#bw2)"/></g><ellipse cx="50" cy="52" rx="3.2" ry="15" fill="#5b4aa8"/><path d="M48 38 C46 31 42 28 39 28 M52 38 C54 31 58 28 61 28" stroke="#5b4aa8" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="29" cy="36" r="3" fill="#fff" opacity=".6"/><circle cx="71" cy="36" r="3" fill="#fff" opacity=".6"/>';
+var sp="M50 16 C53 38 62 47 84 50 C62 53 53 62 50 84 C47 62 38 53 16 50 C38 47 47 38 50 16Z";
+SV.star='<defs><linearGradient id="stg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#ff9a3d"/></linearGradient></defs><path d="'+sp+'" fill="url(#stg)" transform="translate(-4 4)"/><path d="'+sp+'" fill="url(#stg)" transform="translate(60 12) scale(.28)"/><path d="'+sp+'" fill="url(#stg)" transform="translate(17 61) scale(.22)"/>';
+var lp="M50 80 C36 64 36 40 50 20 C64 40 64 64 50 80Z";
+SV.lotus='<defs><linearGradient id="lt" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#ffc2d6"/><stop offset="1" stop-color="#f26a99"/></linearGradient></defs><g transform="translate(0 2)">'+[-54,54].map(function(r){return '<path d="'+lp+'" fill="url(#lt)" stroke="#fff" stroke-width="1.5" transform="rotate('+r+' 50 80) translate(0 6) scale(1 .92)"/>';}).join('')+[-27,27].map(function(r){return '<path d="'+lp+'" fill="url(#lt)" stroke="#fff" stroke-width="1.5" transform="rotate('+r+' 50 80)"/>';}).join('')+'<path d="'+lp+'" fill="url(#lt)" stroke="#fff" stroke-width="1.5"/></g><path d="M16 86 C30 80 40 90 50 86 C60 82 70 90 84 84" stroke="#74cfd8" stroke-width="3.5" stroke-linecap="round" fill="none"/>';
+SV.heart='<defs><linearGradient id="hg" x1="0.1" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#ff9ab9"/><stop offset="1" stop-color="#e5407a"/></linearGradient></defs><path d="M50 82 C16 58 18 28 38 26 C46 25 50 32 50 35 C50 32 54 25 62 26 C82 28 84 58 50 82Z" fill="url(#hg)"/><path d="M32 38 C34 33 39 31 43 33" stroke="#fff" stroke-width="3.5" stroke-linecap="round" fill="none" opacity=".7"/>';
+SV.baby='<defs><radialGradient id="bf" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#ffe6cf"/><stop offset="1" stop-color="#ffc9a0"/></radialGradient></defs><circle cx="24" cy="55" r="6" fill="#ffc9a0"/><circle cx="76" cy="55" r="6" fill="#ffc9a0"/><circle cx="50" cy="54" r="27" fill="url(#bf)"/><path d="M47 28 C42 20 54 17 56 25 C58 22 55 18 51 19" stroke="#b9774a" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M36 54 Q41 59 46 54 M54 54 Q59 59 64 54" stroke="#7a4a2f" stroke-width="2.8" stroke-linecap="round" fill="none"/><circle cx="35" cy="64" r="4.5" fill="#ff9d8e" opacity=".6"/><circle cx="65" cy="64" r="4.5" fill="#ff9d8e" opacity=".6"/><path d="M45 65 Q50 70 55 65" stroke="#7a4a2f" stroke-width="2.6" stroke-linecap="round" fill="none"/>';
+SV.bottle='<defs><linearGradient id="bt" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e3f0ff"/></linearGradient></defs><path d="M44 28 C43 16 57 16 56 28Z" fill="#ffc86e"/><rect x="35" y="27" width="30" height="9" rx="4" fill="#79a9ea"/><rect x="32" y="35" width="36" height="48" rx="13" fill="url(#bt)" stroke="#a6c8f4" stroke-width="2.5"/><rect x="35" y="57" width="30" height="23" rx="10" fill="#bcdaff"/><path d="M58 46 H64 M58 55 H64 M58 64 H64" stroke="#8db8ee" stroke-width="2.5" stroke-linecap="round"/><path d="M45 69 C45 69 41 72 41 74.500 A4 4 0 0 0 49 74.500 C49 72 45 69 45 69Z" fill="#fff" opacity=".9"/>';
+SV.preg='<circle cx="40" cy="19" r="8.5" fill="#fff"/><path d="M38 29 C31 36 32 47 35 55 C36 63 33 72 33 85 L46 85 C46 77 47 71 50 67 C63 69 76 60 72 47 C70 39 57 38 50 33 C46 30 42 29 38 29Z" fill="#fff"/><path d="M61 47 C61 47 56 52 56 55 A5 5 0 0 0 66 55 C66 52 61 47 61 47Z" fill="#f0507f" transform="rotate(180 61 52)"/>';
+SV.cloud='<defs><linearGradient id="cd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e4f1ff"/></linearGradient></defs><g fill="url(#cd)"><circle cx="36" cy="58" r="13"/><circle cx="53" cy="46" r="18"/><circle cx="71" cy="58" r="13"/><rect x="30" y="58" width="46" height="15" rx="7.500"/></g><path d="M22 28 C23 32 25 33 29 34 C25 35 23 36 22 40 C21 36 19 35 15 34 C19 33 21 32 22 28Z" fill="#fff"/><circle cx="80" cy="30" r="2.500" fill="#fff" opacity=".85"/>';
+SV.calc='<rect x="22" y="16" width="56" height="68" rx="9" fill="#2b2b33"/><rect x="28" y="22" width="44" height="16" rx="4" fill="#9ad9b5"/><path d="M64 33 H68" stroke="#2b5a40" stroke-width="2.500" stroke-linecap="round"/>'+[[33,50],[50,50],[67,50],[33,62],[50,62],[67,62],[33,74],[50,74]].map(function(p){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="4.600" fill="#5a5a66"/>';}).join('')+'<circle cx="67" cy="74" r="4.600" fill="#ff9f43"/>';
+SV.wx='<defs><linearGradient id="su" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#ffb23d"/></linearGradient></defs><circle cx="38" cy="38" r="16" fill="url(#su)"/><g fill="#fff"><circle cx="40" cy="64" r="13"/><circle cx="56" cy="56" r="16"/><circle cx="72" cy="65" r="11"/><rect x="34" y="64" width="46" height="12" rx="6"/></g>';
+SV.note='<rect x="24" y="16" width="52" height="68" rx="8" fill="#fffdf2"/><path d="M24 30 H76" stroke="#f0b93f" stroke-width="10" stroke-linecap="butt" opacity=".9"/><path d="M33 46 H67 M33 57 H67 M33 68 H56" stroke="#d9cfa3" stroke-width="3" stroke-linecap="round"/>';
+SV.clock='<circle cx="50" cy="50" r="31" fill="#fff"/><circle cx="50" cy="50" r="31" fill="none" stroke="#d7d7de" stroke-width="3"/>'+[0,90,180,270].map(function(r){return '<path d="M50 24 V29" stroke="#555" stroke-width="3" stroke-linecap="round" transform="rotate('+r+' 50 50)"/>';}).join('')+'<path d="M50 50 V33" stroke="#2b2b33" stroke-width="4" stroke-linecap="round"/><path d="M50 50 L62 57" stroke="#2b2b33" stroke-width="4" stroke-linecap="round"/><circle cx="50" cy="50" r="3" fill="#ff6b4a"/>';
+SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-width="6"/><path d="M28 36 V64 M72 36 V64" stroke-width="9"/><path d="M19 42 V58 M81 42 V58" stroke-width="7"/></g>';
+
+  var GCNT=0;
+  function glyph(id){ if(!SV[id]) return ''; var n=++GCNT; var inner=SV[id].replace(/id="([a-z0-9]+)"/g,'id="$1_'+n+'"').replace(/url\(#([a-z0-9]+)\)/g,'url(#$1_'+n+')'); return '<svg viewBox="0 0 100 100" width="100%" height="100%" style="display:block">'+inner+'</svg>'; }
+  var ICONS=[
+    ['p','luna','linear-gradient(135deg,#8f6fd6,#e58bb8)'],['p','drop','linear-gradient(160deg,#fff6f7,#ffd5dc)'],['p','sakura','linear-gradient(160deg,#fff0f5,#ffc9db)'],['p','phase','linear-gradient(160deg,#4d409a,#262060)'],['p','cal','linear-gradient(160deg,#fff3f6,#ffd6e1)'],
+    ['t','sprout','linear-gradient(160deg,#eefcf2,#bfeccf)'],['t','butter','linear-gradient(160deg,#eef5ff,#d6cdff)'],['t','star','linear-gradient(160deg,#fff6dd,#ffdf9f)'],['t','lotus','linear-gradient(160deg,#e9f8f3,#cdeaf3)'],
+    ['g','heart','linear-gradient(160deg,#fff1f6,#ffd2e2)'],['g','baby','linear-gradient(160deg,#fff4e4,#ffe0bd)'],['g','bottle','linear-gradient(160deg,#ecf6ff,#cfe4fb)'],['g','preg','linear-gradient(160deg,#a687e8,#7a59c2)'],['g','cloud','linear-gradient(160deg,#e1f1ff,#b8d9fb)'],
+    ['d','calc','linear-gradient(160deg,#5a5a66,#2b2b33)'],['d','wx','linear-gradient(160deg,#6db3f5,#9bd5ff)'],['d','note','linear-gradient(160deg,#ffe892,#ffc84f)'],['d','clock','linear-gradient(160deg,#3a3a4a,#1f1f2a)'],['d','fit','linear-gradient(160deg,#79dca8,#2fb27a)']
+  ];
+  var TX={
+    zh:{ title:'私密模式', vip:' 会员', on:'应用锁已开启', off:'应用锁 · 换桌面图标', sub:'不想让别人看到你在用这类 App？这里可以给它加锁，也可以换桌面图标。',
+      lockT:'应用锁', lockD:'打开 LUNA 时需要验证', bioT:'用 Face ID / 指纹', bioD:'用手机自带的验证，App 拿不到你的脸或指纹', pinT:'修改 PIN', pinD:'4 位数字', hideT:'切到后台时隐藏画面', hideD:'多任务界面里看不到内容',
+      icT:'桌面图标', icD:'选一个你喜欢的，也可以选不容易被认出的', freeT:'免费', noteA:'Android：图标和名字都会换，切换时 App 可能短暂关闭。', noteI:'iOS：只能换图标，名字仍是 LUNA Calm，系统会弹出“已更改图标”的提示。',
+      saved:'已保存你的选择。换图标需要新版本支持，更新后自动生效', done:'已切换，桌面可能要几秒才刷新', fail:'切换失败，请稍后再试', needVip:'请先登录账号，再开启应用锁', vipIcon:'这个图标是会员专属',
+      setPin:'设置 4 位 PIN', again:'再输入一次确认', mismatch:'两次不一样，请重来', oldPin:'输入当前 PIN', newPin:'输入新的 PIN', wrong:'PIN 不对', many:'错误次数太多，请 30 秒后再试', unlock:'输入 PIN 解锁', forgot:'忘记 PIN？', bioBtn:'用 Face ID / 指纹解锁', cancel:'取消', now:'当前', turnOff:'输入 PIN 关闭应用锁',
+      fgT:'忘记 PIN', fgM:'将退出登录，并清除这台手机上的本地数据。你的记录已经保存在云端，用同一个账号重新登录就能找回。', fgG:'你现在是访客，数据只保存在这台手机上。重置 PIN 会清空本机全部数据，且无法找回。', fgOk:'确认重置', guestNote:'👤 访客需先登录账号才能开启应用锁（忘记 PIN 时可靠云端找回数据）。',
+      g:{p:'经期',t:'备孕',g:'怀孕',d:'伪装'},
+      n:{luna:'LUNA',drop:'水滴',sakura:'樱花',phase:'月相',cal:'月历',sprout:'嫩芽',butter:'蝴蝶',star:'星愿',lotus:'荷花',heart:'爱心',baby:'宝宝',bottle:'奶瓶',preg:'孕期',cloud:'云朵',calc:'计算器',wx:'天气',note:'备忘',clock:'时钟',fit:'健身'} },
+    th:{ title:'โหมดส่วนตัว', vip:' สมาชิก', on:'เปิดล็อกแอปอยู่', off:'ล็อกแอป · เปลี่ยนไอคอน', sub:'ไม่อยากให้คนอื่นเห็นว่าคุณใช้แอปนี้? ที่นี่ล็อกแอปและเปลี่ยนไอคอนหน้าจอได้',
+      lockT:'ล็อกแอป', lockD:'ต้องยืนยันตัวตนทุกครั้งที่เปิด LUNA', bioT:'ใช้ Face ID / ลายนิ้วมือ', bioD:'ใช้ระบบของมือถือ แอปไม่เห็นใบหน้าหรือลายนิ้วมือของคุณ', pinT:'เปลี่ยน PIN', pinD:'ตัวเลข 4 หลัก', hideT:'ซ่อนหน้าจอเมื่อสลับแอป', hideD:'มองไม่เห็นเนื้อหาในหน้าสลับแอป',
+      icT:'ไอคอนหน้าจอ', icD:'เลือกแบบที่ชอบ หรือแบบที่ไม่เด่นก็ได้', freeT:'ฟรี', noteA:'Android: เปลี่ยนทั้งไอคอนและชื่อ แอปอาจปิดไปสักครู่ตอนสลับ', noteI:'iOS: เปลี่ยนได้เฉพาะไอคอน ชื่อยังเป็น LUNA Calm และระบบจะแจ้งว่า “เปลี่ยนไอคอนแล้ว”',
+      saved:'บันทึกที่เลือกไว้แล้ว การเปลี่ยนไอคอนต้องใช้เวอร์ชันใหม่ อัปเดตแล้วจะมีผลเอง', done:'เปลี่ยนแล้ว หน้าจออาจใช้เวลาสักครู่', fail:'เปลี่ยนไม่สำเร็จ ลองใหม่อีกครั้ง', needVip:'กรุณาเข้าสู่ระบบก่อน จึงจะเปิดล็อกแอปได้', vipIcon:'ไอคอนนี้สำหรับสมาชิก',
+      setPin:'ตั้ง PIN 4 หลัก', again:'ใส่อีกครั้งเพื่อยืนยัน', mismatch:'ไม่ตรงกัน เริ่มใหม่นะ', oldPin:'ใส่ PIN ปัจจุบัน', newPin:'ใส่ PIN ใหม่', wrong:'PIN ไม่ถูกต้อง', many:'ผิดหลายครั้งเกินไป ลองใหม่ใน 30 วินาที', unlock:'ใส่ PIN เพื่อปลดล็อก', forgot:'ลืม PIN?', bioBtn:'ปลดล็อกด้วย Face ID / ลายนิ้วมือ', cancel:'ยกเลิก', now:'ใช้อยู่', turnOff:'ใส่ PIN เพื่อปิดล็อกแอป',
+      fgT:'ลืม PIN', fgM:'จะออกจากระบบและล้างข้อมูลในเครื่องนี้ ข้อมูลของคุณเก็บไว้บนคลาวด์แล้ว เข้าสู่ระบบด้วยบัญชีเดิมก็จะกลับมา', fgG:'ตอนนี้คุณเป็นผู้เยี่ยมชม ข้อมูลอยู่ในเครื่องนี้เท่านั้น การรีเซ็ต PIN จะล้างข้อมูลทั้งหมดและกู้คืนไม่ได้', fgOk:'ยืนยันรีเซ็ต', guestNote:'👤 ผู้เยี่ยมชมต้องเข้าสู่ระบบก่อนจึงจะเปิดล็อกแอปได้ (ถ้าลืม PIN ข้อมูลกู้คืนได้จากคลาวด์)',
+      g:{p:'ประจำเดือน',t:'เตรียมตั้งครรภ์',g:'ตั้งครรภ์',d:'ไอคอนทั่วไป'},
+      n:{luna:'LUNA',drop:'หยดน้ำ',sakura:'ซากุระ',phase:'ข้างขึ้นข้างแรม',cal:'ปฏิทิน',sprout:'ต้นอ่อน',butter:'ผีเสื้อ',star:'ดาวนำโชค',lotus:'ดอกบัว',heart:'หัวใจ',baby:'เบบี๋',bottle:'ขวดนม',preg:'ตั้งครรภ์',cloud:'ก้อนเมฆ',calc:'เครื่องคิดเลข',wx:'สภาพอากาศ',note:'โน้ต',clock:'นาฬิกา',fit:'ฟิตเนส'} },
+    en:{ title:'Private mode', vip:' Member', on:'App lock is on', off:'App lock · change icon', sub:'Don’t want others to see you use this app? Lock it here, or change the home-screen icon.',
+      lockT:'App lock', lockD:'Verify every time LUNA opens', bioT:'Use Face ID / fingerprint', bioD:'Uses your phone’s own check. The app never sees your face or fingerprint', pinT:'Change PIN', pinD:'4 digits', hideT:'Hide screen in app switcher', hideD:'Content is hidden in the multitasking view',
+      icT:'Home-screen icon', icD:'Pick one you like — or one that blends in', freeT:'Free', noteA:'Android: both icon and name change; the app may close briefly when switching.', noteI:'iOS: only the icon changes, the name stays LUNA Calm, and the system shows a “changed icon” notice.',
+      saved:'Choice saved. Changing the icon needs a newer app version; it applies after updating', done:'Switched. The home screen may take a few seconds', fail:'Could not switch. Please try again later', needVip:'Please sign in first to turn on App Lock', vipIcon:'This icon is for members',
+      setPin:'Set a 4-digit PIN', again:'Enter it again to confirm', mismatch:'They don’t match. Try again', oldPin:'Enter current PIN', newPin:'Enter new PIN', wrong:'Wrong PIN', many:'Too many tries. Please wait 30 seconds', unlock:'Enter PIN to unlock', forgot:'Forgot PIN?', bioBtn:'Unlock with Face ID / fingerprint', cancel:'Cancel', now:'Current', turnOff:'Enter PIN to turn off app lock',
+      fgT:'Forgot PIN', fgM:'This signs you out and clears the local data on this phone. Your records are saved in the cloud — sign in with the same account to get them back.', fgG:'You are a guest, so your data lives only on this phone. Resetting the PIN erases everything here and cannot be undone.', fgOk:'Reset now', guestNote:'👤 Guests need to sign in before turning on App Lock (if you forget the PIN, your data can be restored from the cloud).',
+      g:{p:'Period',t:'Trying to conceive',g:'Pregnancy',d:'Everyday'},
+      n:{luna:'LUNA',drop:'Drop',sakura:'Sakura',phase:'Moon phase',cal:'Calendar',sprout:'Sprout',butter:'Butterfly',star:'Wish star',lotus:'Lotus',heart:'Heart',baby:'Baby',bottle:'Bottle',preg:'Pregnancy',cloud:'Cloud',calc:'Calculator',wx:'Weather',note:'Notes',clock:'Clock',fit:'Fitness'} },
+    vi:{ title:'Chế độ riêng tư', vip:' Hội viên', on:'Đang bật khóa ứng dụng', off:'Khóa ứng dụng · đổi biểu tượng', sub:'Không muốn người khác thấy bạn dùng app này? Hãy khóa app hoặc đổi biểu tượng ngoài màn hình.',
+      lockT:'Khóa ứng dụng', lockD:'Xác thực mỗi khi mở LUNA', bioT:'Dùng Face ID / vân tay', bioD:'Dùng xác thực của điện thoại. App không thấy khuôn mặt hay vân tay của bạn', pinT:'Đổi mã PIN', pinD:'4 chữ số', hideT:'Ẩn màn hình khi chuyển app', hideD:'Không thấy nội dung ở màn hình đa nhiệm',
+      icT:'Biểu tượng ngoài màn hình', icD:'Chọn kiểu bạn thích, hoặc kiểu khó nhận ra', freeT:'Miễn phí', noteA:'Android: đổi cả biểu tượng lẫn tên; app có thể đóng ngắn khi chuyển.', noteI:'iOS: chỉ đổi biểu tượng, tên vẫn là LUNA Calm và hệ thống sẽ hiện thông báo “đã đổi biểu tượng”.',
+      saved:'Đã lưu lựa chọn. Đổi biểu tượng cần phiên bản mới, sẽ áp dụng sau khi cập nhật', done:'Đã đổi, màn hình có thể mất vài giây', fail:'Đổi không thành công, thử lại sau', needVip:'Vui lòng đăng nhập trước để bật khóa ứng dụng', vipIcon:'Biểu tượng này dành cho hội viên',
+      setPin:'Đặt mã PIN 4 số', again:'Nhập lại để xác nhận', mismatch:'Hai lần không khớp, thử lại', oldPin:'Nhập PIN hiện tại', newPin:'Nhập PIN mới', wrong:'Sai PIN', many:'Sai quá nhiều lần, thử lại sau 30 giây', unlock:'Nhập PIN để mở khóa', forgot:'Quên PIN?', bioBtn:'Mở khóa bằng Face ID / vân tay', cancel:'Hủy', now:'Đang dùng', turnOff:'Nhập PIN để tắt khóa ứng dụng',
+      fgT:'Quên PIN', fgM:'Bạn sẽ được đăng xuất và dữ liệu lưu trên điện thoại này sẽ bị xóa. Dữ liệu đã lưu trên đám mây, đăng nhập lại cùng tài khoản là lấy lại được.', fgG:'Bạn đang là khách nên dữ liệu chỉ có trên điện thoại này. Đặt lại PIN sẽ xóa toàn bộ và không thể khôi phục.', fgOk:'Xác nhận đặt lại', guestNote:'👤 Khách cần đăng nhập trước khi bật khóa ứng dụng (nếu quên PIN, dữ liệu khôi phục được từ đám mây).',
+      g:{p:'Kinh nguyệt',t:'Chuẩn bị mang thai',g:'Thai kỳ',d:'Thông thường'},
+      n:{luna:'LUNA',drop:'Giọt nước',sakura:'Hoa anh đào',phase:'Trăng',cal:'Lịch',sprout:'Mầm non',butter:'Bướm',star:'Ngôi sao',lotus:'Hoa sen',heart:'Trái tim',baby:'Em bé',bottle:'Bình sữa',preg:'Thai kỳ',cloud:'Đám mây',calc:'Máy tính',wx:'Thời tiết',note:'Ghi chú',clock:'Đồng hồ',fit:'Thể dục'} }
+  };
+  function T(){ return TX[L()] || TX.en; }
+  function rd(){ try{ var o=JSON.parse(LS.getItem(K)||'null'); return (o&&typeof o==='object')?o:null; }catch(e){ return null; } }
+  function wr(o){ try{ if(o) LS.setItem(K,JSON.stringify(o)); else LS.removeItem(K); }catch(e){} }
+  function curIcon(){ try{ return LS.getItem(K_ICON)||'luna'; }catch(e){ return 'luna'; } }
+  function iconDef(id){ for(var i=0;i<ICONS.length;i++) if(ICONS[i][1]===id) return ICONS[i]; return ICONS[0]; }
+  function isMember(){ try{ return (typeof isPro==='function'&&isPro()) || (typeof inTrial==='function'&&inTrial()); }catch(e){ return false; } }
+  function isGuestNow(){ try{ return typeof window.isGuest==='function' ? !!window.isGuest() : false; }catch(e){ return false; } }
+  function paywall(src){ try{ window._lunaPaySrc=src||'private_mode'; if(typeof window.showVipPaywall==='function') window.showVipPaywall(); }catch(e){} }
+  function toast(m){ try{ if(typeof window.showToast==='function'){ window.showToast(m); return; } }catch(e){} var d=document.createElement('div'); d.textContent=m; d.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);transform:translateX(-50%);max-width:82%;background:rgba(40,30,60,.92);color:#fff;padding:11px 16px;border-radius:14px;font-size:13.5px;line-height:1.5;z-index:2147483200;text-align:center'; document.body.appendChild(d); setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); },2600); }
+  /* ── PIN 哈希 ── */
+  function fnv(s){ var h=2166136261,i; for(i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=(h*16777619)>>>0; } return ('00000000'+h.toString(16)).slice(-8); }
+  function hashPin(pin,salt){
+    var str=salt+':'+pin;
+    try{ if(window.crypto&&crypto.subtle&&window.TextEncoder){ return crypto.subtle.digest('SHA-256',new TextEncoder().encode(str)).then(function(b){ var a=new Uint8Array(b),h='',i; for(i=0;i<a.length;i++) h+=('0'+a[i].toString(16)).slice(-2); return 's'+h; }); } }catch(e){}
+    return Promise.resolve('f'+fnv(str)+fnv(str.split('').reverse().join('')));
+  }
+  function newSalt(){ var s='',i; for(i=0;i<8;i++) s+=Math.floor(Math.random()*36).toString(36); return s; }
+  function checkPin(pin){ var o=rd(); if(!o||!o.h) return Promise.resolve(false); return hashPin(pin,o.s).then(function(h){ return h===o.h; }); }
+  /* ── 原生能力（生物识别 / 换图标）：没装对应插件就自动隐藏/只保存选择 ── */
+  function plug(){ try{ return (window.Capacitor&&window.Capacitor.Plugins)||{}; }catch(e){ return {}; } }
+  function bioKind(){ var P=plug(); if(P.BiometricAuth&&P.BiometricAuth.authenticate) return 'ba'; if(P.NativeBiometric&&P.NativeBiometric.verifyIdentity) return 'nb'; return ''; }
+  var bioBusy=false;
+  function bioAvail(){
+    var k=bioKind(), P=plug(); if(!k) return Promise.resolve(false);
+    try{ if(k==='ba') return P.BiometricAuth.checkBiometry().then(function(r){ return !!(r&&r.isAvailable); }).catch(function(){ return false; });
+      return P.NativeBiometric.isAvailable().then(function(r){ return !!(r&&r.isAvailable); }).catch(function(){ return false; }); }catch(e){ return Promise.resolve(false); }
+  }
+  function bioAuth(){
+    var k=bioKind(), P=plug(); if(!k) return Promise.resolve(false); bioBusy=true;
+    var done=function(v){ setTimeout(function(){ bioBusy=false; },800); return v; };
+    try{ if(k==='ba') return P.BiometricAuth.authenticate({reason:'LUNA',allowDeviceCredential:false}).then(function(){ return done(true); }).catch(function(){ return done(false); });
+      return P.NativeBiometric.verifyIdentity({reason:'LUNA',useFallback:false}).then(function(){ return done(true); }).catch(function(){ return done(false); }); }catch(e){ return Promise.resolve(done(false)); }
+  }
+  function applyIcon(id){
+    try{ LS.setItem(K_ICON,id); }catch(e){}
+    var P=plug(), t=T();
+    if(P.LunaAppIcon&&P.LunaAppIcon.setIcon){ try{ P.LunaAppIcon.setIcon({name:id}).then(function(){ toast(t.done); }).catch(function(){ toast(t.fail); }); }catch(e){ toast(t.fail); } }
+    else toast(t.saved);
+  }
+  /* ── 颜色（跟随主题） ── */
+  function cols(){ try{ if(typeof window._lunaThemeCols==='function') return window._lunaThemeCols(); }catch(e){} return {a:'#7c5cbf',b:'#9a7ad8',c:'#b49de0',ink:'#5b3fa8'}; }
+  var css='#lunaLock,#lunaCover{position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;color:#fff;text-align:center;-webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}'
+   +'#lunaLock{justify-content:center;padding:calc(env(safe-area-inset-top,0px) + 20px) 24px calc(env(safe-area-inset-bottom,0px) + 20px)}'
+   +'#lunaCover{justify-content:center}'
+   +'.pvk-ic{width:84px;height:84px;border-radius:21px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.25);margin:0 auto}'
+   +'.pvk-t{font-size:18px;font-weight:700;margin-top:14px}'
+   +'.pvk-dots{display:flex;gap:16px;justify-content:center;margin:20px 0 22px;height:16px}'
+   +'.pvk-dots i{width:14px;height:14px;border-radius:50%;border:2px solid #fff;display:block}.pvk-dots i.f{background:#fff}'
+   +'.pvk-sh{animation:pvkSh .35s}@keyframes pvkSh{20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(7px)}}'
+   +'.pvk-pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px;justify-content:center}'
+   +'.pvk-pad button{width:72px;height:72px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:27px;font-weight:600;font-family:inherit;cursor:pointer;padding:0}'
+   +'.pvk-pad button:active{background:rgba(255,255,255,.45)}.pvk-pad .e{background:none;pointer-events:none}'
+   +'.pvk-m{min-height:20px;font-size:13px;margin-top:12px;line-height:1.4}'
+   +'.pvk-lk{display:block;margin:12px auto 0;border:0;background:none;color:#fff;font-size:14px;text-decoration:underline;opacity:.92;font-family:inherit;padding:8px 14px}'
+   +'.pvk-sheet{position:fixed;left:0;top:0;right:0;bottom:0;z-index:9400;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;touch-action:none}'
+   +'.pvk-x{position:absolute;right:10px;top:calc(env(safe-area-inset-top,0px) + 8px);width:44px;height:44px;font-size:20px;border:0;background:none;color:#fff}'
+   +'.pv-page{position:fixed;inset:0;z-index:9200;background:var(--bg,#f4f2f9);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 8px) 14px calc(40px + env(safe-area-inset-bottom,0px));animation:slideInRight .3s cubic-bezier(.22,.8,.3,1) both;color:var(--text,#2d2640)}'
+   +'.pv-nav{position:relative;display:flex;align-items:center;justify-content:center;height:52px;margin-bottom:6px}.pv-nav .bk{position:absolute;left:-4px;top:4px;width:44px;height:44px;border:0;background:transparent;font-size:30px;line-height:44px;color:var(--text,#2d2640);cursor:pointer}.pv-nav b{font-size:17px}'
+   +'.pv-sub{font-size:13px;line-height:1.6;color:var(--text-muted,#8a849e);margin:2px 4px 14px}'
+   +'.pv-card{border-radius:var(--radius,22px);background:var(--home-card-bg,#fff);padding:4px 16px;margin-bottom:14px;border:1px solid var(--home-card-border,rgba(124,92,191,.12))}'
+   +'.pv-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(128,110,170,.14);cursor:pointer}.pv-row:last-child{border:0}'
+   +'.pv-row .t{flex:1;min-width:0}.pv-row .t b{display:block;font-size:15px}.pv-row .t span{display:block;font-size:12px;color:var(--text-muted,#8a849e);line-height:1.45;margin-top:2px}'
+   +'.pv-sw{width:50px;height:30px;border-radius:16px;background:#d9d3e6;position:relative;flex-shrink:0;transition:.2s}.pv-sw:after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:.2s}.pv-sw.on{background:var(--purple,#7c5cbf)}.pv-sw.on:after{left:23px}'
+   +'.pv-gt{font-size:12.5px;font-weight:700;color:var(--purple,#7c5cbf);margin:14px 0 4px}'
+   +'.pv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 4px;padding:4px 0 10px}'
+   +'.pv-ic{text-align:center;font-size:11.5px;color:var(--text-muted,#8a849e);cursor:pointer;line-height:1.3}.pv-ic .i{position:relative;width:56px;height:56px;border-radius:14px;margin:0 auto 5px;border:3px solid transparent;box-sizing:content-box;overflow:visible}.pv-ic .i>div{width:100%;height:100%;border-radius:12px;overflow:hidden}'
+   +'.pv-ic.sel{color:var(--purple,#7c5cbf);font-weight:700}.pv-ic.sel .i{border-color:var(--purple,#7c5cbf)}'
+   +'.pv-ic u{position:absolute;right:-9px;bottom:-9px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-size:12px;text-decoration:none}'
+   +'.pv-note{font-size:12px;line-height:1.65;color:var(--text-muted,#8a849e);margin:2px 4px 14px}'
+   +'.pv-dlg{position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483100;background:rgba(40,30,60,.5);display:flex;align-items:center;justify-content:center;padding:28px}.pv-dlg>div{background:#fff;color:#2d2640;border-radius:22px;padding:24px 20px 16px;width:100%;max-width:310px;text-align:center}'
+   +'.pv-dlg b{display:block;font-size:17px;margin-bottom:10px}.pv-dlg p{font-size:14px;line-height:1.65;margin:0 0 16px}.pv-dlg button{width:100%;padding:13px;border:0;border-radius:14px;font-size:15px;font-weight:700;font-family:inherit;margin-top:8px}'
+   +'#lunaPrivRow:empty{display:none}#lunaPrivRow{margin:0 16px;border-top:1px solid rgba(128,110,170,.18)}';
+  function addCss(){ if($('lunaPrivCss')) return; var s=document.createElement('style'); s.id='lunaPrivCss'; s.textContent=css; document.head.appendChild(s); }
+  /* ── 数字键盘（锁屏、设置 PIN 都用它） ── */
+  function mkPad(box,onFull){
+    var pin='', locked=false, keys=['1','2','3','4','5','6','7','8','9','','0','⌫'];
+    box.innerHTML='<div class="pvk-dots"><i></i><i></i><i></i><i></i></div><div class="pvk-pad">'+keys.map(function(k){ return k===''?'<button class="e" tabindex="-1"></button>':'<button type="button" data-k="'+k+'">'+k+'</button>'; }).join('')+'</div>';
+    var dots=box.querySelector('.pvk-dots');
+    function paint(){ var d=dots.children,i; for(i=0;i<4;i++) d[i].className=i<pin.length?'f':''; }
+    [].forEach.call(box.querySelectorAll('button[data-k]'),function(b){ b.onclick=function(){
+      if(locked) return; var k=b.getAttribute('data-k');
+      if(k==='⌫'){ pin=pin.slice(0,-1); paint(); return; } if(pin.length>=4) return; pin+=k; paint();
+      if(pin.length===4){ var p=pin; setTimeout(function(){ onFull(p); },100); } }; });
+    return { clear:function(){ pin=''; paint(); }, shake:function(){ dots.classList.add('pvk-sh'); setTimeout(function(){ dots.classList.remove('pvk-sh'); },380); }, freeze:function(v){ locked=v; } };
+  }
+  function bgGrad(){ var c=cols(); return 'linear-gradient(160deg,'+c.a+','+c.c+')'; }
+  /* ── 锁屏 ── */
+  var lockEl=null, fails=0;
+  function unlockNow(){ if(!lockEl) return; var e=lockEl; lockEl=null; if(e.parentNode) e.parentNode.removeChild(e); document.documentElement.classList.remove('luna-locked'); fails=0; }
+  function showLock(){
+    var o=rd(); if(!o||!o.on||!o.h) { document.documentElement.classList.remove('luna-locked'); return; }
+    if(lockEl) return; addCss(); var t=T(), ic=iconDef(curIcon());
+    lockEl=document.createElement('div'); lockEl.id='lunaLock'; lockEl.style.background=bgGrad();
+    lockEl.innerHTML='<div class="pvk-ic" style="background:'+ic[2]+'">'+glyph(ic[1])+'</div><div class="pvk-t">'+esc(t.unlock)+'</div><div id="pvkPad"></div><div class="pvk-m" id="pvkM"></div><button class="pvk-lk" id="pvkBio" style="display:none">'+esc(t.bioBtn)+'</button><button class="pvk-lk" id="pvkFg">'+esc(t.forgot)+'</button>';
+    document.body.appendChild(lockEl);
+    var pad=mkPad($('pvkPad'),function(p){
+      checkPin(p).then(function(ok){
+        if(ok){ unlockNow(); return; }
+        fails++; pad.shake(); pad.clear();
+        if(fails>=5){ $('pvkM').textContent=t.many; pad.freeze(true); setTimeout(function(){ fails=0; pad.freeze(false); var m=$('pvkM'); if(m) m.textContent=''; },30000); }
+        else $('pvkM').textContent=t.wrong; });
+    });
+    $('pvkFg').onclick=forgotDlg;
+    if(o.bio){ bioAvail().then(function(v){ if(!v||!lockEl) return; var b=$('pvkBio'); if(b){ b.style.display=''; b.onclick=function(){ bioAuth().then(function(ok){ if(ok) unlockNow(); }); }; } setTimeout(function(){ if(lockEl) bioAuth().then(function(ok){ if(ok) unlockNow(); }); },350); }); }
+  }
+  function forgotDlg(){
+    var t=T(), g=isGuestNow(), d=document.createElement('div'); d.className='pv-dlg';
+    d.innerHTML='<div><b>'+esc(t.fgT)+'</b><p>'+esc(g?t.fgG:t.fgM)+'</p><button id="pvFgOk" style="background:#d9487a;color:#fff">'+esc(t.fgOk)+'</button><button id="pvFgNo" style="background:#f0ecf7;color:#6a45b8">'+esc(t.cancel)+'</button></div>';
+    document.body.appendChild(d);
+    $('pvFgNo').onclick=function(){ d.remove(); };
+    $('pvFgOk').onclick=function(){ try{ LS.removeItem(K); }catch(e){} d.remove(); document.documentElement.classList.remove('luna-locked');
+      try{ if(typeof window.signOutGoogle==='function'){ window.signOutGoogle(); return; } }catch(e){}
+      try{ if(typeof window._lunaClearAccountData==='function') window._lunaClearAccountData({keepScoped:true}); }catch(e){} location.reload(); };
+  }
+  /* ── 后台遮挡 + 回前台自动上锁 ── */
+  var hiddenAt=0, cover=null;
+  function showCover(){ var o=rd(); if(!o||!o.on||o.hide===0||cover) return; addCss(); var ic=iconDef(curIcon()); cover=document.createElement('div'); cover.id='lunaCover'; cover.style.background=bgGrad(); cover.innerHTML='<div class="pvk-ic" style="background:'+ic[2]+'">'+glyph(ic[1])+'</div>'; document.body.appendChild(cover); }
+  function hideCover(){ if(cover){ if(cover.parentNode) cover.parentNode.removeChild(cover); cover=null; } }
+  document.addEventListener('visibilitychange',function(){
+    if(bioBusy) return;
+    if(document.hidden){ hiddenAt=Date.now(); showCover(); }
+    else { hideCover(); var o=rd(); if(o&&o.on&&hiddenAt&&Date.now()-hiddenAt>10000) showLock(); hiddenAt=0; }
+  });
+  window.addEventListener('pagehide',function(){ if(!bioBusy){ hiddenAt=hiddenAt||Date.now(); showCover(); } });
+  window.addEventListener('pageshow',function(){ if(!bioBusy) hideCover(); });
+  /* ── PIN 输入面板（设置/修改/关闭时用） ── */
+  function pinSheet(title,sub,cb){
+    addCss(); var s=document.createElement('div'); s.className='pvk-sheet'; s.style.background=bgGrad();
+    s.innerHTML='<button class="pvk-x" aria-label="close">✕</button><div class="pvk-t" style="margin-top:0">'+esc(title)+'</div><div class="pvk-m" style="margin:6px 0 0">'+esc(sub||'')+'</div><div id="pvsPad"></div><div class="pvk-m" id="pvsM"></div>';
+    document.body.appendChild(s);
+    var pad=mkPad(s.querySelector('#pvsPad'),function(p){ cb(p,{ok:function(){ s.remove(); },bad:function(msg){ pad.shake(); pad.clear(); var m=s.querySelector('#pvsM'); if(m) m.textContent=msg||''; }}); });
+    s.querySelector('.pvk-x').onclick=function(){ s.remove(); };
+  }
+  function setPinFlow(done,titleKey){
+    var t=T();
+    pinSheet(t[titleKey||'setPin'],'',function(p1,c1){ c1.ok();
+      pinSheet(t.again,'',function(p2,c2){
+        if(p1!==p2){ c2.bad(t.mismatch); return; } c2.ok();
+        var salt=newSalt(); hashPin(p1,salt).then(function(h){ done(h,salt); }); }); });
+  }
+  /* ── 设置页 ── */
+  var page=null;
+  function closePage(){ if(page){ page.remove(); page=null; } var r=$('lunaPrivRow'); if(r) fillRow(); }
+  function swH(id,on){ return '<div class="pv-sw'+(on?' on':'')+'" id="'+id+'"></div>'; }
+  function openPage(){
+    addCss(); if(page) page.remove(); page=document.createElement('div'); page.className='pv-page'; document.body.appendChild(page); render();
+  }
+  function render(){
+    if(!page) return; var t=T(), o=rd()||{}, on=!!(o.on&&o.h), cur=curIcon(), mem=isMember(), P=plug();
+    var plat=''; try{ plat=(window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform())||''; }catch(e){}
+    var h='<div class="pv-nav"><button class="bk" id="pvBk" aria-label="back">‹</button><b>🔒 '+esc(t.title)+'</b></div><div class="pv-sub">'+esc(t.sub)+'</div>';
+    h+='<div class="pv-card"><div class="pv-row" id="pvLock"><div class="t"><b>'+esc(t.lockT)+'</b><span>'+esc(t.lockD)+'</span></div>'+swH('pvSwL',on)+'</div>';
+    if(on){
+      h+='<div class="pv-row" id="pvBioR" style="display:none"><div class="t"><b>'+esc(t.bioT)+'</b><span>'+esc(t.bioD)+'</span></div>'+swH('pvSwB',!!o.bio)+'</div>';
+      h+='<div class="pv-row" id="pvChg"><div class="t"><b>'+esc(t.pinT)+'</b><span>'+esc(t.pinD)+'</span></div><div style="opacity:.4;font-size:20px">›</div></div>';
+      h+='<div class="pv-row" id="pvHide"><div class="t"><b>'+esc(t.hideT)+'</b><span>'+esc(t.hideD)+'</span></div>'+swH('pvSwH',o.hide!==0)+'</div>';
+    }
+    h+='</div>'; if(isGuestNow()) h+='<div class="pv-note">'+esc(t.guestNote)+'</div>';
+    h+='<div class="pv-gt" style="font-size:14px;margin-top:6px">'+esc(t.icT)+'</div><div class="pv-sub" style="margin-top:2px">'+esc(t.icD)+'</div><div class="pv-card" style="padding-bottom:6px">';
+    var gk=['p','t','g','d'], gi;
+    for(gi=0;gi<gk.length;gi++){
+      var list=ICONS.filter(function(x){ return x[0]===gk[gi]; }); h+='<div class="pv-gt">'+esc(t.g[gk[gi]])+'</div><div class="pv-grid">';
+      list.forEach(function(x,idx){ var free=idx<FREE_PER_GROUP, lk=!free&&!mem;
+        h+='<div class="pv-ic'+(x[1]===cur?' sel':'')+'" data-i="'+x[1]+'" data-lk="'+(lk?1:0)+'"><div class="i"><div style="background:'+x[2]+'">'+glyph(x[1])+'</div>'+(lk?'<u>🔒</u>':'')+'</div>'+esc(t.n[x[1]])+(x[1]==='luna'?'':'')+'</div>'; });
+      h+='</div>';
+    }
+    h+='</div><div class="pv-note">'+esc(plat==='ios'?t.noteI:(plat==='android'?t.noteA:(t.noteA+'\n'+t.noteI))).replace(/\n/g,'<br>')+'</div>';
+    page.innerHTML=h;
+    $('pvBk').onclick=closePage;
+    $('pvLock').onclick=function(){ if(on) turnOff(); else turnOn(); };
+    if(on){
+      bioAvail().then(function(v){ var r=$('pvBioR'); if(v&&r){ r.style.display=''; r.onclick=function(){ var oo=rd()||{}; if(oo.bio){ oo.bio=0; wr(oo); render(); } else { bioAuth().then(function(ok){ if(ok){ oo.bio=1; wr(oo); render(); } }); } }; } });
+      $('pvChg').onclick=changePin;
+      $('pvHide').onclick=function(){ var oo=rd()||{}; oo.hide=(oo.hide===0)?1:0; wr(oo); render(); };
+    }
+    [].forEach.call(page.querySelectorAll('.pv-ic'),function(e){ e.onclick=function(){ if(e.getAttribute('data-lk')==='1'){ toast(t.vipIcon); paywall('private_icon'); return; } applyIcon(e.getAttribute('data-i')); render(); }; });
+  }
+  function turnOn(){
+    var t=T(); if(isGuestNow()){ toast(t.needVip); try{ if(typeof window.showGuestLoginModal==='function') window.showGuestLoginModal(); }catch(e){} return; }
+    setPinFlow(function(h,salt){ bioAvail().then(function(v){ wr({on:1,h:h,s:salt,bio:v?1:0,hide:1}); render(); }); });
+  }
+  function turnOff(){
+    var t=T(); pinSheet(t.turnOff,'',function(p,c){ checkPin(p).then(function(ok){ if(ok){ c.ok(); wr(null); hideCover(); render(); } else c.bad(t.wrong); }); });
+  }
+  function changePin(){
+    var t=T(); pinSheet(t.oldPin,'',function(p,c){ checkPin(p).then(function(ok){ if(!ok){ c.bad(t.wrong); return; } c.ok();
+      setPinFlow(function(h,salt){ var oo=rd()||{}; oo.h=h; oo.s=salt; oo.on=1; wr(oo); render(); },'newPin'); }); });
+  }
+  /* ── “我的”页里的入口：合并进“和伴侣共享”那张卡片（细线隔开） ── */
+  function fillRow(){
+    var r=$('lunaPrivRow'); if(!r) return false; addCss(); var t=T(), o=rd(), on=!!(o&&o.on&&o.h), ic=iconDef(curIcon());
+    var sig=L()+'|'+on+'|'+ic[1]; if(r.getAttribute('data-sig')===sig && r.firstChild) return true; r.setAttribute('data-sig',sig);
+    r.innerHTML='<div style="display:flex;align-items:center;gap:12px;padding:14px 0;cursor:pointer" id="pvEntry"><div style="width:30px;height:30px;border-radius:8px;overflow:hidden;flex-shrink:0;background:'+ic[2]+'">'+glyph(ic[1])+'</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+esc(t.title)+'</div><div style="font-size:12px;opacity:.7;margin-top:2px">'+esc(on?t.on:t.off)+'</div></div><div style="opacity:.4;font-size:20px">›</div></div>';
+    $('pvEntry').onclick=openPage; return true;
+  }
+  var tries=0, iv=setInterval(function(){ if(fillRow()||++tries>60) clearInterval(iv); },500);
+  var _last=''; setInterval(function(){ try{ var s=L()+'|'+curIcon()+'|'+(rd()&&rd().on); if(s!==_last){ _last=s; var r=$('lunaPrivRow'); if(r){ r.removeAttribute('data-sig'); fillRow(); } } }catch(e){} },1500);
+  /* ── 启动：开着应用锁就立刻上锁 ── */
+  function boot(){ try{ var o=rd(); if(o&&o.on&&o.h) showLock(); else document.documentElement.classList.remove('luna-locked'); }catch(e){ document.documentElement.classList.remove('luna-locked'); } }
+  boot();
+  window.LunaPrivacy={open:openPage,lock:showLock};
+})();
+
 </script>

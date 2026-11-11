@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<script id="lunaLockEarly">try{var __l=JSON.parse(localStorage.getItem("luna_lock")||"null");if(__l&&__l.on&&__l.h){document.documentElement.className+=" luna-locked";setTimeout(function(){if(!document.getElementById("lunaLock"))document.documentElement.classList.remove("luna-locked")},6000)}}catch(e){}</script><style id="lunaLockEarlyCss">html.luna-locked body>*:not(#lunaLock){visibility:hidden!important}</style>
+<script id="lunaLockEarly">try{var __l=JSON.parse(localStorage.getItem("luna_lock")||"null");if(__l&&__l.on&&__l.h){document.documentElement.className+=" luna-locked";setTimeout(function(){if(!document.getElementById("lunaLock"))document.documentElement.classList.remove("luna-locked")},6000)}}catch(e){}</script><style id="lunaLockEarlyCss">html.luna-locked body>*:not(#lunaLock):not(.pv-dlg){visibility:hidden!important}</style>
 
 <meta charset="UTF-8">
 <!-- 🔒 基础 CSP：禁止加载白名单之外的第三方脚本/连接，堵住"注入一段外部 <script src> 就能为所欲为"
@@ -42162,7 +42162,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       lockT:'应用锁', lockD:'打开 LUNA 时需要验证', bioT:'用 Face ID / 指纹', bioD:'用手机自带的验证，App 拿不到你的脸或指纹', pinT:'修改 PIN', pinD:'4 位数字', hideT:'切到后台时隐藏画面', hideD:'多任务界面里看不到内容',
       icT:'桌面图标', icD:'选一个你喜欢的，也可以选不容易被认出的', freeT:'免费', noteA:'Android：图标和名字都会换，切换时 App 可能短暂关闭。', noteI:'iOS：只能换图标，名字仍是 LUNA Calm，系统会弹出“已更改图标”的提示。',
       saved:'已保存你的选择。换图标需要新版本支持，更新后自动生效', done:'已切换，桌面可能要几秒才刷新', fail:'切换失败，请稍后再试', needVip:'请先登录账号，再开启应用锁', vipIcon:'这个图标是会员专属',
-      setPin:'设置 4 位 PIN', again:'再输入一次确认', mismatch:'两次不一样，请重来', oldPin:'输入当前 PIN', newPin:'输入新的 PIN', wrong:'PIN 不对', many:'错误次数太多，请 30 秒后再试', unlock:'输入 PIN 解锁', forgot:'忘记 PIN？', bioBtn:'用 Face ID / 指纹解锁', cancel:'取消', now:'当前', turnOff:'输入 PIN 关闭应用锁',
+      setPin:'设置 4 位 PIN', again:'再输入一次确认', mismatch:'两次不一样，请重来', oldPin:'输入当前 PIN', newPin:'输入新的 PIN', wrong:'PIN 不对', many:'错误次数太多，请 30 秒后再试', left:'PIN 不对，还剩 {n} 次机会', exT:'输错次数已用完', exM:'为了保护你的隐私，请 30 秒后再试。如果忘记了 PIN，可以重置（登录用户的记录在云端，不会丢）。', exOk:'知道了', unlock:'输入 PIN 解锁', forgot:'忘记 PIN？', bioBtn:'用 Face ID / 指纹解锁', cancel:'取消', now:'当前', turnOff:'输入 PIN 关闭应用锁',
       fgT:'忘记 PIN', fgM:'将退出登录，并清除这台手机上的本地数据。你的记录已经保存在云端，用同一个账号重新登录就能找回。', fgG:'你现在是访客，数据只保存在这台手机上。重置 PIN 会清空本机全部数据，且无法找回。', fgOk:'确认重置', guestNote:'👤 访客需先登录账号才能开启应用锁（忘记 PIN 时可靠云端找回数据）。',
       g:{p:'经期',t:'备孕',g:'怀孕',d:'伪装'},
       n:{luna:'LUNA',drop:'水滴',sakura:'樱花',phase:'月相',cal:'月历',sprout:'嫩芽',butter:'蝴蝶',star:'星愿',lotus:'荷花',heart:'爱心',baby:'宝宝',bottle:'奶瓶',preg:'孕期',cloud:'云朵',calc:'计算器',wx:'天气',note:'备忘',clock:'时钟',fit:'健身'} },
@@ -42170,7 +42170,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       lockT:'ล็อกแอป', lockD:'ต้องยืนยันตัวตนทุกครั้งที่เปิด LUNA', bioT:'ใช้ Face ID / ลายนิ้วมือ', bioD:'ใช้ระบบของมือถือ แอปไม่เห็นใบหน้าหรือลายนิ้วมือของคุณ', pinT:'เปลี่ยน PIN', pinD:'ตัวเลข 4 หลัก', hideT:'ซ่อนหน้าจอเมื่อสลับแอป', hideD:'มองไม่เห็นเนื้อหาในหน้าสลับแอป',
       icT:'ไอคอนหน้าจอ', icD:'เลือกแบบที่ชอบ หรือแบบที่ไม่เด่นก็ได้', freeT:'ฟรี', noteA:'Android: เปลี่ยนทั้งไอคอนและชื่อ แอปอาจปิดไปสักครู่ตอนสลับ', noteI:'iOS: เปลี่ยนได้เฉพาะไอคอน ชื่อยังเป็น LUNA Calm และระบบจะแจ้งว่า “เปลี่ยนไอคอนแล้ว”',
       saved:'บันทึกที่เลือกไว้แล้ว การเปลี่ยนไอคอนต้องใช้เวอร์ชันใหม่ อัปเดตแล้วจะมีผลเอง', done:'เปลี่ยนแล้ว หน้าจออาจใช้เวลาสักครู่', fail:'เปลี่ยนไม่สำเร็จ ลองใหม่อีกครั้ง', needVip:'กรุณาเข้าสู่ระบบก่อน จึงจะเปิดล็อกแอปได้', vipIcon:'ไอคอนนี้สำหรับสมาชิก',
-      setPin:'ตั้ง PIN 4 หลัก', again:'ใส่อีกครั้งเพื่อยืนยัน', mismatch:'ไม่ตรงกัน เริ่มใหม่นะ', oldPin:'ใส่ PIN ปัจจุบัน', newPin:'ใส่ PIN ใหม่', wrong:'PIN ไม่ถูกต้อง', many:'ผิดหลายครั้งเกินไป ลองใหม่ใน 30 วินาที', unlock:'ใส่ PIN เพื่อปลดล็อก', forgot:'ลืม PIN?', bioBtn:'ปลดล็อกด้วย Face ID / ลายนิ้วมือ', cancel:'ยกเลิก', now:'ใช้อยู่', turnOff:'ใส่ PIN เพื่อปิดล็อกแอป',
+      setPin:'ตั้ง PIN 4 หลัก', again:'ใส่อีกครั้งเพื่อยืนยัน', mismatch:'ไม่ตรงกัน เริ่มใหม่นะ', oldPin:'ใส่ PIN ปัจจุบัน', newPin:'ใส่ PIN ใหม่', wrong:'PIN ไม่ถูกต้อง', many:'ผิดหลายครั้งเกินไป ลองใหม่ใน 30 วินาที', left:'PIN ไม่ถูกต้อง เหลืออีก {n} ครั้ง', exT:'ใส่ผิดครบจำนวนครั้งแล้ว', exM:'เพื่อความเป็นส่วนตัว กรุณารอ 30 วินาทีแล้วลองใหม่ ถ้าลืม PIN สามารถรีเซ็ตได้ (ผู้ที่ล็อกอินไว้ ข้อมูลอยู่บนคลาวด์ ไม่หาย)', exOk:'เข้าใจแล้ว', unlock:'ใส่ PIN เพื่อปลดล็อก', forgot:'ลืม PIN?', bioBtn:'ปลดล็อกด้วย Face ID / ลายนิ้วมือ', cancel:'ยกเลิก', now:'ใช้อยู่', turnOff:'ใส่ PIN เพื่อปิดล็อกแอป',
       fgT:'ลืม PIN', fgM:'จะออกจากระบบและล้างข้อมูลในเครื่องนี้ ข้อมูลของคุณเก็บไว้บนคลาวด์แล้ว เข้าสู่ระบบด้วยบัญชีเดิมก็จะกลับมา', fgG:'ตอนนี้คุณเป็นผู้เยี่ยมชม ข้อมูลอยู่ในเครื่องนี้เท่านั้น การรีเซ็ต PIN จะล้างข้อมูลทั้งหมดและกู้คืนไม่ได้', fgOk:'ยืนยันรีเซ็ต', guestNote:'👤 ผู้เยี่ยมชมต้องเข้าสู่ระบบก่อนจึงจะเปิดล็อกแอปได้ (ถ้าลืม PIN ข้อมูลกู้คืนได้จากคลาวด์)',
       g:{p:'ประจำเดือน',t:'เตรียมตั้งครรภ์',g:'ตั้งครรภ์',d:'ไอคอนทั่วไป'},
       n:{luna:'LUNA',drop:'หยดน้ำ',sakura:'ซากุระ',phase:'ข้างขึ้นข้างแรม',cal:'ปฏิทิน',sprout:'ต้นอ่อน',butter:'ผีเสื้อ',star:'ดาวนำโชค',lotus:'ดอกบัว',heart:'หัวใจ',baby:'เบบี๋',bottle:'ขวดนม',preg:'ตั้งครรภ์',cloud:'ก้อนเมฆ',calc:'เครื่องคิดเลข',wx:'สภาพอากาศ',note:'โน้ต',clock:'นาฬิกา',fit:'ฟิตเนส'} },
@@ -42178,7 +42178,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       lockT:'App lock', lockD:'Verify every time LUNA opens', bioT:'Use Face ID / fingerprint', bioD:'Uses your phone’s own check. The app never sees your face or fingerprint', pinT:'Change PIN', pinD:'4 digits', hideT:'Hide screen in app switcher', hideD:'Content is hidden in the multitasking view',
       icT:'Home-screen icon', icD:'Pick one you like — or one that blends in', freeT:'Free', noteA:'Android: both icon and name change; the app may close briefly when switching.', noteI:'iOS: only the icon changes, the name stays LUNA Calm, and the system shows a “changed icon” notice.',
       saved:'Choice saved. Changing the icon needs a newer app version; it applies after updating', done:'Switched. The home screen may take a few seconds', fail:'Could not switch. Please try again later', needVip:'Please sign in first to turn on App Lock', vipIcon:'This icon is for members',
-      setPin:'Set a 4-digit PIN', again:'Enter it again to confirm', mismatch:'They don’t match. Try again', oldPin:'Enter current PIN', newPin:'Enter new PIN', wrong:'Wrong PIN', many:'Too many tries. Please wait 30 seconds', unlock:'Enter PIN to unlock', forgot:'Forgot PIN?', bioBtn:'Unlock with Face ID / fingerprint', cancel:'Cancel', now:'Current', turnOff:'Enter PIN to turn off app lock',
+      setPin:'Set a 4-digit PIN', again:'Enter it again to confirm', mismatch:'They don’t match. Try again', oldPin:'Enter current PIN', newPin:'Enter new PIN', wrong:'Wrong PIN', many:'Too many tries. Please wait 30 seconds', left:'Wrong PIN. {n} tries left', exT:'No tries left', exM:'To protect your privacy, please wait 30 seconds and try again. If you forgot the PIN you can reset it (signed-in users keep their records in the cloud).', exOk:'Got it', unlock:'Enter PIN to unlock', forgot:'Forgot PIN?', bioBtn:'Unlock with Face ID / fingerprint', cancel:'Cancel', now:'Current', turnOff:'Enter PIN to turn off app lock',
       fgT:'Forgot PIN', fgM:'This signs you out and clears the local data on this phone. Your records are saved in the cloud — sign in with the same account to get them back.', fgG:'You are a guest, so your data lives only on this phone. Resetting the PIN erases everything here and cannot be undone.', fgOk:'Reset now', guestNote:'👤 Guests need to sign in before turning on App Lock (if you forget the PIN, your data can be restored from the cloud).',
       g:{p:'Period',t:'Trying to conceive',g:'Pregnancy',d:'Everyday'},
       n:{luna:'LUNA',drop:'Drop',sakura:'Sakura',phase:'Moon phase',cal:'Calendar',sprout:'Sprout',butter:'Butterfly',star:'Wish star',lotus:'Lotus',heart:'Heart',baby:'Baby',bottle:'Bottle',preg:'Pregnancy',cloud:'Cloud',calc:'Calculator',wx:'Weather',note:'Notes',clock:'Clock',fit:'Fitness'} },
@@ -42186,7 +42186,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       lockT:'Khóa ứng dụng', lockD:'Xác thực mỗi khi mở LUNA', bioT:'Dùng Face ID / vân tay', bioD:'Dùng xác thực của điện thoại. App không thấy khuôn mặt hay vân tay của bạn', pinT:'Đổi mã PIN', pinD:'4 chữ số', hideT:'Ẩn màn hình khi chuyển app', hideD:'Không thấy nội dung ở màn hình đa nhiệm',
       icT:'Biểu tượng ngoài màn hình', icD:'Chọn kiểu bạn thích, hoặc kiểu khó nhận ra', freeT:'Miễn phí', noteA:'Android: đổi cả biểu tượng lẫn tên; app có thể đóng ngắn khi chuyển.', noteI:'iOS: chỉ đổi biểu tượng, tên vẫn là LUNA Calm và hệ thống sẽ hiện thông báo “đã đổi biểu tượng”.',
       saved:'Đã lưu lựa chọn. Đổi biểu tượng cần phiên bản mới, sẽ áp dụng sau khi cập nhật', done:'Đã đổi, màn hình có thể mất vài giây', fail:'Đổi không thành công, thử lại sau', needVip:'Vui lòng đăng nhập trước để bật khóa ứng dụng', vipIcon:'Biểu tượng này dành cho hội viên',
-      setPin:'Đặt mã PIN 4 số', again:'Nhập lại để xác nhận', mismatch:'Hai lần không khớp, thử lại', oldPin:'Nhập PIN hiện tại', newPin:'Nhập PIN mới', wrong:'Sai PIN', many:'Sai quá nhiều lần, thử lại sau 30 giây', unlock:'Nhập PIN để mở khóa', forgot:'Quên PIN?', bioBtn:'Mở khóa bằng Face ID / vân tay', cancel:'Hủy', now:'Đang dùng', turnOff:'Nhập PIN để tắt khóa ứng dụng',
+      setPin:'Đặt mã PIN 4 số', again:'Nhập lại để xác nhận', mismatch:'Hai lần không khớp, thử lại', oldPin:'Nhập PIN hiện tại', newPin:'Nhập PIN mới', wrong:'Sai PIN', many:'Sai quá nhiều lần, thử lại sau 30 giây', left:'Sai PIN. Còn {n} lần thử', exT:'Đã hết số lần thử', exM:'Để bảo vệ quyền riêng tư, vui lòng đợi 30 giây rồi thử lại. Nếu quên PIN, bạn có thể đặt lại (người dùng đã đăng nhập vẫn giữ dữ liệu trên đám mây).', exOk:'Đã hiểu', unlock:'Nhập PIN để mở khóa', forgot:'Quên PIN?', bioBtn:'Mở khóa bằng Face ID / vân tay', cancel:'Hủy', now:'Đang dùng', turnOff:'Nhập PIN để tắt khóa ứng dụng',
       fgT:'Quên PIN', fgM:'Bạn sẽ được đăng xuất và dữ liệu lưu trên điện thoại này sẽ bị xóa. Dữ liệu đã lưu trên đám mây, đăng nhập lại cùng tài khoản là lấy lại được.', fgG:'Bạn đang là khách nên dữ liệu chỉ có trên điện thoại này. Đặt lại PIN sẽ xóa toàn bộ và không thể khôi phục.', fgOk:'Xác nhận đặt lại', guestNote:'👤 Khách cần đăng nhập trước khi bật khóa ứng dụng (nếu quên PIN, dữ liệu khôi phục được từ đám mây).',
       g:{p:'Kinh nguyệt',t:'Chuẩn bị mang thai',g:'Thai kỳ',d:'Thông thường'},
       n:{luna:'LUNA',drop:'Giọt nước',sakura:'Hoa anh đào',phase:'Trăng',cal:'Lịch',sprout:'Mầm non',butter:'Bướm',star:'Ngôi sao',lotus:'Hoa sen',heart:'Trái tim',baby:'Em bé',bottle:'Bình sữa',preg:'Thai kỳ',cloud:'Đám mây',calc:'Máy tính',wx:'Thời tiết',note:'Ghi chú',clock:'Đồng hồ',fit:'Thể dục'} }
@@ -42290,20 +42290,38 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       checkPin(p).then(function(ok){
         if(ok){ unlockNow(); return; }
         fails++; pad.shake(); pad.clear();
-        if(fails>=5){ $('pvkM').textContent=t.many; pad.freeze(true); setTimeout(function(){ fails=0; pad.freeze(false); var m=$('pvkM'); if(m) m.textContent=''; },30000); }
+        if(fails>=10){ $('pvkM').textContent=t.many; pad.freeze(true); setTimeout(function(){ fails=0; pad.freeze(false); var m=$('pvkM'); if(m) m.textContent=''; },30000);
+          showDlg(t.exT,t.exM,[{k:'a',txt:t.forgot.replace(/[?？]/g,''),fn:forgotDlg,bg:'#d9487a',fg:'#fff'},{k:'b',txt:t.exOk,bg:'#f0ecf7',fg:'#6a45b8'}]); }
+        else if(fails>=7) $('pvkM').textContent=t.left.replace('{n}',10-fails);
         else $('pvkM').textContent=t.wrong; });
     });
     $('pvkFg').onclick=forgotDlg;
     if(o.bio){ bioAvail().then(function(v){ if(!v||!lockEl) return; var b=$('pvkBio'); if(b){ b.style.display=''; b.onclick=function(){ bioAuth().then(function(ok){ if(ok) unlockNow(); }); }; } setTimeout(function(){ if(lockEl) bioAuth().then(function(ok){ if(ok) unlockNow(); }); },350); }); }
   }
+  /* 通用弹窗：锁屏时放进锁屏层里面（和数字键同一层，保证点得到）；按钮同时接 click 和 touchend，防止 iPhone 上漏点 */
+  function showDlg(title,msg,btns){
+    var old=document.getElementById('pvDlg'); if(old&&old.parentNode) old.parentNode.removeChild(old);
+    var d=document.createElement('div'); d.className='pv-dlg'; d.id='pvDlg'; d.setAttribute('data-no-elastic','1');
+    var h='<div><b>'+esc(title)+'</b><p>'+esc(msg)+'</p>', i;
+    for(i=0;i<btns.length;i++) h+='<button type="button" data-b="'+i+'" style="background:'+btns[i].bg+';color:'+btns[i].fg+'">'+esc(btns[i].txt)+'</button>';
+    d.innerHTML=h+'</div>';
+    (lockEl||document.body).appendChild(d);
+    ['touchstart','touchmove','touchend'].forEach(function(ev){ d.addEventListener(ev,function(e){ e.stopPropagation(); },{passive:true}); });
+    [].forEach.call(d.querySelectorAll('button'),function(b){
+      var fired=false, n=+b.getAttribute('data-b');
+      function go(e){ if(e){ try{ e.stopPropagation(); }catch(_){} } if(fired) return; fired=true; setTimeout(function(){ fired=false; },600);
+        if(d.parentNode) d.parentNode.removeChild(d); if(btns[n].fn) btns[n].fn(); }
+      b.addEventListener('click',go); b.addEventListener('touchend',function(e){ if(e.cancelable) e.preventDefault(); go(e); });
+    });
+  }
   function forgotDlg(){
-    var t=T(), g=isGuestNow(), d=document.createElement('div'); d.className='pv-dlg';
-    d.innerHTML='<div><b>'+esc(t.fgT)+'</b><p>'+esc(g?t.fgG:t.fgM)+'</p><button id="pvFgOk" style="background:#d9487a;color:#fff">'+esc(t.fgOk)+'</button><button id="pvFgNo" style="background:#f0ecf7;color:#6a45b8">'+esc(t.cancel)+'</button></div>';
-    document.body.appendChild(d);
-    $('pvFgNo').onclick=function(){ d.remove(); };
-    $('pvFgOk').onclick=function(){ try{ LS.removeItem(K); }catch(e){} d.remove(); document.documentElement.classList.remove('luna-locked');
-      try{ if(typeof window.signOutGoogle==='function'){ window.signOutGoogle(); return; } }catch(e){}
-      try{ if(typeof window._lunaClearAccountData==='function') window._lunaClearAccountData({keepScoped:true}); }catch(e){} location.reload(); };
+    var t=T(), g=isGuestNow();
+    showDlg(t.fgT,g?t.fgG:t.fgM,[
+      {txt:t.fgOk,bg:'#d9487a',fg:'#fff',fn:function(){
+        try{ LS.removeItem(K); }catch(e){} document.documentElement.classList.remove('luna-locked');
+        try{ if(typeof window.signOutGoogle==='function'){ window.signOutGoogle(); return; } }catch(e){}
+        try{ if(typeof window._lunaClearAccountData==='function') window._lunaClearAccountData({keepScoped:true}); }catch(e){} location.reload(); }},
+      {txt:t.cancel,bg:'#f0ecf7',fg:'#6a45b8'}]);
   }
   /* ── 后台遮挡 + 回前台自动上锁 ── */
   var hiddenAt=0, cover=null;

@@ -102,8 +102,60 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "LunaAppIconPlugin"
     public let jsName = "LunaAppIcon"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "setIcon", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setIcon", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setCover", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pauseCover", returnType: CAPPluginReturnPromise)
     ]
+
+    // ── 切到后台时遮住画面（防止多任务界面里露出 App 内容）──
+    // 系统在 App 变成"非活跃"那一刻截图，所以必须在原生层、这一刻立刻盖一层。
+    private var coverOn = false
+    private var pausedUntil = Date(timeIntervalSince1970: 0)
+    private var coverView: UIView?
+
+    public override func load() {
+        NotificationCenter.default.addObserver(self, selector: #selector(appWillResign), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    @objc func setCover(_ call: CAPPluginCall) {
+        coverOn = call.getBool("on") ?? false
+        if !coverOn { removeCover() }
+        call.resolve()
+    }
+
+    // 弹出 Face ID / 指纹时系统也会让 App 短暂"非活跃"，这段时间不要盖（ms=1 表示马上恢复）
+    @objc func pauseCover(_ call: CAPPluginCall) {
+        let ms = call.getDouble("ms") ?? 0
+        pausedUntil = Date().addingTimeInterval(ms / 1000.0)
+        call.resolve()
+    }
+
+    @objc private func appWillResign() {
+        guard coverOn, Date() >= pausedUntil, coverView == nil else { return }
+        var win: UIWindow? = (UIApplication.shared.delegate as? AppDelegate)?.window
+        if win == nil { win = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) }
+        guard let w = win else { return }
+        let v = UIView(frame: w.bounds)
+        v.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        let g = CAGradientLayer()
+        g.frame = w.bounds
+        g.colors = [UIColor(red: 0.992, green: 0.937, blue: 0.973, alpha: 1).cgColor,
+                    UIColor(red: 0.953, green: 0.925, blue: 1.0, alpha: 1).cgColor,
+                    UIColor(red: 0.914, green: 0.945, blue: 1.0, alpha: 1).cgColor]
+        v.layer.addSublayer(g)
+        w.addSubview(v)
+        coverView = v
+    }
+
+    @objc private func appDidBecomeActive() { removeCover() }
+
+    private func removeCover() {
+        DispatchQueue.main.async {
+            self.coverView?.removeFromSuperview()
+            self.coverView = nil
+        }
+    }
 
     @objc func setIcon(_ call: CAPPluginCall) {
         let name = call.getString("name") ?? "luna"

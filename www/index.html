@@ -22101,7 +22101,8 @@ window.setLang = setLang;
   function closeCalSettings() {
     const p = document.getElementById('calSettingsPanel');
     if(p){ p.classList.remove('subpage-anim'); p.style.display = 'none'; }
-    document.body.style.overflow = 'hidden'; // 返回到日历(日历仍是overflow hidden)
+    /* 只有日历页还开着时才保持锁定；从首页打开的设置，关掉后必须解锁，否则首页滑不动 */
+    try{ var _cp=document.getElementById('calPanel'); document.body.style.overflow = (_cp && getComputedStyle(_cp).display!=='none') ? 'hidden' : ''; }catch(e){ document.body.style.overflow=''; }
   }
   window.closeCalSettings = closeCalSettings;
 
@@ -22875,7 +22876,8 @@ window.setLang = setLang;
     const phone = document.querySelector('.phone'); // 底下一直在跑的首页容器，滑动露出时做"模糊→清晰"过渡用
     const MAX_BLUR = 6; // px，刚开始滑动时的模糊程度，滑到底时刚好完全清晰
 
-    let startX = 0, startY = 0, dx = 0, tracking = false, committed = false, shadow = null, panelW = 0;
+    let startX = 0, startY = 0, dx = 0, tracking = false, committed = false, shadow = null, panelW = 0, useTr = false;
+    function setX(px){ if(useTr){ panel.style.translate = px+'px'; } else { panel.style.transform = 'translateX('+px+'px)'; } }
     const EDGE_ZONE = 60;   // 只有从最左边60px以内按下，才算是"从侧边滑"
     const V_CANCEL = 45;    // 如果竖直方向移动明显更大，判定为想上下滚动，取消这次手势
 
@@ -22893,6 +22895,7 @@ window.setLang = setLang;
       if(x > EDGE_ZONE) { tracking = false; return; }
       startX = x; startY = y; dx = 0; tracking = true; committed = false;
       panelW = panel.offsetWidth || window.innerWidth;
+      try{ var _cs=getComputedStyle(panel); useTr = (_cs.animationName && _cs.animationName!=='none'); }catch(e){ useTr=false; }
       panel.style.transition = 'none';
       if(phone) phone.style.transition = 'none';
     }
@@ -22908,7 +22911,7 @@ window.setLang = setLang;
       }
       if(evt && evt.cancelable) evt.preventDefault(); // 确认是横向拖拽，阻止页面跟着上下滚
       dx = Math.max(0, ddx); // 只允许往右拖（往回翻），不允许往左
-      panel.style.transform = `translateX(${dx}px)`;
+      setX(dx);
       if(shadow) shadow.style.opacity = String(Math.max(0, 1 - dx / 200));
       // 底下首页随拖动进度从"稍微模糊"过渡到"完全清晰"，跟手实时变化，滑到底刚好清晰
       if(phone){
@@ -22923,7 +22926,7 @@ window.setLang = setLang;
       tracking = false;
       if(!committed){ return; }
       const threshold = panelW * 0.28; // 拖过约1/4屏宽，判定为"要退出"
-      panel.style.transition = 'transform .22s ease';
+      panel.style.transition = (useTr?'translate':'transform')+' .22s ease';
       if(dx > threshold){
         // 顺着滑完，退出页面——复用跟点按钮同一套动画函数
         if(shadow) shadow.style.display = 'none';
@@ -22931,10 +22934,10 @@ window.setLang = setLang;
         playExitSlide(panel, backFn);
       } else {
         // 拖得不够，像弹簧一样弹回原位
-        panel.style.transform = 'translateX(0)';
+        setX(0);
         if(phone){ phone.style.transition = 'filter .22s ease'; phone.style.filter = `blur(${MAX_BLUR}px)`; } // 弹回去的同时模糊也弹回初始程度
         setTimeout(function(){
-          panel.style.transition = 'none';
+          panel.style.transition = 'none'; panel.style.translate = '';
           if(shadow) shadow.style.display = 'none';
           if(phone){ phone.style.transition = 'none'; phone.style.filter = ''; } // 已经被面板重新盖住，清空滤镜，不影响下次手势
         }, 220);
@@ -22951,11 +22954,13 @@ window.setLang = setLang;
   function playExitSlide(panel, backFn){
     if(!panel){ if(typeof backFn === 'function') backFn(); return; }
     const panelW = panel.offsetWidth || window.innerWidth;
-    panel.style.transition = 'transform .22s ease';
-    panel.style.transform = `translateX(${panelW}px)`;
+    var _useTr = false;
+    try{ var _c2=getComputedStyle(panel); _useTr = (_c2.animationName && _c2.animationName!=='none'); }catch(e){}
+    panel.style.transition = (_useTr?'translate':'transform')+' .22s ease';
+    if(_useTr){ panel.style.translate = panelW+'px'; } else { panel.style.transform = `translateX(${panelW}px)`; }
     setTimeout(function(){
       panel.style.transition = 'none';
-      panel.style.transform = '';
+      panel.style.transform = ''; panel.style.translate = '';
       if(typeof backFn === 'function') backFn();
     }, 220);
   }
@@ -43831,6 +43836,17 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
   }
   try{ new MutationObserver(bindAll).observe(document.body,{childList:true}); }catch(e){}
   bindAll(); window.addEventListener('load', bindAll);
+  /* 条款/隐私/帮助(legalOverlay)：里面是 iframe，手指落在 iframe 上父页收不到触摸，所以左边缘铺一条透明感应条，再挂同一套跟手返回 */
+  function bindLegal(){
+    var lo=document.getElementById('legalOverlay'); if(!lo || lo._edgeSwipeBound || typeof window.attachEdgeSwipeBack!=='function') return;
+    try{
+      var st=document.createElement('div'); st.id='lunaLegalEdge';
+      st.style.cssText='position:absolute;left:0;top:0;bottom:0;width:22px;z-index:5;background:transparent;';
+      lo.appendChild(st);
+      window.attachEdgeSwipeBack('legalOverlay', function(){ if(typeof window.closeLegal==='function'){ window.closeLegal(); } });
+    }catch(x){}
+  }
+  bindLegal(); window.addEventListener('load', bindLegal);
   /* 侧滑返回时：暂停流光边框、去掉底下首页的模糊滤镜（它们叠在一起会让手机掉帧、看着"跳"），并让被拖动的页面单独成层 */
   var swT=0, swEl=null;
   function swEnd(){ clearTimeout(swT); swT=setTimeout(function(){ document.body.classList.remove('lunaSwiping'); if(swEl){ swEl.style.willChange=''; swEl=null; } },420); }
@@ -43857,7 +43873,7 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
 /* 错误 / 卡顿记录器：出问题时左下角出现红色小标，点开就是一页可截图的报告。只记录、不改变 App 行为。 */
 (function(){
   var KEY='luna_diag_log', MAXN=40, log=[];
-  var BUILD=(window.LUNA_BUILD||'2026-11-13 14:12 泰国时间');
+  var BUILD=(window.LUNA_BUILD||'2026-11-13 14:52 泰国时间');
   try{ log=JSON.parse(sessionStorage.getItem(KEY)||'[]'); if(!log||!log.length&&log!==0) log=[]; }catch(e){ log=[]; }
   function pad(n){ return (n<10?'0':'')+n; }
   function ts(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }

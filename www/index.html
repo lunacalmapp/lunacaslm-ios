@@ -43888,7 +43888,10 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
 /* 错误 / 卡顿记录器：出问题时左下角出现红色小标，点开就是一页可截图的报告。只记录、不改变 App 行为。 */
 (function(){
   var KEY='luna_diag_log', MAXN=40, log=[];
-  var BUILD=(window.LUNA_BUILD||'2026-11-13 17:53 泰国时间');
+  /* 只有后台（luna-admin「错误监听」）点名的账号才记录/显示/上报；没点名的人什么都不记、不显示、不上传。
+     滚动被锁的自动解锁属于修复，对所有人照常工作，不受这个开关影响。 */
+  function ON(){ try{ return localStorage.getItem('luna_diag_on')==='1'; }catch(e){ return false; } }
+  var BUILD=(window.LUNA_BUILD||'2026-11-13 18:51 泰国时间');
   try{ log=JSON.parse(sessionStorage.getItem(KEY)||'[]'); if(!log||!log.length&&log!==0) log=[]; }catch(e){ log=[]; }
   function pad(n){ return (n<10?'0':'')+n; }
   function ts(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
@@ -43902,9 +43905,11 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
   function save(){ try{ sessionStorage.setItem(KEY,JSON.stringify(log.slice(-MAXN))); }catch(e){} }
   function add(kind,msg,where){
     try{
+      if(!ON()) return;
       msg=String(msg||'').slice(0,400);
       var last=log[log.length-1]; if(last && last.k===kind && last.m===msg){ last.n=(last.n||1)+1; last.t=ts(); save(); refresh(); return; }
       log.push({t:ts(),k:kind,m:msg,w:String(where||'').slice(0,200),s:snap(),n:1}); if(log.length>MAXN) log.shift(); save(); refresh();
+      try{ if(typeof window.__lunaReportError==='function') window.__lunaReportError('diag:'+kind, msg, '', 0, 0, String(where||'')+' || '+snap()); }catch(x){}
     }catch(e){}
   }
   window.addEventListener('error',function(e){
@@ -44000,11 +44005,26 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
   function openPanel(){ ensure(); render(); panel.style.display='flex'; }
   function refresh(){
     try{
-      if(!document.body) return; ensure();
+      if(!document.body) return;
+      if(!ON()){ if(badge) badge.style.display='none'; if(panel) panel.style.display='none'; return; }
+      ensure();
       if(log.length){ badge.style.display='block'; badge.textContent='! '+log.length; } else badge.style.display='none';
       if(panel && panel.style.display==='flex') render();
     }catch(e){}
   }
+  /* 读后台名单：remoteConfig/featureFlags/diagUsers/<uid>=true 单独开；diagAll=true 全员开。远程配置没读到时保持原状，不乱改 */
+  function applyAccess(){
+    try{
+      if(window.__lunaRcOk!==true) return;
+      var ff=window._remoteConfig && window._remoteConfig.featureFlags; if(!ff || typeof ff!=='object') return;
+      var me=''; try{ me=localStorage.getItem('luna_uid')||''; }catch(e){}
+      var allow = ff.diagAll===true || !!(me && ff.diagUsers && typeof ff.diagUsers==='object' && ff.diagUsers[me]===true);
+      var was=ON();
+      if(allow && !was){ localStorage.setItem('luna_diag_on','1'); refresh(); }
+      else if(!allow && was){ localStorage.setItem('luna_diag_on','0'); log=[]; try{ sessionStorage.removeItem(KEY); }catch(e){} refresh(); }
+    }catch(e){}
+  }
+  var _ap=0; (function loop(){ applyAccess(); _ap++; setTimeout(loop,_ap<30?4000:120000); })();
   window.LunaDiag={add:function(m){ add('手动',m,''); },open:openPanel,_log:function(){ return log; }};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',refresh); else refresh();
 })();
@@ -44184,6 +44204,11 @@ body.lunaHasUnread .lunaBellDot{display:block}
   bindSwipe(); window.addEventListener('load',bindSwipe);
 })();
 </script>
+<style id="lunaOrbDivCss">
+/* 我的页：「悬浮球样式」和「悬浮助手球」两行之间加一条和其他设置一样的隔离线 */
+#lunaOrbRow{border-top:1px solid rgba(124,92,191,.5) !important;}
+body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber #lunaOrbRow{border-top-color:rgba(255,255,255,.1) !important;}
+</style>
 <script id="lunaLangVeilJs">
 /* 换语言时：先盖一层和页面底色相同的遮罩，再换字/重新加载，最后淡出。盖住"文字原地乱跳 + 重载白闪"。遮罩不拦截点击，且有 4 秒保险自动撤掉 */
 (function(){

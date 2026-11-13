@@ -4482,8 +4482,8 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
     </div>
 
     <!-- 🌙 成就卡片 -->
-    <div class="s-title">🌙 <span id="achieveTitle">ความสำเร็จของฉัน</span></div>
-    <div class="s-group" style="padding:18px 16px;cursor:pointer;" onclick="openAchievements()">
+    <div class="s-title lunaMineHide">🌙 <span id="achieveTitle">ความสำเร็จของฉัน</span></div>
+    <div class="s-group lunaMineHide" style="padding:18px 16px;cursor:pointer;" onclick="openAchievements()">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
         <div>
           <div style="font-size:12px;color:var(--mine-fg-muted);margin-bottom:4px;" id="achieveUnlockLbl">ปลดล็อกแล้ว</div>
@@ -4510,8 +4510,8 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
     </div>
 
     <!-- 📅 使用天数卡片（缩小版·累计7天领月光值）-->
-    <div class="s-title">🌙 <span id="ckTitle">วันที่ใช้งาน</span></div>
-    <div class="s-group" style="padding:0;overflow:hidden;border:1px solid var(--mine-surface-border);box-shadow:var(--mine-surface-shadow);">
+    <div class="s-title lunaMineHide">🌙 <span id="ckTitle">วันที่ใช้งาน</span></div>
+    <div class="s-group lunaMineHide" style="padding:0;overflow:hidden;border:1px solid var(--mine-surface-border);box-shadow:var(--mine-surface-shadow);">
       <!-- 头部：点一下收起/展开 -->
       <div onclick="toggleCheckin()" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;">
         <div style="display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap;">
@@ -4956,7 +4956,7 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
     <div style="background:var(--purple-pale);border-radius:16px;padding:18px 20px;cursor:pointer;margin-bottom:12px;"
       onclick="_openLineContact()">
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:48px;height:48px;background:#06C755;border-radius:14px;
+        <div style="width:48px;height:48px;background:#058a3c;border-radius:14px;
           display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;letter-spacing:.5px;">LINE</div>
         <div style="min-width:0;">
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:3px;">LINE</div>
@@ -7825,6 +7825,9 @@ try{ window._fb.getRecent = async function(p, n){ const s = await get(query(ref(
         // 🩹 这里是唯一跟旧逻辑接轨的地方：满13岁=true，1-12岁=false，
         // 后面 obNext()/最终写 luna_age_under_13 那段代码完全没动，读的还是这个变量
         _obAgeOk = (age >= 13);
+        // 未满 13 岁：引导页第二步隐藏「备孕」选项（已经选了的取消选中）；设置页的备孕/怀孕/宝宝出生了卡片由 CSS 跟着 lpg-young 隐藏
+        try{ var _s2 = document.getElementById('obStep2'); if(_s2) _s2.classList.toggle('ob-young', age < 13);
+          if(age < 13 && _obGoal === 'conceive'){ _obGoal = null; var _gb = document.querySelectorAll('.ob-goal-btn'); for(var _gi=0; _gi<_gb.length; _gi++) _gb[_gi].classList.remove('selected'); } }catch(e){}
         _obAgeTouched = true; // 真的滑动过一次了，"下一步"才会放行
         const hint = document.getElementById('obAgeHint');
         if(hint) hint.style.display = 'none';
@@ -10288,7 +10291,7 @@ window.setLang = setLang;
     // "人人可用、还是新用户第一眼看到的主题"，兜底逻辑必须落在一个真正永远解锁的主题上
     if(key==='peach') return true;
     if(VIP_THEMES.indexOf(key) !== -1) return isPro();
-    if(THEME_UNLOCK[key]) return getMoonPoints() >= THEME_UNLOCK[key];
+    /* 以前要攒月光值才能解锁的主题，现在全部免费（只剩 VIP 专属主题还锁着） */
     return true; // 不在任何一张表里的主题（peach/aurora/moonlotus/mistteal/duskmauve）永久免费
   }
   window.isThemeUnlocked = isThemeUnlocked;
@@ -10637,7 +10640,9 @@ window.setLang = setLang;
     orb.addEventListener('mouseenter', wakeOrb);
     orb.addEventListener('touchstart', wakeOrb, {passive:true});
 
+    var _orbTouchOn=false, _orbLastTouch=0;   // 防卡死：只认"从球上开始的触摸"，系统打断(touchcancel)/幽灵鼠标事件都不会让 dragging 残留
     function onDown(e){
+      if(e.touches){ _orbTouchOn=true; _orbLastTouch=Date.now(); } else if(Date.now()-_orbLastTouch<800){ return; }
       dragging=true; moved=false;
       orb.style.cursor='grabbing';
       wakeOrb();
@@ -10648,6 +10653,7 @@ window.setLang = setLang;
     }
     function onMove(e){
       if(!dragging) return;
+      if(e.touches && !_orbTouchOn){ dragging=false; return; }   // 不是从球上开始的触摸：别拦截页面滚动
       const p = e.touches ? e.touches[0] : e;
       const dx=p.clientX-sx, dy=p.clientY-sy;
       if(Math.abs(dx)>4||Math.abs(dy)>4){
@@ -10665,6 +10671,7 @@ window.setLang = setLang;
       e.preventDefault();
     }
     function onUp(){
+      _orbTouchOn=false;
       if(!dragging) return;
       dragging=false; orb.style.cursor='grab';
       if(moved){
@@ -10680,6 +10687,8 @@ window.setLang = setLang;
     orb.addEventListener('touchstart',onDown,{passive:false});
     document.addEventListener('touchmove',onMove,{passive:false});
     document.addEventListener('touchend',onUp);
+    document.addEventListener('touchcancel',function(){ if(dragging){ dragging=false; moved=true; orb.style.cursor='grab'; } _orbTouchOn=false; });
+    document.addEventListener('touchstart',function(e){ if(dragging && !(e.target && orb.contains(e.target))){ dragging=false; _orbTouchOn=false; } },{passive:true,capture:true});
 
     document.getElementById('orbClose')?.addEventListener('click', ()=>{ closePanel(); });
 
@@ -14440,6 +14449,9 @@ window.setLang = setLang;
   };
 
   function applyThemeVars(key) {
+    // 🩹 换主题时短暂关掉全页过渡动画+流光边框动画（约 0.9 秒）：几百个元素同时做颜色渐变会让老手机卡住一阵子、滑不动
+    try{ if(document.body){ document.body.classList.add('lunaThemeSwitching'); clearTimeout(window._lunaTsT);
+      window._lunaTsT = setTimeout(function(){ document.body.classList.remove('lunaThemeSwitching'); }, 900); } }catch(e){}
     const t = LUNA_THEMES[key] || LUNA_THEMES['peach'];
     const r = document.documentElement.style;
     r.setProperty('--purple', t.primary);
@@ -40964,7 +40976,8 @@ body.luna-orb-off #lunaOrb, body.luna-orb-off #lunaOrbPanel{display:none !import
     row = document.createElement('div'); row.className = 's-item'; row.id = 'lunaOrbRow';
     row.innerHTML = '<span class="s-svg-icon" data-c="purple"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 13a4 4 0 0 0 8 0"/></svg></span>'
       + '<div class="s-info"><div class="s-label"><span class="lob-l"></span></div></div><span class="lob-s" style="font-size:13px;color:#8a849e;margin-right:6px;"></span><span class="s-arrow">›</span>';
-    rate.parentNode.insertBefore(row, rate);
+    var _osb = document.getElementById('orbStyleBody');   /* 放到「悬浮球样式」下面（同一张卡里） */
+    if(_osb && _osb.parentNode) _osb.parentNode.appendChild(row); else rate.parentNode.insertBefore(row, rate);
     lab = row.querySelector('.lob-l'); stat = row.querySelector('.lob-s');
     row.addEventListener('click', function(){ if(isHidden()) show(); else hide(); });
   }
@@ -42895,7 +42908,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
    +'.pvk-sheet{position:fixed;left:0;top:0;right:0;bottom:0;z-index:9400;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;touch-action:none}'
    +'.pvk-x{position:absolute;right:10px;top:calc(env(safe-area-inset-top,0px) + 8px);width:44px;height:44px;font-size:20px;border:0;background:none;color:#fff}'
    +'.pv-page{position:fixed;inset:0;z-index:9200;background:var(--bg,#f4f2f9);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 8px) 14px calc(40px + env(safe-area-inset-bottom,0px));animation:slideInRight .3s cubic-bezier(.22,.8,.3,1) both;color:var(--text,#2d2640)}'
-   +'.pv-nav{position:sticky;top:calc(-1*(env(safe-area-inset-top,0px) + 8px));z-index:6;display:flex;align-items:center;justify-content:center;box-sizing:border-box;height:calc(52px + env(safe-area-inset-top,0px) + 8px);margin:calc(-1*(env(safe-area-inset-top,0px) + 8px)) -14px 6px;padding:calc(env(safe-area-inset-top,0px) + 8px) 14px 0;background:var(--bg,#f4f2f9)}.pv-nav .bk{position:absolute;left:10px;top:calc(env(safe-area-inset-top,0px) + 12px);width:44px;height:44px;border:0;background:transparent;font-size:30px;line-height:44px;color:var(--text,#2d2640);cursor:pointer}.pv-nav b{font-size:17px}'
+   +'.pv-nav{position:sticky;top:calc(-1*(env(safe-area-inset-top,0px) + 8px));z-index:6;display:flex;align-items:center;justify-content:center;box-sizing:border-box;height:calc(52px + env(safe-area-inset-top,0px) + 8px);margin:calc(-1*(env(safe-area-inset-top,0px) + 8px)) -14px 6px;padding:calc(env(safe-area-inset-top,0px) + 8px) 14px 0;background:var(--bg,#f4f2f9)}.pv-nav .bk{position:absolute;right:10px;top:calc(env(safe-area-inset-top,0px) + 12px);width:44px;height:44px;border:0;background:transparent;font-size:22px;line-height:44px;color:var(--text,#2d2640);cursor:pointer}.pv-nav b{font-size:17px}'
    +'.pv-sub{font-size:13px;line-height:1.6;color:var(--text-muted,#8a849e);margin:2px 4px 14px}'
    +'.pv-card{border-radius:var(--radius,22px);background:var(--home-card-bg,#fff);padding:4px 16px;margin-bottom:14px;border:1px solid var(--home-card-border,rgba(124,92,191,.12))}'
    +'.pv-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(128,110,170,.14);cursor:pointer}.pv-row:last-child{border:0}'
@@ -43019,7 +43032,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
   function render(){
     if(!page) return; var t=T(), o=rd()||{}, on=!!(o.on&&o.h), cur=curIcon(), mem=isMember(), P=plug();
     var plat=''; try{ plat=(window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform())||''; }catch(e){}
-    var h='<div class="pv-nav"><button class="bk" id="pvBk" aria-label="back">‹</button><b>🔒 '+esc(t.title)+'</b></div><div class="pv-sub">'+esc(t.sub)+'</div>';
+    var h='<div class="pv-nav"><button class="bk" id="pvBk" aria-label="close">✕</button><b>🔒 '+esc(t.title)+'</b></div><div class="pv-sub">'+esc(t.sub)+'</div>';
     h+='<div class="pv-card"><div class="pv-row" id="pvLock"><div class="t"><b>'+esc(t.lockT)+'</b><span>'+esc(t.lockD)+'</span></div>'+swH('pvSwL',on)+'</div>';
     if(on){
       var bioT=t.bioT; if(plat==='android') bioT=bioT.replace(/Face ID\s*\/\s*/,''); else if(plat==='ios') bioT=bioT.replace(/\s*\/\s*(指纹|ลายนิ้วมือ|fingerprint|vân tay)/,'');
@@ -43680,7 +43693,7 @@ body.theme-moonlotus #lunaFeelCard div,body.theme-aurora #lunaFeelCard div,body.
 </style>
 <style id="lunaStatDivCss">
 /* 统计页：功能合并成一张卡，分割线中间亮两端渐隐+柔光 */
-#statsPanel .lunaStGrp{gap:0 !important;background:var(--stat-insight-bg);border:1px solid rgba(var(--lsd,124,92,191),.22);border-radius:22px;overflow:hidden}
+#statsPanel .lunaStGrp{flex-shrink:0 !important;gap:0 !important;background:var(--stat-insight-bg);border:1px solid rgba(var(--lsd,124,92,191),.22);border-radius:22px;overflow:hidden}
 #statsPanel .lunaStGrp>.stat-tile{background:none !important;border:0 !important;border-radius:0 !important;box-shadow:none !important;position:relative}
 #statsPanel .lunaStGrp>.stat-tile+.stat-tile::before{content:"";position:absolute;top:0;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent 0,rgba(var(--lsd,124,92,191),1) 50%,transparent 100%)}
 #statsPanel .lunaStGrp>.stat-tile+.stat-tile::after{content:"";position:absolute;top:-3px;left:18%;right:18%;height:6px;background:radial-gradient(ellipse at center,rgba(var(--lsd,124,92,191),1) 0,transparent 70%);pointer-events:none}
@@ -43716,6 +43729,207 @@ body.theme-moonlotus{--lsd:190,230,255}body.theme-aurora{--lsd:215,195,255}body.
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();</script>
+<style id="lunaThemeSwitchCss">body.lunaThemeSwitching *,body.lunaThemeSwitching *::before,body.lunaThemeSwitching *::after{transition:none !important}
+body.lunaThemeSwitching .lunaFxRing::before{animation-play-state:paused !important}</style>
+<style id="lunaYoungCss">
+#obStep2.ob-young .ob-goal-btn[data-goal="conceive"]{display:none !important}
+body.lpg-young:not(.preg-mode):not(.ttc-mode) #lunaModeCards .lmc-card[data-k="ttc"],
+body.lpg-young:not(.preg-mode):not(.ttc-mode) #lunaModeCards .lmc-card[data-k="preg"],
+body.lpg-young:not(.preg-mode):not(.ttc-mode) #lunaModeCards .lmc-card[data-k="baby"],
+body.lpg-young:not(.preg-mode):not(.ttc-mode) #lunaModeCards .lmc-card[data-k="ended"]{display:none !important}
+</style>
+<style id="lunaDarkSetAnimCss">
+/* 深色主题：设置页是浅色页，整块白色从右边扫进来会"闪"一下；改成短位移+淡入，亮度是渐渐出现的 */
+@keyframes lunaSetInD{from{transform:translate3d(26%,0,0);opacity:0}to{transform:translate3d(0,0,0);opacity:1}}
+@keyframes lunaSetOutD{from{transform:translate3d(0,0,0);opacity:1}to{transform:translate3d(26%,0,0);opacity:0}}
+body.theme-moonlotus #calSettingsPanel.subpage-anim,
+body.theme-aurora #calSettingsPanel.subpage-anim,
+body.theme-amber #calSettingsPanel.subpage-anim{animation:lunaSetInD .32s cubic-bezier(0.32,0.72,0,1) both !important}
+body.theme-moonlotus #calSettingsPanel.lmc-out,
+body.theme-aurora #calSettingsPanel.lmc-out,
+body.theme-amber #calSettingsPanel.lmc-out{animation:lunaSetOutD .26s cubic-bezier(0.32,0.72,0,1) forwards !important}
+</style>
+<style id="lunaDarkFix2Css">
+/* 白底弹窗/私密模式页：深色主题下文字变量要用深色，否则浅色字落在白底上看不清 */
+body.theme-moonlotus .modal,
+body.theme-moonlotus .pv-page,
+body.theme-moonlotus .pv-dlg>div,
+body.theme-aurora .modal,
+body.theme-aurora .pv-page,
+body.theme-aurora .pv-dlg>div,
+body.theme-amber .modal,
+body.theme-amber .pv-page,
+body.theme-amber .pv-dlg>div{--text:#2d2640;--text-muted:#8a849e;color:#2d2640}
+</style>
+<style id="lunaMineHideCss">.lunaMineHide{display:none !important}</style>
+<style id="lunaDarkFix3Css">
+/* 深色主题首页：天数数字、"距离下次月经"上方图标方块 在深色底上要用浅色 */
+body.theme-moonlotus{--home-next-icon-color:#cfeeff;--home-next-icon-border:rgba(207,238,255,.35)}
+body.theme-aurora{--home-key-num-fg:#f3eaff;--home-next-icon-color:#e6d6ff;--home-next-icon-border:rgba(230,214,255,.35)}
+body.theme-amber{--home-next-icon-color:#ffe2a8;--home-next-icon-border:rgba(255,226,168,.35)}
+</style>
+<style id="lunaDarkFix4Css">
+/* 深色下"我的"页：联系方式弹窗小字、主题提示、底部中间按钮说明、会员小标签 */
+body.theme-moonlotus .modal,body.theme-aurora .modal,body.theme-amber .modal{--text-muted:#5d5775}
+body.theme-moonlotus #contactModalCard,body.theme-aurora #contactModalCard,body.theme-amber #contactModalCard{--text-muted:#4f496a}
+body.theme-moonlotus #contactModalCard .fbEntryTag,body.theme-aurora #contactModalCard .fbEntryTag,body.theme-amber #contactModalCard .fbEntryTag,
+body.theme-moonlotus #fbEntryTag,body.theme-aurora #fbEntryTag,body.theme-amber #fbEntryTag{color:#4f496a !important}
+/* 月光值解锁提示已过时（主题现在免费，只剩 VIP 主题），直接隐藏 */
+#themeBody>div:first-child{display:none !important}
+body.theme-moonlotus #navAiHint,body.theme-aurora #navAiHint,body.theme-amber #navAiHint{color:rgba(255,255,255,.78) !important}
+.pt-vip{color:#4a2a00 !important}
+</style>
+<style id="lunaDarkFix5Css">
+/* 深色下 周期历史 / 周期详情 整页是浅色底，文字变量要还原成深色 */
+body.theme-moonlotus .cy-page,body.theme-aurora .cy-page,body.theme-amber .cy-page{--text:#2d2640;--text-muted:#6a6280;color:#2d2640}
+.cy-page .ci-st.ok{color:#167a43}.cy-page .ci-st.warn{color:#a85f12}
+.cy-page .cy-sum-n{color:#4f496a}
+.cy-recap .rct em{opacity:1}
+</style>
+<style id="lunaSetAnimAllCss">
+/* 浅色主题同样：设置页整块从右边扫进来会闪一下，统一改成短位移+淡入 */
+#calSettingsPanel.subpage-anim{animation:lunaSetInD .32s cubic-bezier(0.32,0.72,0,1) both !important}
+#calSettingsPanel.lmc-out{animation:lunaSetOutD .26s cubic-bezier(0.32,0.72,0,1) forwards !important}
+</style>
+<style id="lunaDarkFix6Css">
+/* 深色下：备孕首页小标签/箭头、首页"选择你的套餐"区块里的价格与链接，用浅色 */
+body.theme-moonlotus{--lunaAcc:#bfe6ff}body.theme-aurora{--lunaAcc:#e3d4ff}body.theme-amber{--lunaAcc:#ffd98a}
+body.theme-moonlotus #ttcHomeCard #ttcHomeChip,body.theme-aurora #ttcHomeCard #ttcHomeChip,body.theme-amber #ttcHomeCard #ttcHomeChip{color:var(--lunaAcc) !important;background:rgba(255,255,255,.14) !important}
+body.theme-moonlotus #ttcHomeCard.card .th-link svg,body.theme-aurora #ttcHomeCard.card .th-link svg,body.theme-amber #ttcHomeCard.card .th-link svg,
+body.theme-moonlotus #ttcHomeCard.card .th-primary:not(#ttcHomeBtn)::after,body.theme-aurora #ttcHomeCard.card .th-primary:not(#ttcHomeBtn)::after,body.theme-amber #ttcHomeCard.card .th-primary:not(#ttcHomeBtn)::after{color:rgba(255,255,255,.78) !important}
+body.theme-moonlotus #lpgSub .pl-p,body.theme-aurora #lpgSub .pl-p,body.theme-amber #lpgSub .pl-p,
+body.theme-moonlotus #lpgSub .rs,body.theme-aurora #lpgSub .rs,body.theme-amber #lpgSub .rs,
+body.theme-moonlotus #lpgSub .dc span,body.theme-aurora #lpgSub .dc span,body.theme-amber #lpgSub .dc span{color:var(--lunaAcc) !important}
+body.theme-moonlotus #lpgSub .pl-s,body.theme-aurora #lpgSub .pl-s,body.theme-amber #lpgSub .pl-s,
+body.theme-moonlotus #lpgSub .pl-p small,body.theme-aurora #lpgSub .pl-p small,body.theme-amber #lpgSub .pl-p small,
+body.theme-moonlotus #lpgSub .dc,body.theme-aurora #lpgSub .dc,body.theme-amber #lpgSub .dc{color:rgba(255,255,255,.78) !important}
+body.theme-moonlotus #lpgSub .lt,body.theme-aurora #lpgSub .lt,body.theme-amber #lpgSub .lt{color:rgba(255,255,255,.78) !important}
+body.theme-moonlotus #ttcHomeCard.card .th-primary::after,body.theme-aurora #ttcHomeCard.card .th-primary::after,body.theme-amber #ttcHomeCard.card .th-primary::after,
+body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttcHomeCard.card #ttcHomeBtn::after,body.theme-amber #ttcHomeCard.card #ttcHomeBtn::after{border-color:rgba(255,255,255,.78) !important}
+</style>
+<script id="lunaSwipeAllJs">
+/* 补齐：所有带"‹"返回键的满屏页，都挂上"左边缘右滑、实时跟手返回"（和统计/日历等页一致）。X 关闭型的页面不用。 */
+(function(){
+  var IDS=['scPanel','pregWeekPanel','pregWeightPanel','pregVisitPanel','ppInfoPanel','ttcKnowPanel','ttcStatsPanel','ttcLogPanel','aiDeepPage','lunaDailyPage','lunaCyHist','lunaCyDet','lpgAnaPanel','lpgKickPanel','lpgMoodHist','lunaBabyView'];
+  function backFor(id){
+    return function(){
+      var p=document.getElementById(id); if(!p) return;
+      if(id==='scPanel' && typeof window.scClosePanel==='function'){ try{ window.scClosePanel(); }catch(e){} return; }
+      var b=p.querySelector('.back-btn,.bk,.lpg-back'); if(!b) return;
+      /* 页面这时已经滑到屏幕外：先藏起来、关掉动画再触发原来的关闭，避免原位闪一下 */
+      var an=p.style.animation; p.style.visibility='hidden'; p.style.animation='none';
+      try{ b.click(); }catch(e){}
+      setTimeout(function(){ if(document.getElementById(id)===p){ p.style.visibility=''; p.style.animation=an; } },450);
+    };
+  }
+  function bindAll(){
+    if(typeof window.attachEdgeSwipeBack!=='function') return;
+    for(var i=0;i<IDS.length;i++){
+      var e=document.getElementById(IDS[i]);
+      if(e && !e._edgeSwipeBound){ try{ window.attachEdgeSwipeBack(IDS[i], backFor(IDS[i])); }catch(x){} }
+    }
+  }
+  try{ new MutationObserver(bindAll).observe(document.body,{childList:true}); }catch(e){}
+  bindAll(); window.addEventListener('load', bindAll);
+})();
+</script>
+<style id="lunaDiagCss">
+#lunaDiagBadge{position:fixed;left:10px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:2147483000;min-width:34px;height:34px;padding:0 10px;border-radius:17px;background:rgba(214,48,49,.92);color:#fff;font:700 13px/34px -apple-system,Arial,sans-serif;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.35);display:none}
+#lunaDiagPanel{position:fixed;inset:0;z-index:2147483001;background:rgba(20,16,32,.97);color:#f3eefc;display:none;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 14px);font:12px/1.55 ui-monospace,Menlo,monospace}
+#lunaDiagPanel .dh{display:flex;gap:8px;align-items:center;margin-bottom:10px;font:700 15px/1.3 -apple-system,Arial,sans-serif}
+#lunaDiagPanel .dh b{flex:1}
+#lunaDiagPanel button{border:0;border-radius:10px;padding:8px 12px;background:#7c5cbf;color:#fff;font:600 13px -apple-system,Arial,sans-serif}
+#lunaDiagPanel .db{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;-webkit-user-select:text;user-select:text;white-space:pre-wrap;word-break:break-all}
+#lunaDiagPanel .it{border-top:1px solid rgba(255,255,255,.15);padding:8px 0}
+#lunaDiagPanel .it i{font-style:normal;color:#ffb3c1}
+</style>
+<script id="lunaDiagJs">
+/* 错误 / 卡顿记录器：出问题时左下角出现红色小标，点开就是一页可截图的报告。只记录、不改变 App 行为。 */
+(function(){
+  var KEY='luna_diag_log', MAXN=40, log=[];
+  var BUILD=(window.LUNA_BUILD||'2026-11-13 13:21 泰国时间');
+  try{ log=JSON.parse(sessionStorage.getItem(KEY)||'[]'); if(!log||!log.length&&log!==0) log=[]; }catch(e){ log=[]; }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function ts(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+  function snap(){
+    var s='';
+    try{ s+='body.overflow='+(document.body.style.overflow||'(空)')+' | body.class='+String(document.body.className).slice(0,90); }catch(e){}
+    try{ var ov=document.querySelectorAll('.modal-overlay.open').length; s+=' | 打开的弹窗='+ov; }catch(e){}
+    try{ s+=' | 页面='+(document.querySelector('.nav-item.active')||{id:'?'}).id; }catch(e){}
+    return s;
+  }
+  function save(){ try{ sessionStorage.setItem(KEY,JSON.stringify(log.slice(-MAXN))); }catch(e){} }
+  function add(kind,msg,where){
+    try{
+      msg=String(msg||'').slice(0,400);
+      var last=log[log.length-1]; if(last && last.k===kind && last.m===msg){ last.n=(last.n||1)+1; last.t=ts(); save(); refresh(); return; }
+      log.push({t:ts(),k:kind,m:msg,w:String(where||'').slice(0,200),s:snap(),n:1}); if(log.length>MAXN) log.shift(); save(); refresh();
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    try{
+      if(e && e.target && e.target!==window && e.target.tagName){ var u=(e.target.src||e.target.href||''); if(u) add('资源加载失败',(e.target.tagName||'')+' '+u,''); return; }
+      add('脚本错误',(e&&e.message)||'error',((e&&e.filename)||'').split('/').pop()+':'+(e&&e.lineno)+':'+(e&&e.colno)+(e&&e.error&&e.error.stack?'\n'+String(e.error.stack).split('\n').slice(0,3).join('\n'):''));
+    }catch(x){}
+  },true);
+  window.addEventListener('unhandledrejection',function(e){
+    try{ var r=e&&e.reason; add('Promise 未处理错误',(r&&r.message)||String(r),(r&&r.stack)?String(r.stack).split('\n').slice(0,3).join('\n'):''); }catch(x){}
+  });
+  /* 卡顿检测：每 250ms 记一次时间，如果一次间隔超过 1.5 秒（且不是切后台造成的），说明页面被卡住了这么久 */
+  var lastT=Date.now(), hiddenAt=0;
+  document.addEventListener('visibilitychange',function(){ hiddenAt=Date.now(); lastT=Date.now(); });
+  setInterval(function(){
+    var n=Date.now(), d=n-lastT; lastT=n;
+    if(d>1500 && !document.hidden && n-hiddenAt>3000) add('页面卡顿','主线程被卡住约 '+(Math.round(d/100)/10)+' 秒','');
+  },250);
+  /* 滚动被锁检测：首页没有任何弹窗/满屏页，body 却是 overflow:hidden，说明滚动被锁（只记录，不自动改） */
+  setInterval(function(){
+    try{
+      if(document.hidden) return;
+      var lockedBody=(document.body.style.overflow==='hidden');
+      if(!lockedBody){ lockedSince=0; return; }
+      var open=document.querySelectorAll('.modal-overlay.open').length, vis=0, ps=document.querySelectorAll('[id$=Panel],[id$=panel],.cy-page,.pv-page,.fp-root');
+      for(var i=0;i<ps.length;i++){ var cs=getComputedStyle(ps[i]); if(cs.display!=='none'&&cs.visibility!=='hidden'&&ps[i].getBoundingClientRect().width>200){ vis++; break; } }
+      if(open||vis){ lockedSince=0; return; }
+      if(!lockedSince) lockedSince=Date.now(); else if(Date.now()-lockedSince>4000 && !lockedLogged){ lockedLogged=true; add('滚动疑似被锁','没有任何弹窗/满屏页，但 body 是 overflow:hidden 已超过 4 秒',''); }
+    }catch(e){}
+  },1000);
+  var lockedSince=0, lockedLogged=false;
+
+  var badge, panel;
+  function ensure(){
+    if(badge) return;
+    badge=document.createElement('div'); badge.id='lunaDiagBadge'; document.body.appendChild(badge);
+    badge.addEventListener('click',openPanel);
+    panel=document.createElement('div'); panel.id='lunaDiagPanel'; document.body.appendChild(panel);
+  }
+  function esc(s){ return String(s).replace(/[&<>]/g,function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function render(){
+    var h='<div class="dh"><b>问题记录（截图发给我）</b><button id="ldgCopy">复制</button><button id="ldgClear">清空</button><button id="ldgClose">关闭</button></div><div class="db">'
+      +'版本：'+esc(BUILD)+'\n设备：'+esc(navigator.userAgent)+'\n屏幕：'+window.innerWidth+'x'+window.innerHeight+'  语言：'+esc(navigator.language||'')+'\n';
+    if(!log.length) h+='\n（暂时没有记录）';
+    for(var i=log.length-1;i>=0;i--){ var x=log[i]; h+='<div class="it"><i>['+esc(x.t)+'] '+esc(x.k)+(x.n>1?' ×'+x.n:'')+'</i>\n'+esc(x.m)+(x.w?'\n'+esc(x.w):'')+'\n<span style="opacity:.6">'+esc(x.s)+'</span></div>'; }
+    h+='</div>'; panel.innerHTML=h;
+    document.getElementById('ldgClose').onclick=function(){ panel.style.display='none'; };
+    document.getElementById('ldgClear').onclick=function(){ log=[]; lockedLogged=false; save(); refresh(); render(); };
+    document.getElementById('ldgCopy').onclick=function(){
+      var t=panel.querySelector('.db').innerText;
+      try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t); return; } }catch(e){}
+      try{ var r=document.createRange(); r.selectNodeContents(panel.querySelector('.db')); var s=window.getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); }catch(e){}
+    };
+  }
+  function openPanel(){ ensure(); render(); panel.style.display='flex'; }
+  function refresh(){
+    try{
+      if(!document.body) return; ensure();
+      if(log.length){ badge.style.display='block'; badge.textContent='! '+log.length; } else badge.style.display='none';
+      if(panel && panel.style.display==='flex') render();
+    }catch(e){}
+  }
+  window.LunaDiag={add:function(m){ add('手动',m,''); },open:openPanel,_log:function(){ return log; }};
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',refresh); else refresh();
+})();
+</script>
 <script id="lunaLangVeilJs">
 /* 换语言时：先盖一层和页面底色相同的遮罩，再换字/重新加载，最后淡出。盖住"文字原地乱跳 + 重载白闪"。遮罩不拦截点击，且有 4 秒保险自动撤掉 */
 (function(){

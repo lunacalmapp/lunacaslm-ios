@@ -22904,7 +22904,8 @@ window.setLang = setLang;
       if(!tracking) return;
       const ddx = x - startX, ddy = y - startY;
       if(!committed){
-        if(Math.abs(ddx) < 8) return;
+        if(Math.abs(ddx) < 14) return;
+        if(Math.abs(ddy) > Math.abs(ddx)){ if(Math.abs(ddy) > 14) tracking = false; return; }
         if(Math.abs(ddy) > V_CANCEL && Math.abs(ddy) > Math.abs(ddx)){ tracking = false; return; } // 更像竖直滚动，让给页面滚动
         committed = true;
         ensureShadow().style.display = 'block';
@@ -22960,8 +22961,10 @@ window.setLang = setLang;
     if(_useTr){ panel.style.translate = panelW+'px'; } else { panel.style.transform = `translateX(${panelW}px)`; }
     setTimeout(function(){
       panel.style.transition = 'none';
+      var _vis = panel.style.visibility; panel.style.visibility = 'hidden';
       panel.style.transform = ''; panel.style.translate = '';
       if(typeof backFn === 'function') backFn();
+      setTimeout(function(){ try{ panel.style.visibility = _vis; }catch(e){} }, 520);
     }, 220);
   }
   window.playExitSlide = playExitSlide;
@@ -37373,7 +37376,7 @@ html body[class].theme-default #lpgRec1 button svg path,html body[class].theme-d
     if(list&&!$('lunaStHomeBtn')){
       var ref=list.querySelector('.th-link'), b=document.createElement('button'); b.type='button'; b.className='th-link'; b.id='lunaStHomeBtn';
       b.innerHTML='<span id="lunaStHomeTxt"></span>'+(ref&&ref.querySelector('svg')?ref.querySelector('svg').outerHTML:'');
-      b.onclick=function(){ try{ window.LunaTtc.logs.openPanel(); }catch(e){} setTimeout(function(){ try{ var h=$('lunaStrip'); if(h) panel.scrollTop=Math.max(0,h.offsetTop-70); }catch(e){} },60); };
+      b.onclick=function(){ var pn=document.getElementById('ttcLogPanel'); try{ if(pn) pn.style.visibility='hidden'; }catch(e){} try{ window.LunaTtc.logs.openPanel(); }catch(e){} try{ if(window.LunaStrip&&window.LunaStrip.render) window.LunaStrip.render(); }catch(e){} var fin=function(){ try{ var h=document.getElementById('lunaStrip'); if(h&&pn) pn.scrollTop=Math.max(0,h.offsetTop-70); }catch(e){} try{ if(pn) pn.style.visibility=''; }catch(e){} }; try{ pn&&(pn.scrollTop=0); var h0=document.getElementById('lunaStrip'); if(h0&&pn) pn.scrollTop=Math.max(0,h0.offsetTop-70); }catch(e){} setTimeout(fin,140); };
       list.insertBefore(b,list.firstChild);
     }
     var tx=$('lunaStHomeTxt'); if(tx) tx.textContent=t().home;
@@ -37738,7 +37741,7 @@ html body[class].theme-default #lpgRec1 button svg path,html body[class].theme-d
     if(list&&$('lunaStHomeBtn')&&!$('lunaPsHomeBtn')){
       var ref=list.querySelector('.th-link'), b=document.createElement('button'); b.type='button'; b.className='th-link'; b.id='lunaPsHomeBtn';
       b.innerHTML='<span id="lunaPsHomeTxt"></span>'+(ref&&ref.querySelector('svg')?ref.querySelector('svg').outerHTML:'');
-      b.onclick=function(){ try{ window.LunaTtc.logs.openPanel(); }catch(e){} setTimeout(function(){ try{ var h=$('lunaPStrip'); if(h) panel.scrollTop=Math.max(0,h.offsetTop-70); }catch(e){} },60); };
+      b.onclick=function(){ var pn=document.getElementById('ttcLogPanel'); try{ if(pn) pn.style.visibility='hidden'; }catch(e){} try{ window.LunaTtc.logs.openPanel(); }catch(e){} try{ if(window.LunaStrip&&window.LunaStrip.render) window.LunaStrip.render(); }catch(e){} var fin=function(){ try{ var h=document.getElementById('lunaPStrip'); if(h&&pn) pn.scrollTop=Math.max(0,h.offsetTop-70); }catch(e){} try{ if(pn) pn.style.visibility=''; }catch(e){} }; try{ pn&&(pn.scrollTop=0); var h0=document.getElementById('lunaPStrip'); if(h0&&pn) pn.scrollTop=Math.max(0,h0.offsetTop-70); }catch(e){} setTimeout(fin,140); };
       list.insertBefore(b,$('lunaStHomeBtn').nextSibling);
     }
     var tx=$('lunaPsHomeTxt'); if(tx) tx.textContent=t().home;
@@ -43729,8 +43732,20 @@ body.theme-moonlotus{--lsd:190,230,255}body.theme-aurora{--lsd:215,195,255}body.
     function ringNotifs(){ var it=nl.querySelectorAll('.notif-item'); for(var k=0;k<it.length;k++) addRing(it[k]); }
     if(nl){ ringNotifs(); if(window.MutationObserver){ new MutationObserver(function(){ ringNotifs(); }).observe(nl,{childList:true}); } }
     function ringLogin(){ var m=document.getElementById('guestLoginModal'); if(m && m.firstElementChild) addRing(m.firstElementChild); }
+    /* 会员弹窗：只给"开通会员解锁"（付费）那一格加流光线，"免费使用"那一格不加 */
+    function ringVip(){ try{ var sc=document.getElementById('vipCompareScroller'); if(sc && sc.children[1]) addRing(sc.children[1]); }catch(e){} }
+    /* 首页「今天感觉怎么样」「周期详情」卡 + 统计页顶部数据卡：加流光线（这些卡内容会重画，被清掉就补回去） */
+    function keepRing(getEl){ try{ var el=getEl(); if(!el) return false; addRing(el);
+        if(window.MutationObserver && !el._lunaRingObs){ el._lunaRingObs=1; new MutationObserver(function(){ addRing(el); }).observe(el,{childList:true}); } return true; }catch(e){ return false; } }
+    var _feel=function(){ return document.getElementById('lunaFeelCard'); };
+    var _phase=function(){ return document.getElementById('phaseSnapshotCard'); };
+    var _stat=function(){ var a=document.getElementById('statAvgCycle'); var c=a&&a.parentElement&&a.parentElement.parentElement&&a.parentElement.parentElement.parentElement; return c; };
+    function ringCards(){ keepRing(_feel); keepRing(_phase); keepRing(_stat); }
+    ringCards(); window.addEventListener('load',ringCards); setTimeout(ringCards,1500); setTimeout(ringCards,4000);
+    if(window.MutationObserver){ var _rt=0; new MutationObserver(function(){ clearTimeout(_rt); _rt=setTimeout(ringCards,300); }).observe(document.body,{childList:true,subtree:false}); }
+    ringVip();
     ringLogin();
-    if(window.MutationObserver){ new MutationObserver(function(){ ringLogin(); }).observe(document.body,{childList:true}); }
+    if(window.MutationObserver){ new MutationObserver(function(){ ringLogin(); ringVip(); }).observe(document.body,{childList:true}); }
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();</script>
@@ -43873,7 +43888,7 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
 /* 错误 / 卡顿记录器：出问题时左下角出现红色小标，点开就是一页可截图的报告。只记录、不改变 App 行为。 */
 (function(){
   var KEY='luna_diag_log', MAXN=40, log=[];
-  var BUILD=(window.LUNA_BUILD||'2026-11-13 14:52 泰国时间');
+  var BUILD=(window.LUNA_BUILD||'2026-11-13 16:24 泰国时间');
   try{ log=JSON.parse(sessionStorage.getItem(KEY)||'[]'); if(!log||!log.length&&log!==0) log=[]; }catch(e){ log=[]; }
   function pad(n){ return (n<10?'0':'')+n; }
   function ts(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
@@ -44016,6 +44031,29 @@ body.theme-moonlotus #statStreakBest,body.theme-aurora #statStreakBest,body.them
 body.theme-moonlotus #statsPanel .stat-hero span,body.theme-aurora #statsPanel .stat-hero span,body.theme-amber #statsPanel .stat-hero span{color:rgba(255,255,255,.95) !important}
 #scPanel{--stat-fg-muted:#5d5775}
 </style>
+<style id="lunaSetBtnCss">
+#calSettingsPanel .back-btn{position:relative;touch-action:manipulation;}
+#calSettingsPanel .back-btn::before{content:'';position:absolute;left:-14px;right:-10px;top:-12px;bottom:-12px;}
+</style>
+<script id="lunaSetBtnJs">
+/* 首页右上角设置的"‹"退出键：手指稍微带一点滑动就会被边缘侧滑当成拖动而吞掉点击。这里按"轻点"直接关闭，并把可点范围放大 */
+(function(){
+  function bind(){
+    var b=document.querySelector('#calSettingsPanel .back-btn'); if(!b||b._lunaTap) return; b._lunaTap=1;
+    var sx=0,sy=0,st=0,ok=false;
+    b.addEventListener('touchstart',function(e){ var t=e.touches[0]; if(!t) return; sx=t.clientX; sy=t.clientY; st=Date.now(); ok=true; },{passive:true});
+    b.addEventListener('touchmove',function(e){ var t=e.touches[0]; if(t && ok && (Math.abs(t.clientX-sx)>14 || Math.abs(t.clientY-sy)>14)) ok=false; },{passive:true});
+    b.addEventListener('touchend',function(e){
+      if(!ok) return; ok=false;
+      if(Date.now()-st>700) return;
+      try{ e.preventDefault(); }catch(x){}
+      try{ if(typeof window.closeCalSettings==='function') window.closeCalSettings(); }catch(x){}
+    },{passive:false});
+  }
+  bind(); window.addEventListener('load',bind);
+  try{ new MutationObserver(bind).observe(document.body,{childList:true}); }catch(e){}
+})();
+</script>
 <script id="lunaLangVeilJs">
 /* 换语言时：先盖一层和页面底色相同的遮罩，再换字/重新加载，最后淡出。盖住"文字原地乱跳 + 重载白闪"。遮罩不拦截点击，且有 4 秒保险自动撤掉 */
 (function(){

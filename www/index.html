@@ -43831,6 +43831,16 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
   }
   try{ new MutationObserver(bindAll).observe(document.body,{childList:true}); }catch(e){}
   bindAll(); window.addEventListener('load', bindAll);
+  /* 侧滑返回时：暂停流光边框、去掉底下首页的模糊滤镜（它们叠在一起会让手机掉帧、看着"跳"），并让被拖动的页面单独成层 */
+  var swT=0, swEl=null;
+  function swEnd(){ clearTimeout(swT); swT=setTimeout(function(){ document.body.classList.remove('lunaSwiping'); if(swEl){ swEl.style.willChange=''; swEl=null; } },420); }
+  document.addEventListener('touchstart',function(e){
+    try{ var t=e.touches&&e.touches[0]; if(!t||t.clientX>60) return;
+      clearTimeout(swT); document.body.classList.add('lunaSwiping');
+      var el=e.target; while(el&&el!==document.body){ if(el._edgeSwipeBound){ swEl=el; el.style.willChange='transform'; break; } el=el.parentElement; }
+    }catch(x){} },{passive:true,capture:true});
+  document.addEventListener('touchend',swEnd,{passive:true,capture:true});
+  document.addEventListener('touchcancel',swEnd,{passive:true,capture:true});
 })();
 </script>
 <style id="lunaDiagCss">
@@ -43847,7 +43857,7 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
 /* 错误 / 卡顿记录器：出问题时左下角出现红色小标，点开就是一页可截图的报告。只记录、不改变 App 行为。 */
 (function(){
   var KEY='luna_diag_log', MAXN=40, log=[];
-  var BUILD=(window.LUNA_BUILD||'2026-11-13 13:21 泰国时间');
+  var BUILD=(window.LUNA_BUILD||'2026-11-13 14:12 泰国时间');
   try{ log=JSON.parse(sessionStorage.getItem(KEY)||'[]'); if(!log||!log.length&&log!==0) log=[]; }catch(e){ log=[]; }
   function pad(n){ return (n<10?'0':'')+n; }
   function ts(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
@@ -43876,25 +43886,63 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
     try{ var r=e&&e.reason; add('Promise 未处理错误',(r&&r.message)||String(r),(r&&r.stack)?String(r.stack).split('\n').slice(0,3).join('\n'):''); }catch(x){}
   });
   /* 卡顿检测：每 250ms 记一次时间，如果一次间隔超过 1.5 秒（且不是切后台造成的），说明页面被卡住了这么久 */
-  var lastT=Date.now(), hiddenAt=0;
+  var lastT=Date.now(), hiddenAt=0, lastTouchAt=0;
   document.addEventListener('visibilitychange',function(){ hiddenAt=Date.now(); lastT=Date.now(); });
+  window.addEventListener('blur',function(){ hiddenAt=Date.now(); lastT=Date.now(); });
+  window.addEventListener('pageshow',function(){ hiddenAt=Date.now(); lastT=Date.now(); });
+  document.addEventListener('touchstart',function(){ lastTouchAt=Date.now(); },{passive:true,capture:true});
   setInterval(function(){
     var n=Date.now(), d=n-lastT; lastT=n;
-    if(d>1500 && !document.hidden && n-hiddenAt>3000) add('页面卡顿','主线程被卡住约 '+(Math.round(d/100)/10)+' 秒','');
+    if(d>1500 && !document.hidden && n-hiddenAt>3000){
+      /* 只有"卡的时候你确实在碰屏幕"才算真卡顿；锁屏/切后台/下拉控制中心造成的假卡顿不记 */
+      var from=n-d;
+      setTimeout(function(){ if(lastTouchAt>from-500) add('页面卡顿','主线程被卡住约 '+(Math.round(d/100)/10)+' 秒（卡的时候有触摸）',''); },1200);
+    }
   },250);
-  /* 滚动被锁检测：首页没有任何弹窗/满屏页，body 却是 overflow:hidden，说明滚动被锁（只记录，不自动改） */
+  /* 滚动被锁：首页没有任何弹窗/满屏页，body 却是 overflow:hidden（或 position:fixed）→ 页面滑不动。
+     连续 1.5 秒没有任何"遮挡层"时，自动解锁，并记一条日志（含最后一次上锁的代码位置，方便我定位）。 */
+  var lastLockStack='';
+  try{
+    var od=Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype,'overflow');
+    if(od && od.set && document.body){
+      Object.defineProperty(document.body.style,'overflow',{configurable:true,get:function(){ return od.get.call(this); },
+        set:function(v){ try{ if(v==='hidden') lastLockStack=String(new Error().stack||'').split('\n').slice(1,5).join('\n').replace(/file:\/\/[^ )]*\//g,''); }catch(e){} od.set.call(this,v); }});
+    }
+  }catch(e){}
+  function blocked(){
+    var all=document.body.querySelectorAll('*'), n=0;
+    for(var i=0;i<all.length;i++){
+      var el=all[i];
+      if(el.id==='lunaDiagBadge') continue;
+      var cs=getComputedStyle(el);
+      if(cs.position!=='fixed'||cs.display==='none'||cs.visibility==='hidden'||cs.pointerEvents==='none'||parseFloat(cs.opacity)<0.05) continue;
+      var r=el.getBoundingClientRect();
+      if(r.width>=300 && r.height>=400) return el.id||el.className||el.tagName;
+    }
+    return '';
+  }
+  var lockedSince=0;
+  function unlockNow(why){
+    var bs=document.body.style, was='overflow='+bs.overflow+' position='+bs.position;
+    bs.overflow=''; if(bs.position==='fixed'){ bs.position=''; bs.top=''; bs.width=''; }
+    add('滚动被锁→已自动解锁'+(why||''),was,lastLockStack||'');
+  }
+  /* 手指一碰屏幕，如果发现被锁而且没有任何遮挡层，立刻解锁（不用等） */
+  document.addEventListener('touchstart',function(){ try{ var bs=document.body.style; if((bs.overflow==='hidden'||bs.position==='fixed') && !blocked()){ lockedSince=0; unlockNow('（触摸时）'); } }catch(e){} },{passive:true,capture:true});
   setInterval(function(){
     try{
       if(document.hidden) return;
-      var lockedBody=(document.body.style.overflow==='hidden');
-      if(!lockedBody){ lockedSince=0; return; }
-      var open=document.querySelectorAll('.modal-overlay.open').length, vis=0, ps=document.querySelectorAll('[id$=Panel],[id$=panel],.cy-page,.pv-page,.fp-root');
-      for(var i=0;i<ps.length;i++){ var cs=getComputedStyle(ps[i]); if(cs.display!=='none'&&cs.visibility!=='hidden'&&ps[i].getBoundingClientRect().width>200){ vis++; break; } }
-      if(open||vis){ lockedSince=0; return; }
-      if(!lockedSince) lockedSince=Date.now(); else if(Date.now()-lockedSince>4000 && !lockedLogged){ lockedLogged=true; add('滚动疑似被锁','没有任何弹窗/满屏页，但 body 是 overflow:hidden 已超过 4 秒',''); }
+      var bs=document.body.style;
+      if(bs.overflow!=='hidden' && bs.position!=='fixed'){ lockedSince=0; return; }
+      if(blocked()){ lockedSince=0; return; }
+      if(!lockedSince){ lockedSince=Date.now(); return; }
+      if(Date.now()-lockedSince<1500) return;
+      lockedSince=0;
+      var was='overflow='+bs.overflow+' position='+bs.position;
+      bs.overflow=''; if(bs.position==='fixed'){ bs.position=''; bs.top=''; bs.width=''; }
+      add('滚动被锁→已自动解锁',was,lastLockStack||'');
     }catch(e){}
-  },1000);
-  var lockedSince=0, lockedLogged=false;
+  },500);
 
   var badge, panel;
   function ensure(){
@@ -43911,7 +43959,7 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
     for(var i=log.length-1;i>=0;i--){ var x=log[i]; h+='<div class="it"><i>['+esc(x.t)+'] '+esc(x.k)+(x.n>1?' ×'+x.n:'')+'</i>\n'+esc(x.m)+(x.w?'\n'+esc(x.w):'')+'\n<span style="opacity:.6">'+esc(x.s)+'</span></div>'; }
     h+='</div>'; panel.innerHTML=h;
     document.getElementById('ldgClose').onclick=function(){ panel.style.display='none'; };
-    document.getElementById('ldgClear').onclick=function(){ log=[]; lockedLogged=false; save(); refresh(); render(); };
+    document.getElementById('ldgClear').onclick=function(){ log=[]; save(); refresh(); render(); };
     document.getElementById('ldgCopy').onclick=function(){
       var t=panel.querySelector('.db').innerText;
       try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t); return; } }catch(e){}
@@ -43930,6 +43978,28 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',refresh); else refresh();
 })();
 </script>
+<style id="lunaSwipeSmoothCss">
+body.lunaSwiping .phone{filter:none !important}
+body.lunaSwiping .lunaFxRing,body.lunaSwiping .lunaFxRing::before{animation-play-state:paused !important}
+/* 日历页：日期数字颜色做深、字重加一点（月/年标题不动）。浅色主题深一点，深色主题更白更亮 */
+#calPanel .cal-grid{--cal-fg:#1d1830;--cal-disabled-fg:#4a4360}
+#calPanel .cal-grid .cal-day:not(.cal-today):not(.cal-period):not(.preg-mood):not(.ttc-peak){font-weight:600}
+#calPanel .cal-grid .cal-disabled{opacity:.8}
+body.theme-goldsand #calPanel .cal-grid{--cal-fg:#3a2a10;--cal-disabled-fg:#6a5434}
+body.theme-moonlotus #calPanel .cal-grid,body.theme-aurora #calPanel .cal-grid,body.theme-amber #calPanel .cal-grid{--cal-fg:#ffffff;--cal-disabled-fg:#d9d0f0}
+body.theme-moonlotus #calPanel .cal-grid .cal-disabled,body.theme-aurora #calPanel .cal-grid .cal-disabled,body.theme-amber #calPanel .cal-grid .cal-disabled{opacity:.85}
+</style>
+<style id="lunaDarkFix7Css">
+/* 深色下：自我护理页是浅色底，文字/返回键要用深色；统计页"Luna 智能健康洞察"图标做大做深；连续记录小字更白 */
+body.theme-moonlotus #scPanel,body.theme-aurora #scPanel,body.theme-amber #scPanel{--text:#2d2640;--text-muted:#6a6280;--home-fg:#2d2640;--home-fg-muted:#6a6280;color:#2d2640}
+body.theme-moonlotus #scPanel .back-btn,body.theme-aurora #scPanel .back-btn,body.theme-amber #scPanel .back-btn,
+body.theme-moonlotus #scPanel #scPanelTitle,body.theme-aurora #scPanel #scPanelTitle,body.theme-amber #scPanel #scPanelTitle{color:#2d2640 !important}
+body.theme-moonlotus #insightCard .s-svg-icon,body.theme-aurora #insightCard .s-svg-icon,body.theme-amber #insightCard .s-svg-icon{background:#e6d9fb !important;border:1px solid rgba(91,52,184,.35)}
+body.theme-moonlotus #insightCard .s-svg-icon svg,body.theme-aurora #insightCard .s-svg-icon svg,body.theme-amber #insightCard .s-svg-icon svg{width:26px !important;height:26px !important;stroke:#4a2a9e !important;color:#4a2a9e !important;stroke-width:2.4 !important}
+body.theme-moonlotus #statStreakBest,body.theme-aurora #statStreakBest,body.theme-amber #statStreakBest,
+body.theme-moonlotus #statsPanel .stat-hero span,body.theme-aurora #statsPanel .stat-hero span,body.theme-amber #statsPanel .stat-hero span{color:rgba(255,255,255,.95) !important}
+#scPanel{--stat-fg-muted:#5d5775}
+</style>
 <script id="lunaLangVeilJs">
 /* 换语言时：先盖一层和页面底色相同的遮罩，再换字/重新加载，最后淡出。盖住"文字原地乱跳 + 重载白闪"。遮罩不拦截点击，且有 4 秒保险自动撤掉 */
 (function(){

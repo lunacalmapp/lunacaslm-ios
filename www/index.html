@@ -12,7 +12,7 @@
      得把全站几百处 onclick 都改成 addEventListener，是另一件工程量大得多的独立重构，
      不在这次"顺手修一下"的范围内。当前这版 CSP 挡的是"外部脚本注入"这一类真正的高危场景，
      跟内联 onclick 本身不是一回事。 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://*.firebaseapp.com https://asia-southeast1-sasomboon.cloudfunctions.net https://lunacalm.app; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; frame-ancestors 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://*.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebasedatabase.app wss://*.firebasedatabase.app https://*.firebaseapp.com https://asia-southeast1-sasomboon.cloudfunctions.net https://lunacalm.app; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://lunacalm.app; object-src 'none'; base-uri 'self'; frame-ancestors 'self';">
 <script>
   // ██ PLAY 版总开关（必须最早定义，全文件生效）██
   // Play 上架版第一版=纯净免费版：隐藏外部支付、关闭试用锁、功能全开。
@@ -34618,6 +34618,11 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 #lunaDailyWrap .ld-grid{display:grid;gap:8px}
 #lunaDailyWrap .ld-n4{grid-template-columns:repeat(4,1fr)}
 #lunaDailyWrap .ld-n3{grid-template-columns:repeat(3,1fr)}
+#lunaDailyWrap .ld-n5{display:flex;overflow-x:auto;gap:8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#lunaDailyWrap .ld-n5::-webkit-scrollbar{display:none}
+#lunaDailyWrap .ld-n5 .ld-card{flex:0 0 calc((100% - 32px)/4.4);scroll-snap-align:start}
+#lunaDailyWrap .ld-swh{text-align:center;font-size:10.5px;color:var(--text-muted,#8a849e);margin-top:7px;animation:ldSwh 1.8s ease-in-out infinite}
+@keyframes ldSwh{0%,100%{transform:translateX(0);opacity:.65}50%{transform:translateX(6px);opacity:1}}
 #lunaDailyWrap .ld-card{position:relative;background:#f8f6fd;border:2px solid transparent;border-radius:16px;padding:10px 3px 8px;text-align:center;cursor:pointer;user-select:none;transition:transform .15s,background .2s,border-color .2s;min-width:0}
 #lunaDailyWrap .ld-card:active{transform:scale(.94)}
 #lunaDailyWrap .ld-card.on{background:var(--purple-pale,#ede8f8);border-color:var(--purple-light,#b49de0)}
@@ -34732,7 +34737,28 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       save:'Ghi lại', clear:'Xóa mục này', saved:'Đã ghi ✓', cleared:'Đã xóa', badWt:'Nhập cân nặng hợp lệ (20–300 kg)' }
   };
   function t(k, l){ l = l || lang(); var o = TX[l] || TX.en; return o[k] != null ? o[k] : TX.en[k]; }
-  var ICON = { sl:'😴', wa:'💧', sp:'🏃‍♀️', wt:'⚖️' };
+  var ICON = { sl:'😴', wa:'💧', sp:'🏃‍♀️', wt:'⚖️', md:'💊' };
+  // ── 用药打卡（沿用 App 里已有的"用药提醒"数据：luna_meds / luna_med_taken；药名只留在本机，云端只同步"吃了几个"）──
+  (function(){
+    var X={
+      zh:{md:'用药',mdQ:'今天吃药了吗',mdHint:'只记在你自己的手机里，不提供用药建议',mdYes:'今天已按时吃药',mdDone:'已吃',mdAdd:'添加药物 / 设置提醒',mdSw:'‹ 左右滑动，查看更多 ›'},
+      th:{md:'ยา',mdQ:'วันนี้กินยาแล้วไหม',mdHint:'เก็บไว้ในเครื่องของคุณเท่านั้น ไม่ให้คำแนะนำการใช้ยา',mdYes:'วันนี้กินยาแล้ว',mdDone:'กินแล้ว',mdAdd:'เพิ่มยา / ตั้งเวลาเตือน',mdSw:'‹ ปัดซ้าย/ขวา ดูเพิ่มเติม ›'},
+      en:{md:'Meds',mdQ:'Did you take your medicine today?',mdHint:'Stays on your phone. This is not medical advice',mdYes:'Taken today',mdDone:'Taken',mdAdd:'Add medicine / set reminder',mdSw:'‹ Swipe for more ›'},
+      vi:{md:'Thuốc',mdQ:'Hôm nay bạn đã uống thuốc chưa?',mdHint:'Chỉ lưu trên điện thoại của bạn, không phải lời khuyên y tế',mdYes:'Hôm nay đã uống',mdDone:'Đã uống',mdAdd:'Thêm thuốc / cài nhắc nhở',mdSw:'‹ Vuốt để xem thêm ›'}
+    };
+    Object.keys(X).forEach(function(l){ var k; for(k in X[l]) TX[l][k]=X[l][k]; });
+  })();
+  function medKey(n){ try{ return window._acctKey ? window._acctKey(n) : n; }catch(e){ return n; } }
+  function medsList(){ try{ var m=JSON.parse(LS.getItem(medKey('luna_meds'))||'[]'); return Object.prototype.toString.call(m)==='[object Array]' ? m : []; }catch(e){ return []; } }
+  function tkey(){ try{ if(typeof window.getTodayKey==='function') return window.getTodayKey(); }catch(e){} return today(); }
+  function medTaken(){ try{ var o=JSON.parse(LS.getItem(medKey('luna_med_taken'))||'{}'); return (o && o.d===tkey() && Object.prototype.toString.call(o.ids)==='[object Array]') ? o.ids : []; }catch(e){ return []; } }
+  function mdToday(){
+    var ms=medsList();
+    if(ms.length){ var ids=ms.map(function(m){ return m.id; }), n=medTaken().filter(function(i){ return ids.indexOf(i)>=0; }).length; return {n:n,m:ms.length}; }
+    var r=load()[today()]||{}; return (r.md && r.md.n>0) ? {n:r.md.n,m:r.md.m||1} : {n:0,m:0};
+  }
+  function mdText(o){ return (o && o.n>0) ? (t('mdDone') + (o.m>1 ? ' ' + o.n + '/' + o.m : '')) : ''; }
+
   var SPORTS = [['walk','🚶'],['yoga','🧘'],['run','🏃'],['str','🏋️'],['swim','🏊'],['other','']];
   var QE = ['😣','😐','😊'];
 
@@ -34799,7 +34825,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 
   // ── 模式：孕期里体重有自己的页面，这里不放体重卡 ──
   function mode(){ try{ var L = window.LunaPreg; if(L && typeof L.isActive === 'function' && L.isActive()) return 'preg'; }catch(e){} return 'normal'; }
-  function keys(){ return mode() === 'preg' ? ['sl','wa','sp'] : ['sl','wa','sp','wt']; }
+  function keys(){ return mode() === 'preg' ? ['sl','wa','sp','md'] : ['sl','wa','sp','md','wt']; }
 
   function sportNames(rec, l){
     var out = [], codes = String(rec.t || '').split(',').filter(Boolean);
@@ -34812,6 +34838,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     if(k === 'wa') return r.wa ? (r.wa + ' ' + t('cup')) : '';
     if(k === 'sp'){ if(!r.sp) return ''; var n = sportNames(r.sp); return n[0] + (n.length > 1 ? ' +' + (n.length - 1) : ''); }
     if(k === 'wt') return r.wt ? (r.wt + t('kg')) : '';
+    if(k === 'md') return r.md ? mdText(r.md) : '';
     return '';
   }
   function render(){
@@ -34820,11 +34847,14 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     h += '<div class="ld-h"><b>' + esc(t('title')) + '</b><span>' + esc(t('sub')) + '</span></div>';
     h += '<div class="ld-grid ld-n' + ks.length + '">';
     ks.forEach(function(k){
-      var v = valText(k, r);
+      var v = (k === 'md') ? mdText(mdToday()) : valText(k, r);
       h += '<div class="ld-card' + (v ? ' on' : '') + '" data-k="' + k + '"><div class="ld-ic"><span class="ld-ie">' + ICON[k] + '</span></div><div class="ld-nm">' + esc(t(k)) + '</div><div class="ld-vl">' + esc(v) + '</div></div>';
     });
     h += '</div>';
+    var swh = false; try{ swh = ks.length > 4 && LS.getItem('luna_ld_swiped') !== '1'; }catch(e){}
+    if(swh) h += '<div class="ld-swh">' + esc(t('mdSw')) + '</div>';
     w.innerHTML = h;
+    if(swh){ var g = w.querySelector('.ld-grid'); if(g) g.addEventListener('scroll', function(){ if(g.scrollLeft > 10){ try{ LS.setItem('luna_ld_swiped', '1'); }catch(e){} var x = w.querySelector('.ld-swh'); if(x) x.parentNode.removeChild(x); } }); }
   }
 
   // ── 弹出的小面板 ──
@@ -34853,6 +34883,11 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     if(k === 'wa'){ S = { k:k, n: r.wa || 0, had: !!r.wa }; }
     if(k === 'sp'){ var p = r.sp || {}, set = {}; String(p.t || '').split(',').filter(Boolean).forEach(function(c){ set[c] = 1; }); S = { k:k, set:set, o: p.o || '', m: p.m != null ? p.m : null, had: !!r.sp }; }
     if(k === 'wt'){ var lw = lastWeight(); S = { k:k, v: r.wt != null ? String(r.wt) : (lw != null ? String(lw) : '55.0'), lw: lw, had: !!r.wt }; }
+    if(k === 'md'){
+      var ms = medsList(), set = {};
+      if(ms.length){ medTaken().forEach(function(i){ set[i] = 1; }); } else if(r.md && r.md.n > 0){ set._1 = 1; }
+      S = { k:k, ms:ms, set:set, had: Object.keys(set).length > 0 };
+    }
     if(!S) return;
     S.pl = 1; mask().classList.add('on'); paint();
   }
@@ -34885,6 +34920,12 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       h += '<input id="ldWt" class="ld-in ld-num" type="text" inputmode="decimal" autocomplete="off" maxlength="6" value="' + esc(S.v) + '"><div style="text-align:center;color:var(--text-muted,#8a849e);font-size:13px;margin-top:2px">' + esc(t('kg')) + '</div>';
       h += '<div class="ld-step"><button data-act="wt-" aria-label="-">−</button><button data-act="wt+" aria-label="+">+</button></div><div class="ld-tip">' + esc(t('wtTip')) + '</div>';
     }
+    if(S.k === 'md'){
+      h += '<h4><span class="ld-hw"><span class="ld-hic">💊</span></span> ' + esc(t('mdQ')) + '</h4><div class="ld-hint">' + esc(t('mdHint')) + '</div>';
+      var mi = S.ms.length ? S.ms.map(function(m){ return { v:esc(m.id), e:'💊', t:m.name + (m.time ? ' ' + m.time : '') }; }) : [{ v:'_1', e:'💊', t:t('mdYes') }];
+      h += opts(mi, function(o){ var id = String(o.v).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'"); return !!S.set[id]; }, 'mdt');
+      h += '<a class="ld-clr" data-act="mdadd" style="display:block;margin:8px 0 0">' + esc(t('mdAdd')) + '</a>';
+    }
     h += '<button class="ld-ok" data-act="ok">' + esc(t('save')) + '</button>';
     if(S.had) h += '<a class="ld-clr" data-act="clr">' + esc(t('clear')) + '</a>';
     p.innerHTML = h;
@@ -34900,6 +34941,8 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     else if(a === 'wa+') S.n = Math.min(16, S.n + 1);
     else if(a === 'spt'){ if(S.set[v]) delete S.set[v]; else S.set[v] = 1; }
     else if(a === 'spm'){ v = +v; S.m = (S.m === v) ? null : v; }
+    else if(a === 'mdt'){ if(S.set[v]) delete S.set[v]; else S.set[v] = 1; }
+    else if(a === 'mdadd'){ commit(false, true); close(); setTimeout(function(){ try{ window.LunaMrx.openMgr(true); }catch(e){} }, 240); return; }
     else if(a === 'wt-' || a === 'wt+'){ var x = parseFloat(String(S.v).replace(',', '.')); if(isNaN(x)) x = S.lw != null ? S.lw : 55; x = Math.round((x + (a === 'wt+' ? 0.1 : -0.1)) * 10) / 10; S.v = String(Math.max(20, Math.min(300, x))); }
     else if(a === 'ok'){ commit(false); return; }
     else if(a === 'clr'){ commit(true); return; }
@@ -34909,6 +34952,15 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
   }
   function commit(clear, keep){
     var d = load(), tk = today(), r = d[tk] || {}, k = S.k;
+    if(k === 'md'){
+      var ids = [], mm = S.ms || [];
+      if(mm.length){ mm.forEach(function(m){ if(S.set[m.id] && !clear) ids.push(m.id); }); try{ LS.setItem(medKey('luna_med_taken'), JSON.stringify({ d: tkey(), ids: ids })); }catch(e){} }
+      else if(S.set._1 && !clear) ids = ['_1'];
+      if(ids.length) r.md = { n: ids.length, m: mm.length || 1 }; else delete r.md;
+      r.u = now(); d[tk] = r;
+      if(keep){ save(d, true); S.had = ids.length > 0; render(); return; }
+      save(d); render(); S = null; close(); toast(clear ? t('cleared') : t('saved')); return;
+    }
     if(!clear){
       if(k === 'sl'){ r.sl = { h: S.h }; if(S.q != null) r.sl.q = S.q; }
       if(k === 'wa'){ if(S.n > 0) r.wa = S.n; else delete r.wa; }
@@ -34995,7 +35047,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     days.forEach(function(x){
       var r = d[x] || {};
       sl.push(r.sl ? +r.sl.h : null); wa.push(r.wa ? +r.wa : null); wt.push(r.wt ? +r.wt : null); sp.push(r.sp ? 1 : null);
-      if(r.sl || r.wa || r.sp || r.wt) any = true;
+      if(r.sl || r.wa || r.sp || r.wt || r.md) any = true;
       if(r.sp) sportNames(r.sp).forEach(function(n){ spCnt[n] = (spCnt[n] || 0) + 1; });
     });
     function nz(a){ return a.filter(function(v){ return v != null; }); }
@@ -35027,12 +35079,13 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     // 每日明细（最近 14 天里有记录的）
     var rows = '';
     days.slice().reverse().slice(0, 14).forEach(function(x){
-      var r = d[x]; if(!r || !(r.sl || r.wa || r.sp || (r.wt && !pm))) return;
+      var r = d[x]; if(!r || !(r.sl || r.wa || r.sp || r.md || (r.wt && !pm))) return;
       var bits = [];
       if(r.sl) bits.push('😴 ' + valText('sl', r));
       if(r.wa) bits.push('💧 ' + valText('wa', r));
       if(r.sp){ var nm = sportNames(r.sp).join('、'); bits.push('🏃‍♀️ ' + nm + (r.sp.m ? ' ' + r.sp.m + t('min') : '')); }
       if(r.wt && !pm) bits.push('⚖️ ' + valText('wt', r));
+      if(r.md) bits.push('💊 ' + valText('md', r));
       rows += '<div class="ld-row"><b>' + mmdd(x) + '</b><span>' + esc(bits.join('  ·  ')) + '</span></div>';
     });
     if(rows) h += '<div class="ld-card2"><div class="ld-top"><span class="ld-t">' + esc(t('list')) + '</span></div>' + rows + '</div>';
@@ -35200,7 +35253,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       setInterval(function(){ try{ var c = LS.getItem('luna_uid'); if(c && c !== pulledFor) pull(); }catch(e){} }, 5000);   // 登录完成后自动拉一次云端
     }
   }
-  window.LunaDaily = { openPage:openPage, closePage:closePage, open:open, close:close, render:render, summary:summary, pull:pull, _load:load, _today:today };
+  window.LunaDaily = { openPage:openPage, closePage:closePage, open:open, close:close, render:render, summary:summary, pull:pull, _load:load, _today:today, _md:mdToday };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
   setTimeout(pull, 4000); setTimeout(pull, 12000);
   }catch(err){ try{ console.log('LunaDaily init failed (ignored):', err); }catch(_){} }
@@ -35809,6 +35862,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 .od-sp.on{border-color:#f5c19a;background:linear-gradient(#fff6ee,#fff);box-shadow:0 8px 18px -12px rgba(240,140,70,.6)}
 .od-sp .row{display:flex;align-items:center;gap:12px}
 .od-sp .ic{font-size:30px}
+.od-md.on{border-color:#c9b5ef;background:linear-gradient(#f6f1ff,#fff);box-shadow:0 8px 18px -12px rgba(124,92,191,.5)}
 .od-sp .tt{flex:1;min-width:0}.od-sp .tt b{display:block;font-size:14px;color:#4a3a66}.od-sp .tt span{font-size:12px;color:#8a849e}
 .od-sp .ck{font-size:12px;color:#e0842f;font-weight:700;white-space:nowrap}
 .od-week{display:flex;justify-content:space-between;margin-top:12px;padding:0 2px}
@@ -35826,10 +35880,10 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 (function(){
   var LS=window.localStorage;
   var T={
-   th:{title:'เช็กอินวันนี้',hi:'ใช้เวลา 10 วินาที จดเรื่องเล็กๆ ของวันนี้',card:'เช็กอินวันนี้',wa:'ดื่มน้ำ',sl:'การนอน',wt:'น้ำหนัก',sp:'ออกกำลังกาย',spE:'วันนี้ขยับตัวหรือยัง?',spRec:'+ จดบันทึก',spDone:'✓ จดแล้ว',spToday:'วันนี้ ',min:' นาที',spWeek:'สัปดาห์นี้ออกกำลังกาย',spMonth:'เดือนนี้',dayU:' วัน',swipe:'ปัดซ้ายดูการออกกำลังกาย ›',wd:['จ','อ','พ','พฤ','ศ','ส','อา'],waE:'จดแก้วแรก',slE:'เมื่อคืนนอน',wtE:'ชั่งสักหน่อย',cup:' แก้ว',hr:' ชม.',more:'ดูบันทึกทั้งหมด ›',t0:'แตะครั้งเดียวก็จดได้ ไม่ต้องไปหน้าอื่น ✨',t1:function(n){return 'อีก '+n+' รายการ ก็เช็กอินครบแล้ว 🌷';},t3:'วันนี้เช็กอินครบแล้ว เก่งมาก 🎉'},
-   zh:{title:'今日小打卡',hi:'花10秒，把今天的小事记下来',card:'今日小打卡',wa:'喝水',sl:'睡眠',wt:'体重',sp:'运动',spE:'今天动一动了吗？',spRec:'+ 记一下',spDone:'✓ 已记录',spToday:'今天 ',min:' 分钟',spWeek:'本周已运动',spMonth:'本月',dayU:' 天',swipe:'向左滑看运动 ›',wd:['一','二','三','四','五','六','日'],waE:'记一杯',slE:'昨晚睡得',wtE:'称一下',cup:' 杯',hr:' 小时',more:'查看全部记录 ›',t0:'点一下就能记，不用跑去别的页面 ✨',t1:function(n){return '再记 '+n+' 项，今天就打卡完成啦 🌷';},t3:'今天全部打卡完成，真棒 🎉'},
-   en:{title:"Today's check-in",hi:'Take 10 seconds to jot down today',card:"Today's check-in",wa:'Water',sl:'Sleep',wt:'Weight',sp:'Exercise',spE:'Have you moved today?',spRec:'+ Log',spDone:'✓ Logged',spToday:'Today ',min:' min',spWeek:'Active this week',spMonth:'This month',dayU:' days',swipe:'Swipe left for exercise ›',wd:['M','T','W','T','F','S','S'],waE:'Add a cup',slE:'Last night',wtE:'Weigh in',cup:' cups',hr:' h',more:'View all records ›',t0:'One tap to log, no need to leave this page ✨',t1:function(n){return n+' more to finish today 🌷';},t3:"All done for today, well done 🎉"},
-   vi:{title:'Điểm danh hôm nay',hi:'Dành 10 giây ghi lại chuyện nhỏ hôm nay',card:'Điểm danh hôm nay',wa:'Uống nước',sl:'Giấc ngủ',wt:'Cân nặng',sp:'Vận động',spE:'Hôm nay bạn đã vận động chưa?',spRec:'+ Ghi',spDone:'✓ Đã ghi',spToday:'Hôm nay ',min:' phút',spWeek:'Tuần này đã vận động',spMonth:'Tháng này',dayU:' ngày',swipe:'Vuốt trái xem vận động ›',wd:['T2','T3','T4','T5','T6','T7','CN'],waE:'Thêm 1 ly',slE:'Đêm qua',wtE:'Cân thử',cup:' ly',hr:' giờ',more:'Xem tất cả ghi chép ›',t0:'Chạm một cái là ghi được ✨',t1:function(n){return 'Còn '+n+' mục nữa là xong hôm nay 🌷';},t3:'Hôm nay xong hết rồi, giỏi quá 🎉'}
+   th:{title:'เช็กอินวันนี้',hi:'ใช้เวลา 10 วินาที จดเรื่องเล็กๆ ของวันนี้',card:'เช็กอินวันนี้',wa:'ดื่มน้ำ',sl:'การนอน',wt:'น้ำหนัก',sp:'ออกกำลังกาย',spE:'วันนี้ขยับตัวหรือยัง?',spRec:'+ จดบันทึก',spDone:'✓ จดแล้ว',spToday:'วันนี้ ',min:' นาที',spWeek:'สัปดาห์นี้ออกกำลังกาย',spMonth:'เดือนนี้',dayU:' วัน',swipe:'ปัดซ้ายดูยาและการออกกำลังกาย ›',md:'ยา',mdE:'วันนี้กินยาแล้วไหม?',mdDone:'กินแล้ว',remOn:'เตือนทุกวัน ',remOff:'ยังไม่เปิดการเตือน แตะเพื่อตั้งค่า',wd:['จ','อ','พ','พฤ','ศ','ส','อา'],waE:'จดแก้วแรก',slE:'เมื่อคืนนอน',wtE:'ชั่งสักหน่อย',cup:' แก้ว',hr:' ชม.',more:'ดูบันทึกทั้งหมด ›',t0:'แตะครั้งเดียวก็จดได้ ไม่ต้องไปหน้าอื่น ✨',t1:function(n){return 'อีก '+n+' รายการ ก็เช็กอินครบแล้ว 🌷';},t3:'วันนี้เช็กอินครบแล้ว เก่งมาก 🎉'},
+   zh:{title:'今日小打卡',hi:'花10秒，把今天的小事记下来',card:'今日小打卡',wa:'喝水',sl:'睡眠',wt:'体重',sp:'运动',spE:'今天动一动了吗？',spRec:'+ 记一下',spDone:'✓ 已记录',spToday:'今天 ',min:' 分钟',spWeek:'本周已运动',spMonth:'本月',dayU:' 天',swipe:'向左滑看用药、运动 ›',md:'用药',mdE:'今天吃药了吗？',mdDone:'已吃',remOn:'每天提醒 ',remOff:'未开提醒，点开可设置',wd:['一','二','三','四','五','六','日'],waE:'记一杯',slE:'昨晚睡得',wtE:'称一下',cup:' 杯',hr:' 小时',more:'查看全部记录 ›',t0:'点一下就能记，不用跑去别的页面 ✨',t1:function(n){return '再记 '+n+' 项，今天就打卡完成啦 🌷';},t3:'今天全部打卡完成，真棒 🎉'},
+   en:{title:"Today's check-in",hi:'Take 10 seconds to jot down today',card:"Today's check-in",wa:'Water',sl:'Sleep',wt:'Weight',sp:'Exercise',spE:'Have you moved today?',spRec:'+ Log',spDone:'✓ Logged',spToday:'Today ',min:' min',spWeek:'Active this week',spMonth:'This month',dayU:' days',swipe:'Swipe left for meds & exercise ›',md:'Meds',mdE:'Did you take your medicine today?',mdDone:'Taken',remOn:'Daily reminder ',remOff:'Reminder off, tap to set',wd:['M','T','W','T','F','S','S'],waE:'Add a cup',slE:'Last night',wtE:'Weigh in',cup:' cups',hr:' h',more:'View all records ›',t0:'One tap to log, no need to leave this page ✨',t1:function(n){return n+' more to finish today 🌷';},t3:"All done for today, well done 🎉"},
+   vi:{title:'Điểm danh hôm nay',hi:'Dành 10 giây ghi lại chuyện nhỏ hôm nay',card:'Điểm danh hôm nay',wa:'Uống nước',sl:'Giấc ngủ',wt:'Cân nặng',sp:'Vận động',spE:'Hôm nay bạn đã vận động chưa?',spRec:'+ Ghi',spDone:'✓ Đã ghi',spToday:'Hôm nay ',min:' phút',spWeek:'Tuần này đã vận động',spMonth:'Tháng này',dayU:' ngày',swipe:'Vuốt trái xem thuốc và vận động ›',md:'Thuốc',mdE:'Hôm nay bạn đã uống thuốc chưa?',mdDone:'Đã uống',remOn:'Nhắc mỗi ngày ',remOff:'Chưa bật nhắc, chạm để cài',wd:['T2','T3','T4','T5','T6','T7','CN'],waE:'Thêm 1 ly',slE:'Đêm qua',wtE:'Cân thử',cup:' ly',hr:' giờ',more:'Xem tất cả ghi chép ›',t0:'Chạm một cái là ghi được ✨',t1:function(n){return 'Còn '+n+' mục nữa là xong hôm nay 🌷';},t3:'Hôm nay xong hết rồi, giỏi quá 🎉'}
   };
   function L(){ try{ var l=LS.getItem('luna_lang'); if(l!=='zh') return 'th'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; if(LS.getItem('luna_ui_en')==='1') return 'en'; return 'zh'; }catch(e){ return 'th'; } }
   function D(){ try{ return (window.LunaDaily._load()[window.LunaDaily._today()])||{}; }catch(e){ return {}; } }
@@ -35849,21 +35903,24 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
   window._renderMoonPet=function(body){
     var t=T[L()], all={}, tk=''; try{ all=window.LunaDaily._load(); tk=window.LunaDaily._today(); }catch(e){}
     var d=all[tk]||{}, wa=d.wa||0, sl=(d.sl&&d.sl.h!=null)?d.sl.h:null, wt=(d.wt!=null&&d.wt!=='')?d.wt:null, sp=d.sp?(d.sp.m!=null?d.sp.m:0):null, spOn=!!d.sp;
-    var st=spStats(all,tk);
-    var done=(wa>0?1:0)+(sl!=null?1:0)+(wt!=null?1:0)+(spOn?1:0);
+    var st=spStats(all,tk), md={n:0,m:0}; try{ md=window.LunaDaily._md(); }catch(e){}
+    var mdOn=md.n>0, remR={}; try{ remR=(JSON.parse(LS.getItem('luna_daily_rem')||'{}')||{}).md||{}; }catch(e){}
+    var remL='🔔 '+(remR.on?t.remOn+(remR.t||'09:00'):t.remOff);
+    var done=(wa>0?1:0)+(sl!=null?1:0)+(wt!=null?1:0)+(spOn?1:0)+(mdOn?1:0);
     fixTitle();
     var wkH=st.days.map(function(x,i){ return '<div class="'+(x.on?'d ':'')+(x.today?'t':'')+'"><i>'+(x.on?'✓':'')+'</i>'+t.wd[i]+'</div>'; }).join('');
     body.innerHTML='<div class="od-hello">'+t.hi+'</div>'
-     +'<div class="od-card"><div class="od-head"><b>'+t.card+'</b><span class="od-prog">'+done+' / 4</span></div>'
+     +'<div class="od-card"><div class="od-head"><b>'+t.card+'</b><span class="od-prog">'+done+' / 5</span></div>'
      +'<div class="od-pager" id="odPager"><div class="od-pg"><div class="od-tiles">'
      +'<div class="od-t w'+(wa>0?' on':'')+'" data-k="wa"><span class="plus">+</span><span class="ck">✓</span><div class="ic">💧</div><div class="lb">'+t.wa+'</div><div class="vl">'+(wa>0?wa+t.cup:t.waE)+'</div>'+(wa>0?'<div class="od-bar"><i style="width:'+Math.min(100,wa/8*100)+'%"></i></div>':'')+'</div>'
      +'<div class="od-t s'+(sl!=null?' on':'')+'" data-k="sl"><span class="plus">+</span><span class="ck">✓</span><div class="ic">😴</div><div class="lb">'+t.sl+'</div><div class="vl">'+(sl!=null?sl+t.hr:t.slE)+'</div></div>'
      +'<div class="od-t g'+(wt!=null?' on':'')+'" data-k="wt"><span class="plus">+</span><span class="ck">✓</span><div class="ic">⚖️</div><div class="lb">'+t.wt+'</div><div class="vl">'+(wt!=null?wt+' kg':t.wtE)+'</div></div></div></div>'
+     +'<div class="od-pg"><div class="od-sp od-md'+(mdOn?' on':'')+'" data-k="md"><div class="row"><span class="ic">💊</span><div class="tt"><b>'+t.md+'</b><span>'+(mdOn?t.mdDone+(md.m>1?' '+md.n+'/'+md.m:''):t.mdE)+'</span></div><span class="ck">'+(mdOn?t.spDone:t.spRec)+'</span></div><div class="od-month">'+remL+'</div></div></div>'
      +'<div class="od-pg"><div class="od-sp'+(spOn?' on':'')+'" data-k="sp"><div class="row"><span class="ic">🏃‍♀️</span><div class="tt"><b>'+t.sp+'</b><span>'+(spOn?(sp?t.spToday+sp+t.min:t.spDone):t.spE)+'</span></div><span class="ck">'+(spOn?t.spDone:t.spRec)+'</span></div>'
      +'<div class="od-week">'+wkH+'</div><div class="od-month">'+t.spWeek+' <b>'+st.wk+'</b>'+t.dayU+' · '+t.spMonth+' <b>'+st.mo+'</b>'+t.dayU+'</div></div></div></div>'
-     +'<div class="od-dots"><i></i><i></i></div>'
+     +'<div class="od-dots"><i></i><i></i><i></i></div>'
      +'<a class="od-more" id="odMore">'+t.more+'</a></div>'
-     +'<div class="od-tip">'+(done===0?t.t0:done<4?t.t1(4-done):t.t3)+'<span class="od-swhint">'+t.swipe+'</span></div>';
+     +'<div class="od-tip">'+(done===0?t.t0:done<5?t.t1(5-done):t.t3)+'<span class="od-swhint">'+t.swipe+'</span></div>';
     Array.prototype.forEach.call(body.querySelectorAll('[data-k]'),function(el){
       el.addEventListener('click',function(){ var k=el.getAttribute('data-k'); closePanel(); setTimeout(function(){ try{ window.LunaDaily.open(k); }catch(e){} },230); });
     });
@@ -35926,9 +35983,10 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
 <script id="lunaDailyRemJs">
 (function(){
   var LS=window.localStorage, KEY='luna_daily_rem';
-  var KINDS={'😴':'sl','💧':'wa','🏃‍♀️':'sp'};
-  var DEF={wa:'10:00',sl:'22:30',sp:'18:00'};
-  var NID={wa:910101,sl:910102,sp:910103};
+  var KINDS={'😴':'sl','💧':'wa','🏃‍♀️':'sp','💊':'md'};
+  var DEF={wa:'10:00',sl:'22:30',sp:'18:00',md:'09:00'};
+  var NID={wa:910101,sl:910102,sp:910103,md:910104};
+  var MDT={zh:{ic:'💊',ask:'每天 {t} 提醒你吃药',body:'该吃药啦，别忘了记一下'},th:{ic:'💊',ask:'ทุกวันเวลา {t} จะเตือนให้กินยา',body:'ถึงเวลากินยาแล้ว อย่าลืมจดไว้นะ'},en:{ic:'💊',ask:'Remind you to take your medicine every day at {t}',body:'Time for your medicine. Remember to log it'},vi:{ic:'💊',ask:'Nhắc bạn uống thuốc mỗi ngày lúc {t}',body:'Đến giờ uống thuốc rồi, nhớ ghi lại nhé'}};
   var T={
    th:{rem:'แจ้งเตือน',ask:'ต้องการให้แจ้งเตือนไหม?',no:'ไม่ต้อง',yes:'ต้องการ',denied:'ต้องอนุญาตการแจ้งเตือนในตั้งค่าก่อน',noplug:'อุปกรณ์นี้ยังเปิดการแจ้งเตือนไม่ได้',on:'เปิดการแจ้งเตือนแล้ว ✓',off:'ปิดการแจ้งเตือนแล้ว',
      wa:{ic:'💧',ask:'ทุกวันเวลา {t} จะเตือนให้ดื่มน้ำ',body:'ถึงเวลาดื่มน้ำแล้ว จดไว้สักแก้วนะ'},sl:{ic:'😴',ask:'ทุกวันเวลา {t} จะเตือนให้เตรียมตัวนอน',body:'ใกล้เวลานอนแล้ว พักผ่อนเร็วๆ นะ'},sp:{ic:'🏃‍♀️',ask:'ทุกวันเวลา {t} จะเตือนให้ขยับร่างกาย',body:'วันนี้ได้ขยับตัวหรือยัง? ออกกำลังสักหน่อยนะ'}},
@@ -35939,6 +35997,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
    vi:{rem:'Nhắc',ask:'Bạn muốn nhận thông báo không?',no:'Không',yes:'Có',denied:'Hãy cho phép thông báo trong cài đặt trước',noplug:'Thiết bị này chưa bật được thông báo',on:'Đã bật nhắc nhở ✓',off:'Đã tắt nhắc nhở',
      wa:{ic:'💧',ask:'Nhắc bạn uống nước mỗi ngày lúc {t}',body:'Đến giờ uống nước rồi, ghi lại một ly nhé'},sl:{ic:'😴',ask:'Nhắc bạn chuẩn bị đi ngủ mỗi ngày lúc {t}',body:'Sắp đến giờ ngủ rồi, nghỉ ngơi sớm nhé'},sp:{ic:'🏃‍♀️',ask:'Nhắc bạn vận động mỗi ngày lúc {t}',body:'Hôm nay bạn đã vận động chưa? Tập một chút nhé'}}
   };
+  ['zh','th','en','vi'].forEach(function(l){ T[l].md=MDT[l]; });
   function L(){ try{ var l=LS.getItem('luna_lang'); if(l!=='zh') return 'th'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; if(LS.getItem('luna_ui_en')==='1') return 'en'; return 'zh'; }catch(e){ return 'th'; } }
   function get(){ try{ return JSON.parse(LS.getItem(KEY)||'{}')||{}; }catch(e){ return {}; } }
   function put(o){ try{ LS.setItem(KEY,JSON.stringify(o)); }catch(e){} }
@@ -36010,7 +36069,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     watchPop();
   }catch(e){}
   // 启动时把已开启的提醒重新排一遍（换了语言/换了系统设置后通知内容也能跟上）
-  window._ldRemResync=function(){ ['wa','sl','sp'].forEach(function(k){ var r=get()[k]; if(r&&r.on) schedule(k); }); };
+  window._ldRemResync=function(){ ['wa','sl','sp','md'].forEach(function(k){ var r=get()[k]; if(r&&r.on) schedule(k); }); };
   setTimeout(function(){ try{ window._ldRemResync(); }catch(e){} },3500);
 })();
 
@@ -43411,8 +43470,9 @@ window.lunaCollapse=function(el,done,keep){
       else if(a === 'partner'){ if(window.LunaPartner && window.LunaPartner.open) window.LunaPartner.open(); }
       else if(a === 'vip'){ if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }
       else if(a === 'edit'){
+        /* 先在抽屉下面把"我的"页切好并停掉它的进场动画，再收起抽屉；这样抽屉滑走时露出的就是"我的"页，不会先露出首页再闪一下 */
+        try{ if(typeof window.showPage === 'function') window.showPage('mine', $('nav-mine')); var mp = $('mine-panel'); if(mp){ mp.classList.remove('page-in'); mp.style.animation = 'none'; setTimeout(function(){ mp.style.animation = ''; }, 400); } }catch(e){}
         if(typeof window.closeCalSettings === 'function') window.closeCalSettings();
-        setTimeout(function(){ try{ if(typeof window.showPage === 'function') window.showPage('mine', $('nav-mine')); }catch(e){} }, 330);
       }
     }catch(e){}
   }
@@ -43891,7 +43951,7 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
   /* 只有后台（luna-admin「错误监听」）点名的账号才记录/显示/上报；没点名的人什么都不记、不显示、不上传。
      滚动被锁的自动解锁属于修复，对所有人照常工作，不受这个开关影响。 */
   function ON(){ try{ return localStorage.getItem('luna_diag_on')==='1'; }catch(e){ return false; } }
-  var BUILD=(window.LUNA_BUILD||'2026-11-13 18:51 泰国时间');
+  var BUILD=(window.LUNA_BUILD||'2026-11-13 16:39 泰国时间');
   try{ log=JSON.parse(sessionStorage.getItem(KEY)||'[]'); if(!log||!log.length&&log!==0) log=[]; }catch(e){ log=[]; }
   function pad(n){ return (n<10?'0':'')+n; }
   function ts(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
@@ -44209,6 +44269,118 @@ body.lunaHasUnread .lunaBellDot{display:block}
 #lunaOrbRow{border-top:1px solid rgba(124,92,191,.5) !important;}
 body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber #lunaOrbRow{border-top-color:rgba(255,255,255,.1) !important;}
 </style>
+<style id="lunaGamesCss">
+#lunaGameCard{cursor:pointer;-webkit-tap-highlight-color:transparent;background:linear-gradient(135deg,#fff0f7,#f1eafd)!important}
+#lunaGameCard:active{transform:scale(.985)}
+#lunaGameCard .gc{display:flex;align-items:center;gap:12px}
+#lunaGameCard .gc .ic{font-size:30px;line-height:1}
+#lunaGameCard .gc .tx{flex:1;min-width:0}
+#lunaGameCard .gc b{font-size:15px;color:#4a2545}
+#lunaGameCard .gc small{display:block;margin-top:3px;font-size:12px;line-height:1.5;color:#8b6a8c}
+#lunaGameCard .gc i{font-style:normal;opacity:.4;font-size:20px}
+#lunaGamesWrap{position:fixed;inset:0;z-index:100040;background:#fff1f7;display:flex;align-items:center;justify-content:center;animation:lgIn .25s ease}
+#lunaGamesWrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff1f7}
+#lunaGamesWrap .ld{position:relative;font-size:14px;color:#a0629a;text-align:center}
+#lunaGamesWrap .ld span{display:block;font-size:40px;margin-bottom:10px}
+@keyframes lgIn{from{opacity:0}to{opacity:1}}
+</style>
+<script id="lunaGamesJs">
+/* 💞 情侣游戏入口：放在"和伴侣分享"面板里（免费 / 会员都能看到）。游戏本身是网页（lunacalm.app/games/），App 只负责：
+   1) 向后端要一个房间号（会员且有没被关闭的分享链接 → 用那串码；否则发一个 play- 开头的游戏邀请码，免费用户也有）
+   2) 全屏打开游戏网页，并处理它发回来的"关闭 / 分享邀请 / 开会员"三种消息。 */
+(function(){
+  if(window.LunaGames) return;
+  var URL_ROOM='https://asia-southeast1-sasomboon.cloudfunctions.net/gameRoomManage', SITE='https://lunacalm.app/games/';
+  var LS=window.localStorage;
+  var X={
+    zh:{t:'情侣游戏',d:'单机或联机都能玩 · 猜杯子免费，其余会员解锁',login:'请先登录',net:'网络不通，请重试',fail:'打开失败，请重试',off:'情侣游戏暂时关闭',wait:'正在进入…',share:'💞 来和我一起玩小游戏 👉 ',noPP:''},
+    th:{t:'เกมคู่รัก',d:'เล่นคนเดียวหรือออนไลน์ก็ได้ · ทายแก้วเล่นฟรี เกมอื่นสำหรับสมาชิก',login:'กรุณาเข้าสู่ระบบก่อน',net:'เครือข่ายขัดข้อง ลองใหม่อีกครั้ง',fail:'เปิดไม่สำเร็จ ลองใหม่อีกครั้ง',off:'เกมคู่รักปิดชั่วคราว',wait:'กำลังเข้า…',share:'💞 มาเล่นเกมเล็กๆ กับฉันนะ 👉 '},
+    en:{t:'Couple Games',d:'Solo or online · Cup Guess is free, the rest need Premium',login:'Please sign in first',net:'No connection. Please try again.',fail:'Could not open. Please try again.',off:'Couple Games is temporarily off',wait:'Opening…',share:'💞 Come play a little game with me 👉 '},
+    vi:{t:'Game đôi',d:'Chơi một máy hoặc online · Đoán cốc miễn phí, game khác dành cho hội viên',login:'Vui lòng đăng nhập trước',net:'Mất kết nối. Vui lòng thử lại.',fail:'Không mở được. Vui lòng thử lại.',off:'Game đôi tạm tắt',wait:'Đang vào…',share:'💞 Cùng chơi game nhỏ với mình nhé 👉 '}
+  };
+  function L(){ try{ if(LS.getItem('luna_lang')!=='zh') return 'th'; if(LS.getItem('luna_ui_en')==='1') return 'en'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; }catch(e){} return 'zh'; }
+  function T(){ return X[L()]; }
+  function ls(k){ try{ return LS.getItem(k); }catch(e){ return null; } }
+  function toast(m){ try{ if(typeof window.showToast==='function') window.showToast(m); }catch(e){} }
+  function waitAuth(ms){ return new Promise(function(res){ var t0=Date.now(); (function chk(){ var a=null; try{ a=(typeof auth!=='undefined')?auth:null; }catch(e){} if(a&&a.currentUser) return res(a.currentUser); if(Date.now()-t0>=ms) return res(null); setTimeout(chk,150); })(); }); }
+  function call(body){
+    return new Promise(function(resolve,reject){
+      try{ if(navigator.onLine===false){ reject({code:'net'}); return; } }catch(e){}
+      waitAuth(3500).then(function(u){
+        if(!u){ reject({code:'noLogin'}); return; }
+        u.getIdToken().then(function(tok){
+          var ctl=(typeof AbortController!=='undefined')?new AbortController():null, to=setTimeout(function(){ try{ ctl&&ctl.abort(); }catch(e){} },12000);
+          fetch(URL_ROOM,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined})
+            .then(function(r){ clearTimeout(to); return r.json().catch(function(){ return {}; }).then(function(j){ if(r.ok&&j&&j.ok) resolve(j); else reject({code:(j&&j.error)||('http'+r.status)}); }); })
+            .catch(function(){ clearTimeout(to); reject({code:'net'}); });
+        },function(){ reject({code:'noLogin'}); });
+      });
+    });
+  }
+  var wrap=null, frame=null, busy=false, loadTm=0;
+  function closeFrame(){ busy=false; clearTimeout(loadTm); if(wrap&&wrap.parentNode) wrap.parentNode.removeChild(wrap); wrap=null; frame=null; try{ document.body.style.overflow=''; }catch(e){} }
+  function doShare(url){
+    var P=(window.Capacitor&&window.Capacitor.Plugins)||{}, text=T().share+url;
+    if(P.Share&&typeof P.Share.share==='function'){ P.Share.share({text:text,dialogTitle:T().t}).catch(function(){}); return; }
+    try{ if(navigator.share){ navigator.share({text:text}).catch(function(){}); return; } }catch(e){}
+    try{ navigator.clipboard.writeText(url); toast('✓'); }catch(e){}
+  }
+  window.addEventListener('message',function(ev){
+    var d=ev.data; if(!d||typeof d!=='object'||!frame||ev.source!==frame.contentWindow) return;
+    if(d.type==='luna-games-close') closeFrame();
+    else if(d.type==='luna-games-paywall'){ closeFrame(); setTimeout(function(){ try{ window._lunaPaySrc='couple_games'; if(typeof window.showVipPaywall==='function') window.showVipPaywall(); }catch(e){} },200); }
+    else if(d.type==='luna-games-share' && typeof d.url==='string' && d.url.indexOf(SITE)===0) doShare(d.url);
+    else if(d.type==='luna-games-need-room') needRoom();
+  });
+  /* 玩家在大厅里点了“联机玩”才来要房间号（单机玩不需要登录、不需要联网） */
+  var roomBusy=false;
+  function reply(o){ try{ if(frame&&frame.contentWindow) frame.contentWindow.postMessage(o,'https://lunacalm.app'); }catch(e){} }
+  function needRoom(){
+    if(roomBusy) return; roomBusy=true; var t=T();
+    call({action:'create',share:ls('luna_partner_token')||''}).then(function(r){
+      roomBusy=false; reply({type:'luna-games-room',token:r.token});
+    },function(e){
+      roomBusy=false; reply({type:'luna-games-room-error'});
+      var c=e&&e.code;
+      if(c==='noLogin'){ closeFrame(); setTimeout(function(){ try{ if(typeof window.showGuestLoginModal==='function') window.showGuestLoginModal(); else toast(t.login); }catch(x){ toast(t.login); } },200); return; }
+      toast(c==='net'?t.net:c==='disabled'?t.off:t.fail);
+    });
+  }
+  function openGames(){
+    if(busy) return;
+    var t=T(), pro=false; try{ pro=!!(window.isPro&&window.isPro()); }catch(e){}
+    busy=true; try{ if(window.LunaPartner&&window.LunaPartner.close) window.LunaPartner.close(); }catch(e){}
+    wrap=document.createElement('div'); wrap.id='lunaGamesWrap'; wrap.innerHTML='<div class="ld"><span>💞</span>'+t.wait+'</div>';
+    document.body.appendChild(wrap); try{ document.body.style.overflow='hidden'; }catch(e){}
+    var nick=(ls('luna_partner_nick')||'').slice(0,12);
+    frame=document.createElement('iframe'); frame.setAttribute('allow','clipboard-write');
+    frame.src=SITE+'?role=host&app=1&pro='+(pro?'1':'0')+'&l='+L()+(nick?'&name='+encodeURIComponent(nick):'');
+    frame.addEventListener('load',function(){ clearTimeout(loadTm); busy=false; });
+    wrap.appendChild(frame);
+    loadTm=setTimeout(function(){ busy=false; closeFrame(); toast(t.net); },15000);
+    try{ if(typeof window.trackEvent==='function') window.trackEvent('couple_games_open'); }catch(e){}
+  }
+  /* 面板（免费看到的介绍页 / 会员看到的设置页）每次整块重画，所以重画后把游戏卡补回去 */
+  function inject(){
+    var pt=document.getElementById('lunaPt'); if(!pt) return;
+    var old=document.getElementById('lunaGameCard'), sb=pt.querySelector('.sb'); if(!sb) return;
+    var t=T();
+    if(old){ if(old.getAttribute('data-l')===L()) return; old.parentNode.removeChild(old); }
+    var c=document.createElement('div'); c.className='cd'; c.id='lunaGameCard'; c.setAttribute('data-l',L());
+    c.innerHTML='<div class="gc"><div class="ic">🎮</div><div class="tx"><b>'+t.t+'</b><small>'+t.d+'</small></div><i>›</i></div>';
+    c.onclick=openGames;
+    sb.parentNode.insertBefore(c,sb.nextSibling);
+  }
+  try{
+    new MutationObserver(function(){
+      var pt=document.getElementById('lunaPt'); if(!pt) return;
+      if(!pt._lgObs){ pt._lgObs=1; new MutationObserver(inject).observe(pt,{childList:true}); }
+      inject();
+    }).observe(document.body,{childList:true});
+  }catch(e){}
+  window.LunaGames={open:openGames,close:closeFrame,_inject:inject};
+})();
+</script>
 <script id="lunaLangVeilJs">
 /* 换语言时：先盖一层和页面底色相同的遮罩，再换字/重新加载，最后淡出。盖住"文字原地乱跳 + 重载白闪"。遮罩不拦截点击，且有 4 秒保险自动撤掉 */
 (function(){

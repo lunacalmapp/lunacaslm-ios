@@ -44285,14 +44285,8 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
 @keyframes lgIn{from{opacity:0}to{opacity:1}}
 </style>
 <style id="lunaGlowCss">
-/* ✨ 流光圈：首页右上角的设置球 + "情侣游戏"卡片，让人一眼看出能点 */
-@keyframes lgGlowRot{to{transform:rotate(360deg)}}
+/* ✨ 流光圈："情侣游戏"卡片，让人一眼看出能点 */
 @keyframes lgGlowFlow{from{background-position:0 0}to{background-position:100% 0}}
-#homeSetOrb{opacity:1!important;box-shadow:inset 0 2px 4px rgba(255,255,255,.8),0 4px 14px rgba(0,0,0,.14),0 0 0 1.5px rgba(244,114,182,.35)!important}
-#homeSetOrb::before{content:"";position:absolute;inset:-3px;border-radius:50%;padding:2.5px;box-sizing:border-box;pointer-events:none;
-  background:conic-gradient(rgba(255,255,255,0) 0deg,#f472b6 80deg,#a78bfa 150deg,#60a5fa 200deg,rgba(255,255,255,0) 250deg,rgba(255,255,255,0) 360deg);
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
-  animation:lgGlowRot 2.4s linear infinite}
 #lunaGameCard{position:relative}
 #lunaGameCard::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;box-sizing:border-box;pointer-events:none;
   background:linear-gradient(90deg,#f472b6 0%,#a78bfa 16.6%,#60a5fa 33.3%,#f472b6 50%,#a78bfa 66.6%,#60a5fa 83.3%,#f472b6 100%);background-size:200% 100%;

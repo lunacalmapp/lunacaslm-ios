@@ -44337,6 +44337,7 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
   window.addEventListener('message',function(ev){
     var d=ev.data; if(!d||typeof d!=='object'||!frame||ev.source!==frame.contentWindow) return;
     if(d.type==='luna-games-close') closeFrame();
+    else if(d.type==='luna-games-track'){ /* 大厅告诉 App“谁点了哪个游戏”，App 再写进后台埋点（只记游戏代号和玩法，不含任何个人内容） */ try{ var tg=String(d.g||'').replace(/[^a-z]/g,'').slice(0,12), tm=String(d.m||'').replace(/[^a-z_]/g,'').slice(0,12), te=(d.ev==='game_vip_tap')?'game_vip_tap':'game_open'; if(tg&&typeof window.trackEvent==='function') window.trackEvent(te,{g:tg,m:tm}); }catch(e){} }
     else if(d.type==='luna-games-paywall'){ /* 游戏页留在后面不关；付费框盖在它上面，点X/付费失败就回到游戏大厅，不用重新进一遍 */ try{ window._lunaPaySrc='couple_games'; if(typeof window.showVipPaywall==='function'){ window.showVipPaywall(); var pm=document.getElementById('vipPaywallModal'); if(pm) pm.style.zIndex='100060'; } }catch(e){} }
     else if(d.type==='luna-games-share' && typeof d.url==='string' && d.url.indexOf(SITE)===0) doShare(d.url);
     else if(d.type==='luna-games-need-room') needRoom();

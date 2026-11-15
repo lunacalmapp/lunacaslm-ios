@@ -43951,7 +43951,7 @@ body.theme-moonlotus #ttcHomeCard.card #ttcHomeBtn::after,body.theme-aurora #ttc
   /* 只有后台（luna-admin「错误监听」）点名的账号才记录/显示/上报；没点名的人什么都不记、不显示、不上传。
      滚动被锁的自动解锁属于修复，对所有人照常工作，不受这个开关影响。 */
   function ON(){ try{ return localStorage.getItem('luna_diag_on')==='1'; }catch(e){ return false; } }
-  var BUILD=(window.LUNA_BUILD||'2026-11-13 16:39 泰国时间');
+  var BUILD=(window.LUNA_BUILD||'2026-11-13 18:08 泰国时间');
   try{ log=JSON.parse(sessionStorage.getItem(KEY)||'[]'); if(!log||!log.length&&log!==0) log=[]; }catch(e){ log=[]; }
   function pad(n){ return (n<10?'0':'')+n; }
   function ts(){ var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
@@ -44284,6 +44284,21 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
 #lunaGamesWrap .ld span{display:block;font-size:40px;margin-bottom:10px}
 @keyframes lgIn{from{opacity:0}to{opacity:1}}
 </style>
+<style id="lunaGlowCss">
+/* ✨ 流光圈：首页右上角的设置球 + "情侣游戏"卡片，让人一眼看出能点 */
+@keyframes lgGlowRot{to{transform:rotate(360deg)}}
+@keyframes lgGlowFlow{from{background-position:0 0}to{background-position:100% 0}}
+#homeSetOrb{opacity:1!important;box-shadow:inset 0 2px 4px rgba(255,255,255,.8),0 4px 14px rgba(0,0,0,.14),0 0 0 1.5px rgba(244,114,182,.35)!important}
+#homeSetOrb::before{content:"";position:absolute;inset:-3px;border-radius:50%;padding:2.5px;box-sizing:border-box;pointer-events:none;
+  background:conic-gradient(rgba(255,255,255,0) 0deg,#f472b6 80deg,#a78bfa 150deg,#60a5fa 200deg,rgba(255,255,255,0) 250deg,rgba(255,255,255,0) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  animation:lgGlowRot 2.4s linear infinite}
+#lunaGameCard{position:relative}
+#lunaGameCard::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;box-sizing:border-box;pointer-events:none;
+  background:linear-gradient(90deg,#f472b6 0%,#a78bfa 16.6%,#60a5fa 33.3%,#f472b6 50%,#a78bfa 66.6%,#60a5fa 83.3%,#f472b6 100%);background-size:200% 100%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  animation:lgGlowFlow 3s linear infinite}
+</style>
 <script id="lunaGamesJs">
 /* 💞 情侣游戏入口：放在"和伴侣分享"面板里（免费 / 会员都能看到）。游戏本身是网页（lunacalm.app/games/），App 只负责：
    1) 向后端要一个房间号（会员且有没被关闭的分享链接 → 用那串码；否则发一个 play- 开头的游戏邀请码，免费用户也有）
@@ -44293,10 +44308,10 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
   var URL_ROOM='https://asia-southeast1-sasomboon.cloudfunctions.net/gameRoomManage', SITE='https://lunacalm.app/games/';
   var LS=window.localStorage;
   var X={
-    zh:{t:'情侣游戏',d:'单机或联机都能玩 · 猜杯子免费，其余会员解锁',login:'请先登录',net:'网络不通，请重试',fail:'打开失败，请重试',off:'情侣游戏暂时关闭',wait:'正在进入…',share:'💞 来和我一起玩小游戏 👉 ',noPP:''},
-    th:{t:'เกมคู่รัก',d:'เล่นคนเดียวหรือออนไลน์ก็ได้ · ทายแก้วเล่นฟรี เกมอื่นสำหรับสมาชิก',login:'กรุณาเข้าสู่ระบบก่อน',net:'เครือข่ายขัดข้อง ลองใหม่อีกครั้ง',fail:'เปิดไม่สำเร็จ ลองใหม่อีกครั้ง',off:'เกมคู่รักปิดชั่วคราว',wait:'กำลังเข้า…',share:'💞 มาเล่นเกมเล็กๆ กับฉันนะ 👉 '},
-    en:{t:'Couple Games',d:'Solo or online · Cup Guess is free, the rest need Premium',login:'Please sign in first',net:'No connection. Please try again.',fail:'Could not open. Please try again.',off:'Couple Games is temporarily off',wait:'Opening…',share:'💞 Come play a little game with me 👉 '},
-    vi:{t:'Game đôi',d:'Chơi một máy hoặc online · Đoán cốc miễn phí, game khác dành cho hội viên',login:'Vui lòng đăng nhập trước',net:'Mất kết nối. Vui lòng thử lại.',fail:'Không mở được. Vui lòng thử lại.',off:'Game đôi tạm tắt',wait:'Đang vào…',share:'💞 Cùng chơi game nhỏ với mình nhé 👉 '}
+    zh:{t:'情侣游戏',d:'单机或联机都能玩 · 猜杯子、找数字免费，其余会员解锁',login:'请先登录',net:'网络不通，请重试',fail:'打开失败，请重试',off:'情侣游戏暂时关闭',wait:'正在进入…',share:'💞 来和我一起玩小游戏 👉 ',noPP:''},
+    th:{t:'เกมคู่รัก',d:'เล่นคนเดียวหรือออนไลน์ก็ได้ · ทายแก้วและแข่งหาเลขเล่นฟรี เกมอื่นสำหรับสมาชิก',login:'กรุณาเข้าสู่ระบบก่อน',net:'เครือข่ายขัดข้อง ลองใหม่อีกครั้ง',fail:'เปิดไม่สำเร็จ ลองใหม่อีกครั้ง',off:'เกมคู่รักปิดชั่วคราว',wait:'กำลังเข้า…',share:'💞 มาเล่นเกมเล็กๆ กับฉันนะ 👉 '},
+    en:{t:'Couple Games',d:'Solo or online · Cup Guess and Number Rush are free, the rest need Premium',login:'Please sign in first',net:'No connection. Please try again.',fail:'Could not open. Please try again.',off:'Couple Games is temporarily off',wait:'Opening…',share:'💞 Come play a little game with me 👉 '},
+    vi:{t:'Game đôi',d:'Chơi một máy hoặc online · Đoán cốc và Tìm số nhanh miễn phí, game khác dành cho hội viên',login:'Vui lòng đăng nhập trước',net:'Mất kết nối. Vui lòng thử lại.',fail:'Không mở được. Vui lòng thử lại.',off:'Game đôi tạm tắt',wait:'Đang vào…',share:'💞 Cùng chơi game nhỏ với mình nhé 👉 '}
   };
   function L(){ try{ if(LS.getItem('luna_lang')!=='zh') return 'th'; if(LS.getItem('luna_ui_en')==='1') return 'en'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; }catch(e){} return 'zh'; }
   function T(){ return X[L()]; }
@@ -44328,9 +44343,11 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
   window.addEventListener('message',function(ev){
     var d=ev.data; if(!d||typeof d!=='object'||!frame||ev.source!==frame.contentWindow) return;
     if(d.type==='luna-games-close') closeFrame();
-    else if(d.type==='luna-games-paywall'){ closeFrame(); setTimeout(function(){ try{ window._lunaPaySrc='couple_games'; if(typeof window.showVipPaywall==='function') window.showVipPaywall(); }catch(e){} },200); }
+    else if(d.type==='luna-games-paywall'){ /* 游戏页留在后面不关；付费框盖在它上面，点X/付费失败就回到游戏大厅，不用重新进一遍 */ try{ window._lunaPaySrc='couple_games'; if(typeof window.showVipPaywall==='function'){ window.showVipPaywall(); var pm=document.getElementById('vipPaywallModal'); if(pm) pm.style.zIndex='100060'; } }catch(e){} }
     else if(d.type==='luna-games-share' && typeof d.url==='string' && d.url.indexOf(SITE)===0) doShare(d.url);
     else if(d.type==='luna-games-need-room') needRoom();
+    else if(d.type==='luna-games-hist-load'){ var hv=''; try{ hv=localStorage.getItem('luna_game_hist')||''; }catch(e){} reply({type:'luna-games-hist',data:hv}); }
+    else if(d.type==='luna-games-hist-save' && typeof d.data==='string' && d.data.length<300000){ try{ localStorage.setItem('luna_game_hist',d.data); }catch(e){} }
   });
   /* 玩家在大厅里点了“联机玩”才来要房间号（单机玩不需要登录、不需要联网） */
   var roomBusy=false;

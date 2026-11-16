@@ -17898,6 +17898,73 @@ window.setLang = setLang;
       left:   { zh: '已回到经期追踪，周期会重新开始计算', th: 'กลับสู่การติดตามรอบเดือนแล้ว รอบจะเริ่มคำนวณใหม่' },
       undone: { zh: '已回到怀孕模式', th: 'กลับสู่โหมดตั้งครรภ์แล้ว' }
     };
+    function tx(o){
+      var l = 'zh';
+      try{ if(localStorage.getItem('luna_ui_en') === '1') l = 'en'; else if(localStorage.getItem('luna_ui_vi') === '1') l = 'vi'; else if(lang() !== 'zh') l = 'th'; else if(localStorage.getItem('luna_ui_tw') === '1') l = 'tw'; }catch(e){}
+      return o[l] || o.zh;
+    }
+    var WARN = {
+      zh: '回到经期追踪后，你之前的经期记录（{n} 天）会从首页和日历上收起来，周期重新开始计算。记录不会删除，之后可以在「设置」里点「找回已收起的经期记录」找回。确定吗？',
+      tw: '回到經期追蹤後，你之前的經期記錄（{n} 天）會從首頁和日曆上收起來，週期重新開始計算。記錄不會刪除，之後可以在「設定」裡點「找回已收起的經期記錄」找回。確定嗎？',
+      en: 'Once you go back to period tracking, your earlier period records ({n} days) will be hidden from Home and the calendar, and your cycle will start over. Nothing is deleted. You can bring them back later in Settings > "Restore hidden period records". Continue?',
+      th: 'เมื่อกลับไปติดตามรอบเดือน บันทึกประจำเดือนเดิมของคุณ ({n} วัน) จะถูกซ่อนจากหน้าหลักและปฏิทิน และเริ่มคำนวณรอบใหม่ บันทึกไม่ถูกลบ และกู้คืนได้ภายหลังที่ การตั้งค่า › "กู้คืนบันทึกประจำเดือนที่ซ่อนไว้" ยืนยันไหม',
+      vi: 'Khi quay lại theo dõi kỳ kinh, các ghi chép kỳ kinh trước đó ({n} ngày) sẽ bị ẩn khỏi Trang chủ và lịch, chu kỳ sẽ tính lại từ đầu. Không có gì bị xóa. Sau này bạn có thể khôi phục trong Cài đặt > "Khôi phục ghi chép kỳ kinh đã ẩn". Tiếp tục?'
+    };
+    var RST = {
+      lbl:  { zh: '找回已收起的经期记录', tw: '找回已收起的經期記錄', en: 'Restore hidden period records', th: 'กู้คืนบันทึกประจำเดือนที่ซ่อนไว้', vi: 'Khôi phục ghi chép kỳ kinh đã ẩn' },
+      val:  { zh: '共 {n} 天', tw: '共 {n} 天', en: '{n} days', th: '{n} วัน', vi: '{n} ngày' },
+      ask:  { zh: '把收起来的 {n} 天经期记录放回首页和日历？现在已有的记录会保留，周期会按全部记录一起计算。', tw: '把收起來的 {n} 天經期記錄放回首頁和日曆？現在已有的記錄會保留，週期會按全部記錄一起計算。', en: 'Put the {n} hidden period days back on Home and the calendar? Your current records stay, and your cycle will use all of them.', th: 'นำบันทึกประจำเดือนที่ซ่อนไว้ {n} วันกลับมาที่หน้าหลักและปฏิทิน? บันทึกปัจจุบันจะยังอยู่ และการคำนวณรอบจะใช้ทั้งหมด', vi: 'Đưa {n} ngày kỳ kinh đã ẩn trở lại Trang chủ và lịch? Ghi chép hiện tại vẫn được giữ, chu kỳ sẽ tính theo tất cả.' },
+      ok:   { zh: '找回', tw: '找回', en: 'Restore', th: 'กู้คืน', vi: 'Khôi phục' },
+      done: { zh: '已找回 {n} 天经期记录', tw: '已找回 {n} 天經期記錄', en: 'Restored {n} period days', th: 'กู้คืนแล้ว {n} วัน', vi: 'Đã khôi phục {n} ngày' }
+    };
+    var HELP = {
+      zh: '什么时候会出现这一项？\n当你从怀孕 / 产后模式回到经期追踪时，之前的经期记录会被「收起」：数据仍然保存着，只是不再显示在首页和日历上，周期会从新的一次开始重新计算。\n\n点「找回」会怎样？\n把收起来的经期日期放回首页和日历。你现在已有的记录不会被删除或覆盖，周期预测会按全部记录一起计算。\n\n要注意：\n· 记录从来没有被删除；登录账号后会同步到云端，换手机也能找回。\n· 找回后如果再次回到经期追踪，这些记录会再被收起一次。\n· 如果你希望预测只参考最近的周期，可以不找回。',
+      tw: '什麼時候會出現這一項？\n當你從懷孕 / 產後模式回到經期追蹤時，之前的經期記錄會被「收起」：資料仍然保存著，只是不再顯示在首頁和日曆上，週期會從新的一次開始重新計算。\n\n點「找回」會怎樣？\n把收起來的經期日期放回首頁和日曆。你現在已有的記錄不會被刪除或覆蓋，週期預測會按全部記錄一起計算。\n\n要注意：\n· 記錄從來沒有被刪除；登入帳號後會同步到雲端，換手機也能找回。\n· 找回後如果再次回到經期追蹤，這些記錄會再被收起一次。\n· 如果你希望預測只參考最近的週期，可以不找回。',
+      en: 'When does this appear?\nWhen you go back to period tracking from pregnancy / postpartum mode, your earlier period records are "hidden": the data is still saved, but it no longer shows on Home or the calendar, and your cycle starts over from the new period.\n\nWhat does Restore do?\nIt puts the hidden period days back on Home and the calendar. Your current records are not deleted or overwritten, and predictions will use all of them together.\n\nGood to know:\n· Nothing was ever deleted. When you are signed in it syncs to the cloud, so it survives a phone change.\n· If you go back to period tracking again, these records will be hidden once more.\n· If you want predictions based only on your recent cycles, you can leave them hidden.',
+      th: 'ปุ่มนี้ขึ้นเมื่อไหร่?\nเมื่อคุณกลับไปติดตามรอบเดือนจากโหมดตั้งครรภ์ / หลังคลอด บันทึกประจำเดือนเดิมจะถูก "ซ่อน" ข้อมูลยังเก็บไว้ แต่ไม่แสดงในหน้าหลักและปฏิทิน และรอบจะเริ่มคำนวณใหม่จากครั้งล่าสุด\n\nกด "กู้คืน" แล้วจะเป็นอย่างไร?\nนำวันที่ประจำเดือนที่ซ่อนไว้กลับมาที่หน้าหลักและปฏิทิน บันทึกปัจจุบันไม่ถูกลบหรือทับ และการคาดการณ์จะใช้ข้อมูลทั้งหมดรวมกัน\n\nควรรู้:\n· ข้อมูลไม่เคยถูกลบ เมื่อเข้าสู่ระบบจะซิงก์ขึ้นคลาวด์ เปลี่ยนเครื่องก็ยังกู้คืนได้\n· หากกลับไปติดตามรอบเดือนอีกครั้ง บันทึกเหล่านี้จะถูกซ่อนอีกครั้ง\n· หากต้องการให้คาดการณ์ใช้เฉพาะรอบล่าสุด ไม่ต้องกู้คืนก็ได้',
+      vi: 'Khi nào mục này xuất hiện?\nKhi bạn quay lại theo dõi kỳ kinh từ chế độ mang thai / sau sinh, các ghi chép kỳ kinh trước đó sẽ bị "ẩn": dữ liệu vẫn được lưu nhưng không hiện trên Trang chủ và lịch, chu kỳ được tính lại từ kỳ mới.\n\nNhấn "Khôi phục" sẽ ra sao?\nĐưa các ngày kỳ kinh đã ẩn trở lại Trang chủ và lịch. Ghi chép hiện tại không bị xóa hay ghi đè, dự đoán sẽ dùng tất cả cùng nhau.\n\nLưu ý:\n· Dữ liệu chưa từng bị xóa. Khi đã đăng nhập, dữ liệu đồng bộ lên đám mây nên đổi điện thoại vẫn khôi phục được.\n· Nếu bạn quay lại theo dõi kỳ kinh lần nữa, các ghi chép này sẽ bị ẩn một lần nữa.\n· Nếu muốn dự đoán chỉ dựa trên các chu kỳ gần đây, bạn có thể không khôi phục.'
+    };
+    var HELPTTL = { zh: '关于「找回已收起的经期记录」', tw: '關於「找回已收起的經期記錄」', en: 'About "Restore hidden period records"', th: 'เกี่ยวกับ "กู้คืนบันทึกประจำเดือนที่ซ่อนไว้"', vi: 'Về "Khôi phục ghi chép kỳ kinh đã ẩn"' };
+    var HELPOK = { zh: '知道了', tw: '知道了', en: 'Got it', th: 'เข้าใจแล้ว', vi: 'Đã hiểu' };
+    function helpRestore(){
+      var old = document.getElementById('ppRestoreHelpModal'); if(old) old.remove();
+      var m = document.createElement('div'); m.id = 'ppRestoreHelpModal';
+      m.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:100000;background:rgba(44,36,64,.5);display:flex;align-items:center;justify-content:center;padding:24px;';
+      m.innerHTML = '<div style="background:#fff;border-radius:22px;padding:22px 20px 18px;width:100%;max-width:340px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(124,92,191,.25);">' +
+        '<div style="font-size:16px;font-weight:700;color:#2d2640;margin-bottom:10px;">' + esc(tx(HELPTTL)) + '</div>' +
+        '<div style="overflow-y:auto;font-size:13.5px;line-height:1.75;color:#4a4560;white-space:pre-line;">' + esc(tx(HELP)) + '</div>' +
+        '<button type="button" id="ppRestoreHelpOk" style="margin-top:14px;width:100%;padding:12px;background:#7c5cbf;color:#fff;border:none;border-radius:14px;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer;">' + esc(tx(HELPOK)) + '</button></div>';
+      document.body.appendChild(m);
+      var close = function(){ if(m.parentNode) m.parentNode.removeChild(m); };
+      document.getElementById('ppRestoreHelpOk').onclick = close;
+      m.onclick = function(ev){ if(ev.target === m) close(); };
+    }
+    function nTxt(o, n){ return tx(o).replace('{n}', n); }
+    function hiddenCount(){
+      var set = archivedSet(readArchive()), k, n = 0; for(k in set) n++; return n;
+    }
+    function refreshRestoreRow(){
+      var sec = el('ppRestoreSection'); if(!sec) return;
+      try{ var top = el('lunaSetTop'); if(top && top.parentNode && sec.previousElementSibling !== top) top.parentNode.insertBefore(sec, top.nextSibling); }catch(e){}
+      var n = 0; try{ n = hiddenCount(); }catch(e){}
+      sec.style.display = n > 0 ? '' : 'none';
+      if(n > 0){ setTxt('ppRestoreLbl', tx(RST.lbl)); setTxt('ppRestoreVal', nTxt(RST.val, n)); }
+    }
+    function restoreArchive(){
+      var m = readArchive(), k, i, d, ts = U.nowTs(), cur = periodsNow(), seen = {}, out = [], added = 0;
+      if(cur === null) return -1;
+      for(i = 0; i < cur.length; i++){ if(!seen[cur[i]]){ seen[cur[i]] = 1; out.push(cur[i]); } }
+      for(k in m){ if(m[k].r) continue; d = m[k].days; for(i = 0; i < d.length; i++){ if(typeof d[i] === 'string' && !seen[d[i]]){ seen[d[i]] = 1; out.push(d[i]); added++; } } m[k].r = ts; }
+      writeArchive(m);                                     // 先标记"已找回"，enforce() 就不会再把它们清掉
+      persistPeriods(out.sort());
+      refreshRestoreRow();
+      return added;
+    }
+    function askRestore(){
+      var n = 0; try{ n = hiddenCount(); }catch(e){}
+      if(!n){ refreshRestoreRow(); return; }
+      confirmDo(nTxt(RST.ask, n), tx(RST.ok), function(){ var r = restoreArchive(); if(r >= 0) toast(nTxt(RST.done, r)); });
+    }
     var ERR = {
       inactive: { zh: '请先开启怀孕模式', th: 'กรุณาเปิดโหมดตั้งครรภ์ก่อน' },
       date:     { zh: '请选择日期', th: 'กรุณาเลือกวันที่' },
@@ -17972,16 +18039,16 @@ window.setLang = setLang;
     function mergeArchive(a, b){
       var out = {}, k;
       for(k in a) if(okBatch(a[k])) out[k] = a[k];
-      if(b && typeof b === 'object' && Object.prototype.toString.call(b) !== '[object Array]'){ for(k in b) if(okBatch(b[k]) && !out[k]) out[k] = b[k]; }
+      if(b && typeof b === 'object' && Object.prototype.toString.call(b) !== '[object Array]'){ for(k in b) if(okBatch(b[k])){ if(!out[k]) out[k] = b[k]; else if(b[k].r && !out[k].r) out[k] = b[k]; } }
       return out;
     }
-    function sameKeys(a, b){ var k; for(k in a) if(!b[k]) return false; for(k in b) if(!a[k]) return false; return true; }
+    function sameKeys(a, b){ var k; for(k in a){ if(!b[k]) return false; if(!!a[k].r !== !!b[k].r) return false; } for(k in b) if(!a[k]) return false; return true; }
     function writeArchive(m){
       try{ localStorage.setItem(U.acctKey(K_AR), JSON.stringify(m)); }catch(e){}
       cloudSet('periodArchive', m);
     }
     function archivedSet(m){
-      var set = {}, k, i, d; for(k in m){ d = m[k].days; for(i = 0; i < d.length; i++) if(typeof d[i] === 'string') set[d[i]] = 1; }
+      var set = {}, k, i, d; for(k in m){ if(m[k].r) continue; d = m[k].days; for(i = 0; i < d.length; i++) if(typeof d[i] === 'string') set[d[i]] = 1; }
       return set;
     }
     function periodsNow(){ try{ return (typeof periodSet !== 'undefined' && periodSet) ? Array.from(periodSet) : null; }catch(e){ return null; } }
@@ -18152,9 +18219,13 @@ window.setLang = setLang;
     function closePeriod(){ var m = el('ppPeriodModal'); if(m) m.classList.remove('open'); L.pick.close('pd'); }
     function submitPeriod(){
       var inp = el('pregPdInput'), er = el('ppPdErr');
-      var r = firstPeriod(inp ? inp.value : '');
-      if(!r.ok){ if(er) er.textContent = P(ERR[r.error] || ERR.date); return; }
-      closePeriod(); toast(P(PERIOD.welcome));
+      var go = function(){
+        var r = firstPeriod(inp ? inp.value : '');
+        if(!r.ok){ if(er) er.textContent = P(ERR[r.error] || ERR.date); return; }
+        closePeriod(); toast(P(PERIOD.welcome)); refreshRestoreRow();
+      };
+      var n = warnCount();
+      if(n > 0 && inp && U.parseKey(inp.value)) confirmDo(nTxt(WARN, n), P(PERIOD.ok), go); else go();
     }
     // ─ 管理弹窗（设置入口/首页"更多选项"）─
     function renderManage(){
@@ -18166,8 +18237,11 @@ window.setLang = setLang;
     }
     function openManage(){ var m = el('ppManageModal'); if(!m || !isActive()) return; renderManage(); m.classList.add('open'); }
     function closeManage(){ var m = el('ppManageModal'); if(m) m.classList.remove('open'); }
+    function warnCount(){ var c = periodsNow(); return c ? c.length : 0; }
     function askLeave(){
-      confirmDo(P(MG.leaveAsk), P(MG.leaveOk), function(){ var r = leave(); if(r.ok){ closeManage(); toast(P(MG.left)); } });
+      var n = warnCount();
+      var msg = n > 0 ? nTxt(WARN, n) : P(MG.leaveAsk);
+      confirmDo(msg, P(MG.leaveOk), function(){ var r = leave(); if(r.ok){ closeManage(); toast(P(MG.left)); refreshRestoreRow(); } });
     }
     function askUndo(){
       confirmDo(P(MG.undoAsk), P(MG.undoOk), function(){ if(undo()){ closeManage(); toast(P(MG.undone)); } });
@@ -18211,6 +18285,7 @@ window.setLang = setLang;
       openEvent: openEvent, closeEvent: closeEvent, submitEvent: submitEvent,
       openPeriod: openPeriod, closePeriod: closePeriod, submitPeriod: submitPeriod,
       openManage: openManage, closeManage: closeManage, askLeave: askLeave, askUndo: askUndo,
+      askRestore: askRestore, helpRestore: helpRestore, restoreArchive: restoreArchive, refreshRestoreRow: refreshRestoreRow,
       openInfo: openInfo, closeInfo: closeInfo,
       enforce: enforce, sync: sync,
       _pure: { infoOf: infoOf, archivedSet: archivedSet, mergeArchive: mergeArchive, sameKeys: sameKeys, infoHtml: infoHtml },
@@ -18220,8 +18295,12 @@ window.setLang = setLang;
     try{ var _origSync = L.syncFromCloud; L.syncFromCloud = function(){ if(_origSync) _origSync(); sync(); }; }catch(e){}
     // 加载时、页面加载完、切回前台：都清一次（幂等，没有存档时什么也不做）
     try{ enforce(); }catch(e){}
-    try{ window.addEventListener('load', function(){ try{ enforce(); }catch(e){} }); }catch(e){}
-    try{ document.addEventListener('visibilitychange', function(){ if(!document.hidden){ try{ enforce(); }catch(e){} } }); }catch(e){}
+    try{ refreshRestoreRow(); }catch(e){}
+    try{ window.addEventListener('load', function(){ try{ enforce(); refreshRestoreRow(); }catch(e){} }); }catch(e){}
+    try{ document.addEventListener('visibilitychange', function(){ if(!document.hidden){ try{ enforce(); refreshRestoreRow(); }catch(e){} } }); }catch(e){}
+    try{ var _o2 = L.renderSettings; L.renderSettings = function(){ if(_o2) _o2(); try{ refreshRestoreRow(); }catch(e){} }; }catch(e){}
+    try{ setTimeout(refreshRestoreRow, 3000); setTimeout(refreshRestoreRow, 8000); }catch(e){}
+    try{ var _oc = window.openCalSettings; if(typeof _oc === 'function'){ window.openCalSettings = function(){ var r = _oc.apply(this, arguments); try{ setTimeout(refreshRestoreRow, 60); setTimeout(refreshRestoreRow, 400); }catch(e){} return r; }; } }catch(e){}
     // 首次渲染：本模块加载时，如果已经是产后状态，首页要补一次
     try{ L.renderSettings(); L.renderHome(); }catch(e){}
   })();
@@ -26344,6 +26423,14 @@ window.lunaTtcMk = function(c, ic){
           <div class="s-info"><div class="s-label"><span id="pregEntryLabel">โหมดตั้งครรภ์</span></div><div class="s-val" id="pregStatusDisplay">--</div></div>
           <span class="s-arrow">›</span>
         </div>
+      </div>
+    </div>
+
+    <div id="ppRestoreSection" style="display:none;">
+      <div onclick="LunaPreg.post.askRestore()" style="background:var(--card,#fff);border-radius:20px;padding:14px 16px;margin:0 0 12px;box-shadow:0 6px 16px rgba(124,92,191,.09);display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--text);">
+        <span style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#e9defa,#f9dcec);display:flex;align-items:center;justify-content:center;flex:none;"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#7c5cbf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></span>
+        <div style="flex:1;min-width:0;"><div style="font-size:15px;font-weight:700;" id="ppRestoreLbl"></div><div style="font-size:12px;opacity:.7;margin-top:2px;" id="ppRestoreVal"></div></div>
+        <button type="button" onclick="event.stopPropagation();LunaPreg.post.helpRestore()" aria-label="?" style="width:26px;height:26px;border-radius:50%;border:1.5px solid #7c5cbf;color:#7c5cbf;background:transparent;font-weight:700;font-size:14px;line-height:1;flex:none;font-family:inherit;cursor:pointer;padding:0;">?</button>
       </div>
     </div>
 
@@ -42442,7 +42529,7 @@ var BKB = [
     wrap.innerHTML = '<div class="s-group" style="padding:0;border:1px solid var(--mine-surface-border);box-shadow:var(--mine-surface-shadow);margin-bottom:14px;overflow:hidden">'
       + '<div class="pt-row1" style="padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px">'
       + '<div style="font-size:26px">💞</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700"><span class="pt-t"></span><span class="pt-vip"></span></div><div class="pt-d" style="font-size:12px;opacity:.7;margin-top:2px"></div></div><div style="opacity:.4;font-size:20px">›</div></div>'
-      + '<div id="lunaPrivRow"></div></div>';
+      + '</div>';
     wrap.querySelector('.pt-row1').onclick = open;
     anchor.parentNode.insertBefore(wrap, anchor);
     updateEntry(); return true;
@@ -43153,7 +43240,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
   function boot(){ try{ var o=rd(); if(o&&o.on&&o.h) showLock(); else document.documentElement.classList.remove('luna-locked'); }catch(e){ document.documentElement.classList.remove('luna-locked'); } }
   boot();
   syncNative(); setInterval(function(){ try{ syncNative(); }catch(e){} },2500);
-  window.LunaPrivacy={open:openPage,lock:showLock};
+  window.LunaPrivacy={open:openPage,lock:showLock,fill:function(){ try{ return fillRow(); }catch(e){ return false; } }};
 })();
 
 </script>
@@ -43189,7 +43276,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
 #lunaPt .hd{position:sticky;top:0;z-index:5;background:#faf7ff;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 10px!important}
 /* “我的”里打开的弹窗 */
 #referencesModal,#feedbackModal,#faqModal,#cycleSettingModal,#periodSettingModal,#notifModal,#pregSettingModal{align-items:stretch!important;background:#fff!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-#referencesModal>.modal,#feedbackModal>.modal,#faqModal>.modal,#cycleSettingModal>.modal,#periodSettingModal>.modal,#notifModal>.modal,#pregSettingModal>.modal{width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;border-radius:0!important;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:var(--fs-top)!important;padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))!important;animation:lunaFsUp .32s cubic-bezier(.2,.8,.2,1)!important}
+#referencesModal>.modal,#feedbackModal>.modal,#faqModal>.modal,#cycleSettingModal>.modal,#periodSettingModal>.modal,#notifModal>.modal,#pregSettingModal>.modal{width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;border-radius:0!important;box-sizing:border-box;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(var(--fs-top) + 14px)!important;padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))!important;animation:lunaFsUp .32s cubic-bezier(.2,.8,.2,1)!important}
 #referencesModal .modal-handle,#feedbackModal .modal-handle,#faqModal .modal-handle,#cycleSettingModal .modal-handle,#periodSettingModal .modal-handle,#notifModal .modal-handle,#pregSettingModal .modal-handle{display:none!important}
 </style>
 <script id="lunaFsJs">
@@ -43459,10 +43546,12 @@ window.lunaCollapse=function(el,done,keep){
     var host = $('lunaSetTop'); if(!host) return;
     var guest = isGuest(), pro = isPro(), p = profile(), h = '';
     if(guest) h += '<div class="lsf-ban"><div class="t"><span class="ex">!</span><span>' + esc(tx(T.ban)) + '</span></div><button type="button" data-a="login">' + esc(tx(T.banBtn)) + '</button></div>';
-    h += '<div class="lsf-card">' + PAIR + '<div class="tt">' + esc(tx(T.pt)) + '</div><div class="ss">' + esc(tx(T.ps)) + '</div><button type="button" class="lsf-pill" data-a="partner">' + esc(tx(T.pb)) + '</button></div>';
+    h += '<div class="lsf-card">' + PAIR + '<div class="tt">' + esc(tx(T.pt)) + '</div><div class="ss">' + esc(tx(T.ps)) + '</div><button type="button" class="lsf-pill" data-a="partner">' + esc(tx(T.pb)) + '</button><div id="lunaPrivRow" style="margin:14px 0 0;text-align:left"></div></div>';
     var name = p.nm || (guest ? tx(T.guest) : 'LUNA');
     h += '<div class="lsf-card"><div class="lsf-prof"><div class="lsf-av">' + (p.av ? '<img alt="" src="' + esc(p.av) + '">' : '🌸') + '</div><div><div class="lsf-nm">' + esc(name) + (pro ? '<span class="lsf-badge">' + esc(tx(T.mem)) + '</span>' : '') + '</div><div class="lsf-ed" data-a="edit">' + esc(tx(T.edit)) + '</div></div>' + (pro ? '' : '<button type="button" class="lsf-pill" data-a="vip">' + esc(tx(T.up)) + '</button>') + '</div></div>';
     host.innerHTML = h;
+    try{ if(window.LunaPrivacy && window.LunaPrivacy.fill) window.LunaPrivacy.fill(); }catch(e){}
+    try{ if(window.LunaPreg && window.LunaPreg.post && window.LunaPreg.post.refreshRestoreRow) window.LunaPreg.post.refreshRestoreRow(); }catch(e){}
   }
   function onTop(a){
     try{
@@ -44339,6 +44428,7 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
     if(d.type==='luna-games-close') closeFrame();
     else if(d.type==='luna-games-track'){ /* 大厅告诉 App“谁点了哪个游戏”，App 再写进后台埋点（只记游戏代号和玩法，不含任何个人内容） */ try{ var tg=String(d.g||'').replace(/[^a-z]/g,'').slice(0,12), tm=String(d.m||'').replace(/[^a-z_]/g,'').slice(0,12), te=(d.ev==='game_vip_tap')?'game_vip_tap':'game_open'; if(tg&&typeof window.trackEvent==='function') window.trackEvent(te,{g:tg,m:tm}); }catch(e){} }
     else if(d.type==='luna-games-paywall'){ /* 游戏页留在后面不关；付费框盖在它上面，点X/付费失败就回到游戏大厅，不用重新进一遍 */ try{ window._lunaPaySrc='couple_games'; if(typeof window.showVipPaywall==='function'){ window.showVipPaywall(); var pm=document.getElementById('vipPaywallModal'); if(pm) pm.style.zIndex='100060'; } }catch(e){} }
+    else if(d.type==='luna-games-idea'){ /* 大厅里“说说你的想法”：在游戏页里写完，由 App 存进原有的反馈（类别=建议），不再弹出 App 的反馈页，所以点X不会离开游戏 */ try{ var itx=String(d.text||'').replace(/\s+/g,' ').trim().slice(0,950); if(!itx){ reply({type:'luna-games-idea-res',ok:false}); } else { var ta=document.getElementById('fbTextArea'); if(ta&&typeof window.submitFeedback==='function'){ ta.value='[情侣游戏] '+itx; window._fbCategory='suggestion'; Promise.resolve(window.submitFeedback()).then(function(){ var st=document.getElementById('fbSubmitSt'); reply({type:'luna-games-idea-res',ok:!!(st&&/✅/.test(st.textContent||''))}); },function(){ reply({type:'luna-games-idea-res',ok:false}); }); } else reply({type:'luna-games-idea-res',ok:false}); } }catch(e){ try{ reply({type:'luna-games-idea-res',ok:false}); }catch(x){} } }
     else if(d.type==='luna-games-share' && typeof d.url==='string' && d.url.indexOf(SITE)===0) doShare(d.url);
     else if(d.type==='luna-games-need-room') needRoom();
     else if(d.type==='luna-games-hist-load'){ var hv=''; try{ hv=localStorage.getItem('luna_game_hist')||''; }catch(e){} reply({type:'luna-games-hist',data:hv}); }

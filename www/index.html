@@ -42917,6 +42917,7 @@ body.preg-mode #lunaRecapEntry,body.pp-mode #lunaRecapEntry{display:none!importa
 (function(){
   if(window.LunaPrivacy) return;
   var LS = window.localStorage, K='luna_lock', K_ICON='luna_app_icon';
+  var FREE_IDS = {drop:1,cal:1,baby:1};  // 额外免费的图标：水滴、月历、宝宝
   var FREE_PER_GROUP = 1;   // ★每类免费开放几个图标（每类取前 N 个）；想多开放就改这个数字
   function L(){ try{ var l=LS.getItem('luna_lang'); if(l!=='zh') return 'th'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; if(LS.getItem('luna_ui_en')==='1') return 'en'; return 'zh'; }catch(e){ return 'zh'; } }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -43192,7 +43193,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
     var gk=['p','t','g','d'], gi;
     for(gi=0;gi<gk.length;gi++){
       var list=ICONS.filter(function(x){ return x[0]===gk[gi]; }); h+='<div class="pv-gt">'+esc(t.g[gk[gi]])+'</div><div class="pv-grid">';
-      list.forEach(function(x,idx){ var free=idx<FREE_PER_GROUP, lk=!free&&!mem;
+      list.forEach(function(x,idx){ var free=idx<FREE_PER_GROUP||!!FREE_IDS[x[1]], lk=!free&&!mem;
         h+='<div class="pv-ic'+(x[1]===cur?' sel':'')+'" data-i="'+x[1]+'" data-lk="'+(lk?1:0)+'"><div class="i"><div style="background:'+x[2]+'">'+glyph(x[1])+'</div>'+(lk?'<u>🔒</u>':'')+'</div>'+esc(t.n[x[1]])+(x[1]==='luna'?'':'')+'</div>'; });
       h+='</div>';
     }
@@ -44361,13 +44362,14 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
 #lunaGameCard .gc small{display:block;margin-top:3px;font-size:12px;line-height:1.5;color:#8b6a8c}
 #lunaGameCard .gc i{font-style:normal;opacity:.4;font-size:20px}
 #lunaGameRow:empty{display:none}
-/* 游戏 / 私密模式：各圈一条淡色流光线（颜色不同，缓慢流动） */
+/* 游戏 / 私密模式：各圈一条淡色流光线（用 transform 旋转，滚动时暂停，避免滑动页面时卡顿/跳动） */
 #lunaGameRow:not(:empty),#lunaPrivRow:not(:empty){position:relative;border-radius:14px;margin:12px 0 0!important;padding:0 14px;border-top:0!important}
-#lunaGameRow:not(:empty)::after,#lunaPrivRow:not(:empty)::after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;padding:1.5px;pointer-events:none;background-size:300% 100%;animation:lunaRowFlow 6s linear infinite;
+#lunaGameRow{--rc1:#f8bfd8;--rc2:#ffdcc2}#lunaPrivRow{--rc1:#bccaf6;--rc2:#d8c0f2}
+.lunaRowRing{position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;padding:1.5px;pointer-events:none;overflow:hidden;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
-#lunaGameRow:not(:empty)::after{background-image:linear-gradient(100deg,#f8bfd8 0%,#ffdcc2 25%,#f8bfd8 50%,#ffdcc2 75%,#f8bfd8 100%)}
-#lunaPrivRow:not(:empty)::after{background-image:linear-gradient(100deg,#bccaf6 0%,#d8c0f2 25%,#bccaf6 50%,#d8c0f2 75%,#bccaf6 100%)}
-@keyframes lunaRowFlow{from{background-position:0 0}to{background-position:-300% 0}}
+.lunaRowRing::before{content:"";position:absolute;left:50%;top:50%;width:320%;padding-bottom:320%;height:0;transform:translate(-50%,-50%) rotate(0deg);
+  background:conic-gradient(from 0deg,var(--rc1),var(--rc2),var(--rc1),var(--rc2),var(--rc1));animation:lunaFxSpin 9s linear infinite}
+html.lunaScrolling .lunaRowRing::before{animation-play-state:paused}
 #lunaGamesWrap{position:fixed;inset:0;z-index:100040;background:#fff1f7;display:flex;align-items:center;justify-content:center;animation:lgIn .25s ease}
 #lunaGamesWrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff1f7}
 #lunaGamesWrap .ld{position:relative;font-size:14px;color:#a0629a;text-align:center}
@@ -44513,4 +44515,10 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
     return r;
   };
 })();
-</script>
+</script><script id="lunaRowRingJs">(function(){
+  function ring(){ try{ ['lunaGameRow','lunaPrivRow'].forEach(function(id){ var r=document.getElementById(id); if(!r||!r.firstChild) return;
+    var has=false; for(var k=0;k<r.children.length;k++){ if(r.children[k].className==='lunaRowRing'){has=true;break} }
+    if(!has){ var i=document.createElement('i'); i.className='lunaRowRing'; r.appendChild(i); } }); }catch(e){} }
+  setInterval(ring,500);
+  var tmr=null; document.addEventListener('scroll',function(){ var h=document.documentElement; if(!h.classList.contains('lunaScrolling')) h.classList.add('lunaScrolling'); clearTimeout(tmr); tmr=setTimeout(function(){ h.classList.remove('lunaScrolling') },180) },true);
+})();</script>

@@ -4668,13 +4668,6 @@ body #lpgRec1 button,body #lpgRecBar button{background:linear-gradient(135deg,rg
           <div style="font-size:14px;font-weight:500;color:var(--mine-fg);" data-i18n="orb_enable_label">แสดงลูกแก้วลอยบนหน้าแรก</div>
           <div class="s-toggle on" id="orbEnabledToggle" onclick="toggleOrbEnabled(this)"></div>
         </div>
-        <!-- 🔒 游客（未登录）提示：悬浮球需要登录才能使用。默认先隐藏（display:none），
-             避免"已登录用户刷新页面那一瞬间"闪一下这句话；真实显隐由 renderGuestAccountCard()
-             统一控制——那个函数本来就是"我的"页每次打开、以及登录成功后都会重新跑一次，
-             跟游客账号卡是否显示用的是同一个判断，登录状态一变这句话就跟着同步消失/出现 -->
-        <div id="orbLoginRequiredHint" style="display:none; margin-top:10px; background:var(--mine-chip-bg); border:1px solid var(--mine-chip-border); border-radius:12px; padding:9px 12px; font-size:11.5px; color:#dd8a3c; line-height:1.6;">
-          <span data-i18n="orb_login_required">🔒 需要登录才能使用悬浮球</span>
-        </div>
         <div style="margin-top:14px;background:var(--mine-chip-bg);border:1px solid var(--mine-chip-border);border-radius:12px;padding:10px 12px;font-size:11.5px;color:var(--mine-chip-fg);line-height:1.6;">
           <span data-i18n="orb_style_hint">🔮 เลือกลูกแก้วลอยหน้าแรกที่ชอบที่สุด</span>
         </div>
@@ -43546,7 +43539,7 @@ window.lunaCollapse=function(el,done,keep){
     var host = $('lunaSetTop'); if(!host) return;
     var guest = isGuest(), pro = isPro(), p = profile(), h = '';
     if(guest) h += '<div class="lsf-ban"><div class="t"><span class="ex">!</span><span>' + esc(tx(T.ban)) + '</span></div><button type="button" data-a="login">' + esc(tx(T.banBtn)) + '</button></div>';
-    h += '<div class="lsf-card">' + PAIR + '<div class="tt">' + esc(tx(T.pt)) + '</div><div class="ss">' + esc(tx(T.ps)) + '</div><button type="button" class="lsf-pill" data-a="partner">' + esc(tx(T.pb)) + '</button><div id="lunaPrivRow" style="margin:14px 0 0;text-align:left"></div></div>';
+    h += '<div class="lsf-card">' + PAIR + '<div class="tt">' + esc(tx(T.pt)) + '</div><div class="ss">' + esc(tx(T.ps)) + '</div><button type="button" class="lsf-pill" data-a="partner">' + esc(tx(T.pb)) + '</button><div id="lunaGameRow" style="margin:14px 0 0;text-align:left"></div><div id="lunaPrivRow" style="margin:14px 0 0;text-align:left"></div></div>';
     var name = p.nm || (guest ? tx(T.guest) : 'LUNA');
     h += '<div class="lsf-card"><div class="lsf-prof"><div class="lsf-av">' + (p.av ? '<img alt="" src="' + esc(p.av) + '">' : '🌸') + '</div><div><div class="lsf-nm">' + esc(name) + (pro ? '<span class="lsf-badge">' + esc(tx(T.mem)) + '</span>' : '') + '</div><div class="lsf-ed" data-a="edit">' + esc(tx(T.edit)) + '</div></div>' + (pro ? '' : '<button type="button" class="lsf-pill" data-a="vip">' + esc(tx(T.up)) + '</button>') + '</div></div>';
     host.innerHTML = h;
@@ -44367,6 +44360,14 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
 #lunaGameCard .gc b{font-size:15px;color:#4a2545}
 #lunaGameCard .gc small{display:block;margin-top:3px;font-size:12px;line-height:1.5;color:#8b6a8c}
 #lunaGameCard .gc i{font-style:normal;opacity:.4;font-size:20px}
+#lunaGameRow:empty{display:none}
+/* 游戏 / 私密模式：各圈一条淡色流光线（颜色不同，缓慢流动） */
+#lunaGameRow:not(:empty),#lunaPrivRow:not(:empty){position:relative;border-radius:14px;margin:12px 0 0!important;padding:0 14px;border-top:0!important}
+#lunaGameRow:not(:empty)::after,#lunaPrivRow:not(:empty)::after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;padding:1.5px;pointer-events:none;background-size:300% 100%;animation:lunaRowFlow 6s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}
+#lunaGameRow:not(:empty)::after{background-image:linear-gradient(100deg,#f8bfd8 0%,#ffdcc2 25%,#f8bfd8 50%,#ffdcc2 75%,#f8bfd8 100%)}
+#lunaPrivRow:not(:empty)::after{background-image:linear-gradient(100deg,#bccaf6 0%,#d8c0f2 25%,#bccaf6 50%,#d8c0f2 75%,#bccaf6 100%)}
+@keyframes lunaRowFlow{from{background-position:0 0}to{background-position:-300% 0}}
 #lunaGamesWrap{position:fixed;inset:0;z-index:100040;background:#fff1f7;display:flex;align-items:center;justify-content:center;animation:lgIn .25s ease}
 #lunaGamesWrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff1f7}
 #lunaGamesWrap .ld{position:relative;font-size:14px;color:#a0629a;text-align:center}
@@ -44391,10 +44392,10 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
   var URL_ROOM='https://asia-southeast1-sasomboon.cloudfunctions.net/gameRoomManage', SITE='https://lunacalm.app/games/';
   var LS=window.localStorage;
   var X={
-    zh:{t:'情侣游戏',d:'单机或联机都能玩 · 猜杯子、找数字免费，其余会员解锁',login:'请先登录',net:'网络不通，请重试',fail:'打开失败，请重试',off:'情侣游戏暂时关闭',wait:'正在进入…',share:'💞 来和我一起玩小游戏 👉 ',noPP:''},
-    th:{t:'เกมคู่รัก',d:'เล่นคนเดียวหรือออนไลน์ก็ได้ · ทายแก้วและแข่งหาเลขเล่นฟรี เกมอื่นสำหรับสมาชิก',login:'กรุณาเข้าสู่ระบบก่อน',net:'เครือข่ายขัดข้อง ลองใหม่อีกครั้ง',fail:'เปิดไม่สำเร็จ ลองใหม่อีกครั้ง',off:'เกมคู่รักปิดชั่วคราว',wait:'กำลังเข้า…',share:'💞 มาเล่นเกมเล็กๆ กับฉันนะ 👉 '},
-    en:{t:'Couple Games',d:'Solo or online · Cup Guess and Number Rush are free, the rest need Premium',login:'Please sign in first',net:'No connection. Please try again.',fail:'Could not open. Please try again.',off:'Couple Games is temporarily off',wait:'Opening…',share:'💞 Come play a little game with me 👉 '},
-    vi:{t:'Game đôi',d:'Chơi một máy hoặc online · Đoán cốc và Tìm số nhanh miễn phí, game khác dành cho hội viên',login:'Vui lòng đăng nhập trước',net:'Mất kết nối. Vui lòng thử lại.',fail:'Không mở được. Vui lòng thử lại.',off:'Game đôi tạm tắt',wait:'Đang vào…',share:'💞 Cùng chơi game nhỏ với mình nhé 👉 '}
+    zh:{t:'情侣游戏',d:'单机或联机都能玩 · 部分游戏免费，其余会员解锁',login:'请先登录',net:'网络不通，请重试',fail:'打开失败，请重试',off:'情侣游戏暂时关闭',wait:'正在进入…',share:'💞 来和我一起玩小游戏 👉 ',noPP:''},
+    th:{t:'เกมคู่รัก',d:'เล่นคนเดียวหรือออนไลน์ก็ได้ · บางเกมเล่นฟรี เกมอื่นสำหรับสมาชิก',login:'กรุณาเข้าสู่ระบบก่อน',net:'เครือข่ายขัดข้อง ลองใหม่อีกครั้ง',fail:'เปิดไม่สำเร็จ ลองใหม่อีกครั้ง',off:'เกมคู่รักปิดชั่วคราว',wait:'กำลังเข้า…',share:'💞 มาเล่นเกมเล็กๆ กับฉันนะ 👉 '},
+    en:{t:'Couple Games',d:'Solo or online · some games are free, the rest need Premium',login:'Please sign in first',net:'No connection. Please try again.',fail:'Could not open. Please try again.',off:'Couple Games is temporarily off',wait:'Opening…',share:'💞 Come play a little game with me 👉 '},
+    vi:{t:'Game đôi',d:'Chơi một máy hoặc online · một số game miễn phí, game khác dành cho hội viên',login:'Vui lòng đăng nhập trước',net:'Mất kết nối. Vui lòng thử lại.',fail:'Không mở được. Vui lòng thử lại.',off:'Game đôi tạm tắt',wait:'Đang vào…',share:'💞 Cùng chơi game nhỏ với mình nhé 👉 '}
   };
   function L(){ try{ if(LS.getItem('luna_lang')!=='zh') return 'th'; if(LS.getItem('luna_ui_en')==='1') return 'en'; if(LS.getItem('luna_ui_vi')==='1') return 'vi'; }catch(e){} return 'zh'; }
   function T(){ return X[L()]; }
@@ -44464,22 +44465,15 @@ body.theme-moonlotus #lunaOrbRow,body.theme-aurora #lunaOrbRow,body.theme-amber 
   }
   /* 面板（免费看到的介绍页 / 会员看到的设置页）每次整块重画，所以重画后把游戏卡补回去 */
   function inject(){
-    var pt=document.getElementById('lunaPt'); if(!pt) return;
-    var old=document.getElementById('lunaGameCard'), sb=pt.querySelector('.sb'); if(!sb) return;
-    var t=T();
-    if(old){ if(old.getAttribute('data-l')===L()) return; old.parentNode.removeChild(old); }
-    var c=document.createElement('div'); c.className='cd'; c.id='lunaGameCard'; c.setAttribute('data-l',L());
-    c.innerHTML='<div class="gc"><div class="ic">🎮</div><div class="tx"><b>'+t.t+'</b><small>'+t.d+'</small></div><i>›</i></div>';
-    c.onclick=openGames;
-    sb.parentNode.insertBefore(c,sb.nextSibling);
+    var old=document.getElementById('lunaGameCard'); if(old&&old.parentNode) old.parentNode.removeChild(old);
+    var r=document.getElementById('lunaGameRow'); if(!r) return;
+    var t=T(), sig=L();
+    if(r.getAttribute('data-l')===sig&&r.firstChild) return;
+    r.setAttribute('data-l',sig);
+    r.innerHTML='<div id="lunaGameEntry" style="display:flex;align-items:center;gap:12px;padding:14px 0;cursor:pointer;-webkit-tap-highlight-color:transparent"><div style="width:30px;height:30px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,#ffd6ea,#e3d6ff);display:flex;align-items:center;justify-content:center;font-size:17px">🎮</div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">'+t.t+'</div><div style="font-size:12px;opacity:.7;margin-top:2px;line-height:1.45">'+t.d+'</div></div><div style="opacity:.4;font-size:20px">›</div></div>';
+    document.getElementById('lunaGameEntry').onclick=openGames;
   }
-  try{
-    new MutationObserver(function(){
-      var pt=document.getElementById('lunaPt'); if(!pt) return;
-      if(!pt._lgObs){ pt._lgObs=1; new MutationObserver(inject).observe(pt,{childList:true}); }
-      inject();
-    }).observe(document.body,{childList:true});
-  }catch(e){}
+  setInterval(function(){ try{ inject(); }catch(e){} },800);
   window.LunaGames={open:openGames,close:closeFrame,_inject:inject};
 })();
 </script>

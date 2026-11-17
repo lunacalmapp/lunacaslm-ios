@@ -43543,7 +43543,10 @@ window.lunaCollapse=function(el,done,keep){
     h += '<div class="lsf-card">' + PAIR + '<div class="tt">' + esc(tx(T.pt)) + '</div><div class="ss">' + esc(tx(T.ps)) + '</div><button type="button" class="lsf-pill" data-a="partner">' + esc(tx(T.pb)) + '</button><div id="lunaGameRow" style="margin:14px 0 0;text-align:left"></div><div id="lunaPrivRow" style="margin:14px 0 0;text-align:left"></div></div>';
     var name = p.nm || (guest ? tx(T.guest) : 'LUNA');
     h += '<div class="lsf-card"><div class="lsf-prof"><div class="lsf-av">' + (p.av ? '<img alt="" src="' + esc(p.av) + '">' : '🌸') + '</div><div><div class="lsf-nm">' + esc(name) + (pro ? '<span class="lsf-badge">' + esc(tx(T.mem)) + '</span>' : '') + '</div><div class="lsf-ed" data-a="edit">' + esc(tx(T.edit)) + '</div></div>' + (pro ? '' : '<button type="button" class="lsf-pill" data-a="vip">' + esc(tx(T.up)) + '</button>') + '</div></div>';
+    if(host._lsfH === h && host.firstChild) return;   /* 内容没变就不重画：否则滑动时 body 的 class 一变，游戏/私密模式行会被清空再补回来，看起来在跳 */
+    host._lsfH = h;
     host.innerHTML = h;
+    try{ if(window.LunaGames && window.LunaGames._inject) window.LunaGames._inject(); }catch(e){}
     try{ if(window.LunaPrivacy && window.LunaPrivacy.fill) window.LunaPrivacy.fill(); }catch(e){}
     try{ if(window.LunaPreg && window.LunaPreg.post && window.LunaPreg.post.refreshRestoreRow) window.LunaPreg.post.refreshRestoreRow(); }catch(e){}
   }

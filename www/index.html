@@ -26279,7 +26279,7 @@ window.lunaTtcMk = function(c, ic){
 
   <!-- 图例 -->
   <div style="display:flex; flex-wrap:wrap; row-gap:8px; column-gap:14px; padding:8px 20px 6px; font-size:12px; color:var(--cal-fg-muted); align-items:center;">
-    <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:var(--purple);display:inline-block;"></span><span data-i18n="cal_today">วันนี้</span></div>
+    <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;box-sizing:border-box;border-radius:50%;background:var(--purple);display:inline-block;"></span><span data-i18n="cal_today">วันนี้</span></div>
     <div style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:var(--pink);display:inline-block;"></span><span data-i18n="cal_period_day">มีประจำเดือน</span></div>
     <!-- 🤰 怀孕模式的图例项"情绪"（第2块）：粉色圆点，默认隐藏，body.preg-mode 时顶替原来的"月经日" -->
     <div id="pregLegendMood" style="align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:50%;background:var(--pink);display:inline-block;"></span><span id="pregLegendMoodTxt"></span></div>
@@ -44181,6 +44181,9 @@ body.lunaSwiping .lunaFxRing,body.lunaSwiping .lunaFxRing::before{animation-play
 /* 日历页：日期数字颜色做深、字重加一点（月/年标题不动）。浅色主题深一点，深色主题更白更亮 */
 #calPanel .cal-grid{--cal-fg:#1d1830;--cal-disabled-fg:#4a4360}
 #calPanel .cal-grid .cal-day:not(.cal-today):not(.cal-period):not(.preg-mood):not(.ttc-peak){font-weight:600}
+/* 日历页「今天」：保持实心，外面再圈一圈同色细环（中间留一道底色缝） */
+#calPanel .cal-grid .cal-day.cal-today{box-shadow:0 0 0 2.5px var(--cal-bg,#fff),0 0 0 4.2px rgba(var(--purple-rgb),.9)!important}
+#calPanel .cal-grid .cal-day.cal-today.cal-period{box-shadow:0 0 0 2.5px var(--cal-bg,#fff),0 0 0 4.2px #f07fa0!important}
 #calPanel .cal-grid .cal-disabled{opacity:.8}
 body.theme-goldsand #calPanel .cal-grid{--cal-fg:#3a2a10;--cal-disabled-fg:#6a5434}
 body.theme-moonlotus #calPanel .cal-grid,body.theme-aurora #calPanel .cal-grid,body.theme-amber #calPanel .cal-grid{--cal-fg:#ffffff;--cal-disabled-fg:#d9d0f0}

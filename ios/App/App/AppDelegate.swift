@@ -157,20 +157,41 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    // iOS 偶尔会报 "Resource temporarily unavailable"（系统正忙/App 还没完全回到前台），
+    // 所以：已经是目标图标就直接成功；App 不在前台就等一等；失败自动重试几次。
     @objc func setIcon(_ call: CAPPluginCall) {
         let name = call.getString("name") ?? "luna"
+        let target: String? = (name == "luna") ? nil : "Icon-" + name
         DispatchQueue.main.async {
             guard UIApplication.shared.supportsAlternateIcons else {
                 call.reject("alternate icons not supported")
                 return
             }
-            let target: String? = (name == "luna") ? nil : "Icon-" + name
-            UIApplication.shared.setAlternateIconName(target) { error in
-                if let error = error {
-                    call.reject(error.localizedDescription)
+            if UIApplication.shared.alternateIconName == target {
+                call.resolve()
+                return
+            }
+            self.trySetIcon(target, call: call, attempt: 0)
+        }
+    }
+
+    private func trySetIcon(_ target: String?, call: CAPPluginCall, attempt: Int) {
+        let app = UIApplication.shared
+        if app.applicationState != .active && attempt < 6 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.trySetIcon(target, call: call, attempt: attempt + 1) }
+            return
+        }
+        app.setAlternateIconName(target) { error in
+            if let error = error {
+                if attempt < 4 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8 + Double(attempt) * 0.6) {
+                        self.trySetIcon(target, call: call, attempt: attempt + 1)
+                    }
                 } else {
-                    call.resolve()
+                    call.reject(error.localizedDescription)
                 }
+            } else {
+                call.resolve()
             }
         }
     }

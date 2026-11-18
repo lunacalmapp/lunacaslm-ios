@@ -43086,7 +43086,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
     var P=plug(), t=T();
     if(P.LunaAppIcon&&P.LunaAppIcon.setIcon){ if(window.__lunaIconBusy) return; window.__lunaIconBusy=true; var _free=function(){ setTimeout(function(){ window.__lunaIconBusy=false; },1500); };
       var _em=function(e){ try{ var m=(e&&(e.message||e.errorMessage||e.code))||String(e||''); return m?(' ('+String(m).slice(0,80)+')'):''; }catch(x){ return ''; } };
-      var _try=function(n){ try{ P.LunaAppIcon.setIcon({name:id}).then(function(){ _free(); toast(t.done); }).catch(function(e){ if(n<1){ setTimeout(function(){ _try(n+1); },700); } else { _free(); toast(t.fail+_em(e)); } }); }catch(e){ _free(); toast(t.fail+_em(e)); } };
+      var _try=function(n){ try{ P.LunaAppIcon.setIcon({name:id}).then(function(){ _free(); toast(t.done); }).catch(function(e){ if(n<2){ setTimeout(function(){ _try(n+1); },1200+n*1000); } else { _free(); toast(t.fail+_em(e)); } }); }catch(e){ _free(); toast(t.fail+_em(e)); } };
       _try(0); }
     else toast(t.saved);
   }

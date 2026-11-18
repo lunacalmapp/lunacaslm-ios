@@ -9679,6 +9679,7 @@ window.setLang = setLang;
       document.getElementById('trialLockModal')?.remove();
       if (typeof initProFeatures === 'function') initProFeatures();
       if (typeof initThemeLocks === 'function') initThemeLocks();
+      try{ if(typeof window.lunaHrRefresh==='function') setTimeout(window.lunaHrRefresh,300); }catch(e){}
       showToast(isTh ? '🎉 เปิดใช้งานสมาชิกเรียบร้อยแล้ว!' : '🎉 会员已开通！');
       return true;
     } catch (e) {
@@ -25676,7 +25677,9 @@ window.lunaTtcMk = function(c, ic){
     function nPeriods(){ var a = analyse(); if(!a || !a.cycles) return 0; var mm = {}; a.cycles.forEach(function(c){ mm[String(c.key).slice(0, 7)] = 1; }); return Object.keys(mm).length; }  /* 同一个月内不管哪天记经期、记几次，都只算 1 次 */
 
     /* ───── 非会员：只看到一部分（总分 + 前两项），其余锁住；锁住的项里不放任何真实数值 ───── */
-    window.lunaHrUnlock = function(){ try{ var m = document.getElementById('lunaHrModal'); if(m) m.remove(); document.body.style.overflow = ''; }catch(e){} try{ window._lunaPaySrc = 'health_report_full'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} };
+    window.lunaHrUnlock = function(){ try{ window._lunaPaySrc = 'health_report_full'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} try{ window.lunaHrPayOnTop(); }catch(e){} };
+    /* 付费页要盖在报告页上面（报告页层级更高），且不管付款成功与否都留在报告页 */
+    window.lunaHrPayOnTop = function(){ var pm = document.getElementById('vipPaywallModal'); if(pm) pm.style.zIndex = '100010'; };
     window.lunaHrLock = function(html){
       try{
         if(pro()) return html;
@@ -25879,9 +25882,10 @@ window.lunaTtcMk = function(c, ic){
 
     /* ───── 报告页（真实数据） ───── */
     function closeReport(){ var m = document.getElementById('lunaHrModal'); if(m) m.remove(); try{ document.body.style.overflow = ''; }catch(e){} }
+    window.lunaHrRefresh = function(){ try{ if(document.getElementById('lunaHrModal')){ closeReport(); openReport(); } }catch(e){} };   /* 开通会员成功后，报告页原地刷新成已解锁 */
     function needPro(src){
-      closeReport();
       try{ window._lunaPaySrc = src; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){}
+      try{ window.lunaHrPayOnTop(); }catch(e){}
     }
     function openReport(){
       closeReport();
@@ -43080,7 +43084,10 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
   function applyIcon(id){
     try{ LS.setItem(K_ICON,id); }catch(e){}
     var P=plug(), t=T();
-    if(P.LunaAppIcon&&P.LunaAppIcon.setIcon){ try{ P.LunaAppIcon.setIcon({name:id}).then(function(){ toast(t.done); }).catch(function(){ toast(t.fail); }); }catch(e){ toast(t.fail); } }
+    if(P.LunaAppIcon&&P.LunaAppIcon.setIcon){ if(window.__lunaIconBusy) return; window.__lunaIconBusy=true; var _free=function(){ setTimeout(function(){ window.__lunaIconBusy=false; },1500); };
+      var _em=function(e){ try{ var m=(e&&(e.message||e.errorMessage||e.code))||String(e||''); return m?(' ('+String(m).slice(0,80)+')'):''; }catch(x){ return ''; } };
+      var _try=function(n){ try{ P.LunaAppIcon.setIcon({name:id}).then(function(){ _free(); toast(t.done); }).catch(function(e){ if(n<1){ setTimeout(function(){ _try(n+1); },700); } else { _free(); toast(t.fail+_em(e)); } }); }catch(e){ _free(); toast(t.fail+_em(e)); } };
+      _try(0); }
     else toast(t.saved);
   }
   /* ── 颜色（跟随主题） ── */
@@ -44627,10 +44634,20 @@ html.lunaScrolling .lunaRowRing::before{animation-play-state:paused}
     document.getElementById('lpaN').onclick=function(){ done(); d.remove(); };
     document.getElementById('lpaY').onclick=function(){ done(); d.remove(); try{ if(typeof window._fcmEnable==='function') window._fcmEnable().catch(function(){}); }catch(e){} };
   }
+  /* 首页真正显示出来才问：语言选择 / 授权码 / 同意条款 / 新手引导 / 密码锁 任何一个还在，就先别弹 */
+  function homeReady(){
+    try{
+      var de=document.documentElement; if(de.classList.contains('luna-locked')||de.classList.contains('ob-first')) return false;
+      var ids=['langGate','onboardGate','codeGate','consentOverlay','legalOverlay','lunaLock'];
+      for(var i=0;i<ids.length;i++){ var e=document.getElementById(ids[i]); if(!e) continue; var cs=getComputedStyle(e); if(cs.display!=='none'&&cs.visibility!=='hidden'&&e.offsetWidth>0&&e.offsetHeight>0) return false; }
+      return true;
+    }catch(e){ return false; }
+  }
   function tryAsk(){
     try{
       if(!native()||LS.getItem('luna_push_asked')||!LS.getItem('luna_onboard_seen')) return;
       if(document.documentElement.classList.contains('ob-first')) return;
+      if(!homeReady()) return;
       var PN=window.Capacitor.Plugins&&window.Capacitor.Plugins.PushNotifications; if(!PN) return;
       PN.checkPermissions().then(function(p){
         if(p.receive==='prompt'||p.receive==='prompt-with-rationale'){ if(!document.getElementById('lunaPushAskBox')) show(); }
@@ -44638,5 +44655,5 @@ html.lunaScrolling .lunaRowRing::before{animation-play-state:paused}
       }).catch(function(){});
     }catch(e){}
   }
-  setTimeout(tryAsk,9000); setTimeout(tryAsk,60000);
+  var _n=0, _iv=setInterval(function(){ _n++; if(LS.getItem('luna_push_asked')||document.getElementById('lunaPushAskBox')||_n>180){ clearInterval(_iv); return; } tryAsk(); },5000);   /* 每 5 秒看一次，首页出来后才会问，最多等 15 分钟 */
 })();</script>

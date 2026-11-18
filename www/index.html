@@ -5657,6 +5657,22 @@ if(!_isNativeApp){
 }
 
 // 申请通知权限 + 取 FCM token + 存进当前用户的 Firebase 节点
+// 📱 按「手机」登记推送令牌（不依赖账号）：没登录的人也能被推送。写到 deviceTokens/<令牌指纹>，用户关通知时会删掉。
+window._lunaDevTok = async function(token){
+  try{
+    if(!token || !window._fb) return;
+    if(localStorage.getItem('luna_push_off') === '1') return;
+    var h1 = 5381, h2 = 52711, i, c;
+    for(i = 0; i < token.length; i++){ c = token.charCodeAt(i); h1 = ((h1 << 5) + h1 + c) >>> 0; h2 = (((h2 << 5) + h2) ^ c) >>> 0; }
+    var id = h1.toString(36) + h2.toString(36) + token.length.toString(36);
+    localStorage.setItem('luna_dev_tid', id);
+    var pf = ''; try{ pf = window.Capacitor.getPlatform(); }catch(e){}
+    await window._fb.set('deviceTokens/' + id, { t: token, p: (pf === 'ios' ? 'ios' : 'apk'), at: Date.now() });
+  }catch(e){ console.warn('devTok', e); }
+};
+window._lunaDevTokOff = async function(){
+  try{ var id = localStorage.getItem('luna_dev_tid'); if(id && window._fb && window._fb.remove) await window._fb.remove('deviceTokens/' + id); localStorage.removeItem('luna_dev_tid'); }catch(e){}
+};
 window._fcmEnable = async function(){
   const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   // ── 原生 App：用 Capacitor 插件申请系统通知权限 + 拿原生 FCM token ──
@@ -5673,6 +5689,7 @@ window._fcmEnable = async function(){
       if(permStatus.receive !== 'granted') return { ok:false, reason:'denied' };
       const token = await _nativeGetPushToken();
       if(!token) return { ok:false, reason:'no-token' };
+      try{ await window._lunaDevTok(token); }catch(e){}
       const uid = localStorage.getItem('luna_uid');
       if(uid && window._fb){
         const u = await window._fb.get('users/' + uid).catch(()=>null);
@@ -5712,6 +5729,7 @@ window._fcmEnable = async function(){
 // 拿当前最新 token，若和 Firebase 里存的不一样就更新。
 // 解决「token 自己刷新了但没存回，后端拿旧 token 推不到」的问题。
 window._fcmSyncToken = async function(){
+  try{ if(localStorage.getItem('luna_push_off') === '1') return; }catch(e){}
   const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   if(isNativeApp){
     try {
@@ -5719,10 +5737,11 @@ window._fcmSyncToken = async function(){
       if(!PN) return;
       const permStatus = await PN.checkPermissions();
       if(permStatus.receive !== 'granted') return; // 静默同步：没权限就不打扰用户
-      const uid = localStorage.getItem('luna_uid');
-      if(!uid || !window._fb) return;
       const token = await _nativeGetPushToken();
       if(!token) return;
+      try{ await window._lunaDevTok(token); }catch(e){}   // 没登录也登记这台手机
+      const uid = localStorage.getItem('luna_uid');
+      if(!uid || !window._fb) return;
       const u = await window._fb.get('users/' + uid).catch(()=>null);
       if(!u || u.evicted === true) return;
       if(u.fcmToken !== token){
@@ -22043,7 +22062,7 @@ window.setLang = setLang;
           if(!r){ saveReminderPrefs().catch(()=>{}); } // 没有就补存
         }).catch(()=>{});
         if(typeof window._lunaCheckAccountAlive === 'function') window._lunaCheckAccountAlive();
-      }
+      } else if(window._fb && typeof window._fcmSyncToken === 'function'){ window._fcmSyncToken(); }   // 没登录：只登记这台手机的推送令牌
     } catch(e){}
   }, 4000);
 
@@ -25883,6 +25902,7 @@ window.lunaTtcMk = function(c, ic){
           + (n >= 1 ? '<div style="margin:16px 0 8px;text-align:center;"><span style="display:inline-block;font-size:12px;font-weight:700;color:#7c5cbf;background:rgba(124,92,191,.12);padding:5px 14px;border-radius:20px;">' + T('示例数据，不是你的记录', 'ข้อมูลตัวอย่าง ไม่ใช่ข้อมูลของคุณ') + '</span></div>' + carousel(HS()._sample(), true) + '<div style="font-size:11.5px;text-align:center;color:#8b84a0;margin-top:10px;">' + T('记满 3 次月经后，这里会显示你自己的报告。', 'เมื่อบันทึกครบ 3 ครั้ง รายงานของคุณจะแสดงที่นี่') + '</div>' : '') + (histCount() > 0 ? histBtn() : '');
       } else {
         body = '<div style="margin:6px 0;">' + carousel(model(), false) + '</div>'
+          + '<div style="display:flex;align-items:center;justify-content:center;gap:9px;margin:12px 0 2px;flex-wrap:wrap;"><span style="font-size:12px;color:#8b84a0;margin-right:2px;">' + T('PDF 颜色', 'สี PDF') + '</span>' + hrSw() + '</div>'
           + '<button id="lunaHrPdf" style="display:block;width:100%;padding:15px;margin:14px 0 10px;border:none;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">📄 ' + T('保存健康报告 PDF', 'บันทึกรายงานสุขภาพ PDF') + (isPro ? '' : ' 👑') + '</button>'
           + '<button id="lunaHrDoc" style="display:block;width:100%;padding:13px;border:1px solid rgba(124,92,191,.3);border-radius:16px;background:transparent;color:#7c5cbf;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;">🩺 ' + T('医生报告 PDF（可给医生看）', 'รายงานสำหรับพบแพทย์ PDF') + (isPro ? '' : ' 👑') + '</button>'
           + '<div style="font-size:11px;line-height:1.7;color:#8b84a0;text-align:center;margin:10px 4px 0;">' + T('PDF 只在你的手机上生成，不会上传。', 'สร้าง PDF บนเครื่องของคุณเท่านั้น ไม่อัปโหลด') + '</div>'
@@ -25899,6 +25919,7 @@ window.lunaTtcMk = function(c, ic){
       var hbt = document.getElementById('lunaHrHistBtn'); if(hbt) hbt.onclick = openHist;
       document.getElementById('lunaHrX').onclick = closeReport;
       var b1 = document.getElementById('lunaHrPdf'), b2 = document.getElementById('lunaHrDoc');
+      Array.prototype.forEach.call(m.querySelectorAll('[data-hrsw]'), function(el){ el.onclick = function(){ try{ localStorage.setItem('luna_hr_pdf_style', el.getAttribute('data-hrsw')); }catch(e){} var row = el.parentNode, cur = hrPal(); Array.prototype.forEach.call(row.querySelectorAll('[data-hrsw]'), function(o){ var p = HR_PAL.filter(function(q){ return q.id === o.getAttribute('data-hrsw'); })[0]; o.style.boxShadow = '0 0 0 ' + (p.id === cur.id ? '2.5px ' + p.ac : '1px rgba(0,0,0,.12)'); }); }; });
       if(b1) b1.onclick = function(){ if(!pro()) return needPro('health_report_pdf'); saveHealthPdf(); };
       if(b2) b2.onclick = function(){ if(!pro()) return needPro('doctor_report_pdf'); closeReport(); try{ DR().open(); }catch(e){} };
       try{ if(typeof window.trackEvent === 'function') window.trackEvent('health_report_open'); }catch(e){}
@@ -25922,53 +25943,76 @@ window.lunaTtcMk = function(c, ic){
       }
       if(line) out.push(line); return out;
     }
+    var HR_PAL = [
+      {id:'theme', a:'#7c5cbf', b:'#c47ab0', fg:'#ffffff', ac:'#7c5cbf', ac2:'#e98ab0', c1:'#9d7bd6'},
+      {id:'blush', a:'#ffe6ee', b:'#ffc2d6', fg:'#6b2a4a', ac:'#e8508a', ac2:'#f7a1c0', c1:'#f7a1c0'},
+      {id:'mint',  a:'#dcf7ec', b:'#a9e6cf', fg:'#1f5043', ac:'#12988b', ac2:'#58c9bd', c1:'#58c9bd'},
+      {id:'sky',   a:'#e0eeff', b:'#b3d2ff', fg:'#23406b', ac:'#3d7fe0', ac2:'#8bb8f5', c1:'#8bb8f5'},
+      {id:'lav',   a:'#eee6ff', b:'#cbbbff', fg:'#41307e', ac:'#7c5cbf', ac2:'#b49bf0', c1:'#b49bf0'},
+      {id:'butter',a:'#fff4d6', b:'#ffd88e', fg:'#6b4a12', ac:'#d99a1e', ac2:'#f2c46a', c1:'#f2c46a'},
+      {id:'night', a:'#2d2160', b:'#6a45b8', fg:'#ffffff', ac:'#6a45b8', ac2:'#9d7bd6', c1:'#9d7bd6'}
+    ];
+    function hrPal(){ var id = 'theme'; try{ id = localStorage.getItem('luna_hr_pdf_style') || 'theme'; }catch(e){} for(var i = 0; i < HR_PAL.length; i++) if(HR_PAL[i].id === id) return HR_PAL[i]; return HR_PAL[0]; }
+    function hexA(h, al){ var n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + al + ')'; }
+    function hrSw(){ var cur = hrPal().id, h = ''; HR_PAL.forEach(function(p){ var bg = 'linear-gradient(135deg,' + p.a + ',' + p.b + ')'; h += '<span data-hrsw="' + p.id + '" style="width:30px;height:30px;border-radius:50%;background:' + bg + ';border:2px solid #fff;box-shadow:0 0 0 ' + (p.id === cur ? '2.5px ' + p.ac : '1px rgba(0,0,0,.12)') + ';display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff;cursor:pointer;">' + (p.id === 'theme' ? '✦' : '') + '</span>'; }); return h; }
     function drawPdf(a, mo){
-      var W = 1240, H = 1754, M = 90, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      var P = hrPal();
+      var W = 1240, H = 1754, M = 80, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
       var c = cv.getContext('2d'), y = 0, i, k;
       c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
-      var g = c.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#7c5cbf'); g.addColorStop(1, '#c47ab0');
-      c.fillStyle = g; c.fillRect(0, 0, W, 230);
-      c.fillStyle = '#fff'; c.textBaseline = 'alphabetic'; c.font = '700 56px ' + FF; c.textAlign = 'left';
-      c.fillText('🌸 ' + X(T('经期健康报告', 'รายงานสุขภาพรอบเดือน')), M, 112);
-      c.font = '400 28px ' + FF; c.globalAlpha = .9;
+      var g = c.createLinearGradient(0, 0, W, 0); g.addColorStop(0, P.a); g.addColorStop(1, P.b);
+      c.fillStyle = g; c.fillRect(0, 0, W, 220);
+      c.fillStyle = P.fg; c.textBaseline = 'alphabetic'; c.font = '700 68px ' + FF; c.textAlign = 'left';
+      c.fillText('🌸 ' + X(T('经期健康报告', 'รายงานสุขภาพรอบเดือน')), M, 106);
+      c.font = '400 33px ' + FF; c.globalAlpha = .92;
       var d = a.today, ds = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-      c.fillText('Luna Calm · ' + ds + ' · ' + X(T('基于 ' + mo.nCycles + ' 个周期、' + mo.logDays + ' 天记录', 'จาก ' + mo.nCycles + ' รอบ บันทึก ' + mo.logDays + ' วัน')), M, 172); c.globalAlpha = 1;
+      var hs = wrap(c, 'Luna Calm · ' + ds + ' · ' + X(T('基于 ' + mo.nCycles + ' 个周期、' + mo.logDays + ' 天记录', 'จาก ' + mo.nCycles + ' รอบ บันทึก ' + mo.logDays + ' วัน')), W - 2 * M);
+      c.fillText(hs[0], M, 172); c.globalAlpha = 1;
       // 评分圆环
-      var cx = 300, cy = 470, R = 150, col = mo.level.c;
-      c.lineWidth = 34; c.strokeStyle = 'rgba(124,92,191,.14)'; c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.stroke();
+      var cx = 270, cy = 410, R = 130, col = mo.level.c;
+      c.lineWidth = 32; c.strokeStyle = hexA(P.ac, .14); c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.stroke();
       c.strokeStyle = col; c.lineCap = 'round'; c.beginPath(); c.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * mo.total / 100); c.stroke();
-      c.fillStyle = col; c.textAlign = 'center'; c.font = '800 100px ' + FF; c.fillText(String(mo.total), cx, cy + 30);
-      c.fillStyle = '#8b84a0'; c.font = '400 28px ' + FF; c.fillText(X(T('参考分', 'คะแนน')), cx, cy + 78);
-      c.textAlign = 'left'; c.fillStyle = col; c.font = '800 64px ' + FF; c.fillText(mo.level.t, 560, 440);
-      c.fillStyle = '#8b84a0'; c.font = '400 28px ' + FF;
-      var sub = wrap(c, X(T('分数由你自己记录的数据按固定规则算出，只是参考，不是诊断。', 'คะแนนคำนวณจากข้อมูลที่คุณบันทึกตามกฎคงที่ ใช้อ้างอิงเท่านั้น ไม่ใช่การวินิจฉัย')), W - 560 - M);
-      for(i = 0; i < sub.length; i++) c.fillText(sub[i], 560, 490 + i * 42);
-      // 各项
-      y = 720;
-      for(i = 0; i < mo.metrics.length; i++){
-        var x = mo.metrics[i];
-        c.fillStyle = '#2d2640'; c.font = '700 34px ' + FF; c.textAlign = 'left'; c.fillText(X(x.n), M, y);
-        c.textAlign = 'right'; c.fillStyle = '#7c5cbf'; c.fillText(x.s === null ? '–' : String(x.s), W - M, y);
-        c.fillStyle = 'rgba(124,92,191,.14)'; c.fillRect(M + 400, y - 24, W - 2 * M - 400 - 80, 16);
-        if(x.s !== null){ var gg = c.createLinearGradient(M + 400, 0, W - M - 80, 0); gg.addColorStop(0, '#9d7bd6'); gg.addColorStop(1, '#e98ab0'); c.fillStyle = gg; c.fillRect(M + 400, y - 24, (W - 2 * M - 400 - 80) * x.s / 100, 16); }
-        c.textAlign = 'left'; c.fillStyle = '#6b6585'; c.font = '400 27px ' + FF;
-        var nl = wrap(c, X(x.note), W - 2 * M);
-        for(k = 0; k < nl.length; k++) c.fillText(nl[k], M, y + 44 + k * 38);
-        y += 44 + nl.length * 38 + 46;
+      c.fillStyle = col; c.textAlign = 'center'; c.font = '800 96px ' + FF; c.fillText(String(mo.total), cx, cy + 26);
+      c.fillStyle = '#8b84a0'; c.font = '400 32px ' + FF; c.fillText(X(T('参考分', 'คะแนน')), cx, cy + 74);
+      c.textAlign = 'left'; c.fillStyle = col; c.font = '800 74px ' + FF; c.fillText(mo.level.t, 500, 380);
+      c.fillStyle = '#6b6585'; c.font = '400 33px ' + FF;
+      var sub = wrap(c, X(T('分数由你自己记录的数据按固定规则算出，只是参考，不是诊断。', 'คะแนนคำนวณจากข้อมูลที่คุณบันทึกตามกฎคงที่ ใช้อ้างอิงเท่านั้น ไม่ใช่การวินิจฉัย')), W - 500 - M);
+      for(i = 0; i < sub.length; i++) c.fillText(sub[i], 500, 436 + i * 46);
+      // 各项 + 重点关注：内容太多时整体缩小一点，保证一页放得下（先量后画）
+      function body(u, draw){
+        var yy = 640, ii, kk;
+        for(ii = 0; ii < mo.metrics.length; ii++){
+          var x = mo.metrics[ii];
+          if(draw){
+            c.fillStyle = '#2d2640'; c.font = '700 ' + Math.round(42 * u) + 'px ' + FF; c.textAlign = 'left'; c.fillText(X(x.n), M, yy);
+            c.textAlign = 'right'; c.fillStyle = P.ac; c.fillText(x.s === null ? '–' : String(x.s), W - M, yy);
+            c.fillStyle = hexA(P.ac, .14); c.fillRect(M + 330, yy - 26, W - 2 * M - 330 - 90, 18);
+            if(x.s !== null){ var gg = c.createLinearGradient(M + 330, 0, W - M - 90, 0); gg.addColorStop(0, P.c1); gg.addColorStop(1, P.ac); c.fillStyle = gg; c.fillRect(M + 330, yy - 26, (W - 2 * M - 330 - 90) * x.s / 100, 18); }
+          }
+          c.textAlign = 'left'; c.fillStyle = '#4f4966'; c.font = '400 ' + Math.round(34 * u) + 'px ' + FF;
+          var nl = wrap(c, X(x.note), W - 2 * M), lh = Math.round(48 * u);
+          if(draw) for(kk = 0; kk < nl.length; kk++) c.fillText(nl[kk], M, yy + 52 * u + kk * lh);
+          yy += 52 * u + nl.length * lh + 40 * u;
+        }
+        yy += 4; c.font = '400 ' + Math.round(34 * u) + 'px ' + FF;
+        var nls = [], tot = 0;
+        for(ii = 0; ii < mo.notes.length; ii++){ var tl = wrap(c, (mo.notes[ii].bad ? '• ' : '✓ ') + X(mo.notes[ii].t), W - 2 * M - 56); nls.push(tl); tot += tl.length; }
+        var nlh = Math.round(50 * u), bh = 96 * u + tot * nlh + mo.notes.length * 8 * u;
+        if(draw){
+          c.fillStyle = hexA(P.ac, .09); c.fillRect(M, yy, W - 2 * M, bh);
+          c.fillStyle = '#2d2640'; c.font = '700 ' + Math.round(40 * u) + 'px ' + FF; c.fillText(X(T('重点关注', 'สิ่งที่ควรสังเกต')), M + 28, yy + 58 * u);
+          c.fillStyle = '#4f4966'; c.font = '400 ' + Math.round(34 * u) + 'px ' + FF; var ny = yy + 112 * u;
+          for(ii = 0; ii < nls.length; ii++){ for(kk = 0; kk < nls[ii].length; kk++){ c.fillText(nls[ii][kk], M + 28, ny); ny += nlh; } ny += 8 * u; }
+        }
+        return yy + bh;
       }
-      // 重点关注
-      y += 6; var bh = 70 + mo.notes.length * 46;
-      c.fillStyle = 'rgba(124,92,191,.08)'; c.fillRect(M, y, W - 2 * M, bh);
-      c.fillStyle = '#2d2640'; c.font = '700 32px ' + FF; c.fillText(X(T('重点关注', 'สิ่งที่ควรสังเกต')), M + 28, y + 50);
-      c.font = '400 28px ' + FF;
-      for(i = 0; i < mo.notes.length; i++){
-        var tl = wrap(c, (mo.notes[i].bad ? '• ' : '✓ ') + X(mo.notes[i].t), W - 2 * M - 56);
-        c.fillText(tl[0], M + 28, y + 98 + i * 46);
-      }
+      var u = 1, us = [1, .93, .86, .8, .74, .68];
+      for(i = 0; i < us.length; i++){ u = us[i]; if(body(u, false) <= H - 190) break; }
+      body(u, true);
       // 页脚
-      c.fillStyle = '#8b84a0'; c.font = '400 24px ' + FF; c.textAlign = 'center';
+      c.fillStyle = '#7a7390'; c.font = '400 29px ' + FF; c.textAlign = 'center';
       var ft = wrap(c, X(T('本报告仅供个人参考，不能替代医生的诊断或建议。如果连续几个周期都不规律，或不适明显，建议咨询医生。Luna Calm 不是医疗器械。', 'รายงานนี้ใช้อ้างอิงส่วนตัวเท่านั้น ไม่สามารถใช้แทนการวินิจฉัยหรือคำแนะนำของแพทย์ หากรอบเดือนไม่สม่ำเสมอต่อเนื่องหลายรอบ หรือมีอาการไม่สบายชัดเจน ควรปรึกษาแพทย์ Luna Calm ไม่ใช่อุปกรณ์ทางการแพทย์')), W - 2 * M);
-      for(i = 0; i < ft.length; i++) c.fillText(ft[i], W / 2, H - 120 + i * 34);
+      for(i = 0; i < ft.length; i++) c.fillText(ft[i], W / 2, H - 40 - (ft.length - 1 - i) * 40);
       return cv;
     }
     function saveHealthPdf(){
@@ -42924,7 +42968,8 @@ body.preg-mode #lunaRecapEntry,body.pp-mode #lunaRecapEntry{display:none!importa
   function $(id){ return document.getElementById(id); }
   var SV={};
 function petal(rot,cx,cy,d,fill){ return '<path d="'+d+'" fill="'+fill+'" transform="rotate('+rot+' '+cx+' '+cy+')"/>'; }
-SV.luna='<defs><mask id="lm"><rect width="100" height="100" fill="#000"/><circle cx="47" cy="52" r="29" fill="#fff"/><circle cx="62" cy="43" r="25" fill="#000"/></mask><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffe3f1"/></linearGradient></defs><rect width="100" height="100" fill="url(#lg)" mask="url(#lm)"/><path d="M74 24 C75 30 78 33 84 34 C78 35 75 38 74 44 C73 38 70 35 64 34 C70 33 73 30 74 24Z" fill="#fff"/><circle cx="66" cy="70" r="2.5" fill="#fff" opacity=".8"/>';
+SV.luna='<defs><linearGradient id="bdb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a587e6"/><stop offset="1" stop-color="#7a59c2"/></linearGradient></defs><g transform="scale(.09766)"><rect x="105" y="190" width="814" height="730" rx="140" fill="#fff"/><path d="M105 330 a140 140 0 0 1 140-140 h534 a140 140 0 0 1 140 140 v30 h-814z" fill="url(#bdb)"/><rect x="315" y="110" width="76" height="160" rx="38" fill="#5a3fa0"/><rect x="633" y="110" width="76" height="160" rx="38" fill="#5a3fa0"/><text x="285" y="610" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">15</text><text x="512" y="610" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">16</text><text x="739" y="610" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">17</text><circle cx="285" cy="758" r="98" fill="#e8508a"/><text x="285" y="810" fill="#fff" text-anchor="middle" font-size="150" font-weight="800">18</text><text x="512" y="810" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">19</text><text x="739" y="810" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">20</text></g>';
+SV.cal2='<defs><linearGradient id="bda" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6779a"/><stop offset="1" stop-color="#e04477"/></linearGradient></defs><g transform="scale(.09766)"><rect x="105" y="190" width="814" height="730" rx="140" fill="#fff"/><path d="M105 330 a140 140 0 0 1 140-140 h534 a140 140 0 0 1 140 140 v30 h-814z" fill="url(#bda)"/><rect x="315" y="110" width="76" height="160" rx="38" fill="#b8285a"/><rect x="633" y="110" width="76" height="160" rx="38" fill="#b8285a"/><text x="285" y="610" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">15</text><text x="512" y="610" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">16</text><text x="739" y="610" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">17</text><circle cx="285" cy="758" r="98" fill="#ef5185"/><text x="285" y="810" fill="#fff" text-anchor="middle" font-size="150" font-weight="800">18</text><text x="512" y="810" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">19</text><text x="739" y="810" fill="#4a3a56" text-anchor="middle" font-size="150" font-weight="700">20</text></g>';
 SV.drop='<defs><linearGradient id="dg" x1="0.2" y1="0" x2="0.7" y2="1"><stop offset="0" stop-color="#ff8497"/><stop offset=".55" stop-color="#ee3d63"/><stop offset="1" stop-color="#c41c4a"/></linearGradient></defs><path d="M50 14 C50 14 25 44 25 60 A25 25 0 0 0 75 60 C75 44 50 14 50 14Z" fill="url(#dg)"/><path d="M37 60 C37 66 40 71 45 74" stroke="#fff" stroke-width="4.5" stroke-linecap="round" fill="none" opacity=".75"/><ellipse cx="40" cy="47" rx="3" ry="6" fill="#fff" opacity=".35" transform="rotate(25 40 47)"/>';
 var pet="M50 52 C40 42 34 28 41 17 C45 19 48 22 50 26 C52 22 55 19 59 17 C66 28 60 42 50 52Z";
 SV.sakura='<defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe6ee"/><stop offset=".6" stop-color="#ffa6c1"/><stop offset="1" stop-color="#f4668f"/></linearGradient></defs>'+[0,72,144,216,288].map(function(r){return petal(r,50,52,pet,'url(#sg)');}).join('')+'<circle cx="50" cy="52" r="5" fill="#f0507f"/>'+[0,72,144,216,288].map(function(r){var a=r*Math.PI/180;return '<circle cx="'+(50+11*Math.sin(a)).toFixed(1)+'" cy="'+(52-11*Math.cos(a)).toFixed(1)+'" r="2" fill="#f0507f"/>';}).join('');
@@ -42956,7 +43001,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
   var GCNT=0;
   function glyph(id){ if(!SV[id]) return ''; var n=++GCNT; var inner=SV[id].replace(/id="([a-z0-9]+)"/g,'id="$1_'+n+'"').replace(/url\(#([a-z0-9]+)\)/g,'url(#$1_'+n+')'); return '<svg viewBox="0 0 100 100" width="100%" height="100%" style="display:block">'+inner+'</svg>'; }
   var ICONS=[
-    ['p','luna','linear-gradient(135deg,#8f6fd6,#e58bb8)'],['p','drop','linear-gradient(160deg,#fff6f7,#ffd5dc)'],['p','sakura','linear-gradient(160deg,#fff0f5,#ffc9db)'],['p','phase','linear-gradient(160deg,#4d409a,#262060)'],['p','cal','linear-gradient(160deg,#fff3f6,#ffd6e1)'],['p','daisy','linear-gradient(160deg,#f1fbe9,#cdeebd)'],['p','tea','linear-gradient(160deg,#fff5e3,#ffdcae)'],['p','moonsleep','linear-gradient(160deg,#eee4ff,#ffd6ea)'],['p','berry','linear-gradient(160deg,#fff0f2,#ffd2da)'],['p','paw','linear-gradient(160deg,#fff0f6,#ffcfe2)'],
+    ['p','luna','linear-gradient(135deg,#8f6fd6,#e58bb8)'],['p','drop','linear-gradient(160deg,#fff6f7,#ffd5dc)'],['p','sakura','linear-gradient(160deg,#fff0f5,#ffc9db)'],['p','phase','linear-gradient(160deg,#4d409a,#262060)'],['p','cal','linear-gradient(160deg,#fff3f6,#ffd6e1)'],['p','cal2','linear-gradient(160deg,#fff0f4,#ffd2de)'],['p','daisy','linear-gradient(160deg,#f1fbe9,#cdeebd)'],['p','tea','linear-gradient(160deg,#fff5e3,#ffdcae)'],['p','moonsleep','linear-gradient(160deg,#eee4ff,#ffd6ea)'],['p','berry','linear-gradient(160deg,#fff0f2,#ffd2da)'],['p','paw','linear-gradient(160deg,#fff0f6,#ffcfe2)'],
     ['t','sprout','linear-gradient(160deg,#eefcf2,#bfeccf)'],['t','butter','linear-gradient(160deg,#eef5ff,#d6cdff)'],['t','star','linear-gradient(160deg,#fff6dd,#ffdf9f)'],['t','lotus','linear-gradient(160deg,#e9f8f3,#cdeaf3)'],
     ['g','heart','linear-gradient(160deg,#fff1f6,#ffd2e2)'],['g','baby','linear-gradient(160deg,#fff4e4,#ffe0bd)'],['g','bottle','linear-gradient(160deg,#ecf6ff,#cfe4fb)'],['g','preg','linear-gradient(160deg,#a687e8,#7a59c2)'],['g','cloud','linear-gradient(160deg,#e1f1ff,#b8d9fb)'],
     ['d','calc','linear-gradient(160deg,#5a5a66,#2b2b33)'],['d','wx','linear-gradient(160deg,#6db3f5,#9bd5ff)'],['d','note','linear-gradient(160deg,#ffe892,#ffc84f)'],['d','clock','linear-gradient(160deg,#3a3a4a,#1f1f2a)'],['d','fit','linear-gradient(160deg,#79dca8,#2fb27a)']
@@ -42969,7 +43014,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       setPin:'设置 4 位 PIN', again:'再输入一次确认', mismatch:'两次不一样，请重来', oldPin:'输入当前 PIN', newPin:'输入新的 PIN', wrong:'PIN 不对', many:'错误次数太多，请 30 秒后再试', left:'PIN 不对，还剩 {n} 次机会', exT:'输错次数已用完', exM:'为了保护你的隐私，请 30 秒后再试。如果忘记了 PIN，可以重置（登录用户的记录在云端，不会丢）。', exOk:'知道了', unlock:'输入 PIN 解锁', forgot:'忘记 PIN？', bioBtn:'用 Face ID / 指纹解锁',bioShort:'用 {x}',bioRetry:'再试一次 · 还剩 {n} 次',bioMiss:'没认出来，可以再试一次，或输入 PIN',doneT:'验证失败 5 次，请输入 PIN',fpName:'指纹', cancel:'取消', now:'当前', turnOff:'输入 PIN 关闭应用锁',
       fgT:'忘记 PIN', fgM:'将退出登录，并清除这台手机上的本地数据。你的记录已经保存在云端，用同一个账号重新登录就能找回。', fgG:'你现在是访客，数据只保存在这台手机上。重置 PIN 会清空本机全部数据，且无法找回。', fgOk:'确认重置', guestNote:'👤 访客需先登录账号才能开启应用锁（忘记 PIN 时可靠云端找回数据）。',
       g:{p:'经期',t:'备孕',g:'怀孕',d:'伪装'},
-      n:{luna:'LUNA',drop:'水滴',sakura:'樱花',phase:'月相',cal:'月历',daisy:'雏菊',tea:'红糖茶',moonsleep:'月亮晚安',berry:'草莓',paw:'猫爪',sprout:'嫩芽',butter:'蝴蝶',star:'星愿',lotus:'荷花',heart:'爱心',baby:'宝宝',bottle:'奶瓶',preg:'孕期',cloud:'云朵',calc:'计算器',wx:'天气',note:'备忘',clock:'时钟',fit:'健身'} },
+      n:{luna:'LUNA',drop:'水滴',sakura:'樱花',phase:'月相',cal:'月历',cal2:'数字月历',daisy:'雏菊',tea:'红糖茶',moonsleep:'月亮晚安',berry:'草莓',paw:'猫爪',sprout:'嫩芽',butter:'蝴蝶',star:'星愿',lotus:'荷花',heart:'爱心',baby:'宝宝',bottle:'奶瓶',preg:'孕期',cloud:'云朵',calc:'计算器',wx:'天气',note:'备忘',clock:'时钟',fit:'健身'} },
     th:{ title:'โหมดส่วนตัว', vip:' สมาชิก', on:'เปิดล็อกแอปอยู่', off:'ล็อกแอป · เปลี่ยนไอคอน', sub:'ไม่อยากให้คนอื่นเห็นว่าคุณใช้แอปนี้? ที่นี่ล็อกแอปและเปลี่ยนไอคอนหน้าจอได้',
       lockT:'ล็อกแอป', lockD:'ต้องยืนยันตัวตนทุกครั้งที่เปิด LUNA', bioT:'ใช้ Face ID / ลายนิ้วมือ', bioD:'ใช้ระบบของมือถือ แอปไม่เห็นใบหน้าหรือลายนิ้วมือของคุณ', pinT:'เปลี่ยน PIN', pinD:'ตัวเลข 4 หลัก', hideT:'ซ่อนหน้าจอเมื่อสลับแอป', hideD:'มองไม่เห็นเนื้อหาในหน้าสลับแอป',
       icT:'ไอคอนหน้าจอ', icD:'เลือกแบบที่ชอบ หรือแบบที่ไม่เด่นก็ได้', freeT:'ฟรี', noteA:'Android: เปลี่ยนเฉพาะไอคอน ชื่อไม่เปลี่ยน แอปอาจปิดไปสักครู่ตอนสลับ', noteI:'iOS: เปลี่ยนได้เฉพาะไอคอน ชื่อยังเป็น LUNA Calm และระบบจะแจ้งว่า “เปลี่ยนไอคอนแล้ว”',
@@ -42977,7 +43022,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       setPin:'ตั้ง PIN 4 หลัก', again:'ใส่อีกครั้งเพื่อยืนยัน', mismatch:'ไม่ตรงกัน เริ่มใหม่นะ', oldPin:'ใส่ PIN ปัจจุบัน', newPin:'ใส่ PIN ใหม่', wrong:'PIN ไม่ถูกต้อง', many:'ผิดหลายครั้งเกินไป ลองใหม่ใน 30 วินาที', left:'PIN ไม่ถูกต้อง เหลืออีก {n} ครั้ง', exT:'ใส่ผิดครบจำนวนครั้งแล้ว', exM:'เพื่อความเป็นส่วนตัว กรุณารอ 30 วินาทีแล้วลองใหม่ ถ้าลืม PIN สามารถรีเซ็ตได้ (ผู้ที่ล็อกอินไว้ ข้อมูลอยู่บนคลาวด์ ไม่หาย)', exOk:'เข้าใจแล้ว', unlock:'ใส่ PIN เพื่อปลดล็อก', forgot:'ลืม PIN?', bioBtn:'ปลดล็อกด้วย Face ID / ลายนิ้วมือ',bioShort:'ใช้ {x}',bioRetry:'ลองอีกครั้ง · เหลือ {n} ครั้ง',bioMiss:'สแกนไม่ผ่าน ลองอีกครั้งหรือใส่ PIN',doneT:'สแกนไม่ผ่าน 5 ครั้ง กรุณาใส่ PIN',fpName:'ลายนิ้วมือ', cancel:'ยกเลิก', now:'ใช้อยู่', turnOff:'ใส่ PIN เพื่อปิดล็อกแอป',
       fgT:'ลืม PIN', fgM:'จะออกจากระบบและล้างข้อมูลในเครื่องนี้ ข้อมูลของคุณเก็บไว้บนคลาวด์แล้ว เข้าสู่ระบบด้วยบัญชีเดิมก็จะกลับมา', fgG:'ตอนนี้คุณเป็นผู้เยี่ยมชม ข้อมูลอยู่ในเครื่องนี้เท่านั้น การรีเซ็ต PIN จะล้างข้อมูลทั้งหมดและกู้คืนไม่ได้', fgOk:'ยืนยันรีเซ็ต', guestNote:'👤 ผู้เยี่ยมชมต้องเข้าสู่ระบบก่อนจึงจะเปิดล็อกแอปได้ (ถ้าลืม PIN ข้อมูลกู้คืนได้จากคลาวด์)',
       g:{p:'ประจำเดือน',t:'เตรียมตั้งครรภ์',g:'ตั้งครรภ์',d:'ไอคอนทั่วไป'},
-      n:{luna:'LUNA',drop:'หยดน้ำ',sakura:'ซากุระ',phase:'ข้างขึ้นข้างแรม',cal:'ปฏิทิน',daisy:'ดอกเดซี่',tea:'ชาน้ำตาลแดง',moonsleep:'จันทร์ราตรีสวัสดิ์',berry:'สตรอว์เบอร์รี',paw:'อุ้งเท้าแมว',sprout:'ต้นอ่อน',butter:'ผีเสื้อ',star:'ดาวนำโชค',lotus:'ดอกบัว',heart:'หัวใจ',baby:'เบบี๋',bottle:'ขวดนม',preg:'ตั้งครรภ์',cloud:'ก้อนเมฆ',calc:'เครื่องคิดเลข',wx:'สภาพอากาศ',note:'โน้ต',clock:'นาฬิกา',fit:'ฟิตเนส'} },
+      n:{luna:'LUNA',drop:'หยดน้ำ',sakura:'ซากุระ',phase:'ข้างขึ้นข้างแรม',cal:'ปฏิทิน',cal2:'ปฏิทินวันที่',daisy:'ดอกเดซี่',tea:'ชาน้ำตาลแดง',moonsleep:'จันทร์ราตรีสวัสดิ์',berry:'สตรอว์เบอร์รี',paw:'อุ้งเท้าแมว',sprout:'ต้นอ่อน',butter:'ผีเสื้อ',star:'ดาวนำโชค',lotus:'ดอกบัว',heart:'หัวใจ',baby:'เบบี๋',bottle:'ขวดนม',preg:'ตั้งครรภ์',cloud:'ก้อนเมฆ',calc:'เครื่องคิดเลข',wx:'สภาพอากาศ',note:'โน้ต',clock:'นาฬิกา',fit:'ฟิตเนส'} },
     en:{ title:'Private mode', vip:' Member', on:'App lock is on', off:'App lock · change icon', sub:'Don’t want others to see you use this app? Lock it here, or change the home-screen icon.',
       lockT:'App lock', lockD:'Verify every time LUNA opens', bioT:'Use Face ID / fingerprint', bioD:'Uses your phone’s own check. The app never sees your face or fingerprint', pinT:'Change PIN', pinD:'4 digits', hideT:'Hide screen in app switcher', hideD:'Content is hidden in the multitasking view',
       icT:'Home-screen icon', icD:'Pick one you like — or one that blends in', freeT:'Free', noteA:'Android: only the icon changes, the name stays the same; the app may close briefly when switching.', noteI:'iOS: only the icon changes, the name stays LUNA Calm, and the system shows a “changed icon” notice.',
@@ -42985,7 +43030,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       setPin:'Set a 4-digit PIN', again:'Enter it again to confirm', mismatch:'They don’t match. Try again', oldPin:'Enter current PIN', newPin:'Enter new PIN', wrong:'Wrong PIN', many:'Too many tries. Please wait 30 seconds', left:'Wrong PIN. {n} tries left', exT:'No tries left', exM:'To protect your privacy, please wait 30 seconds and try again. If you forgot the PIN you can reset it (signed-in users keep their records in the cloud).', exOk:'Got it', unlock:'Enter PIN to unlock', forgot:'Forgot PIN?', bioBtn:'Unlock with Face ID / fingerprint',bioShort:'Use {x}',bioRetry:'Try again · {n} left',bioMiss:'Not recognized. Try again or enter your PIN',doneT:'Failed 5 times. Please enter your PIN',fpName:'fingerprint', cancel:'Cancel', now:'Current', turnOff:'Enter PIN to turn off app lock',
       fgT:'Forgot PIN', fgM:'This signs you out and clears the local data on this phone. Your records are saved in the cloud — sign in with the same account to get them back.', fgG:'You are a guest, so your data lives only on this phone. Resetting the PIN erases everything here and cannot be undone.', fgOk:'Reset now', guestNote:'👤 Guests need to sign in before turning on App Lock (if you forget the PIN, your data can be restored from the cloud).',
       g:{p:'Period',t:'Trying to conceive',g:'Pregnancy',d:'Everyday'},
-      n:{luna:'LUNA',drop:'Drop',sakura:'Sakura',phase:'Moon phase',cal:'Calendar',daisy:'Daisy',tea:'Brown sugar tea',moonsleep:'Sleepy moon',berry:'Strawberry',paw:'Cat paw',sprout:'Sprout',butter:'Butterfly',star:'Wish star',lotus:'Lotus',heart:'Heart',baby:'Baby',bottle:'Bottle',preg:'Pregnancy',cloud:'Cloud',calc:'Calculator',wx:'Weather',note:'Notes',clock:'Clock',fit:'Fitness'} },
+      n:{luna:'LUNA',drop:'Drop',sakura:'Sakura',phase:'Moon phase',cal:'Calendar',cal2:'Date calendar',daisy:'Daisy',tea:'Brown sugar tea',moonsleep:'Sleepy moon',berry:'Strawberry',paw:'Cat paw',sprout:'Sprout',butter:'Butterfly',star:'Wish star',lotus:'Lotus',heart:'Heart',baby:'Baby',bottle:'Bottle',preg:'Pregnancy',cloud:'Cloud',calc:'Calculator',wx:'Weather',note:'Notes',clock:'Clock',fit:'Fitness'} },
     vi:{ title:'Chế độ riêng tư', vip:' Hội viên', on:'Đang bật khóa ứng dụng', off:'Khóa ứng dụng · đổi biểu tượng', sub:'Không muốn người khác thấy bạn dùng app này? Hãy khóa app hoặc đổi biểu tượng ngoài màn hình.',
       lockT:'Khóa ứng dụng', lockD:'Xác thực mỗi khi mở LUNA', bioT:'Dùng Face ID / vân tay', bioD:'Dùng xác thực của điện thoại. App không thấy khuôn mặt hay vân tay của bạn', pinT:'Đổi mã PIN', pinD:'4 chữ số', hideT:'Ẩn màn hình khi chuyển app', hideD:'Không thấy nội dung ở màn hình đa nhiệm',
       icT:'Biểu tượng ngoài màn hình', icD:'Chọn kiểu bạn thích, hoặc kiểu khó nhận ra', freeT:'Miễn phí', noteA:'Android: chỉ đổi biểu tượng, tên giữ nguyên; app có thể đóng ngắn khi chuyển.', noteI:'iOS: chỉ đổi biểu tượng, tên vẫn là LUNA Calm và hệ thống sẽ hiện thông báo “đã đổi biểu tượng”.',
@@ -42993,7 +43038,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
       setPin:'Đặt mã PIN 4 số', again:'Nhập lại để xác nhận', mismatch:'Hai lần không khớp, thử lại', oldPin:'Nhập PIN hiện tại', newPin:'Nhập PIN mới', wrong:'Sai PIN', many:'Sai quá nhiều lần, thử lại sau 30 giây', left:'Sai PIN. Còn {n} lần thử', exT:'Đã hết số lần thử', exM:'Để bảo vệ quyền riêng tư, vui lòng đợi 30 giây rồi thử lại. Nếu quên PIN, bạn có thể đặt lại (người dùng đã đăng nhập vẫn giữ dữ liệu trên đám mây).', exOk:'Đã hiểu', unlock:'Nhập PIN để mở khóa', forgot:'Quên PIN?', bioBtn:'Mở khóa bằng Face ID / vân tay',bioShort:'Dùng {x}',bioRetry:'Thử lại · còn {n} lần',bioMiss:'Không nhận ra. Thử lại hoặc nhập PIN',doneT:'Thất bại 5 lần. Vui lòng nhập PIN',fpName:'vân tay', cancel:'Hủy', now:'Đang dùng', turnOff:'Nhập PIN để tắt khóa ứng dụng',
       fgT:'Quên PIN', fgM:'Bạn sẽ được đăng xuất và dữ liệu lưu trên điện thoại này sẽ bị xóa. Dữ liệu đã lưu trên đám mây, đăng nhập lại cùng tài khoản là lấy lại được.', fgG:'Bạn đang là khách nên dữ liệu chỉ có trên điện thoại này. Đặt lại PIN sẽ xóa toàn bộ và không thể khôi phục.', fgOk:'Xác nhận đặt lại', guestNote:'👤 Khách cần đăng nhập trước khi bật khóa ứng dụng (nếu quên PIN, dữ liệu khôi phục được từ đám mây).',
       g:{p:'Kinh nguyệt',t:'Chuẩn bị mang thai',g:'Thai kỳ',d:'Thông thường'},
-      n:{luna:'LUNA',drop:'Giọt nước',sakura:'Hoa anh đào',phase:'Trăng',cal:'Lịch',daisy:'Hoa cúc',tea:'Trà đường nâu',moonsleep:'Trăng ngủ',berry:'Dâu tây',paw:'Chân mèo',sprout:'Mầm non',butter:'Bướm',star:'Ngôi sao',lotus:'Hoa sen',heart:'Trái tim',baby:'Em bé',bottle:'Bình sữa',preg:'Thai kỳ',cloud:'Đám mây',calc:'Máy tính',wx:'Thời tiết',note:'Ghi chú',clock:'Đồng hồ',fit:'Thể dục'} }
+      n:{luna:'LUNA',drop:'Giọt nước',sakura:'Hoa anh đào',phase:'Trăng',cal:'Lịch',cal2:'Lịch ngày',daisy:'Hoa cúc',tea:'Trà đường nâu',moonsleep:'Trăng ngủ',berry:'Dâu tây',paw:'Chân mèo',sprout:'Mầm non',butter:'Bướm',star:'Ngôi sao',lotus:'Hoa sen',heart:'Trái tim',baby:'Em bé',bottle:'Bình sữa',preg:'Thai kỳ',cloud:'Đám mây',calc:'Máy tính',wx:'Thời tiết',note:'Ghi chú',clock:'Đồng hồ',fit:'Thể dục'} }
   };
   function T(){ return TX[L()] || TX.en; }
   function rd(){ try{ var o=JSON.parse(LS.getItem(K)||'null'); return (o&&typeof o==='object')?o:null; }catch(e){ return null; } }
@@ -43520,6 +43565,10 @@ window.lunaCollapse=function(el,done,keep){
     rTest:{ zh:'该验孕的时候提醒我', th:'แจ้งเตือนเมื่อถึงเวลาตรวจครรภ์', en:'Remind me when it is time for a pregnancy test', vi:'Nhắc khi đến lúc thử thai' },
     rVis: { zh:'产检提醒', th:'แจ้งเตือนนัดฝากครรภ์', en:'Prenatal visit reminders', vi:'Nhắc lịch khám thai' },
     rVisS:{ zh:'在每一条产检里设置', th:'ตั้งค่าในแต่ละนัด', en:'Set on each visit', vi:'Cài đặt ở từng lịch khám' },
+    pushT:{ zh:'接收通知', th:'รับการแจ้งเตือน', en:'Notifications', vi:'Nhận thông báo' },
+    pushS:{ zh:'开启后才能收到提醒和重要通知', th:'เปิดเพื่อรับการเตือนและข่าวสารสำคัญ', en:'Turn on to get reminders and important updates', vi:'Bật để nhận nhắc nhở và thông báo quan trọng' },
+    pushOff:{ zh:'已关闭，不会再给这台手机推送。', th:'ปิดแล้ว จะไม่ส่งการแจ้งเตือนมาที่เครื่องนี้อีก', en:'Turned off. This phone will no longer get notifications.', vi:'Đã tắt. Điện thoại này sẽ không nhận thông báo nữa.' },
+    pushDenied:{ zh:'系统里没有允许通知，请到手机设置 → 通知 里允许 Luna', th:'ยังไม่ได้อนุญาตการแจ้งเตือน ไปที่การตั้งค่าเครื่อง → การแจ้งเตือน แล้วอนุญาต Luna', en:'Notifications are blocked. Allow Luna in your phone Settings → Notifications.', vi:'Thông báo đang bị chặn. Hãy cho phép Luna trong Cài đặt → Thông báo.' },
     needLogin:{ zh:'登录后才能收到推送提醒', th:'ต้องเข้าสู่ระบบก่อนจึงจะได้รับการแจ้งเตือน', en:'Sign in to receive push reminders', vi:'Đăng nhập để nhận thông báo' },
     denied:{ zh:'没有开启通知权限，提醒不会推送。可以在手机设置里允许 Luna 发送通知', th:'ยังไม่ได้เปิดสิทธิ์การแจ้งเตือน ไปที่การตั้งค่าของเครื่องเพื่ออนุญาต Luna', en:"Notifications are off, so reminders won't be sent. Allow Luna in your phone settings", vi:'Chưa bật quyền thông báo nên sẽ không nhận được nhắc nhở. Hãy cho phép Luna trong cài đặt điện thoại' },
     saved:{ zh:'已更新提醒设置', th:'อัปเดตการแจ้งเตือนแล้ว', en:'Reminder settings updated', vi:'Đã cập nhật cài đặt nhắc nhở' }
@@ -43569,6 +43618,7 @@ window.lunaCollapse=function(el,done,keep){
   var ICON = {
     fert: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>',
     test: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6M10 2v6l-5 10a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-10V2"/></svg>',
+    bell:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
     visit:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>'
   };
   function ttcRemind(){ try{ var s = window.LunaTtc.get(); return s ? window.LunaTtc.remindOf(s) : { fertile:false, test:false }; }catch(e){ return { fertile:false, test:false }; } }
@@ -43590,6 +43640,31 @@ window.lunaCollapse=function(el,done,keep){
     if(m === 'ttc'){ var r = ttcRemind(); h += extraRow('lsrFert', 'green', ICON.fert, tx(T.rFert), '', 'fertile', r.fertile) + extraRow('lsrTest', 'pink', ICON.test, tx(T.rTest), '', 'test', r.test); }
     if(m === 'preg'){ h += extraRow('', 'blue', ICON.visit, tx(T.rVis), tx(T.rVisS), 'visit', false); }
     if(h){ var tmp = document.createElement('div'); tmp.innerHTML = h; while(tmp.firstChild) grp.appendChild(tmp.firstChild); }
+    /* 最上面一行：总开关「接收通知」（和系统权限 + 本机开关同步） */
+    var pt = document.createElement('div'); pt.innerHTML = extraRow('lsrPush', 'purple', ICON.bell, tx(T.pushT), tx(T.pushS), 'push', false);
+    var prow = pt.firstChild; grp.insertBefore(prow, grp.firstChild);
+    pushState(function(on){ var tg = prow.querySelector('.s-toggle'); if(tg) tg.classList.toggle('on', !!on); });
+  }
+  function pushNative(){ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+  function pushState(cb){
+    var off = false; try{ off = LS.getItem('luna_push_off') === '1'; }catch(e){}
+    if(off){ cb(false); return; }
+    try{
+      if(pushNative()){ var PN = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications; if(!PN){ cb(false); return; } PN.checkPermissions().then(function(p){ cb(p.receive === 'granted'); }).catch(function(){ cb(false); }); }
+      else cb(typeof Notification !== 'undefined' && Notification.permission === 'granted');
+    }catch(e){ cb(false); }
+  }
+  function setPush(on, el){
+    if(on){
+      try{ LS.removeItem('luna_push_off'); }catch(e){}
+      if(typeof window._fcmEnable !== 'function'){ toast(tx(T.saved)); return; }
+      window._fcmEnable().then(function(x){ if(x && x.ok === false){ if(el) el.classList.remove('on'); toast(tx(T.pushDenied)); } else toast(tx(T.saved)); }).catch(function(){ if(el) el.classList.remove('on'); });
+    } else {
+      try{ LS.setItem('luna_push_off', '1'); }catch(e){}
+      try{ if(window._lunaDevTokOff) window._lunaDevTokOff(); }catch(e){}
+      try{ var uid = LS.getItem('luna_uid'); if(uid && window._fb && window._fb.remove) window._fb.remove('users/' + uid + '/fcmToken').catch(function(){}); }catch(e){}
+      toast(tx(T.pushOff));
+    }
   }
   function setTtcRemind(kind, on, el){
     var s = null; try{ s = window.LunaTtc.get(); }catch(e){}
@@ -43620,6 +43695,7 @@ window.lunaCollapse=function(el,done,keep){
         var k = row.getAttribute('data-lsr');
         if(k === 'visit'){ try{ if(window.LunaPreg && window.LunaPreg.track && window.LunaPreg.track.openVisits) window.LunaPreg.track.openVisits(); }catch(e){} return; }
         var tg = row.querySelector('.s-toggle'); if(!tg) return;
+        if(k === 'push'){ tg.classList.toggle('on'); setPush(tg.classList.contains('on'), tg); return; }
         tg.classList.toggle('on'); setTtcRemind(k, tg.classList.contains('on'), tg);
       });
     }
@@ -44527,4 +44603,40 @@ html.lunaScrolling .lunaRowRing::before{animation-play-state:paused}
     if(!has){ var i=document.createElement('i'); i.className='lunaRowRing'; r.appendChild(i); } }); }catch(e){} }
   setInterval(ring,500);
   var tmr=null; document.addEventListener('scroll',function(){ var h=document.documentElement; if(!h.classList.contains('lunaScrolling')) h.classList.add('lunaScrolling'); clearTimeout(tmr); tmr=setTimeout(function(){ h.classList.remove('lunaScrolling') },180) },true);
+})();</script>
+
+<script id="lunaPushAsk">(function(){
+  /* 首次使用：做完新手引导后，温和地问一次「要不要开通知」。只问一次；用户选“不用了”就不再打扰。
+     同意后：系统弹出通知权限 → 拿到推送令牌（已登录的存到账号下，和原来的提醒开关同一条路径）。 */
+  var LS=localStorage;
+  function lang(){ try{ if(LS.getItem('luna_ui_vi')==='1') return 'vi'; if(LS.getItem('luna_ui_en')==='1') return 'en'; if(LS.getItem('luna_ui_tw')==='1') return 'tw'; return (LS.getItem('luna_lang')||'th')==='zh'?'zh':'th'; }catch(e){ return 'th'; } }
+  var TX={
+    zh:{t:'要开启通知吗？',d:'打开后可以收到经期预测、提醒和重要通知。可以随时在设置里关闭。',y:'开启通知',n:'不用了'},
+    tw:{t:'要開啟通知嗎？',d:'開啟後可以收到經期預測、提醒和重要通知。可以隨時在設定裡關閉。',y:'開啟通知',n:'不用了'},
+    en:{t:'Turn on notifications?',d:'Get period predictions, reminders and important updates. You can turn them off anytime in Settings.',y:'Turn on',n:'Not now'},
+    th:{t:'เปิดการแจ้งเตือนไหม?',d:'รับการคาดการณ์ประจำเดือน การเตือน และข่าวสารสำคัญ ปิดได้ทุกเมื่อในการตั้งค่า',y:'เปิดการแจ้งเตือน',n:'ไม่ต้อง'},
+    vi:{t:'Bật thông báo nhé?',d:'Nhận dự đoán kỳ kinh, nhắc nhở và thông báo quan trọng. Bạn có thể tắt bất cứ lúc nào trong Cài đặt.',y:'Bật thông báo',n:'Để sau'}
+  };
+  function native(){ return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); }
+  function done(){ try{ LS.setItem('luna_push_asked','1'); }catch(e){} }
+  function show(){
+    var t=TX[lang()]||TX.th, d=document.createElement('div'); d.id='lunaPushAskBox';
+    d.style.cssText='position:fixed;left:0;right:0;top:0;bottom:0;z-index:99990;background:rgba(30,20,50,.45);display:flex;align-items:center;justify-content:center;padding:28px;font-family:inherit';
+    d.innerHTML='<div style="background:#fff;border-radius:22px;padding:26px 22px 18px;max-width:340px;width:100%;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.28)"><div style="font-size:38px;margin-bottom:6px">🔔</div><div style="font-size:18px;font-weight:700;color:#2d2640;margin-bottom:8px">'+t.t+'</div><div style="font-size:13.5px;line-height:1.65;color:#6b6585;margin-bottom:18px">'+t.d+'</div><button id="lpaY" style="width:100%;padding:13px;border:none;border-radius:14px;background:linear-gradient(135deg,#7c5cbf,#c47ab0);color:#fff;font-size:15px;font-weight:700;font-family:inherit">'+t.y+'</button><button id="lpaN" style="width:100%;padding:11px;margin-top:6px;border:none;background:transparent;color:#8b84a0;font-size:14px;font-family:inherit">'+t.n+'</button></div>';
+    document.body.appendChild(d);
+    document.getElementById('lpaN').onclick=function(){ done(); d.remove(); };
+    document.getElementById('lpaY').onclick=function(){ done(); d.remove(); try{ if(typeof window._fcmEnable==='function') window._fcmEnable().catch(function(){}); }catch(e){} };
+  }
+  function tryAsk(){
+    try{
+      if(!native()||LS.getItem('luna_push_asked')||!LS.getItem('luna_onboard_seen')) return;
+      if(document.documentElement.classList.contains('ob-first')) return;
+      var PN=window.Capacitor.Plugins&&window.Capacitor.Plugins.PushNotifications; if(!PN) return;
+      PN.checkPermissions().then(function(p){
+        if(p.receive==='prompt'||p.receive==='prompt-with-rationale'){ if(!document.getElementById('lunaPushAskBox')) show(); }
+        else done();   /* 已允许或已拒绝：不再问 */
+      }).catch(function(){});
+    }catch(e){}
+  }
+  setTimeout(tryAsk,9000); setTimeout(tryAsk,60000);
 })();</script>

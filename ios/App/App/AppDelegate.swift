@@ -157,8 +157,11 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    // iOS 偶尔会报 "Resource temporarily unavailable"（系统正忙/App 还没完全回到前台），
-    // 所以：已经是目标图标就直接成功；App 不在前台就等一等；失败自动重试几次。
+    // iOS 偶尔会报 "Resource temporarily unavailable"（系统图标服务正忙）。
+    // 做法：同一时间只允许一次换图标；先等点击动画/弹层收完（0.4 秒）再换；
+    // App 不在前台就等；遇到这个“系统忙”错误就用更长的间隔多试几次（最多约 15 秒）。
+    private var iconBusy = false
+
     @objc func setIcon(_ call: CAPPluginCall) {
         let name = call.getString("name") ?? "luna"
         let target: String? = (name == "luna") ? nil : "Icon-" + name
@@ -171,27 +174,50 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve()
                 return
             }
-            self.trySetIcon(target, call: call, attempt: 0)
+            if self.iconBusy {
+                call.reject("busy")
+                return
+            }
+            self.iconBusy = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                self.trySetIcon(target, call: call, attempt: 0, waited: 0)
+            }
         }
     }
 
-    private func trySetIcon(_ target: String?, call: CAPPluginCall, attempt: Int) {
+    private func trySetIcon(_ target: String?, call: CAPPluginCall, attempt: Int, waited: Int) {
         let app = UIApplication.shared
-        if app.applicationState != .active && attempt < 6 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.trySetIcon(target, call: call, attempt: attempt + 1) }
+        if app.alternateIconName == target {
+            iconBusy = false
+            call.resolve()
+            return
+        }
+        if app.applicationState != .active && waited < 12 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.trySetIcon(target, call: call, attempt: attempt, waited: waited + 1)
+            }
             return
         }
         app.setAlternateIconName(target) { error in
-            if let error = error {
-                if attempt < 4 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8 + Double(attempt) * 0.6) {
-                        self.trySetIcon(target, call: call, attempt: attempt + 1)
+            DispatchQueue.main.async {
+                if let error = error {
+                    let ns = error as NSError
+                    let sysBusy = (ns.domain == NSPOSIXErrorDomain && ns.code == 35)
+                        || error.localizedDescription.contains("temporarily unavailable")
+                    let maxTry = sysBusy ? 8 : 3
+                    if attempt < maxTry {
+                        let delay = sysBusy ? (1.0 + Double(attempt) * 0.8) : 0.6
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                            self.trySetIcon(target, call: call, attempt: attempt + 1, waited: waited)
+                        }
+                    } else {
+                        self.iconBusy = false
+                        call.reject(error.localizedDescription)
                     }
                 } else {
-                    call.reject(error.localizedDescription)
+                    self.iconBusy = false
+                    call.resolve()
                 }
-            } else {
-                call.resolve()
             }
         }
     }

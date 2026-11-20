@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "נדרשת גישה למצלמה כדי לצלם את תמונת הפרופיל שלך.";
+"NSPhotoLibraryUsageDescription" = "נדרשת גישה לספריית התמונות כדי לבחור את תמונת הפרופיל שלך.";
+"NSPhotoLibraryAddUsageDescription" = "נדרשת הרשאה לשמירת תמונות בספריית התמונות.";
+"NSUserTrackingUsageDescription" = "נשתמש בנתונים שלך כדי להציג לך מודעות רלוונטיות יותר.";
+"NSFaceIDUsageDescription" = "משמש לביטול הנעילה של LUNA Calm.";

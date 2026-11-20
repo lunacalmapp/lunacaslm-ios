@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Cần quyền truy cập máy ảnh để chụp ảnh đại diện.";
+"NSPhotoLibraryUsageDescription" = "Cần quyền truy cập thư viện ảnh để chọn ảnh đại diện.";
+"NSPhotoLibraryAddUsageDescription" = "Cần quyền lưu ảnh vào thư viện ảnh.";
+"NSUserTrackingUsageDescription" = "Chúng tôi sẽ dùng dữ liệu của bạn để đề xuất quảng cáo phù hợp hơn.";
+"NSFaceIDUsageDescription" = "Dùng để mở khóa LUNA Calm.";

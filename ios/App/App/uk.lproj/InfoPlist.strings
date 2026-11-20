@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Потрібен доступ до камери, щоб зробити ваше фото профілю.";
+"NSPhotoLibraryUsageDescription" = "Потрібен доступ до бібліотеки фото, щоб вибрати фото профілю.";
+"NSPhotoLibraryAddUsageDescription" = "Потрібен дозвіл зберігати зображення у бібліотеку фото.";
+"NSUserTrackingUsageDescription" = "Ми використовуватимемо ваші дані, щоб показувати релевантнішу рекламу.";
+"NSFaceIDUsageDescription" = "Використовується для розблокування LUNA Calm.";

@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "ต้องการเข้าถึงกล้องเพื่อถ่ายรูปโปรไฟล์";
+"NSPhotoLibraryUsageDescription" = "ต้องการเข้าถึงคลังภาพเพื่อเลือกรูปโปรไฟล์";
+"NSPhotoLibraryAddUsageDescription" = "ต้องการบันทึกรูปภาพลงในคลังภาพ";
+"NSUserTrackingUsageDescription" = "เราจะใช้ข้อมูลของคุณเพื่อมอบโฆษณาที่ตรงใจคุณมากขึ้น";
+"NSFaceIDUsageDescription" = "ใช้ปลดล็อก LUNA Calm";

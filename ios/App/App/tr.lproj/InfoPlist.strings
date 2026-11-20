@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Profil fotoğrafı çekmek için kamera erişimi gerekir.";
+"NSPhotoLibraryUsageDescription" = "Profil fotoğrafı seçmek için fotoğraf arşivine erişim gerekir.";
+"NSPhotoLibraryAddUsageDescription" = "Görselleri fotoğraf arşivine kaydetmek için izin gerekir.";
+"NSUserTrackingUsageDescription" = "Verileriniz, size daha uygun reklamlar göstermek için kullanılacaktır.";
+"NSFaceIDUsageDescription" = "LUNA Calm kilidini açmak için kullanılır.";

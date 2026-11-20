@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "প্রোফাইল ছবি তুলতে ক্যামেরা অ্যাক্সেস প্রয়োজন।";
+"NSPhotoLibraryUsageDescription" = "প্রোফাইল ছবি বেছে নিতে ফটো লাইব্রেরি অ্যাক্সেস প্রয়োজন।";
+"NSPhotoLibraryAddUsageDescription" = "ছবি ফটো লাইব্রেরিতে সংরক্ষণ করতে অনুমতি প্রয়োজন।";
+"NSUserTrackingUsageDescription" = "আপনাকে আরও প্রাসঙ্গিক বিজ্ঞাপন দেখাতে আপনার ডেটা ব্যবহার করা হবে।";
+"NSFaceIDUsageDescription" = "LUNA Calm আনলক করতে ব্যবহৃত হয়।";

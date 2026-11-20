@@ -1,0 +1,5 @@
+"NSCameraUsageDescription" = "Kailangan ang access sa camera para makunan ang iyong profile photo.";
+"NSPhotoLibraryUsageDescription" = "Kailangan ang access sa photo library para mapili ang iyong profile photo.";
+"NSPhotoLibraryAddUsageDescription" = "Kailangan ang pahintulot na mag-save ng mga larawan sa photo library.";
+"NSUserTrackingUsageDescription" = "Gagamitin namin ang iyong data para magpakita ng mas angkop na mga ad.";
+"NSFaceIDUsageDescription" = "Ginagamit para i-unlock ang LUNA Calm.";

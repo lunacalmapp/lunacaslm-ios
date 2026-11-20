@@ -43915,7 +43915,7 @@ SV.fit='<g stroke="#fff" stroke-linecap="round"><path d="M32 50 H68" stroke-widt
     var P=plug(), t=T();
     if(P.LunaAppIcon&&P.LunaAppIcon.setIcon){ if(window.__lunaIconBusy) return; window.__lunaIconBusy=true; var _free=function(){ setTimeout(function(){ window.__lunaIconBusy=false; },1500); };
       var _em=function(e){ try{ var m=(e&&(e.message||e.errorMessage||e.code))||String(e||''); return m?(' ('+String(m).slice(0,80)+')'):''; }catch(x){ return ''; } };
-      var _try=function(n){ try{ P.LunaAppIcon.setIcon({name:id}).then(function(){ _free(); toast(t.done); }).catch(function(e){ if(n<2){ setTimeout(function(){ _try(n+1); },1200+n*1000); } else { _free(); toast(t.fail+_em(e)); } }); }catch(e){ _free(); toast(t.fail+_em(e)); } };
+      var _try=function(n){ try{ P.LunaAppIcon.setIcon({name:id}).then(function(){ _free(); try{ LS.removeItem('luna_icon_pending'); }catch(_x){} toast(t.done); }).catch(function(e){ if(n<2){ setTimeout(function(){ _try(n+1); },1200+n*1000); } else { _free(); try{ LS.setItem('luna_icon_pending',id); }catch(_x){} toast(t.fail); } }); }catch(e){ _free(); try{ LS.setItem('luna_icon_pending',id); }catch(_x){} toast(t.fail); } };
       _try(0); }
     else toast(t.saved);
   }
@@ -45499,3 +45499,62 @@ html.lunaScrolling .lunaRowRing::before{animation-play-state:paused}
   }
   var _n=0, _iv=setInterval(function(){ _n++; if(LS.getItem('luna_push_asked')||document.getElementById('lunaPushAskBox')||_n>180){ clearInterval(_iv); return; } tryAsk(); },5000);   /* 每 5 秒看一次，首页出来后才会问，最多等 15 分钟 */
 })();</script>
+
+<script id="lunaLangPageJs">
+/* ① 语言：点「我的」页右上角的语言按钮 → 进入整页语言列表（像 Flo），不再是一大块下拉菜单
+   ② 换桌面图标偶发失败（iOS 系统繁忙）→ 记下待换的图标，回到前台后静默补一次 */
+(function(){
+  var TT={zh:'语言',tw:'語言',th:'ภาษา',en:'Language',vi:'Ngôn ngữ',id:'Bahasa',fil:'Wika',ja:'言語',ko:'언어',es:'Idioma',pt:'Idioma',tr:'Dil',fr:'Langue',ms:'Bahasa',hi:'भाषा',ar:'اللغة',ur:'زبان',bn:'ভাষা',he:'שפה',uk:'Мова'};
+  var NM={en:'English',zh:'简体中文',tw:'繁體中文',th:'ไทย',vi:'Tiếng Việt',id:'Bahasa Indonesia',fil:'Filipino',ja:'日本語',ko:'한국어',es:'Español',pt:'Português',tr:'Türkçe',fr:'Français',ms:'Bahasa Melayu',hi:'हिन्दी',ar:'العربية',ur:'اردو',bn:'বাংলা',he:'עברית',uk:'Українська'};
+  function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function cur(){ var c=['uk','he','bn','ur','ar','hi','ms','fr','tr','pt','es','ko','ja','fil','vi','en','tw']; for(var i=0;i<c.length;i++){ if(ls('luna_ui_'+c[i])==='1') return c[i]; } return ls('luna_lang')==='th'?'th':'zh'; }
+  var css='#lunaLangPage{position:fixed;left:0;top:0;right:0;bottom:0;z-index:99990;background:var(--mine-bg,#f6f1fb);transform:translateX(100%);transition:transform .28s cubic-bezier(.3,.8,.3,1);overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:inherit}'
+   +'[dir=rtl] #lunaLangPage{transform:translateX(-100%)}#lunaLangPage.in{transform:translateX(0)!important}'
+   +'#lunaLangPage .lph{position:sticky;top:0;z-index:2;background:var(--mine-bg,#f6f1fb);padding:max(56px,calc(14px + env(safe-area-inset-top,0px))) 12px 10px;display:flex;align-items:center;justify-content:center;min-height:calc(56px + env(safe-area-inset-top,0px))}'
+   +'#lunaLangPage .lpb{position:absolute;inset-inline-start:10px;bottom:6px;width:44px;height:44px;border:none;background:none;font-size:34px;line-height:40px;color:var(--mine-fg,#2d2640);cursor:pointer}'
+   +'[dir=rtl] #lunaLangPage .lpb{transform:scaleX(-1)}'
+   +'#lunaLangPage .lpt{font-size:18px;font-weight:700;color:var(--mine-fg,#2d2640)}'
+   +'#lunaLangPage .lpl{margin:8px 16px calc(30px + env(safe-area-inset-bottom,0px));background:#fff;border-radius:18px;box-shadow:0 2px 12px rgba(124,92,208,.10);overflow:hidden}'
+   +'#lunaLangPage .lpr{display:flex;align-items:center;gap:14px;width:100%;border:none;background:none;font-family:inherit;text-align:start;padding:15px 18px;font-size:16px;color:#2d2640;cursor:pointer;border-bottom:1px solid #f0ebf7}'
+   +'#lunaLangPage .lpr:last-child{border-bottom:none}#lunaLangPage .lpr:active{background:#f6f1fb}'
+   +'#lunaLangPage .lpf{font-size:24px;line-height:1}#lunaLangPage .lpn{flex:1}#lunaLangPage .lpn::before{content:attr(data-n)}'
+   +'#lunaLangPage .lpr.on .lpn{font-weight:700;color:#7c5cd0}#lunaLangPage .lpk{color:#7c5cd0;font-size:20px;font-weight:700}';
+  var st=document.createElement('style'); st.textContent=css; (document.head||document.documentElement).appendChild(st);
+  function close(cb){ var p=document.getElementById('lunaLangPage'); if(!p){ if(cb) cb(); return; } p.classList.remove('in'); setTimeout(function(){ try{ p.parentNode.removeChild(p); }catch(e){} if(cb) cb(); },290); }
+  function open(){
+    if(document.getElementById('lunaLangPage')) return;
+    var src=document.querySelectorAll('#mineLangMenu button'), rows='', i, b, code, m, txt, flag, name, on;
+    for(i=0;i<src.length;i++){
+      b=src[i]; m=/lunaPickLang\('([a-z]+)'\)/.exec(b.getAttribute('onclick')||''); if(!m) continue; code=m[1];
+      txt=(b.textContent||'').trim(); var sp=txt.indexOf(' '); flag=sp>0?txt.slice(0,sp):''; name=sp>0?txt.slice(sp+1):txt;
+      on=(code===cur());
+      rows+='<button class="lpr'+(on?' on':'')+'" data-c="'+code+'"><span class="lpf">'+flag+'</span><span class="lpn" data-n="'+(NM[code]||name)+'"></span>'+(on?'<span class="lpk">✓</span>':'')+'</button>';
+    }
+    var p=document.createElement('div'); p.id='lunaLangPage';
+    p.innerHTML='<div class="lph"><button class="lpb" type="button" aria-label="back">‹</button><div class="lpt">'+(TT[cur()]||TT.zh)+'</div></div><div class="lpl">'+rows+'</div>';
+    document.body.appendChild(p);
+    p.querySelector('.lpb').onclick=function(){ close(); };
+    p.querySelector('.lpl').onclick=function(e){
+      var r=e.target; while(r&&r!==p&&!(r.classList&&r.classList.contains('lpr'))) r=r.parentNode;
+      if(!r||!r.getAttribute||!r.getAttribute('data-c')) return;
+      var c=r.getAttribute('data-c');
+      if(r.classList.contains('on')){ close(); return; }
+      try{ window.lunaPickLang(c); }catch(x){}
+    };
+    void p.offsetWidth; p.classList.add('in');
+  }
+  var o=window.toggleLangMenu;
+  window.toggleLangMenu=function(id,force){ if(id==='mineLangBar'){ open(); return; } return typeof o==='function'?o.apply(this,arguments):undefined; };
+  /* ② 图标待补 */
+  function retry(){
+    try{
+      var id=ls('luna_icon_pending'); if(!id) return;
+      var P=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.LunaAppIcon; if(!P||!P.setIcon||window.__lunaIconBusy) return;
+      window.__lunaIconBusy=true;
+      P.setIcon({name:id}).then(function(){ try{ localStorage.removeItem('luna_icon_pending'); }catch(e){} setTimeout(function(){ window.__lunaIconBusy=false; },1500); }).catch(function(){ setTimeout(function(){ window.__lunaIconBusy=false; },1500); });
+    }catch(e){}
+  }
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') setTimeout(retry,1200); });
+  setTimeout(retry,5000);
+})();
+</script>

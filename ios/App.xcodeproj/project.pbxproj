@@ -17,6 +17,7 @@
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		A1FB0004AAAA111122223333 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A1FB0005AAAA111122223333 /* GoogleService-Info.plist */; };
+		C1A50001BBBB111122223333 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = C1A50000BBBB111122223333 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,27 @@
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A1FB0005AAAA111122223333 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		C1A5000ABBBB111122223333 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "en"; path = "en.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5000BBBBB111122223333 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5000CBBBB111122223333 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5000DBBBB111122223333 /* th */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "th"; path = "th.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5000EBBBB111122223333 /* vi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "vi"; path = "vi.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5000FBBBB111122223333 /* id */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "id"; path = "id.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50010BBBB111122223333 /* fil */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "fil"; path = "fil.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50011BBBB111122223333 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ja"; path = "ja.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50012BBBB111122223333 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ko"; path = "ko.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50013BBBB111122223333 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "es"; path = "es.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50014BBBB111122223333 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50015BBBB111122223333 /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "tr"; path = "tr.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50016BBBB111122223333 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "fr"; path = "fr.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50017BBBB111122223333 /* ms */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ms"; path = "ms.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50018BBBB111122223333 /* hi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "hi"; path = "hi.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A50019BBBB111122223333 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ar"; path = "ar.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5001ABBBB111122223333 /* ur */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ur"; path = "ur.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5001BBBBB111122223333 /* bn */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "bn"; path = "bn.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5001CBBBB111122223333 /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "he"; path = "he.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5001DBBBB111122223333 /* uk */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "uk"; path = "uk.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5001EBBBB111122223333 /* ta */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ta"; path = "ta.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +96,7 @@
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
 				504EC3131FED79650016851F /* Info.plist */,
+				C1A50000BBBB111122223333 /* InfoPlist.strings */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				A1FB0005AAAA111122223333 /* GoogleService-Info.plist */,
@@ -128,6 +151,26 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
+				"zh-Hant",
+				"th",
+				"vi",
+				"id",
+				"fil",
+				"ja",
+				"ko",
+				"es",
+				"pt-BR",
+				"tr",
+				"fr",
+				"ms",
+				"hi",
+				"ar",
+				"ur",
+				"bn",
+				"he",
+				"uk",
+				"ta",
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
@@ -155,6 +198,7 @@
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				A1FB0004AAAA111122223333 /* GoogleService-Info.plist in Resources */,
+				C1A50001BBBB111122223333 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -186,6 +230,34 @@
 				504EC3111FED79650016851F /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		C1A50000BBBB111122223333 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C1A5000ABBBB111122223333 /* en */,
+				C1A5000BBBBB111122223333 /* zh-Hans */,
+				C1A5000CBBBB111122223333 /* zh-Hant */,
+				C1A5000DBBBB111122223333 /* th */,
+				C1A5000EBBBB111122223333 /* vi */,
+				C1A5000FBBBB111122223333 /* id */,
+				C1A50010BBBB111122223333 /* fil */,
+				C1A50011BBBB111122223333 /* ja */,
+				C1A50012BBBB111122223333 /* ko */,
+				C1A50013BBBB111122223333 /* es */,
+				C1A50014BBBB111122223333 /* pt-BR */,
+				C1A50015BBBB111122223333 /* tr */,
+				C1A50016BBBB111122223333 /* fr */,
+				C1A50017BBBB111122223333 /* ms */,
+				C1A50018BBBB111122223333 /* hi */,
+				C1A50019BBBB111122223333 /* ar */,
+				C1A5001ABBBB111122223333 /* ur */,
+				C1A5001BBBBB111122223333 /* bn */,
+				C1A5001CBBBB111122223333 /* he */,
+				C1A5001DBBBB111122223333 /* uk */,
+				C1A5001EBBBB111122223333 /* ta */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -305,7 +377,8 @@
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-cal2 Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit Icon-daisy Icon-tea Icon-moonsleep Icon-berry Icon-paw";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-cal2 Icon-classic Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit Icon-daisy Icon-tea Icon-moonsleep Icon-berry Icon-paw";
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -329,7 +402,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-cal2 Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit Icon-daisy Icon-tea Icon-moonsleep Icon-berry Icon-paw";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "Icon-drop Icon-sakura Icon-phase Icon-cal Icon-cal2 Icon-classic Icon-sprout Icon-butter Icon-star Icon-lotus Icon-heart Icon-baby Icon-bottle Icon-preg Icon-cloud Icon-calc Icon-wx Icon-note Icon-clock Icon-fit Icon-daisy Icon-tea Icon-moonsleep Icon-berry Icon-paw";
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

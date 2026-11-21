@@ -120,6 +120,23 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     // 诊断：读出这个包里实际登记了哪些备用图标，以及系统当前状态（换图标失败时显示给用户看）
+    private func iconPlistDump() -> String {
+        var out = ""
+        let fm = FileManager.default
+        out += "car=" + (Bundle.main.path(forResource: "Assets", ofType: "car") != nil ? "Y" : "N")
+        if let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any] {
+            if let p = icons["CFBundlePrimaryIcon"] { out += " P=" + String(describing: p).replacingOccurrences(of: "\n", with: " ") }
+            if let a = icons["CFBundleAlternateIcons"] as? [String: Any], let d = a["Icon-drop"] {
+                out += " D=" + String(describing: d).replacingOccurrences(of: "\n", with: " ")
+            } else { out += " D=missing" }
+        } else { out += " CFBundleIcons=missing" }
+        if let files = try? fm.contentsOfDirectory(atPath: Bundle.main.bundlePath) {
+            let m = files.filter { $0.hasPrefix("Icon-") || $0.hasPrefix("AppIcon") }.sorted()
+            out += " files=" + m.prefix(12).joined(separator: ",")
+        }
+        return out
+    }
+
     @objc func getIconInfo(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             var alts: [String] = []
@@ -135,6 +152,7 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
                 "altCount": alts.count,
                 "primary": prim,
                 "ios": UIDevice.current.systemVersion,
+                 "plist": self.iconPlistDump(),
                 "state": UIApplication.shared.applicationState.rawValue
             ])
         }

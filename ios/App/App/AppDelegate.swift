@@ -204,12 +204,22 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func setIcon(_ call: CAPPluginCall) {
         let name = call.getString("name") ?? "luna"
-        // "luna" 和 "classic" 都代表系统主图标（AppIcon），传 nil 即可恢复；其余必须是已登记的备用图标
-        let target: String? = (name == "luna" || name == "classic") ? nil : "Icon-" + name
+        // "luna" 代表系统主图标（AppIcon），传 nil 即可恢复；其余必须是已登记的备用图标（含 classic）
+        let target: String? = (name == "luna") ? nil : "Icon-" + name
         DispatchQueue.main.async {
             guard UIApplication.shared.supportsAlternateIcons else {
                 call.reject("alternate icons not supported")
                 return
+            }
+            // 防护：只允许已登记的备用图标；传无效名字会让 iOS 26 的换图标功能卡死到重启手机
+            if let t = target {
+                var known: [String] = []
+                if let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any],
+                   let a = icons["CFBundleAlternateIcons"] as? [String: Any] { known = Array(a.keys) }
+                if !known.contains(t) {
+                    call.reject("icon not registered: \(t)")
+                    return
+                }
             }
             if UIApplication.shared.alternateIconName == target {
                 call.resolve()
@@ -245,7 +255,7 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
                     let ns = error as NSError
                     let sysBusy = (ns.domain == NSPOSIXErrorDomain && ns.code == 35)
                         || error.localizedDescription.contains("temporarily unavailable")
-                    let maxTry = sysBusy ? 8 : 3
+                    let maxTry = sysBusy ? 3 : 2
                     if attempt < maxTry {
                         let delay = sysBusy ? (1.0 + Double(attempt) * 0.8) : 0.6
                         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {

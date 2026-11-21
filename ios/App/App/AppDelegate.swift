@@ -104,7 +104,8 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "setIcon", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setCover", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "pauseCover", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "pauseCover", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getIconInfo", returnType: CAPPluginReturnPromise)
     ]
 
     // ── 切到后台时遮住画面（防止多任务界面里露出 App 内容）──
@@ -116,6 +117,27 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
     public override func load() {
         NotificationCenter.default.addObserver(self, selector: #selector(appWillResign), name: UIApplication.willResignActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    // 诊断：读出这个包里实际登记了哪些备用图标，以及系统当前状态（换图标失败时显示给用户看）
+    @objc func getIconInfo(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            var alts: [String] = []
+            var prim = ""
+            if let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any] {
+                if let a = icons["CFBundleAlternateIcons"] as? [String: Any] { alts = Array(a.keys).sorted() }
+                if let p = icons["CFBundlePrimaryIcon"] as? [String: Any] { prim = (p["CFBundleIconName"] as? String) ?? "" }
+            }
+            call.resolve([
+                "supports": UIApplication.shared.supportsAlternateIcons,
+                "current": UIApplication.shared.alternateIconName ?? "(default)",
+                "alts": alts,
+                "altCount": alts.count,
+                "primary": prim,
+                "ios": UIDevice.current.systemVersion,
+                "state": UIApplication.shared.applicationState.rawValue
+            ])
+        }
     }
 
     @objc func setCover(_ call: CAPPluginCall) {
@@ -212,7 +234,7 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
                         }
                     } else {
                         self.iconBusy = false
-                        call.reject(error.localizedDescription)
+                        call.reject("\(ns.domain) \(ns.code): \(error.localizedDescription)")
                     }
                 } else {
                     self.iconBusy = false

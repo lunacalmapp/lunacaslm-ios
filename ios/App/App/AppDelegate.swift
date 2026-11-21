@@ -186,7 +186,8 @@ public class LunaAppIconPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func setIcon(_ call: CAPPluginCall) {
         let name = call.getString("name") ?? "luna"
-        let target: String? = (name == "luna") ? nil : "Icon-" + name
+        // "luna" 和 "classic" 都代表系统主图标（AppIcon），传 nil 即可恢复；其余必须是已登记的备用图标
+        let target: String? = (name == "luna" || name == "classic") ? nil : "Icon-" + name
         DispatchQueue.main.async {
             guard UIApplication.shared.supportsAlternateIcons else {
                 call.reject("alternate icons not supported")

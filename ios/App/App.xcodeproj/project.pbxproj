@@ -53,6 +53,7 @@
 		C1A5001BBBBB111122223333 /* bn */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "bn"; path = "bn.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		C1A5001CBBBB111122223333 /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "he"; path = "he.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		C1A5001DBBBB111122223333 /* uk */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "uk"; path = "uk.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C1A5001EBBBB111122223333 /* ta */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ta"; path = "ta.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -169,6 +170,7 @@
 				"bn",
 				"he",
 				"uk",
+				"ta",
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
@@ -253,6 +255,7 @@
 				C1A5001BBBBB111122223333 /* bn */,
 				C1A5001CBBBB111122223333 /* he */,
 				C1A5001DBBBB111122223333 /* uk */,
+				C1A5001EBBBB111122223333 /* ta */,
 			);
 			name = InfoPlist.strings;
 			sourceTree = "<group>";

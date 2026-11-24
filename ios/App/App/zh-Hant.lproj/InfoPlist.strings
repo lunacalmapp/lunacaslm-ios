@@ -1,5 +1,4 @@
 "NSCameraUsageDescription" = "需要存取相機以拍攝頭像照片";
 "NSPhotoLibraryUsageDescription" = "需要存取相簿以選擇頭像照片";
 "NSPhotoLibraryAddUsageDescription" = "需要將圖片儲存至相簿";
-"NSUserTrackingUsageDescription" = "我們會使用您的資料，為您提供更精準的廣告推薦";
 "NSFaceIDUsageDescription" = "用於解鎖 LUNA Calm";

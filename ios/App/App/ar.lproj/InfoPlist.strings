@@ -1,5 +1,4 @@
 "NSCameraUsageDescription" = "يلزم الوصول إلى الكاميرا لالتقاط صورة ملفك الشخصي.";
 "NSPhotoLibraryUsageDescription" = "يلزم الوصول إلى مكتبة الصور لاختيار صورة ملفك الشخصي.";
 "NSPhotoLibraryAddUsageDescription" = "يلزم الإذن لحفظ الصور في مكتبة الصور.";
-"NSUserTrackingUsageDescription" = "سنستخدم بياناتك لعرض إعلانات أكثر ملاءمة لك.";
 "NSFaceIDUsageDescription" = "يُستخدم لفتح قفل LUNA Calm.";

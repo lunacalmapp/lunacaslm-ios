@@ -1,5 +1,4 @@
 "NSCameraUsageDescription" = "Akses kamera diperlukan untuk mengambil foto profil anda.";
 "NSPhotoLibraryUsageDescription" = "Akses pustaka foto diperlukan untuk memilih foto profil anda.";
 "NSPhotoLibraryAddUsageDescription" = "Kebenaran diperlukan untuk menyimpan imej ke pustaka foto.";
-"NSUserTrackingUsageDescription" = "Data anda akan digunakan untuk memaparkan iklan yang lebih sesuai.";
 "NSFaceIDUsageDescription" = "Digunakan untuk membuka kunci LUNA Calm.";

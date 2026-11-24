@@ -1,5 +1,4 @@
 "NSCameraUsageDescription" = "प्रोफ़ाइल फ़ोटो लेने के लिए कैमरा एक्सेस ज़रूरी है।";
 "NSPhotoLibraryUsageDescription" = "प्रोफ़ाइल फ़ोटो चुनने के लिए फ़ोटो लाइब्रेरी का एक्सेस ज़रूरी है।";
 "NSPhotoLibraryAddUsageDescription" = "तस्वीरें फ़ोटो लाइब्रेरी में सहेजने की अनुमति ज़रूरी है।";
-"NSUserTrackingUsageDescription" = "आपके डेटा का उपयोग आपको ज़्यादा उपयुक्त विज्ञापन दिखाने के लिए किया जाएगा।";
 "NSFaceIDUsageDescription" = "LUNA Calm को अनलॉक करने के लिए उपयोग किया जाता है।";

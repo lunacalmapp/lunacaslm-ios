@@ -1,5 +1,4 @@
 "NSCameraUsageDescription" = "プロフィール写真を撮影するためにカメラへのアクセスが必要です。";
 "NSPhotoLibraryUsageDescription" = "プロフィール写真を選択するために写真ライブラリへのアクセスが必要です。";
 "NSPhotoLibraryAddUsageDescription" = "画像を写真ライブラリに保存するための許可が必要です。";
-"NSUserTrackingUsageDescription" = "お客様のデータは、より適切な広告を表示するために使用されます。";
 "NSFaceIDUsageDescription" = "LUNA Calm のロック解除に使用します。";

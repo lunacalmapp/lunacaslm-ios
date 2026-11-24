@@ -1,12 +1,23 @@
 {
-  "appId": "app.lunacalm.flow.ios",
-  "appName": "Luna calm",
-  "webDir": "www",
-  "plugins": {
-    "GoogleAuth": {
-      "scopes": ["profile", "email"],
-      "iosClientId": "830021751175-iovnl8kaakh7i72853kpr3ecdkn7f1ke.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": true
-    }
-  }
+	"appId": "app.lunacalm.flow.ios",
+	"appName": "Luna calm",
+	"webDir": "www",
+	"plugins": {
+		"GoogleAuth": {
+			"scopes": [
+				"profile",
+				"email"
+			],
+			"iosClientId": "830021751175-iovnl8kaakh7i72853kpr3ecdkn7f1ke.apps.googleusercontent.com",
+			"forceCodeForRefreshToken": true
+		},
+		"SocialLogin": {
+			"providers": {
+				"google": true,
+				"apple": true,
+				"facebook": false,
+				"twitter": false
+			}
+		}
+	}
 }

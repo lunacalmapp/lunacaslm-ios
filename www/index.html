@@ -22610,6 +22610,49 @@ window.setLang = setLang;
   // 点"生成本次分析"按钮：拼一份精简摘要（不传原始日志），带着登录凭证请求云函数。
   // 网络收到的文字先囤在内部变量里，不直接显示；另外用一个独立的"节奏器"按稳定速度一点点吐字，
   // 这样不管 Gemini 一次给一个字还是一大段，画面上看到的都是均匀的打字机效果，而不是整段糊出来。
+
+  // ⏳ AI 分析限流提示（后端按 24 小时间隔限流）：各界面语言各一句，{t} = 还要等多久
+  const _AI_WAIT = {
+    en:['You already created an analysis today. You can create another in about {t} 💜',' min',' hr'],
+    vi:['Hôm nay bạn đã tạo phân tích rồi. Khoảng {t} nữa bạn có thể tạo lại 💜',' phút',' giờ'],
+    tw:['今天已經生成過分析了，約 {t}後可以再生成 💜',' 分鐘',' 小時'],
+    id:['Analisis hari ini sudah dibuat. Kamu bisa membuatnya lagi sekitar {t} lagi 💜',' menit',' jam'],
+    ja:['本日の分析はすでに作成済みです。あと約{t}でもう一度作成できます 💜','分','時間'],
+    ko:['오늘 분석은 이미 만들었어요. 약 {t} 후에 다시 만들 수 있어요 💜','분','시간'],
+    es:['Ya generaste un análisis hoy. Podrás generar otro en unos {t} 💜',' min',' h'],
+    pt:['Você já gerou uma análise hoje. Poderá gerar outra em cerca de {t} 💜',' min',' h'],
+    fr:['Vous avez déjà généré une analyse aujourd’hui. Vous pourrez en refaire une dans environ {t} 💜',' min',' h'],
+    tr:['Bugün zaten bir analiz oluşturdunuz. Yaklaşık {t} sonra yeniden oluşturabilirsiniz 💜',' dk',' sa'],
+    ms:['Anda sudah menjana analisis hari ini. Anda boleh menjana semula dalam kira-kira {t} 💜',' minit',' jam'],
+    fil:['Nakagawa ka na ng pagsusuri ngayong araw. Puwede kang gumawa ulit sa loob ng mga {t} 💜',' minuto',' oras'],
+    hi:['आज का विश्लेषण पहले ही बन चुका है। लगभग {t} बाद आप दोबारा बना सकते हैं 💜',' मिनट',' घंटे'],
+    bn:['আজকের বিশ্লেষণ আগেই তৈরি হয়েছে। প্রায় {t} পরে আবার তৈরি করতে পারবেন 💜',' মিনিট',' ঘণ্টা'],
+    ta:['இன்றைய பகுப்பாய்வு ஏற்கனவே உருவாக்கப்பட்டுவிட்டது. சுமார் {t} கழித்து மீண்டும் உருவாக்கலாம் 💜',' நிமிடம்',' மணி நேரம்'],
+    uk:['Сьогоднішній аналіз уже створено. Створити новий можна приблизно через {t} 💜',' хв',' год'],
+    ar:['تم إنشاء تحليل اليوم بالفعل. يمكنك إنشاء تحليل جديد بعد حوالي {t} 💜',' دقيقة',' ساعة'],
+    ur:['آج کا تجزیہ پہلے ہی بن چکا ہے۔ تقریباً {t} بعد دوبارہ بنا سکتے ہیں 💜',' منٹ',' گھنٹے'],
+    he:['הניתוח להיום כבר נוצר. אפשר ליצור ניתוח חדש בעוד כ-{t} 💜',' דקות',' שעות']
+  };
+  function _aiWaitMsg(remainMinutes, isTh) {
+    const mins = Math.max(1, parseInt(remainMinutes, 10) || 1), hrs = Math.ceil(mins / 60);
+    let code = null;
+    try {
+      const g = k => localStorage.getItem(k) === '1';
+      if (g('luna_ui_en')) code = 'en';
+      else if (g('luna_ui_vi')) code = 'vi';
+      else if (g('luna_ui_id')) {
+        code = 'id';
+        ['ja','ko','es','pt','fr','tr','ms','fil','hi','bn','ta','uk','ar','ur','he'].forEach(c => { if (g('luna_ui_' + c)) code = c; });
+      } else if (g('luna_ui_tw') && localStorage.getItem('luna_lang') === 'zh') code = 'tw';
+    } catch (e) {}
+    if (code && _AI_WAIT[code]) {
+      const w = _AI_WAIT[code];
+      return w[0].replace('{t}', mins < 60 ? mins + w[1] : hrs + w[2]);
+    }
+    return isTh
+      ? 'วันนี้วิเคราะห์ไปแล้ว อีกประมาณ ' + (mins < 60 ? mins + ' นาที' : hrs + ' ชั่วโมง') + ' จึงวิเคราะห์ใหม่ได้ 💜'
+      : '今天已经生成过分析了，约 ' + (mins < 60 ? mins + ' 分钟' : hrs + ' 小时') + '后可以再生成 💜';
+  }
   async function generateAiAnalysis() {
     const btn = document.getElementById('aiAnalysisBtn');
     const btnText = document.getElementById('aiAnalysisBtnText');
@@ -22708,9 +22751,10 @@ window.setLang = setLang;
         if (revealTimer) { clearInterval(revealTimer); revealTimer = null; }
         removePlaceholder();
         if (resp.status === 429) {
-          const msg = isTh
+          let msg = isTh
             ? 'วิเคราะห์รอบนี้เสร็จแล้ว บันทึกต่อเพื่อความแม่นยำยิ่งขึ้น 💜'
             : '本周期已完成分析，继续记录更精准 💜';
+          try { if (data && data.remainMinutes) msg = _aiWaitMsg(data.remainMinutes, isTh); } catch (e) {}
           if (typeof showToast === 'function') showToast(msg);
         } else {
           if (typeof showToast === 'function') showToast(isTh ? 'วิเคราะห์ไม่สำเร็จ ลองใหม่อีกครั้ง' : '分析失败，请稍后重试');
@@ -23067,6 +23111,61 @@ window.setLang = setLang;
   function openRatePanel(){ try{ if(typeof renderStats==='function') renderStats(); }catch(e){ console.log('renderStats err(rate):',e); } const p=document.getElementById('ratePanel'); if(p){ p.style.display='block'; p.scrollTop=0; p.classList.remove('subpage-anim'); void p.offsetWidth; p.classList.add('subpage-anim'); document.body.style.overflow='hidden'; } }
   function closeRatePanel(){ const p=document.getElementById('ratePanel'); if(p) p.style.display='none'; document.body.style.overflow=''; }
   window.openRatePanel=openRatePanel; window.closeRatePanel=closeRatePanel;
+  /* 📅 记录率：每次打开都从 0 慢慢跑到真实数字（约 2.2 秒，先快后慢）：圆环 + 数字 + 进度条 + 日期小圆点依次亮起 */
+  (function(){
+    var raf = 0;
+    function ease(t){ return 1 - Math.pow(1 - t, 3); }
+    function run(){
+      try{
+        var D = window._lunaRateData; if(!D) return;
+        var num = document.getElementById('statMonthRate'), sub = document.getElementById('statMonthRateSub'), bar = document.getElementById('statMonthRateBar'),
+            ring = document.getElementById('statRateRing'), dots = document.getElementById('statRateDots');
+        if(!num || !bar || !ring || !dots) return;
+        var zh = (typeof _appLang !== 'undefined' && _appLang === 'zh'), unit = zh ? '天' : 'วัน';
+        var rate = D.passed ? Math.round(D.rec / D.passed * 100) : 0, C = 326.7;
+        var h = '', i;
+        for(i = 0; i < D.days; i++){
+          var st = i < D.passed ? (D.dots[i] ? 'on' : 'off') : 'fut';
+          h += '<span data-i="' + i + '" data-s="' + st + '" style="width:30px;height:30px;border-radius:50%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;font-family:inherit;transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .3s;transform:scale(.2);opacity:0;'
+            + (st === 'on' ? 'background:linear-gradient(135deg,var(--purple-light),var(--purple));color:#fff;' : st === 'off' ? 'background:var(--purple-pale);color:var(--stat-fg-muted);' : 'border:1.5px dashed var(--purple-pale);color:var(--stat-fg-muted);opacity:.6;') + '">' + (i + 1) + '</span>';
+        }
+        dots.innerHTML = h;
+        try{
+          var LEG = {"th": ["บันทึกแล้ว", "ยังไม่ได้บันทึก"], "zh": ["已记录", "未记录"], "tw": ["已記錄", "未記錄"], "en": ["Logged", "Not logged"], "vi": ["Đã ghi", "Chưa ghi"], "id": ["Tercatat", "Belum dicatat"], "ja": ["記録あり", "記録なし"], "ko": ["기록함", "기록 안 함"], "es": ["Registrado", "Sin registro"], "pt": ["Registrado", "Sem registro"], "fr": ["Enregistré", "Non enregistré"], "tr": ["Kaydedildi", "Kayıt yok"], "ms": ["Direkodkan", "Belum direkod"], "fil": ["Naitala", "Hindi naitala"], "hi": ["दर्ज किया", "दर्ज नहीं"], "bn": ["লেখা হয়েছে", "লেখা হয়নি"], "ta": ["பதிவு செய்தது", "பதிவு இல்லை"], "uk": ["Записано", "Не записано"], "ar": ["مسجّل", "غير مسجّل"], "ur": ["درج کیا", "درج نہیں"], "he": ["תועד", "לא תועד"]}, g = function(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, lc = 'th';
+          if(g('luna_ui_en')) lc = 'en'; else if(g('luna_ui_vi')) lc = 'vi';
+          else if(g('luna_ui_id')){ var cs = ['ja','ko','es','pt','fr','tr','ms','fil','hi','bn','ta','uk','ar','ur','he'], ci; lc = 'id'; for(ci = 0; ci < cs.length; ci++) if(g('luna_ui_' + cs[ci])){ lc = cs[ci]; break; } }
+          else if(g('luna_ui_tw') && g('luna_lang') === 'zh') lc = 'tw'; else lc = zh ? 'zh' : 'th';
+          var lg = LEG[lc] || LEG.en, old = document.getElementById('statRateLegend'); if(old) old.remove();
+          var dot = 'display:inline-block;width:12px;height:12px;border-radius:50%;box-sizing:border-box;flex-shrink:0;';
+          dots.insertAdjacentHTML('afterend', '<div id="statRateLegend" style="display:flex;justify-content:center;align-items:center;gap:20px;margin-top:16px;font-size:12px;color:var(--stat-fg-muted);">'
+            + '<span style="display:inline-flex;align-items:center;gap:7px;"><i style="' + dot + 'background:linear-gradient(135deg,var(--purple-light),var(--purple));"></i>' + lg[0] + '</span>'
+            + '<span style="display:inline-flex;align-items:center;gap:7px;"><i style="' + dot + 'background:var(--purple-pale);"></i>' + lg[1] + '</span></div>');
+        }catch(e){}
+        var ds = dots.children, DUR = 2200, T0 = null, shown = 0;
+        ring.style.transition = 'none'; ring.style.strokeDashoffset = C; bar.style.transition = 'none'; bar.style.width = '0%'; num.textContent = '0%'; if(sub) sub.textContent = '0 / ' + D.passed + ' ' + unit;
+        cancelAnimationFrame(raf);
+        function step(ts){
+          if(T0 === null) T0 = ts;
+          var p = Math.min(1, (ts - T0 - 250) / DUR); if(p < 0) p = 0;
+          var e = ease(p), cur = rate * e;
+          ring.style.strokeDashoffset = C * (1 - cur / 100); bar.style.width = cur + '%';
+          num.textContent = Math.round(cur) + '%';
+          if(sub) sub.textContent = Math.round(D.rec * e) + ' / ' + D.passed + ' ' + unit;
+          var want = Math.min(D.days, Math.ceil(D.days * Math.min(1, p * 1.15)));
+          while(shown < want){ var d = ds[shown]; if(d){ d.style.transform = 'scale(1)'; d.style.opacity = d.getAttribute('data-s') === 'fut' ? '.7' : '1'; } shown++; }
+          if(p < 1) raf = requestAnimationFrame(step); else { num.textContent = rate + '%'; if(sub) sub.textContent = D.rec + ' / ' + D.passed + ' ' + unit; }
+        }
+        if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+          ring.style.strokeDashoffset = C * (1 - rate / 100); bar.style.width = rate + '%'; num.textContent = rate + '%';
+          for(i = 0; i < ds.length; i++){ ds[i].style.transform = 'scale(1)'; ds[i].style.opacity = '1'; } return;
+        }
+        raf = requestAnimationFrame(step);
+      }catch(e){}
+    }
+    var _o = window.openRatePanel;
+    window.openRatePanel = function(){ var r = _o.apply(this, arguments); setTimeout(run, 60); return r; };
+    var _c = window.closeRatePanel; window.closeRatePanel = function(){ cancelAnimationFrame(raf); return _c.apply(this, arguments); };
+  })();
   function showStats() {
     try { sessionStorage.setItem('luna_lastPage', 'stats'); } catch(e){}
     const _sp = document.getElementById('statsPanel');
@@ -23658,11 +23757,12 @@ window.setLang = setLang;
       const nowTH2 = new Date(today);
       const daysInMonth = new Date(nowTH2.getFullYear(), nowTH2.getMonth()+1, 0).getDate();
       const passedDays = nowTH2.getDate();
-      let monthRecorded = 0;
+      let monthRecorded = 0; const _rd=[];
       for(let i=1;i<=passedDays;i++){
         const k=`${nowTH2.getFullYear()}-${String(nowTH2.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-        if(logs.find(l=>l.date===k)||periodSet.has(k)) monthRecorded++;
+        if(logs.find(l=>l.date===k)||periodSet.has(k)){ monthRecorded++; _rd.push(1); } else _rd.push(0);
       }
+      window._lunaRateData = { dots:_rd, days:daysInMonth, passed:passedDays, rec:monthRecorded };
       const monthRate = Math.round(monthRecorded/passedDays*100);
       const _smr = document.getElementById('statMonthRate');
       if(_smr) _smr.textContent = monthRate + '%';
@@ -23776,6 +23876,18 @@ window.setLang = setLang;
   // ══ 深度健康洞察（VIP 专属·完整报告）══
   function renderInsights(runs, avgCycle) {
     const zh = _appLang === 'zh';
+    // 过滤异常短间隔（<15天视为同一次经期的补记，不算独立周期）
+    try{
+      if(runs && runs.length>1){
+        var _pl=function(k){var q=k.split('-').map(Number);return new Date(q[0],q[1]-1,q[2]);};
+        var _r2=[runs[0]];
+        for(var _i=1;_i<runs.length;_i++){
+          var _g=Math.round((_pl(runs[_i][0])-_pl(_r2[_r2.length-1][0]))/86400000);
+          if(_g>=15) _r2.push(runs[_i]);
+        }
+        if(_r2.length!==runs.length){ runs=_r2; avgCycle='--'; }
+      }
+    }catch(e){}
     const titleEl = document.getElementById('insightTitle');
     const body = document.getElementById('insightBody');
     if(!body) return;
@@ -23810,14 +23922,14 @@ window.setLang = setLang;
     if(typeof isPro === 'function' && !isPro()) {
       body.innerHTML = `
         <div style="position:relative;">
-          <div style="filter:blur(5px);opacity:0.55;pointer-events:none;font-size:12px;color:var(--stat-fg);line-height:2;">
+          <div style="filter:blur(5px);opacity:0.55;pointer-events:none;font-size:calc(12px*var(--fz,1));color:var(--stat-fg);line-height:2;">
             ${zh ? '周期规律性评分：93 分（非常规律）<br>症状高发期：经期前 2-3 天<br>情绪波动最大：经前期<br>未来预测、身体模式、半年趋势…' 
                  : 'คะแนนความสม่ำเสมอ：93 (สม่ำเสมอมาก)<br>ช่วงอาการเด่น：2-3 วันก่อนมีประจำเดือน<br>การคาดการณ์ รูปแบบร่างกาย แนวโน้มครึ่งปี…'}
           </div>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-            <div style="font-size:13px;font-weight:600;color:var(--purple);">🔒 ${zh ? 'VIP 专属深度分析' : 'วิเคราะห์เชิงลึกสำหรับ VIP'}</div>
+            <div style="font-size:calc(13px*var(--fz,1));font-weight:600;color:var(--purple);">🔒 ${zh ? 'VIP 专属深度分析' : 'วิเคราะห์เชิงลึกสำหรับ VIP'}</div>
             <button onclick="(typeof showTrialLockModal==='function')?showTrialLockModal('身体规律洞察为VIP专属','การวิเคราะห์รูปแบบร่างกายสำหรับสมาชิก VIP'):(document.getElementById('trialBanner')&&document.getElementById('trialBanner').scrollIntoView())"
-              style="background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;border:none;border-radius:20px;padding:8px 22px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(var(--purple-rgb),0.3);">
+              style="background:linear-gradient(135deg,var(--purple),var(--purple-light));color:#fff;border:none;border-radius:20px;padding:8px 22px;font-size:calc(13px*var(--fz,1));font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 14px rgba(var(--purple-rgb),0.3);">
               ${zh ? '解锁 VIP 查看' : 'ปลดล็อก VIP'}
             </button>
           </div>
@@ -23830,10 +23942,10 @@ window.setLang = setLang;
       body.innerHTML = `
         <div style="text-align:center;padding:14px 10px;">
           <div style="font-size:38px;line-height:1;margin-bottom:10px;">📊</div>
-          <div style="font-size:13px;font-weight:600;color:var(--purple);margin-bottom:6px;">
+          <div style="font-size:calc(13px*var(--fz,1));font-weight:600;color:var(--purple);margin-bottom:6px;">
             ${zh ? '正在为你积累分析数据' : 'กำลังรวบรวมข้อมูลเพื่อวิเคราะห์'}
           </div>
-          <div style="font-size:12px;color:var(--stat-fg-muted);line-height:1.9;">
+          <div style="font-size:calc(12px*var(--fz,1));color:var(--stat-fg-muted);line-height:1.9;">
             ${zh ? '智能洞察需要至少 <b style="color:var(--pink);">一个完整周期</b> 的记录才能生成。<br>继续记录经期，Luna 会为你分析周期规律、未来预测、身体模式等专属报告 🌸'
                  : 'การวิเคราะห์ต้องใช้ข้อมูลอย่างน้อย <b style="color:var(--pink);">1 รอบเดือนเต็ม</b><br>บันทึกต่อไป Luna จะวิเคราะห์ความสม่ำเสมอ การคาดการณ์ และรูปแบบร่างกายให้คุณ 🌸'}
           </div>
@@ -23923,9 +24035,14 @@ window.setLang = setLang;
     else aiSummary = zh?`你的周期平均 <b>${cycleLen} 天</b>，波动 <b>±${sd.toFixed(1)} 天</b>，近期略有起伏。`:`รอบเดือนเฉลี่ย <b>${cycleLen} วัน</b> ผันผวน <b>±${sd.toFixed(1)} วัน</b> ช่วงนี้มีการเปลี่ยนแปลง`;
 
     // ── 渲染 ──
-    const card = (inner) => `<div class="insight-block" style="background:var(--stat-surface-bg);border:1px solid var(--stat-surface-border);border-radius:18px;box-shadow:0 2px 10px rgba(var(--purple-rgb),0.06);padding:15px 16px;margin-bottom:12px;">${inner}</div>`;
-    const blkLabel = (ico,txt) => `<div style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--purple);margin-bottom:12px;"><span style="font-size:16px;">${ico}</span>${txt}</div>`;
-    const dataRow = (k,v,color) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(var(--purple-rgb),0.08);"><span style="font-size:12px;color:var(--stat-fg-muted);">${k}</span><span style="font-size:13px;font-weight:700;color:${color||'var(--purple)'};">${v}</span></div>`;
+    const card = (inner) => `<div class="insight-sec" style="padding:15px 0;border-top:1px solid rgba(var(--purple-rgb),0.14);">${inner}</div>`;
+    let grpStart = 0;
+    const closeGroup = () => {
+      html = html.slice(0,grpStart) + `<div class="insight-block" style="background:var(--stat-surface-bg);border:1px solid var(--stat-surface-border);border-radius:18px;box-shadow:0 2px 10px rgba(var(--purple-rgb),0.06);padding:0 16px;margin-bottom:12px;"><style>.insight-block>.insight-sec:first-of-type{border-top:none!important;}</style>` + html.slice(grpStart) + `</div>`;
+      grpStart = html.length;
+    };
+    const blkLabel = (ico,txt) => `<div style="display:flex;align-items:center;gap:7px;font-size:calc(13px*var(--fz,1));font-weight:700;color:var(--purple);margin-bottom:12px;"><span style="font-size:calc(16px*var(--fz,1));">${ico}</span>${txt}</div>`;
+    const dataRow = (k,v,color) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(var(--purple-rgb),0.08);"><span style="font-size:calc(12px*var(--fz,1));color:var(--stat-fg-muted);">${k}</span><span style="font-size:calc(13px*var(--fz,1));font-weight:700;color:${color||'var(--purple)'};">${v}</span></div>`;
 
     let html = '';
 
@@ -23942,8 +24059,8 @@ window.setLang = setLang;
           <div style="width:20px;height:20px;border-radius:50%;background:${stabDot};box-shadow:0 0 0 5px ${stabBg};"></div>
         </div>
         <div style="flex:1;">
-          <div style="font-size:16px;font-weight:800;color:${stabColor};margin-bottom:4px;">${stabLevel}</div>
-          <div style="font-size:11.5px;color:var(--stat-fg-muted);line-height:1.7;">${stabDesc}</div>
+          <div style="font-size:calc(16px*var(--fz,1));font-weight:800;color:${stabColor};margin-bottom:4px;">${stabLevel}</div>
+          <div style="font-size:calc(11.5px*var(--fz,1));color:var(--stat-fg-muted);line-height:1.7;">${stabDesc}</div>
         </div>
       </div>
       <div style="display:flex;gap:6px;margin-top:13px;">
@@ -23955,7 +24072,7 @@ window.setLang = setLang;
     const pills = runs.slice(-6).map((r,i,a)=> i>0 ? Math.round((parseLocal(a[i][0])-parseLocal(a[i-1][0]))/86400000) : null).filter(x=>x!==null);
     html += card(
       blkLabel('🔍', zh?'Luna 发现的周期规律':'รูปแบบรอบเดือนที่ Luna พบ') +
-      (pills.length? `<div style="font-size:11px;color:var(--stat-fg-muted);margin-bottom:5px;">${zh?'最近周期间隔':'ระยะรอบล่าสุด'}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${pills.map(p=>`<span style="font-size:12px;font-weight:700;color:var(--purple);background:var(--purple-pale);border-radius:9px;padding:5px 9px;font-family:Georgia,serif;">${p}</span>`).join('')}</div>`:'') +
+      (pills.length? `<div style="font-size:calc(11px*var(--fz,1));color:var(--stat-fg-muted);margin-bottom:5px;">${zh?'最近周期间隔':'ระยะรอบล่าสุด'}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${pills.map(p=>`<span style="font-size:calc(12px*var(--fz,1));font-weight:700;color:var(--purple);background:var(--purple-pale);border-radius:9px;padding:5px 9px;font-family:Georgia,serif;">${p}</span>`).join('')}</div>`:'') +
       dataRow(zh?'平均周期':'รอบเฉลี่ย', cycleLen+(zh?' 天':' วัน')) +
       dataRow(zh?'平均波动':'ความผันผวน', '±'+sd.toFixed(1)+(zh?' 天':' วัน'), 'var(--green)')
     );
@@ -23978,10 +24095,10 @@ window.setLang = setLang;
         <div style="font-size:30px;font-weight:800;color:${covColor};font-family:Georgia,serif;line-height:1;">${coverage}%</div>
         <div style="flex:1;">
           <div style="height:8px;border-radius:5px;background:rgba(var(--purple-rgb),0.12);overflow:hidden;"><div style="height:100%;width:${coverage}%;background:${covColor};border-radius:5px;"></div></div>
-          <div style="font-size:11px;color:var(--stat-fg-muted);margin-top:6px;">${zh?`已记录 <b style="color:var(--purple);">${cycleCount}</b> 个完整周期`:`บันทึกแล้ว <b style="color:var(--purple);">${cycleCount}</b> รอบเต็ม`}</div>
+          <div style="font-size:calc(11px*var(--fz,1));color:var(--stat-fg-muted);margin-top:6px;">${zh?`已记录 <b style="color:var(--purple);">${cycleCount}</b> 个完整周期`:`บันทึกแล้ว <b style="color:var(--purple);">${cycleCount}</b> รอบเต็ม`}</div>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--stat-fg-muted);line-height:1.7;">${zh?'记录越完整，Luna 的分析就越贴近你的真实节律 🌸':'ยิ่งบันทึกครบ การวิเคราะห์ของ Luna ก็ยิ่งตรงกับจังหวะจริงของคุณ 🌸'}</div>`
+      <div style="font-size:calc(11px*var(--fz,1));color:var(--stat-fg-muted);line-height:1.7;">${zh?'记录越完整，Luna 的分析就越贴近你的真实节律 🌸':'ยิ่งบันทึกครบ การวิเคราะห์ของ Luna ก็ยิ่งตรงกับจังหวะจริงของคุณ 🌸'}</div>`
     );
 
     // 模块2.5：周期逐次对比（独立、被重视的卡片：每次周期多长 + 比上次长/短几天）
@@ -23992,14 +24109,14 @@ window.setLang = setLang;
     }
     if(cycleRows.length >= 1){
       const fmtBadge = (diff)=>{
-        if(diff===null) return `<span style="font-size:10px;font-weight:700;color:var(--text-muted);background:#f0edf6;border-radius:8px;padding:3px 8px;">${zh?'基准':'เริ่มต้น'}</span>`;
-        if(diff===0)    return `<span style="font-size:10px;font-weight:700;color:var(--green);background:#e6f6ef;border-radius:8px;padding:3px 8px;">${zh?'持平':'เท่าเดิม'}</span>`;
+        if(diff===null) return `<span style="font-size:calc(10px*var(--fz,1));font-weight:700;color:var(--text-muted);background:#f0edf6;border-radius:8px;padding:3px 8px;">${zh?'基准':'เริ่มต้น'}</span>`;
+        if(diff===0)    return `<span style="font-size:calc(10px*var(--fz,1));font-weight:700;color:var(--green);background:#e6f6ef;border-radius:8px;padding:3px 8px;">${zh?'持平':'เท่าเดิม'}</span>`;
         const longer = diff>0;
         const c = longer ? '#e0954e' : '#5a9bd4';
         const bg = longer ? '#fdf1e3' : '#e9f2fb';
         const arrow = longer ? '↑' : '↓';
         const word = zh ? (longer?'变长':'变短') : (longer?'ยาวขึ้น':'สั้นลง');
-        return `<span style="font-size:11px;font-weight:800;color:${c};background:${bg};border-radius:8px;padding:3px 9px;white-space:nowrap;">${arrow} ${Math.abs(diff)}${zh?' 天':' วัน'} ${word}</span>`;
+        return `<span style="font-size:calc(11px*var(--fz,1));font-weight:800;color:${c};background:${bg};border-radius:8px;padding:3px 9px;white-space:nowrap;">${arrow} ${Math.abs(diff)}${zh?' 天':' วัน'} ${word}</span>`;
       };
       const recent = cycleRows.slice(-6);
       let rowsHtml = '';
@@ -24008,38 +24125,39 @@ window.setLang = setLang;
         const diff = globalIdx>0 ? (c.len - cycleRows[globalIdx-1].len) : null;
         rowsHtml += `<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(var(--purple-rgb),0.08);">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12.5px;font-weight:700;color:var(--stat-fg);">${fmtMD(c.from)} <span style="color:var(--stat-fg-muted);font-weight:400;">→</span> ${fmtMD(c.to)}</div>
-            <div style="font-size:10.5px;color:var(--stat-fg-muted);margin-top:2px;">${zh?'本次周期':'รอบนี้'}</div>
+            <div style="font-size:calc(12.5px*var(--fz,1));font-weight:700;color:var(--stat-fg);">${fmtMD(c.from)} <span style="color:var(--stat-fg-muted);font-weight:400;">→</span> ${fmtMD(c.to)}</div>
+            <div style="font-size:calc(10.5px*var(--fz,1));color:var(--stat-fg-muted);margin-top:2px;">${zh?'本次周期':'รอบนี้'}</div>
           </div>
-          <div style="font-size:20px;font-weight:800;color:var(--purple);font-family:Georgia,serif;flex-shrink:0;">${c.len}<span style="font-size:11px;font-weight:600;color:var(--stat-fg-muted);">${zh?'天':'วัน'}</span></div>
+          <div style="font-size:20px;font-weight:800;color:var(--purple);font-family:Georgia,serif;flex-shrink:0;">${c.len}<span style="font-size:calc(11px*var(--fz,1));font-weight:600;color:var(--stat-fg-muted);">${zh?'天':'วัน'}</span></div>
           <div style="flex-shrink:0;text-align:end;">${fmtBadge(diff)}</div>
         </div>`;
       });
       let maxDiff = 0;
       for(let i=1;i<cycleRows.length;i++){ const dd=Math.abs(cycleRows[i].len-cycleRows[i-1].len); if(dd>maxDiff) maxDiff=dd; }
       const noteHtml = (maxDiff>=7)
-        ? `<div style="font-size:11.5px;color:var(--text);line-height:1.85;background:#fff6f9;border:1px solid #f8dde7;border-radius:12px;padding:11px 13px;margin-top:13px;">🌸 ${zh?`其中有一次比上次相差了 <b style="color:var(--pink);">${maxDiff} 天</b>。偶尔波动是正常的；如果连续几个月都明显不稳定，可以多留意休息和压力，会有帮助 💜`:`มีรอบหนึ่งต่างจากครั้งก่อน <b style="color:var(--pink);">${maxDiff} วัน</b> ความผันผวนบางครั้งเป็นเรื่องปกติ ลองพักผ่อนและสังเกตตัวเองนะ 💜`}</div>`
-        : `<div style="font-size:11.5px;color:var(--text);line-height:1.85;background:#fdf4f8;border-radius:12px;padding:11px 13px;margin-top:13px;">🌸 ${zh?'你最近几次周期长度比较接近，身体节律挺稳定的，继续保持 💜':'รอบเดือนหลายครั้งล่าสุดใกล้เคียงกัน จังหวะร่างกายค่อนข้างคงที่ ทำต่อไปนะ 💜'}</div>`;
+        ? `<div style="font-size:calc(11.5px*var(--fz,1));color:var(--text);line-height:1.85;background:#fff6f9;border:1px solid #f8dde7;border-radius:12px;padding:11px 13px;margin-top:13px;">🌸 ${zh?`其中有一次比上次相差了 <b style="color:var(--pink);">${maxDiff} 天</b>。偶尔波动是正常的；如果连续几个月都明显不稳定，可以多留意休息和压力，会有帮助 💜`:`มีรอบหนึ่งต่างจากครั้งก่อน <b style="color:var(--pink);">${maxDiff} วัน</b> ความผันผวนบางครั้งเป็นเรื่องปกติ ลองพักผ่อนและสังเกตตัวเองนะ 💜`}</div>`
+        : `<div style="font-size:calc(11.5px*var(--fz,1));color:var(--text);line-height:1.85;background:#fdf4f8;border-radius:12px;padding:11px 13px;margin-top:13px;">🌸 ${zh?'你最近几次周期长度比较接近，身体节律挺稳定的，继续保持 💜':'รอบเดือนหลายครั้งล่าสุดใกล้เคียงกัน จังหวะร่างกายค่อนข้างคงที่ ทำต่อไปนะ 💜'}</div>`;
       html += card(
         blkLabel('🔄', zh?'周期逐次对比':'เปรียบเทียบรอบต่อรอบ') +
-        `<div style="font-size:11px;color:var(--stat-fg-muted);margin-bottom:8px;line-height:1.6;">${zh?'每次月经间隔多少天，以及比上一次长了还是短了':'ระยะห่างแต่ละรอบ และยาวขึ้นหรือสั้นลงจากครั้งก่อน'}</div>` +
+        `<div style="font-size:calc(11px*var(--fz,1));color:var(--stat-fg-muted);margin-bottom:8px;line-height:1.6;">${zh?'每次月经间隔多少天，以及比上一次长了还是短了':'ระยะห่างแต่ละรอบ และยาวขึ้นหรือสั้นลงจากครั้งก่อน'}</div>` +
         rowsHtml + noteHtml
       );
     }
 
+    closeGroup();
     // 模块3：未来预测
     html += card(
       blkLabel('📅', zh?'未来 30 天预测':'คาดการณ์ 30 วันข้างหน้า') +
       `<div style="text-align:center;background:linear-gradient(150deg,#fdf4f8,#fff);border-radius:16px;padding:16px;margin-bottom:11px;">
         <div style="font-size:24px;font-weight:800;color:var(--pink);font-family:Georgia,serif;">${fmtMD(nextStart)}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${zh?'预计下次月经':'คาดว่าประจำเดือนครั้งถัดไป'}</div>
-        <div style="display:inline-block;font-size:10px;color:var(--green);background:#e6f6ef;padding:3px 10px;border-radius:12px;margin-top:7px;font-weight:600;">${zh?'可信度':'ความเชื่อมั่น'} ${confidence}%</div>
+        <div style="font-size:calc(11px*var(--fz,1));color:var(--text-muted);margin-top:2px;">${zh?'预计下次月经':'คาดว่าประจำเดือนครั้งถัดไป'}</div>
+        <div style="display:inline-block;font-size:calc(10px*var(--fz,1));color:var(--green);background:#e6f6ef;padding:3px 10px;border-radius:12px;margin-top:7px;font-weight:600;">${zh?'可信度':'ความเชื่อมั่น'} ${confidence}%</div>
       </div>
       <div style="background:#faf8fe;border-radius:12px;padding:11px;display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:11px;color:var(--text-muted);">${zh?'预计排卵日':'วันตกไข่'}</div>
-        <div style="font-size:13px;font-weight:700;color:var(--purple);">${fmtMD(ovulation)}</div>
+        <div style="font-size:calc(11px*var(--fz,1));color:var(--text-muted);">${zh?'预计排卵日':'วันตกไข่'}</div>
+        <div style="font-size:calc(13px*var(--fz,1));font-weight:700;color:var(--purple);">${fmtMD(ovulation)}</div>
       </div>
-      <div style="font-size:10px;color:var(--stat-fg-muted);margin-top:9px;line-height:1.5;">* ${zh?'以上为根据你的周期数据推算的预测，仅供参考。':'ข้อมูลข้างต้นเป็นการคาดการณ์จากข้อมูลรอบเดือนของคุณ ใช้อ้างอิงเท่านั้น'}</div>`
+      <div style="font-size:calc(10px*var(--fz,1));color:var(--stat-fg-muted);margin-top:9px;line-height:1.5;">* ${zh?'以上为根据你的周期数据推算的预测，仅供参考。':'ข้อมูลข้างต้นเป็นการคาดการณ์จากข้อมูลรอบเดือนของคุณ ใช้อ้างอิงเท่านั้น'}</div>`
     );
 
     // 模块4：身体模式（有症状才显示）
@@ -24047,7 +24165,7 @@ window.setLang = setLang;
       html += card(
         blkLabel('🌙', zh?'身体模式分析':'รูปแบบร่างกาย') +
         dataRow(zh?'症状高发期':'ช่วงอาการเด่น', phaseHint) +
-        `<div style="font-size:12px;color:var(--text);line-height:1.85;margin-top:11px;background:#fdf4f8;border-radius:12px;padding:10px 12px;">💡 ${zh?'留意'+phaseHint+'的身体信号，提前安排休息会更舒适 🌸':'สังเกตสัญญาณร่างกายช่วง '+phaseHint+' วางแผนพักผ่อนล่วงหน้าจะดีขึ้น 🌸'}</div>`
+        `<div style="font-size:calc(12px*var(--fz,1));color:var(--text);line-height:1.85;margin-top:11px;background:#fdf4f8;border-radius:12px;padding:10px 12px;">💡 ${zh?'留意'+phaseHint+'的身体信号，提前安排休息会更舒适 🌸':'สังเกตสัญญาณร่างกายช่วง '+phaseHint+' วางแผนพักผ่อนล่วงหน้าจะดีขึ้น 🌸'}</div>`
       );
     }
 
@@ -24056,17 +24174,17 @@ window.setLang = setLang;
       html += card(
         blkLabel('📈', zh?'周期规律趋势':'แนวโน้มความสม่ำเสมอ') +
         trendSvg +
-        `<div style="font-size:11.5px;color:var(--stat-fg-muted);text-align:center;margin-top:8px;">${trendScores[trendScores.length-1]>=trendScores[0]?(zh?'↗ 规律性持续改善':'↗ ความสม่ำเสมอดีขึ้น'):(zh?'近期略有波动':'มีการเปลี่ยนแปลงเล็กน้อย')}</div>`
+        `<div style="font-size:calc(11.5px*var(--fz,1));color:var(--stat-fg-muted);text-align:center;margin-top:8px;">${trendScores[trendScores.length-1]>=trendScores[0]?(zh?'↗ 规律性持续改善':'↗ ความสม่ำเสมอดีขึ้น'):(zh?'近期略有波动':'มีการเปลี่ยนแปลงเล็กน้อย')}</div>`
       );
     }
 
     // 模块7：情绪关联（有情绪记录才显示）
     if(moodTotal>=3){
-      const mc = (e,n,l)=>`<div style="flex:1;text-align:center;background:#faf8fe;border-radius:12px;padding:10px 3px;"><div style="font-size:19px;">${e}</div><div style="font-size:14px;font-weight:800;color:var(--purple);font-family:Georgia,serif;margin-top:2px;">${n}</div><div style="font-size:9.5px;color:var(--text-muted);">${l}</div></div>`;
+      const mc = (e,n,l)=>`<div style="flex:1;text-align:center;background:#faf8fe;border-radius:12px;padding:10px 3px;"><div style="font-size:19px;">${e}</div><div style="font-size:calc(14px*var(--fz,1));font-weight:800;color:var(--purple);font-family:Georgia,serif;margin-top:2px;">${n}</div><div style="font-size:calc(9.5px*var(--fz,1));color:var(--text-muted);">${l}</div></div>`;
       html += card(
         blkLabel('❤️', zh?'情绪与周期关联':'อารมณ์กับรอบเดือน') +
         `<div style="display:flex;gap:7px;margin-bottom:12px;">${mc('😊',moodCount.happy,zh?'快乐':'ดีใจ')}${mc('😌',moodCount.calm,zh?'平静':'สงบ')}${mc('😢',moodCount.sad,zh?'低落':'เศร้า')}${mc('😣',moodCount.other,zh?'烦躁':'หงุดหงิด')}</div>` +
-        (negPct>0?`<div style="font-size:12px;color:var(--text);line-height:1.85;background:var(--purple-pale);border-radius:12px;padding:10px 12px;">Luna ${zh?'发现':'พบว่า'}：<b style="color:var(--purple);">${negPct}%</b> ${zh?'的低落情绪出现在经期前后，你的情绪与周期存在关联 🌸':'ของอารมณ์ด้านลบเกิดช่วงใกล้ประจำเดือน อารมณ์สัมพันธ์กับรอบเดือน 🌸'}</div>`:`<div style="font-size:11.5px;color:var(--stat-fg-muted);text-align:center;">${zh?'继续记录情绪，Luna 会分析它与周期的关联 🌸':'บันทึกอารมณ์ต่อไป Luna จะวิเคราะห์ความสัมพันธ์ 🌸'}</div>`)
+        (negPct>0?`<div style="font-size:calc(12px*var(--fz,1));color:var(--text);line-height:1.85;background:var(--purple-pale);border-radius:12px;padding:10px 12px;">Luna ${zh?'发现':'พบว่า'}：<b style="color:var(--purple);">${negPct}%</b> ${zh?'的低落情绪出现在经期前后，你的情绪与周期存在关联 🌸':'ของอารมณ์ด้านลบเกิดช่วงใกล้ประจำเดือน อารมณ์สัมพันธ์กับรอบเดือน 🌸'}</div>`:`<div style="font-size:calc(11.5px*var(--fz,1));color:var(--stat-fg-muted);text-align:center;">${zh?'继续记录情绪，Luna 会分析它与周期的关联 🌸':'บันทึกอารมณ์ต่อไป Luna จะวิเคราะห์ความสัมพันธ์ 🌸'}</div>`)
       );
     }
 
@@ -24118,14 +24236,16 @@ window.setLang = setLang;
 
     html += card(
       blkLabel('🌷', zh?'健康提醒':'คำเตือนสุขภาพ') +
-      `<div style="background:linear-gradient(150deg,#fff6f9,#fdf4f8);border:1px solid #f8dde7;border-radius:14px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.85;">${tip}</div>` +
-      (selfCareTip ? `<div style="margin-top:10px;background:var(--purple-pale);border-radius:14px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.85;">🌱 <b style="color:var(--purple);">${zh?'自我护理小贴士':'เคล็ดลับดูแลตัวเอง'}</b>${selfCareSource==='symptom'?`<span style="font-size:10px;color:var(--stat-fg-muted);font-weight:400;">（${zh?'根据你最近的记录':'ตามบันทึกล่าสุดของคุณ'}）</span>`:''}：${selfCareTip}</div>` : '')
+      `<div style="background:linear-gradient(150deg,#fff6f9,#fdf4f8);border:1px solid #f8dde7;border-radius:14px;padding:12px 14px;font-size:calc(12px*var(--fz,1));color:var(--text);line-height:1.85;">${tip}</div>` +
+      (selfCareTip ? `<div style="margin-top:10px;background:var(--purple-pale);border-radius:14px;padding:12px 14px;font-size:calc(12px*var(--fz,1));color:var(--text);line-height:1.85;">🌱 <b style="color:var(--purple);">${zh?'自我护理小贴士':'เคล็ดลับดูแลตัวเอง'}</b>${selfCareSource==='symptom'?`<span style="font-size:calc(10px*var(--fz,1));color:var(--stat-fg-muted);font-weight:400;">（${zh?'根据你最近的记录':'ตามบันทึกล่าสุดของคุณ'}）</span>`:''}：${selfCareTip}</div>` : '')
     );
+
+    closeGroup();
 
     // 模块9：信息来源声明（Apple Guideline 1.4.1 要求：涉及健康/医疗建议的AI分析需标注信息来源，
     // 不需要逐句标注——AI内容是动态生成的做不到——这里给出通用的权威机构参考来源+免责声明即可）
     // 🩹 加一个可点击跳转的"查看来源"链接，指向设置里的"参考文献"完整列表页（带真实来源链接）
-    html += `<div style="font-size:10.5px;color:var(--stat-fg-muted);line-height:1.8;text-align:center;padding:6px 14px 2px;">
+    html += `<div style="font-size:calc(10.5px*var(--fz,1));color:var(--stat-fg-muted);line-height:1.8;text-align:center;padding:6px 14px 2px;">
       ${zh
         ? '💡 以上健康分析参考世界卫生组织（WHO）、妙佑医疗国际（Mayo Clinic）等权威医疗机构的公开资料整理，仅供健康参考，不能替代专业医疗诊断或治疗建议。如有持续不适，请咨询医生。'
         : '💡 ข้อมูลสุขภาพข้างต้นอ้างอิงจากข้อมูลสาธารณะขององค์การอนามัยโลก (WHO) และ Mayo Clinic ใช้เพื่อการอ้างอิงเท่านั้น ไม่สามารถทดแทนการวินิจฉัยหรือคำแนะนำทางการแพทย์จากผู้เชี่ยวชาญได้ หากมีอาการผิดปกติต่อเนื่อง ควรปรึกษาแพทย์'}
@@ -24135,12 +24255,13 @@ window.setLang = setLang;
     // 模块10：AI 专属总结
     html += `<div class="insight-block" style="background:linear-gradient(160deg,var(--purple),var(--purple-light));border-radius:20px;padding:18px 17px;color:#fff;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(var(--purple-rgb),0.28);">
       <div style="position:absolute;top:-25px;inset-inline-end:-15px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1);"></div>
-      <div style="position:relative;display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;margin-bottom:12px;">🧠 ${zh?'Luna 专属洞察':'ข้อมูลเชิงลึกจาก Luna'}</div>
-      <div style="position:relative;font-size:12.5px;line-height:1.95;">${aiSummary}</div>
-      ${logsData.length>=3?`<div style="position:relative;background:rgba(255,255,255,0.18);border-radius:13px;padding:11px 13px;margin-top:11px;font-size:12.5px;line-height:1.8;">Luna ${zh?'发现':'พบว่า'}：${zh?'你最容易出现身体信号的时间是'+phaseHint+'，提前留意会更从容 🌸':'ช่วงที่ร่างกายส่งสัญญาณมากที่สุดคือ '+phaseHint+' สังเกตล่วงหน้าจะดีกว่า 🌸'}</div>`:''}
-      <div style="position:relative;text-align:center;margin-top:12px;font-size:14px;font-weight:800;">${zh?'整体状态':'สถานะรวม'}：${score>=85?(zh?'优秀 🌸':'ดีเยี่ยม 🌸'):score>=65?(zh?'良好 🌷':'ดี 🌷'):(zh?'需关注 🌼':'ควรดูแล 🌼')}</div>
+      <div style="position:relative;display:flex;align-items:center;gap:7px;font-size:calc(13px*var(--fz,1));font-weight:700;margin-bottom:12px;">🧠 ${zh?'Luna 专属洞察':'ข้อมูลเชิงลึกจาก Luna'}</div>
+      <div style="position:relative;font-size:calc(12.5px*var(--fz,1));line-height:1.95;">${aiSummary}</div>
+      ${logsData.length>=3?`<div style="position:relative;background:rgba(255,255,255,0.18);border-radius:13px;padding:11px 13px;margin-top:11px;font-size:calc(12.5px*var(--fz,1));line-height:1.8;">Luna ${zh?'发现':'พบว่า'}：${zh?'你最容易出现身体信号的时间是'+phaseHint+'，提前留意会更从容 🌸':'ช่วงที่ร่างกายส่งสัญญาณมากที่สุดคือ '+phaseHint+' สังเกตล่วงหน้าจะดีกว่า 🌸'}</div>`:''}
+      <div style="position:relative;text-align:center;margin-top:12px;font-size:calc(14px*var(--fz,1));font-weight:800;">${zh?'整体状态':'สถานะรวม'}：${score>=85?(zh?'优秀 🌸':'ดีเยี่ยม 🌸'):score>=65?(zh?'良好 🌷':'ดี 🌷'):(zh?'需关注 🌼':'ควรดูแล 🌼')}</div>
     </div>`;
 
+    body.style.setProperty('--fz', zh?'1':'1.2');
     body.innerHTML = html;
 
     // 卡片点击感
@@ -24989,6 +25110,23 @@ window.setLang = setLang;
         <span style="font-size:32px; font-weight:700; color:var(--purple); flex-shrink:0;">›</span>
       </div>
 
+      <!-- 📄 医生报告（月经模式）：放在「Luna 智能健康洞察」下面。点进去先看样张，生成 PDF 需要会员。其他模式（备孕/怀孕/产后）的入口在各自的分析页里，这里不显示 -->
+      <style>
+        #docRepTile { display:none; }
+        body:not(.preg-mode):not(.ttc-mode):not(.lpg-flow):not(.lpg-flow-ttc) #docRepTile { display:flex !important; }
+        #docRepPage .dr-img { display:block; width:100%; max-width:520px; margin:0 auto; border-radius:12px; background:#fff; box-shadow:0 8px 28px rgba(124,92,191,.18); }
+        #docRepPage .dr-go { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; max-width:520px; margin:18px auto 0; padding:15px; border:none; border-radius:16px; background:linear-gradient(135deg,#7c5cbf,#d97fb0); color:#fff; font-size:15.5px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 6px 16px rgba(124,92,191,.28); -webkit-tap-highlight-color:transparent; }
+        #docRepPage .dr-go:active { transform:scale(.985); }
+      </style>
+      <div id="docRepTile" onclick="LunaDocTile.open()" class="stat-tile">
+        <span class="s-svg-icon" data-c="blue" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;">📄</span>
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;"><span id="docRepTileT" style="font-size:15px; font-weight:700; color:var(--stat-fg);"></span><span id="docRepTileBadge" style="font-size:9px;font-weight:700;background:linear-gradient(135deg,#9d7bd6,#e98ab0);color:#fff;padding:2px 7px;border-radius:20px;flex-shrink:0;">VIP</span></div>
+          <div style="font-size:12px; color:var(--stat-fg-muted); margin-top:3px;"><span id="docRepTileS"></span></div>
+        </div>
+        <span style="font-size:32px; font-weight:700; color:var(--stat-fg); flex-shrink:0;">›</span>
+      </div>
+
       <!-- 📝 情绪与备注 磁贴（粉）-->
       <div onclick="openMoodlogPanel()" class="stat-tile">
         <span class="s-svg-icon" data-c="pink" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg></span>
@@ -25328,13 +25466,23 @@ window.setLang = setLang;
     <span style="font-size:20px; font-weight:600; color:var(--stat-fg); font-family:Georgia,'Songti SC',serif;"><span data-i18n="rate_entry_title">อัตราการบันทึก</span></span>
   </div>
   <div style="padding:8px 16px 0;">
-    <div class="stat-card" style="background:var(--stat-surface-bg); border-radius:20px; box-shadow:var(--stat-surface-shadow); border:1px solid var(--stat-surface-border); padding:24px 22px;">
-      <div style="font-size:13px; color:var(--stat-fg-muted); margin-bottom:12px;"><span data-i18n="month_rate_label">อัตราบันทึกเดือนนี้</span></div>
-      <div id="statMonthRate" style="font-size:40px; font-weight:700; color:var(--purple); font-family:Georgia,serif;">--%</div>
-      <div id="statMonthRateSub" style="font-size:13px; color:var(--stat-fg-muted); margin-top:5px;"><span data-i18n="month_rate_init">-- / -- วัน</span></div>
-      <div style="height:8px; background:var(--purple-pale); border-radius:4px; margin-top:14px;">
-        <div id="statMonthRateBar" style="height:8px; background:linear-gradient(90deg,var(--purple),var(--purple-light)); border-radius:4px; width:0%; transition:width .6s ease;"></div>
+    <div class="stat-card" style="background:var(--stat-surface-bg); border-radius:24px; box-shadow:var(--stat-surface-shadow); border:1px solid var(--stat-surface-border); padding:26px 22px 24px; text-align:center;">
+      <div style="font-size:13px; color:var(--stat-fg-muted); margin-bottom:16px; letter-spacing:.3px;"><span data-i18n="month_rate_label">อัตราบันทึกเดือนนี้</span></div>
+      <div style="position:relative; width:176px; height:176px; margin:0 auto;">
+        <svg viewBox="0 0 120 120" width="176" height="176" style="transform:rotate(-90deg); display:block;">
+          <defs><linearGradient id="rateGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--purple-light)"/><stop offset="100%" stop-color="var(--purple)"/></linearGradient></defs>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--purple-pale)" stroke-width="9"/>
+          <circle id="statRateRing" cx="60" cy="60" r="52" fill="none" stroke="url(#rateGrad)" stroke-width="9" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+        </svg>
+        <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <div id="statMonthRate" style="font-size:40px; font-weight:700; color:var(--purple); font-family:Georgia,serif; line-height:1;">--%</div>
+          <div id="statMonthRateSub" style="font-size:12.5px; color:var(--stat-fg-muted); margin-top:7px;"><span data-i18n="month_rate_init">-- / -- วัน</span></div>
+        </div>
       </div>
+      <div style="height:8px; background:var(--purple-pale); border-radius:4px; margin-top:22px; overflow:hidden;">
+        <div id="statMonthRateBar" style="height:8px; background:linear-gradient(90deg,var(--purple),var(--purple-light)); border-radius:4px; width:0%;"></div>
+      </div>
+      <div id="statRateDots" style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px 0; justify-items:center; margin-top:22px;"></div>
     </div>
   </div>
 </div>
@@ -26065,7 +26213,7 @@ window.lunaTtcMk = function(c, ic){
           tile.innerHTML = '<span style="width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(var(--purple-rgb),0.10);">🌸</span>'
             + '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span id="lunaHrTitle" style="font-size:15px;font-weight:700;color:var(--stat-fg);"></span></div>'
             + '<div id="lunaHrSub" style="font-size:12px;color:var(--stat-fg-muted);margin-top:2px;"></div></div>'
-            + '<span style="font-size:22px;color:var(--stat-fg-muted);">›</span>';
+            + '<span style="font-size:32px; font-weight:700; color:var(--stat-fg); flex-shrink:0;">›</span>';
           tile.onclick = openReport;
         }
         if(host.firstElementChild !== tile) host.insertBefore(tile, host.firstElementChild);
@@ -26304,6 +26452,7 @@ window.lunaTtcMk = function(c, ic){
       closeHist(); try{ pruneAll(); }catch(e){}
       var items = readIdx().sort(function(p, q){ return q.ts - p.ts; });
       var m = document.createElement('div'); m.id = 'lunaHrHistModal';
+      try{ var _dcA = dCode(); if(_dcA === 'ar' || _dcA === 'ur' || _dcA === 'he') m.setAttribute('dir', 'rtl'); }catch(e){}
       m.style.cssText = 'position:fixed;inset:0;z-index:100002;background:#f4effa;display:flex;flex-direction:column;font-family:inherit;';
       var list = '';
       if(!items.length){
@@ -30800,7 +30949,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
         + '<div style="font-size:12.5px;color:#7c5cbf;font-weight:600;margin-bottom:8px;">' + quotaText(zh) + '</div></div>';
       h += '<button class="lpg-btn" id="lpgAnaGo">' + (sv ? (zh ? '✨ 重新生成分析' : '✨ สร้างรายงานใหม่') : (zh ? '✨ 生成我的分析' : '✨ สร้างรายงานของฉัน')) + '</button>';
       if(sv) h += '<button class="lpg-btn2" id="lpgAnaLast">' + (zh ? '查看上次报告（' + esc(sv.date || '') + '，不扣次数）' : 'ดูรายงานครั้งก่อน (' + esc(sv.date || '') + ' ไม่หักสิทธิ์)') + '</button>';
-      if(window.LunaDoctorReport) h += '<button class="lpg-btn2" id="lpgDocBtn">' + (zh ? '📄 导出医生报告（PDF）' : '📄 ส่งออกรายงานสำหรับพบแพทย์ (PDF)') + (pro() ? '' : ' 👑') + '</button>';
+      if(window.LunaDoctorReport) h += '<button class="lpg-btn2" id="lpgDocBtn">' + (zh ? '📄 导出医生报告（PDF）' : '📄 ส่งออกรายงานสำหรับพบแพทย์ (PDF)') + (pro() ? '' : ((window.LunaDoctorReport && window.LunaDoctorReport.trialLeft && window.LunaDoctorReport.trialLeft()) ? ' 🎁' : ' 👑')) + '</button>';
       h += '<div class="lpg-note">' + (zh ? '分析完全根据你自己记录的数据计算，不会上传给 AI。' : 'วิเคราะห์จากข้อมูลที่คุณบันทึกเท่านั้น ไม่ส่งข้อมูลให้ AI') + '</div>';
       body.innerHTML = h;
       document.getElementById('lpgAnaGo').onclick = generate;
@@ -30865,7 +31014,7 @@ setTimeout(()=>{ if(typeof markUsedToday==='function') markUsedToday(); checkAch
         tile.innerHTML = '<span id="lpgAnaIcon" style="width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;background:rgba(var(--purple-rgb),0.10);"></span>'
           + '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;"><span id="lpgAnaTitle" style="font-size:15px;font-weight:700;color:var(--stat-fg);"></span><span class="lpg-badge" id="lpgAnaBadge"></span></div>'
           + '<div id="lpgAnaSubT" style="font-size:12px;color:var(--stat-fg-muted);margin-top:2px;"></div></div>'
-          + '<span style="font-size:22px;color:var(--stat-fg-muted);">›</span>';
+          + '<span style="font-size:32px; font-weight:700; color:var(--stat-fg); flex-shrink:0;">›</span>';
         tile.onclick = openPanel;
         anchor.parentNode.insertBefore(tile, anchor);
       }
@@ -34171,11 +34320,24 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       }catch(e){}
       return r;
     }
-    function symName(c){ if(zh()) return c; try{ return window.translateSym ? window.translateSym(c) : c; }catch(e){ return c; } }
+    function symName(c){
+      var dc = dCode();
+      if(dc){ try{ var T9 = window['LUNA_' + dc.toUpperCase()], E9 = window.LUNA_EN; if(T9 && T9[c]) return T9[c]; if(E9 && E9[c]) return E9[c]; }catch(e){} return c; }
+      if(zh()) return c; try{ return window.translateSym ? window.translateSym(c) : c; }catch(e){ return c; } }
 
     /* ───── 画布工具 ───── */
     function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
-    function txt(ctx, s, x, y, size, color, weight, align){ ctx.font = (weight || 400) + ' ' + size + 'px ' + FF; ctx.fillStyle = color; ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); }
+    var RTL = false;   // 阿拉伯文 / 乌尔都文 / 希伯来文：整页镜像（形状镜像，文字不镜像）
+    function txt(ctx, s, x, y, size, color, weight, align){
+      ctx.font = (weight || 400) + ' ' + size + 'px ' + FF; ctx.fillStyle = color; ctx.textBaseline = 'alphabetic';
+      if(RTL){
+        ctx.save(); ctx.scale(-1, 1); ctx.translate(-W, 0);
+        try{ ctx.direction = 'rtl'; }catch(e){}
+        ctx.textAlign = (align === 'right') ? 'left' : (align === 'center' ? 'center' : 'right'); ctx.fillText(s, W - x, y); ctx.restore();
+        return;
+      }
+      ctx.textAlign = align || 'left'; ctx.fillText(s, x, y);
+    }
     function wrap(ctx, s, maxW){   // 逐字换行；泰文组合符号（上下标/元音）不单独断行
       var out = [], line = '', i, ch, test, words;
       if(/ /.test(s) && !/[\u3000-\u9fff\u0e00-\u0e7f]/.test(s)){   // 英文：按单词换行
@@ -34183,15 +34345,28 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         for(i = 0; i < words.length; i++){ test = line ? line + ' ' + words[i] : words[i]; if(ctx.measureText(test).width > maxW && line){ out.push(line); line = words[i]; } else line = test; }
         if(line) out.push(line); return out;
       }
+      try{
+        if(/[\u0e00-\u0e7f]/.test(s) && typeof Intl !== 'undefined' && Intl.Segmenter){
+          var toks = Array.from(new Intl.Segmenter('th', { granularity: 'word' }).segment(s), function(x){ return x.segment; }), ok = true, t2;
+          line = '';
+          for(i = 0; i < toks.length; i++){
+            t2 = toks[i]; test = line + t2;
+            if(ctx.measureText(test).width > maxW && line){ out.push(line.replace(/\s+$/, '')); line = t2.replace(/^\s+/, ''); } else line = test;
+            if(ctx.measureText(line).width > maxW){ ok = false; break; }
+          }
+          if(ok){ if(line) out.push(line); for(i = 0; i < out.length - 1; i++){ while(/[(（「“]$/.test(out[i])){ out[i + 1] = out[i].slice(-1) + out[i + 1]; out[i] = out[i].slice(0, -1); } } return out; }
+          out = []; line = '';
+        }
+      }catch(eS){ out = []; line = ''; }
       for(i = 0; i < s.length; i++){
         ch = s.charAt(i); test = line + ch;
-        if(ctx.measureText(test).width > maxW && line && !/[ัิ-ฺ็-๎]/.test(ch)){ out.push(line); line = ch; } else line = test;
+        if(ctx.measureText(test).width > maxW && line && !/[ัิ-ฺ็-๎，。！？、；：）》」”,.!?)]/.test(ch)){ out.push(line); line = ch; } else line = test;
       }
       if(line) out.push(line); return out;
     }
     function section(ctx, y, title){ txt(ctx, title, M, y, 34, C.ink, 700); ctx.fillStyle = C.line; ctx.fillRect(M, y + 16, W - 2 * M, 2); return y + 52; }
 
-        var _XQ={"codes": ["ar", "fil", "ja", "ko", "es", "pt", "tr", "fr", "ms", "hi", "ur", "bn", "he", "uk", "ta", "id"], "d": {"ar": {"s": ["تدفق الدورة", "خفيف", "متوسط", "غزير", " مرات · ", "ملاحظات حديثة"], "q4": "ألم الدورة الشهرية لديّ متكرر نسبيًا. هل من نصائح للتخفيف أو فحوصات مناسبة؟", "q5": "يتقلب مزاجي كثيرًا في الفترة الأخيرة. هل قد يكون السبب هرمونيًا؟", "q6": "هل تبدو دورتي الشهرية ومدتها طبيعية؟ هل من أمر يجب الانتباه إليه؟", "t1": "يتفاوت طول دورتي كثيرًا (بفارق {n} يومًا). هل أحتاج إلى فحص؟", "t2": "متوسط دورتي {n} يومًا، وهو خارج النطاق المعتاد. هل أحتاج إلى فحص؟", "t3": "تستمر دورتي الشهرية نحو {n} أيام، وهذا يبدو طويلًا. هل هناك ما يجب الانتباه إليه؟"}, "ur": {"s": ["ماہواری کا بہاؤ", "ہلکا", "درمیانہ", "زیادہ", " بار · ", "حالیہ نوٹس"], "q4": "میری ماہواری کا درد کافی بار ہوتا ہے۔ آرام کے لیے کوئی مشورہ یا کون سے ٹیسٹ مناسب ہیں؟", "q5": "حال ہی میں میرا موڈ اوپر نیچے ہوتا رہتا ہے۔ کیا اس کی وجہ ہارمونز ہو سکتے ہیں؟", "q6": "کیا میرا سائیکل اور ماہواری نارمل لگتے ہیں؟ کسی بات کا خیال رکھنا چاہیے؟", "t1": "میرے سائیکل کی لمبائی کافی بدلتی رہتی ہے ({n} دن کا فرق)۔ کیا مجھے ٹیسٹ کروانا چاہیے؟", "t2": "میرا اوسط سائیکل {n} دن کا ہے، جو معمول کی حد سے باہر ہے۔ کیا مجھے ٹیسٹ کروانا چاہیے؟", "t3": "میری ماہواری تقریباً {n} دن رہتی ہے، جو لمبی لگتی ہے۔ کیا کسی بات کا خیال رکھنا چاہیے؟"}, "bn": {"s": ["মাসিকের রক্তপাতের পরিমাণ", "হালকা", "মাঝারি", "বেশি", " বার · ", "সাম্প্রতিক নোট"], "q4": "আমার মাসিকের ব্যথা প্রায়ই হয়। আরাম পেতে কী করা যায় বা কোন পরীক্ষা করানো উচিত?", "q5": "ইদানীং আমার মেজাজ ওঠানামা করছে। এর কারণ কি হরমোন হতে পারে?", "q6": "আমার চক্র ও মাসিক কি স্বাভাবিক মনে হচ্ছে? কোনো বিষয়ে সতর্ক থাকা উচিত?", "t1": "আমার চক্রের দৈর্ঘ্য বেশ ওঠানামা করে ({n} দিনের ব্যবধান)। আমার কি পরীক্ষা করানো উচিত?", "t2": "আমার গড় চক্র {n} দিনের, যা স্বাভাবিক সীমার বাইরে। আমার কি পরীক্ষা করানো উচিত?", "t3": "আমার মাসিক প্রায় {n} দিন স্থায়ী হয়, যা দীর্ঘ মনে হচ্ছে। কোনো বিষয়ে সতর্ক থাকা উচিত?"}, "he": {"s": ["כמות דימום הווסת", "קל", "בינוני", "חזק", " פעמים · ", "הערות אחרונות"], "q4": "כאבי הווסת שלי חוזרים לעיתים קרובות. מה אפשר לעשות להקלה, או אילו בדיקות כדאי לעשות?", "q5": "לאחרונה מצב הרוח שלי משתנה כל הזמן. האם זה יכול להיות בגלל הורמונים?", "q6": "האם המחזור והווסת שלי נראים תקינים? יש משהו שכדאי לשים לב אליו?", "t1": "אורך המחזור שלי משתנה מאוד (הפרש של {n} ימים). האם כדאי לי לעשות בדיקות?", "t2": "המחזור הממוצע שלי הוא {n} ימים, מחוץ לטווח התקין. האם כדאי לי לעשות בדיקות?", "t3": "הווסת שלי נמשכת כ-{n} ימים, וזה נראה ארוך. יש משהו שכדאי לשים לב אליו?"}, "ta": {"s": ["மாதவிடாய் இரத்தப்போக்கின் அளவு", "லேசானது", "நடுத்தரம்", "அதிகம்", " முறை · ", "சமீபத்திய குறிப்புகள்"], "q4": "என் மாதவிடாய் வலி அடிக்கடி திரும்பத் திரும்ப வருகிறது. நிவாரணம் பெற என்ன செய்யலாம், எந்தப் பரிசோதனைகளைச் செய்துகொள்ள வேண்டும்?", "q5": "சமீபகாலமாக என் மனநிலை அடிக்கடி மாறுகிறது. இது ஹார்மோன்களால் இருக்குமா?", "q6": "என் சுழற்சியும் மாதவிடாயும் இயல்பாகத் தெரிகிறதா? நான் எதைக் கவனிக்க வேண்டும்?", "t1": "என் சுழற்சியின் நீளம் மிகவும் மாறுபடுகிறது (வேறுபாடு {n} நாட்கள்). நான் பரிசோதனை செய்துகொள்ள வேண்டுமா?", "t2": "என் சராசரிச் சுழற்சி {n} நாட்கள், இது இயல்பான வரம்புக்கு வெளியே உள்ளது. நான் பரிசோதனை செய்துகொள்ள வேண்டுமா?", "t3": "என் மாதவிடாய் சுமார் {n} நாட்கள் நீடிக்கிறது, இது நீளமாகத் தெரிகிறது. நான் எதைக் கவனிக்க வேண்டும்?"}, "uk": {"s": ["Обсяг менструальної кровотечі", "Слабкі", "Середні", "Рясні", " разів · ", "Останні нотатки"], "q4": "Мої менструальні болі часто повторюються. Що можна зробити для полегшення або які обстеження варто пройти?", "q5": "Останнім часом мій настрій постійно коливається. Чи може це бути через гормони?", "q6": "Чи виглядають мій цикл і менструація нормальними? На що мені слід звернути увагу?", "t1": "Тривалість мого циклу дуже коливається (різниця {n} дн.). Чи варто мені пройти обстеження?", "t2": "Мій середній цикл становить {n} дн., що виходить за межі норми. Чи варто мені пройти обстеження?", "t3": "Моя менструація триває близько {n} дн., і це видається довгим. На що мені слід звернути увагу?"}, "id": {"s": ["Jumlah darah haid", "Sedikit", "Sedang", "Banyak", " kali · ", "Catatan terbaru"], "q4": "Nyeri haid saya cukup sering muncul. Ada saran untuk meredakannya atau pemeriksaan yang perlu dilakukan?", "q5": "Belakangan suasana hati saya naik turun. Apakah ini berkaitan dengan hormon?", "q6": "Apakah siklus dan haid saya terlihat normal? Ada yang perlu saya perhatikan?", "t1": "Panjang siklus saya cukup bervariasi (selisih {n} hari). Perlukah saya periksa?", "t2": "Rata-rata siklus saya {n} hari, di luar kisaran umum. Perlukah saya periksa?", "t3": "Haid saya berlangsung sekitar {n} hari, sepertinya cukup lama. Ada yang perlu diwaspadai?"}, "fil": {"s": ["Dami ng regla", "Kaunti", "Katamtaman", "Marami", " beses · ", "Mga kamakailang tala"], "q4": "Madalas masakit ang regla ko. May payo ba para maibsan ito o mga pagsusuring dapat gawin?", "q5": "Pabago-bago ang mood ko nitong mga huling araw. Posible bang dahil sa hormones?", "q6": "Mukha bang normal ang cycle at regla ko? May dapat ba akong bantayan?", "t1": "Malaki ang pagkakaiba ng haba ng cycle ko ({n} araw ang pagitan). Kailangan ko bang magpa-check?", "t2": "Ang average na cycle ko ay {n} araw, wala sa karaniwang saklaw. Kailangan ko bang magpa-check?", "t3": "Mga {n} araw ang regla ko, mukhang matagal. May dapat ba akong bantayan?"}, "ja": {"s": ["経血量", "少ない", "ふつう", "多い", " 回 · ", "最近のメモ"], "q4": "生理痛が頻繁にあります。和らげる方法や、受けたほうがよい検査はありますか？", "q5": "最近、気分の浮き沈みが大きいです。ホルモンの影響でしょうか？", "q6": "私の周期と生理は正常に見えますか？気をつけることはありますか？", "t1": "周期の長さにかなりばらつきがあります（{n}日の差）。検査を受けたほうがよいですか？", "t2": "平均周期は{n}日で、一般的な範囲から外れています。検査を受けたほうがよいですか？", "t3": "生理が平均{n}日ほど続き、長めです。気をつけることはありますか？"}, "ko": {"s": ["월경량", "적음", "보통", "많음", " 회 · ", "최근 메모"], "q4": "생리통이 꽤 잦아요. 완화 방법이나 받아볼 검사가 있을까요?", "q5": "요즘 기분 기복이 심해요. 호르몬과 관련이 있을까요?", "q6": "제 주기와 생리가 정상으로 보이나요? 주의할 점이 있을까요?", "t1": "주기 길이가 꽤 들쭉날쭉해요({n}일 차이). 검사를 받아야 할까요?", "t2": "평균 주기가 {n}일로 일반적인 범위를 벗어나요. 검사를 받아야 할까요?", "t3": "생리가 평균 {n}일 정도로 긴 편이에요. 주의할 점이 있을까요?"}, "es": {"s": ["Flujo menstrual", "Escaso", "Moderado", "Abundante", " veces · ", "Notas recientes"], "q4": "Tengo dolor menstrual con bastante frecuencia. ¿Hay consejos para aliviarlo o pruebas que deba hacerme?", "q5": "Mi estado de ánimo ha estado muy cambiante últimamente. ¿Podría deberse a las hormonas?", "q6": "¿Mi ciclo y mi periodo parecen normales? ¿Debo vigilar algo?", "t1": "La duración de mi ciclo varía bastante ({n} días de diferencia). ¿Debería hacerme una revisión?", "t2": "Mi ciclo promedio es de {n} días, fuera del rango habitual. ¿Debería hacerme una revisión?", "t3": "Mi periodo dura unos {n} días, lo que parece largo. ¿Hay algo a lo que deba prestar atención?"}, "pt": {"s": ["Fluxo menstrual", "Leve", "Moderado", "Intenso", " vezes · ", "Anotações recentes"], "q4": "Minha cólica menstrual é bem frequente. Há dicas para aliviar ou exames a fazer?", "q5": "Meu humor anda oscilando bastante ultimamente. Pode ser hormonal?", "q6": "Meu ciclo e minha menstruação parecem normais? Devo ficar atenta a algo?", "t1": "A duração do meu ciclo varia bastante ({n} dias de diferença). Devo fazer exames?", "t2": "Meu ciclo médio é de {n} dias, fora da faixa habitual. Devo fazer exames?", "t3": "Minha menstruação dura cerca de {n} dias, o que parece longo. Devo ficar atenta a algo?"}, "tr": {"s": ["Adet akışı", "Hafif", "Orta", "Yoğun", " kez · ", "Son notlar"], "q4": "Adet ağrım oldukça sık. Hafifletmek için öneriler veya yaptırmam gereken tetkikler var mı?", "q5": "Son zamanlarda ruh halim inişli çıkışlı. Hormonlarla ilgili olabilir mi?", "q6": "Döngüm ve adetim normal görünüyor mu? Dikkat etmem gereken bir şey var mı?", "t1": "Döngü uzunluğum epey değişiyor ({n} gün fark var). Kontrol yaptırmam gerekir mi?", "t2": "Ortalama döngüm {n} gün ve olağan aralığın dışında. Kontrol yaptırmam gerekir mi?", "t3": "Adetim ortalama {n} gün sürüyor, uzun görünüyor. Dikkat etmem gereken bir şey var mı?"}, "fr": {"s": ["Flux menstruel", "Léger", "Moyen", "Abondant", " fois · ", "Notes récentes"], "q4": "Mes douleurs de règles sont assez fréquentes. Y a-t-il des conseils pour les soulager ou des examens à faire ?", "q5": "Mon humeur est très changeante ces derniers temps. Cela peut-il être hormonal ?", "q6": "Mon cycle et mes règles semblent-ils normaux ? Y a-t-il quelque chose à surveiller ?", "t1": "La durée de mon cycle varie beaucoup ({n} jours d’écart). Dois-je faire des examens ?", "t2": "Mon cycle moyen est de {n} jours, en dehors de la plage habituelle. Dois-je faire des examens ?", "t3": "Mes règles durent environ {n} jours, ce qui me semble long. Y a-t-il quelque chose à surveiller ?"}, "ms": {"s": ["Jumlah aliran haid", "Sedikit", "Sederhana", "Banyak", " kali · ", "Nota terkini"], "q4": "Sakit haid saya agak kerap. Ada nasihat untuk melegakan atau ujian yang perlu dibuat?", "q5": "Mood saya naik turun kebelakangan ini. Mungkinkah berkaitan hormon?", "q6": "Adakah kitaran dan haid saya kelihatan normal? Ada apa-apa yang perlu saya beri perhatian?", "t1": "Panjang kitaran saya berbeza agak banyak (beza {n} hari). Perlukah saya buat pemeriksaan?", "t2": "Purata kitaran saya ialah {n} hari, di luar julat biasa. Perlukah saya buat pemeriksaan?", "t3": "Haid saya berlangsung kira-kira {n} hari, nampaknya agak lama. Ada perkara yang perlu saya beri perhatian?"}, "hi": {"s": ["पीरियड फ़्लो", "हल्का", "मध्यम", "ज़्यादा", " बार · ", "हाल के नोट्स"], "q4": "मुझे पीरियड का दर्द काफ़ी बार होता है। आराम के लिए कोई सलाह या कराने लायक जाँच हैं?", "q5": "हाल ही में मेरा मूड ऊपर-नीचे होता रहा है। क्या यह हार्मोन की वजह से हो सकता है?", "q6": "क्या मेरा चक्र और पीरियड सामान्य लगते हैं? क्या किसी बात का ध्यान रखना चाहिए?", "t1": "मेरे चक्र की लंबाई काफ़ी बदलती रहती है ({n} दिन का अंतर)। क्या मुझे जाँच करानी चाहिए?", "t2": "मेरा औसत चक्र {n} दिन का है, जो सामान्य दायरे से बाहर है। क्या मुझे जाँच करानी चाहिए?", "t3": "मेरा पीरियड औसतन लगभग {n} दिन चलता है, जो लंबा लगता है। क्या किसी बात का ध्यान रखना चाहिए?"}}};
+        var _XQ={"codes": ["ar", "fil", "ja", "ko", "es", "pt", "tr", "fr", "ms", "hi", "ur", "bn", "he", "uk", "ta", "id"], "d": {"ar": {"s": ["تدفق الدورة", "خفيف", "متوسط", "غزير", " مرات · ", "ملاحظات حديثة"], "q4": "ألم الدورة الشهرية لديّ متكرر نسبيًا. هل من نصائح للتخفيف أو فحوصات مناسبة؟", "q5": "يتقلب مزاجي كثيرًا في الفترة الأخيرة. هل قد يكون السبب هرمونيًا؟", "q6": "هل تبدو دورتي الشهرية ومدتها طبيعية؟ هل من أمر يجب الانتباه إليه؟", "t1": "يتفاوت طول دورتي كثيرًا (بفارق {n} يومًا). هل أحتاج إلى فحص؟", "t2": "متوسط دورتي {n} يومًا، وهو خارج النطاق المعتاد. هل أحتاج إلى فحص؟", "t3": "تستمر دورتي الشهرية نحو {n} أيام، وهذا يبدو طويلًا. هل هناك ما يجب الانتباه إليه؟"}, "ur": {"s": ["ماہواری کا بہاؤ", "ہلکا", "درمیانہ", "زیادہ", " بار · ", "حالیہ نوٹس"], "q4": "میری ماہواری کا درد کافی بار ہوتا ہے۔ آرام کے لیے کوئی مشورہ یا کون سے ٹیسٹ مناسب ہیں؟", "q5": "حال ہی میں میرا موڈ اوپر نیچے ہوتا رہتا ہے۔ کیا اس کی وجہ ہارمونز ہو سکتے ہیں؟", "q6": "کیا میرا سائیکل اور ماہواری نارمل لگتے ہیں؟ کسی بات کا خیال رکھنا چاہیے؟", "t1": "میرے سائیکل کی لمبائی کافی بدلتی رہتی ہے ({n} دن کا فرق)۔ کیا مجھے ٹیسٹ کروانا چاہیے؟", "t2": "میرا اوسط سائیکل {n} دن کا ہے، جو معمول کی حد سے باہر ہے۔ کیا مجھے ٹیسٹ کروانا چاہیے؟", "t3": "میری ماہواری تقریباً {n} دن رہتی ہے، جو لمبی لگتی ہے۔ کیا کسی بات کا خیال رکھنا چاہیے؟"}, "bn": {"s": ["মাসিকের রক্তপাতের পরিমাণ", "হালকা", "মাঝারি", "বেশি", " বার · ", "সাম্প্রতিক নোট"], "q4": "আমার মাসিকের ব্যথা প্রায়ই হয়। আরাম পেতে কী করা যায় বা কোন পরীক্ষা করানো উচিত?", "q5": "ইদানীং আমার মেজাজ ওঠানামা করছে। এর কারণ কি হরমোন হতে পারে?", "q6": "আমার চক্র ও মাসিক কি স্বাভাবিক মনে হচ্ছে? কোনো বিষয়ে সতর্ক থাকা উচিত?", "t1": "আমার চক্রের দৈর্ঘ্য বেশ ওঠানামা করে ({n} দিনের ব্যবধান)। আমার কি পরীক্ষা করানো উচিত?", "t2": "আমার গড় চক্র {n} দিনের, যা স্বাভাবিক সীমার বাইরে। আমার কি পরীক্ষা করানো উচিত?", "t3": "আমার মাসিক প্রায় {n} দিন স্থায়ী হয়, যা দীর্ঘ মনে হচ্ছে। কোনো বিষয়ে সতর্ক থাকা উচিত?"}, "he": {"s": ["כמות דימום הווסת", "קל", "בינוני", "חזק", " פעמים · ", "הערות אחרונות"], "q4": "כאבי הווסת שלי חוזרים לעיתים קרובות. מה אפשר לעשות להקלה, או אילו בדיקות כדאי לעשות?", "q5": "לאחרונה מצב הרוח שלי משתנה כל הזמן. האם זה יכול להיות בגלל הורמונים?", "q6": "האם המחזור והווסת שלי נראים תקינים? יש משהו שכדאי לשים לב אליו?", "t1": "אורך המחזור שלי משתנה מאוד (הפרש של {n} ימים). האם כדאי לי לעשות בדיקות?", "t2": "המחזור הממוצע שלי הוא {n} ימים, מחוץ לטווח התקין. האם כדאי לי לעשות בדיקות?", "t3": "הווסת שלי נמשכת כ-{n} ימים, וזה נראה ארוך. יש משהו שכדאי לשים לב אליו?"}, "ta": {"s": ["மாதவிடாய் இரத்தப்போக்கின் அளவு", "லேசானது", "நடுத்தரம்", "அதிகம்", " முறை · ", "சமீபத்திய குறிப்புகள்"], "q4": "என் மாதவிடாய் வலி அடிக்கடி திரும்பத் திரும்ப வருகிறது. நிவாரணம் பெற என்ன செய்யலாம், எந்தப் பரிசோதனைகளைச் செய்துகொள்ள வேண்டும்?", "q5": "சமீபகாலமாக என் மனநிலை அடிக்கடி மாறுகிறது. இது ஹார்மோன்களால் இருக்குமா?", "q6": "என் சுழற்சியும் மாதவிடாயும் இயல்பாகத் தெரிகிறதா? நான் எதைக் கவனிக்க வேண்டும்?", "t1": "என் சுழற்சியின் நீளம் மிகவும் மாறுபடுகிறது (வேறுபாடு {n} நாட்கள்). நான் பரிசோதனை செய்துகொள்ள வேண்டுமா?", "t2": "என் சராசரிச் சுழற்சி {n} நாட்கள், இது இயல்பான வரம்புக்கு வெளியே உள்ளது. நான் பரிசோதனை செய்துகொள்ள வேண்டுமா?", "t3": "என் மாதவிடாய் சுமார் {n} நாட்கள் நீடிக்கிறது, இது நீளமாகத் தெரிகிறது. நான் எதைக் கவனிக்க வேண்டும்?"}, "uk": {"s": ["Обсяг менструальної кровотечі", "Слабкі", "Середні", "Рясні", " разів · ", "Останні нотатки"], "q4": "Мої менструальні болі часто повторюються. Що можна зробити для полегшення або які обстеження варто пройти?", "q5": "Останнім часом мій настрій постійно коливається. Чи може це бути через гормони?", "q6": "Чи виглядають мій цикл і менструація нормальними? На що мені слід звернути увагу?", "t1": "Тривалість мого циклу дуже коливається (різниця {n} дн.). Чи варто мені пройти обстеження?", "t2": "Мій середній цикл становить {n} дн., що виходить за межі норми. Чи варто мені пройти обстеження?", "t3": "Моя менструація триває близько {n} дн., і це видається довгим. На що мені слід звернути увагу?"}, "id": {"s": ["Jumlah darah haid", "Sedikit", "Sedang", "Banyak", " kali · ", "Catatan terbaru"], "q4": "Nyeri haid saya cukup sering muncul. Ada saran untuk meredakannya atau pemeriksaan yang perlu dilakukan?", "q5": "Belakangan suasana hati saya naik turun. Apakah ini berkaitan dengan hormon?", "q6": "Apakah siklus dan haid saya terlihat normal? Ada yang perlu saya perhatikan?", "t1": "Panjang siklus saya cukup bervariasi (selisih {n} hari). Perlukah saya periksa?", "t2": "Rata-rata siklus saya {n} hari, di luar kisaran umum. Perlukah saya periksa?", "t3": "Haid saya berlangsung sekitar {n} hari, sepertinya cukup lama. Ada yang perlu diwaspadai?"}, "fil": {"s": ["Dami ng regla", "Kaunti", "Katamtaman", "Marami", " beses · ", "Mga kamakailang tala"], "q4": "Madalas masakit ang regla ko. May payo ba para maibsan ito o mga pagsusuring dapat gawin?", "q5": "Pabago-bago ang mood ko nitong mga huling araw. Posible bang dahil sa hormones?", "q6": "Mukha bang normal ang cycle at regla ko? May dapat ba akong bantayan?", "t1": "Malaki ang pagkakaiba ng haba ng cycle ko ({n} araw ang pagitan). Kailangan ko bang magpa-check?", "t2": "Ang average na cycle ko ay {n} araw, wala sa karaniwang saklaw. Kailangan ko bang magpa-check?", "t3": "Mga {n} araw ang regla ko, mukhang matagal. May dapat ba akong bantayan?"}, "ja": {"s": ["経血量", "少ない", "ふつう", "多い", " 回 · ", "最近のメモ"], "q4": "生理痛が頻繁にあります。和らげる方法や、受けたほうがよい検査はありますか？", "q5": "最近、気分の浮き沈みが大きいです。ホルモンの影響でしょうか？", "q6": "私の周期と生理は正常に見えますか？気をつけることはありますか？", "t1": "周期の長さにかなりばらつきがあります（{n}日の差）。検査を受けたほうがよいですか？", "t2": "平均周期は{n}日で、一般的な範囲から外れています。検査を受けたほうがよいですか？", "t3": "生理が平均{n}日ほど続き、長めです。気をつけることはありますか？"}, "ko": {"s": ["월경량", "적음", "보통", "많음", " 회 · ", "최근 메모"], "q4": "생리통이 꽤 잦아요. 완화 방법이나 받아볼 검사가 있을까요?", "q5": "요즘 기분 기복이 심해요. 호르몬과 관련이 있을까요?", "q6": "제 주기와 생리가 정상으로 보이나요? 주의할 점이 있을까요?", "t1": "주기 길이가 꽤 들쭉날쭉해요({n}일 차이). 검사를 받아야 할까요?", "t2": "평균 주기가 {n}일로 일반적인 범위를 벗어나요. 검사를 받아야 할까요?", "t3": "생리가 평균 {n}일 정도로 긴 편이에요. 주의할 점이 있을까요?"}, "es": {"s": ["Flujo menstrual", "Escaso", "Moderado", "Abundante", " veces · ", "Notas recientes"], "q4": "Tengo dolor menstrual con bastante frecuencia. ¿Hay consejos para aliviarlo o pruebas que deba hacerme?", "q5": "Mi estado de ánimo ha estado muy cambiante últimamente. ¿Podría deberse a las hormonas?", "q6": "¿Mi ciclo y mi periodo parecen normales? ¿Debo vigilar algo?", "t1": "La duración de mi ciclo varía bastante ({n} días de diferencia). ¿Debería hacerme una revisión?", "t2": "Mi ciclo promedio es de {n} días, fuera del rango habitual. ¿Debería hacerme una revisión?", "t3": "Mi periodo dura unos {n} días, lo que parece largo. ¿Hay algo a lo que deba prestar atención?"}, "pt": {"s": ["Fluxo menstrual", "Leve", "Moderado", "Intenso", " vezes · ", "Anotações recentes"], "q4": "Minha cólica menstrual é bem frequente. Há dicas para aliviar ou exames a fazer?", "q5": "Meu humor anda oscilando bastante ultimamente. Pode ser hormonal?", "q6": "Meu ciclo e minha menstruação parecem normais? Devo ficar atenta a algo?", "t1": "A duração do meu ciclo varia bastante ({n} dias de diferença). Devo fazer exames?", "t2": "Meu ciclo médio é de {n} dias, fora da faixa habitual. Devo fazer exames?", "t3": "Minha menstruação dura cerca de {n} dias, o que parece longo. Devo ficar atenta a algo?"}, "tr": {"s": ["Adet akışı", "Hafif", "Orta", "Yoğun", " kez · ", "Son notlar"], "q4": "Regl ağrım oldukça sık. Hafifletmek için öneriler veya yaptırmam gereken tetkikler var mı?", "q5": "Son zamanlarda ruh halim inişli çıkışlı. Hormonlarla ilgili olabilir mi?", "q6": "Döngüm ve adetim normal görünüyor mu? Dikkat etmem gereken bir şey var mı?", "t1": "Döngü uzunluğum epey değişiyor ({n} gün fark var). Kontrol yaptırmam gerekir mi?", "t2": "Ortalama döngüm {n} gün ve olağan aralığın dışında. Kontrol yaptırmam gerekir mi?", "t3": "Adetim ortalama {n} gün sürüyor, uzun görünüyor. Dikkat etmem gereken bir şey var mı?"}, "fr": {"s": ["Flux menstruel", "Léger", "Moyen", "Abondant", " fois · ", "Notes récentes"], "q4": "Mes douleurs de règles sont assez fréquentes. Y a-t-il des conseils pour les soulager ou des examens à faire ?", "q5": "Mon humeur est très changeante ces derniers temps. Cela peut-il être hormonal ?", "q6": "Mon cycle et mes règles semblent-ils normaux ? Y a-t-il quelque chose à surveiller ?", "t1": "La durée de mon cycle varie beaucoup ({n} jours d’écart). Dois-je faire des examens ?", "t2": "Mon cycle moyen est de {n} jours, en dehors de la plage habituelle. Dois-je faire des examens ?", "t3": "Mes règles durent environ {n} jours, ce qui me semble long. Y a-t-il quelque chose à surveiller ?"}, "ms": {"s": ["Jumlah aliran haid", "Sedikit", "Sederhana", "Banyak", " kali · ", "Nota terkini"], "q4": "Sakit haid saya agak kerap. Ada nasihat untuk melegakan atau ujian yang perlu dibuat?", "q5": "Mood saya naik turun kebelakangan ini. Mungkinkah berkaitan hormon?", "q6": "Adakah kitaran dan haid saya kelihatan normal? Ada apa-apa yang perlu saya beri perhatian?", "t1": "Panjang kitaran saya berbeza agak banyak (beza {n} hari). Perlukah saya buat pemeriksaan?", "t2": "Purata kitaran saya ialah {n} hari, di luar julat biasa. Perlukah saya buat pemeriksaan?", "t3": "Haid saya berlangsung kira-kira {n} hari, nampaknya agak lama. Ada perkara yang perlu saya beri perhatian?"}, "hi": {"s": ["पीरियड फ़्लो", "हल्का", "मध्यम", "ज़्यादा", " बार · ", "हाल के नोट्स"], "q4": "मुझे पीरियड का दर्द काफ़ी बार होता है। आराम के लिए कोई सलाह या कराने लायक जाँच हैं?", "q5": "हाल ही में मेरा मूड ऊपर-नीचे होता रहा है। क्या यह हार्मोन की वजह से हो सकता है?", "q6": "क्या मेरा चक्र और पीरियड सामान्य लगते हैं? क्या किसी बात का ध्यान रखना चाहिए?", "t1": "मेरे चक्र की लंबाई काफ़ी बदलती रहती है ({n} दिन का अंतर)। क्या मुझे जाँच करानी चाहिए?", "t2": "मेरा औसत चक्र {n} दिन का है, जो सामान्य दायरे से बाहर है। क्या मुझे जाँच करानी चाहिए?", "t3": "मेरा पीरियड औसतन लगभग {n} दिन चलता है, जो लंबा लगता है। क्या किसी बात का ध्यान रखना चाहिए?"}}};
     function _arX(c){
       var l=null; try{ if(localStorage.getItem('luna_ui_id')==='1'){ for(var i=0;i<_XQ.codes.length;i++){ if(localStorage.getItem('luna_ui_'+_XQ.codes[i])==='1'){ l=_XQ.codes[i]; break; } } } }catch(e){}
       if(!l) return null; var P=_XQ.d[l];
@@ -34221,196 +34396,640 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       if(!a.length) a.push(X4('我的周期和经期看起来正常吗？有需要注意的吗？', 'รอบเดือนและประจำเดือนของฉันดูปกติไหม? มีอะไรต้องระวังไหม?', 'Do my cycle and period look normal? Anything I should watch for?', 'Chu kỳ và kỳ kinh của tôi có bình thường không? Tôi cần lưu ý gì?'));
       return a.slice(0, 3);
     }
+    /* ───── 新版医生报告（A4 一页）：患者信息 + 逐周期条形 + 观察 + 想问医生的问题 ───── */
+    function dLang(){
+      try{
+        if(localStorage.getItem('luna_ui_en') === '1' || localStorage.getItem('luna_ui_id') === '1') return 'en';
+        if(localStorage.getItem('luna_ui_vi') === '1') return 'vi';
+      }catch(e){}
+      return zh() ? 'zh' : 'th';
+    }
+    function isTwUi(){ try{ return localStorage.getItem('luna_lang') === 'zh' && localStorage.getItem('luna_ui_tw') === '1' && localStorage.getItem('luna_ui_en') !== '1' && localStorage.getItem('luna_ui_vi') !== '1' && localStorage.getItem('luna_ui_id') !== '1'; }catch(e){ return false; } }
+    var DS = {
+      title:   ['月经记录报告（就诊用）', 'รายงานรอบเดือน (สำหรับพบแพทย์)', 'Menstrual Cycle Report (for your doctor)', 'Báo cáo chu kỳ kinh nguyệt (đưa bác sĩ)'],
+      sub:     ['Luna · {0} · 最近 6 个月 · 已记录 {1} 天', 'Luna · {0} · 6 เดือนล่าสุด · บันทึก {1} วัน', 'Luna · {0} · last 6 months · {1} days logged', 'Luna · {0} · 6 tháng gần nhất · đã ghi {1} ngày'],
+      pinfo:   ['患者信息', 'ข้อมูลผู้ป่วย', 'Patient information', 'Thông tin bệnh nhân'],
+      name:    ['姓名', 'ชื่อ-นามสกุล', 'Name', 'Họ và tên'],
+      age:     ['年龄（岁）', 'อายุ (ปี)', 'Age (years)', 'Tuổi'],
+      height:  ['身高（厘米）', 'ส่วนสูง (ซม.)', 'Height (cm)', 'Chiều cao (cm)'],
+      weight:  ['体重（公斤）', 'น้ำหนัก (กก.)', 'Weight (kg)', 'Cân nặng (kg)'],
+      bmi:     ['BMI', 'BMI', 'BMI', 'BMI'],
+      lmp:     ['末次月经开始日', 'ประจำเดือนครั้งล่าสุดเริ่ม', 'Last period started', 'Kỳ kinh gần nhất bắt đầu'],
+      preg:    ['怀孕次数', 'เคยตั้งครรภ์ (ครั้ง)', 'Pregnancies', 'Số lần mang thai'],
+      contra:  ['避孕方式', 'การคุมกำเนิด', 'Contraception', 'Biện pháp tránh thai'],
+      cond:    ['慢性病 / 过敏', 'โรคประจำตัว / แพ้ยา', 'Medical conditions / allergies', 'Bệnh nền / dị ứng'],
+      meds:    ['正在用的药', 'ยาที่ใช้อยู่', 'Current medications', 'Thuốc đang dùng'],
+      concern: ['想咨询的问题', 'อาการที่อยากปรึกษา', 'Main concern', 'Vấn đề muốn hỏi'],
+      avgC:    ['平均周期', 'รอบเดือนเฉลี่ย', 'Average cycle', 'Chu kỳ trung bình'],
+      avgP:    ['平均经期', 'ระยะมีประจำเดือนเฉลี่ย', 'Average period', 'Số ngày hành kinh TB'],
+      spread:  ['周期最多相差', 'รอบต่างกันมากสุด', 'Largest cycle difference', 'Chênh lệch chu kỳ lớn nhất'],
+      days:    [' 天', ' วัน', ' days', ' ngày'],
+      now:     ['至今', 'ปัจจุบัน', 'ongoing', 'hiện tại'],
+      dayN:    ['第 {0} 天', 'วันที่ {0}', 'Day {0}', 'Ngày {0}'],
+      lgP:     ['经期天数', 'วันมีประจำเดือน', 'Period days', 'Ngày hành kinh'],
+      lgO:     ['估计排卵日', 'วันตกไข่โดยประมาณ', 'Estimated ovulation', 'Rụng trứng (ước tính)'],
+      lgR:     ['右侧数字 = 周期天数', 'ตัวเลขด้านขวา = ความยาวรอบ', 'Number on the right = cycle length', 'Số bên phải = độ dài chu kỳ'],
+      noCyc:   ['连续记录还不够，暂时看不出完整周期长度', 'ยังมีบันทึกต่อเนื่องไม่พอ จึงยังดูความยาวรอบที่ครบไม่ได้', 'Not enough consecutive records yet to show full cycle lengths', 'Chưa đủ dữ liệu liên tục để hiển thị độ dài chu kỳ đầy đủ'],
+      notes:   ['观察要点', 'ข้อสังเกต', 'Notes', 'Ghi nhận'],
+      ques:    ['想问医生的问题', 'คำถามที่อยากถามแพทย์', 'Questions for the doctor', 'Câu hỏi cho bác sĩ'],
+      oSpread: ['最近周期长短最多相差 {0} 天', 'รอบล่าสุดยาวสั้นต่างกันมากสุด {0} วัน', 'Recent cycles differ by up to {0} days', 'Các chu kỳ gần đây chênh lệch tối đa {0} ngày'],
+      oAvg:    ['平均周期 {0} 天，不在常见范围（21–35 天）', 'รอบเฉลี่ย {0} วัน อยู่นอกช่วงที่พบบ่อย (21–35 วัน)', 'Average cycle {0} days, outside the common range (21–35 days)', 'Chu kỳ trung bình {0} ngày, ngoài khoảng thường gặp (21–35 ngày)'],
+      oPer:    ['经期平均 {0} 天，偏长', 'ประจำเดือนมาเฉลี่ย {0} วัน ค่อนข้างนาน', 'Periods last {0} days on average (longer than usual)', 'Hành kinh trung bình {0} ngày (dài hơn thường gặp)'],
+      oSym:    ['常见症状：{0}', 'อาการที่พบบ่อย: {0}', 'Frequent symptoms: {0}', 'Triệu chứng thường gặp: {0}'],
+      oTimes:  ['{0} 次', '{0} ครั้ง', '{0}×', '{0} lần'],
+      oFlow:   ['经期流量：少 {0} 天 · 中 {1} 天 · 多 {2} 天', 'ปริมาณประจำเดือน: น้อย {0} วัน · กลาง {1} วัน · มาก {2} วัน', 'Period flow: light {0} d · medium {1} d · heavy {2} d', 'Lượng kinh: ít {0} ngày · vừa {1} ngày · nhiều {2} ngày'],
+      oMood:   ['情绪不佳占已记录情绪的 {0}%', 'อารมณ์ไม่ดี {0}% ของวันที่บันทึกอารมณ์', 'Low mood on {0}% of days with mood logged', 'Tâm trạng không tốt chiếm {0}% số ngày đã ghi'],
+      oNone:   ['从已记录的数据里没有发现需要特别注意的地方', 'ไม่พบสิ่งที่ต้องสังเกตเป็นพิเศษจากข้อมูลที่บันทึก', 'Nothing unusual stands out in the logged data', 'Không có điểm bất thường nổi bật trong dữ liệu đã ghi'],
+      foot:    ['本报告由 Luna 根据本人自行记录的数据整理，周期与排卵日为估计值，可能有误差，不能用于避孕，也不能代替医生的诊断。',
+                'รายงานนี้สรุปจากข้อมูลที่ผู้ใช้บันทึกเอง วันที่ประจำเดือนและวันตกไข่เป็นค่าประมาณ อาจคลาดเคลื่อน ไม่ใช้เพื่อการคุมกำเนิด และไม่สามารถใช้แทนการวินิจฉัยของแพทย์',
+                'Prepared by Luna from the user’s own logged data. Cycle and ovulation dates are estimates and may be inaccurate. Not for contraception and not a substitute for a doctor’s diagnosis.',
+                'Báo cáo do Luna tổng hợp từ dữ liệu người dùng tự ghi. Ngày kinh và ngày rụng trứng chỉ là ước tính, có thể sai lệch, không dùng để tránh thai và không thay thế chẩn đoán của bác sĩ.'],
+      sample:  ['示例数据', 'ข้อมูลตัวอย่าง', 'Sample data', 'Dữ liệu mẫu'],
+      fTitle:  ['就诊前填写（都可以不填）', 'ข้อมูลสำหรับแพทย์ (ไม่กรอกก็ได้)', 'Details for your doctor (all optional)', 'Thông tin cho bác sĩ (có thể bỏ trống)'],
+      fHint:   ['只保存在你的手机上，不会上传。留空的栏会变成横线，可以打印后手写。', 'เก็บไว้ในเครื่องของคุณเท่านั้น ไม่อัปโหลด ช่องที่เว้นว่างจะเป็นเส้น พิมพ์แล้วเขียนเองได้', 'Stored only on your phone, never uploaded. Empty fields become blank lines you can fill in by hand after printing.', 'Chỉ lưu trên điện thoại của bạn, không tải lên. Ô để trống sẽ thành dòng kẻ để viết tay sau khi in.'],
+      fGo:     ['生成报告', 'สร้างรายงาน', 'Create report', 'Tạo báo cáo'],
+      fCancel: ['取消', 'ยกเลิก', 'Cancel', 'Hủy'],
+      fClear:  ['清除已保存的信息', 'ล้างข้อมูลที่บันทึกไว้', 'Clear saved details', 'Xóa thông tin đã lưu'],
+      fEdit:   ['修改个人信息', 'แก้ไขข้อมูลส่วนตัว', 'Edit details', 'Sửa thông tin']
+    };
+    var DF = {};   // 各语言的日期写法
+    var DX = {};   // 其他语言的整张表：DX.ja = { key: '…' }（没做的语言回退英文）
+    var DCODES = ['ja','ko','id','es','pt','fr','tr','ms','fil','hi','bn','ta','uk','ar','ur','he'];
+    function dCode(){
+      try{
+        if(localStorage.getItem('luna_ui_id') !== '1' || localStorage.getItem('luna_ui_en') === '1') return null;
+        for(var q = 0; q < DCODES.length; q++){ if(DCODES[q] !== 'id' && localStorage.getItem('luna_ui_' + DCODES[q]) === '1') return DX[DCODES[q]] ? DCODES[q] : null; }
+        if(DX.id) return 'id';   // 印尼语 = 通用语言开关开着、其他语言开关都没开
+      }catch(e){}
+      return null;
+    }
+    DX.ja = {
+      title: '月経周期記録（受診用）', sub: 'Luna · {0} · 直近6か月 · 記録{1}日', pinfo: '患者情報',
+      name: '氏名', age: '年齢（歳）', height: '身長（cm）', weight: '体重（kg）', bmi: 'BMI',
+      lmp: '最終月経の開始日', preg: '妊娠回数', contra: '避妊方法', cond: '持病・アレルギー', meds: '服用中の薬', concern: '相談したいこと',
+      avgC: '平均周期', avgP: '平均月経期間', spread: '周期の最大差', days: '日', now: '現在', dayN: '{0}日目',
+      lgP: '月経日', lgO: '排卵日（推定）', lgR: '右の数字＝周期の日数',
+      noCyc: '連続した記録がまだ少なく、周期の長さを表示できません',
+      notes: '気になる点', ques: '医師への質問',
+      oSpread: '直近の周期の長さに、最大{0}日の差があります',
+      oAvg: '平均周期は{0}日で、一般的な範囲（21〜35日）の外です',
+      oPer: '月経期間は平均{0}日で、やや長めです',
+      oSym: 'よくある症状：{0}', oTimes: '{0}回',
+      oFlow: '月経量：少ない{0}日 · ふつう{1}日 · 多い{2}日',
+      oMood: '気分が優れない日が、記録した日の{0}%',
+      oNone: '記録されたデータからは、特に気になる点は見つかりませんでした',
+      foot: 'このレポートは、ご本人が記録したデータをもとに Luna が作成したものです。周期や排卵日は推定値で、誤差が出ることがあります。避妊には使用できず、医師の診断に代わるものでもありません。',
+      sample: 'サンプル', fTitle: '受診前にご記入ください（すべて任意）',
+      fHint: 'お使いのスマートフォンにのみ保存され、アップロードされません。空欄は罫線になるので、印刷して手書きできます。',
+      fGo: 'レポートを作成', fCancel: 'キャンセル', fClear: '保存した情報を消去', fEdit: '情報を編集'
+    };
+    DF.ja = function(d, y){ return y + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'; };
+    DX.ko = {
+      title: '생리 주기 기록표 (진료용)', sub: 'Luna · {0} · 최근 6개월 · 기록 {1}일', pinfo: '환자 정보',
+      name: '이름', age: '나이(세)', height: '키(cm)', weight: '몸무게(kg)', bmi: 'BMI',
+      lmp: '마지막 월경 시작일', preg: '임신 횟수', contra: '피임 방법', cond: '지병·알레르기', meds: '복용 중인 약', concern: '상담하고 싶은 내용',
+      avgC: '평균 주기', avgP: '평균 월경 일수', spread: '주기 최대 차이', days: '일', now: '현재', dayN: '{0}일째',
+      lgP: '월경일', lgO: '배란일(추정)', lgR: '오른쪽 숫자 = 주기 일수',
+      noCyc: '연속 기록이 아직 부족해 주기 길이를 표시할 수 없습니다',
+      notes: '참고 사항', ques: '의사에게 묻고 싶은 질문',
+      oSpread: '최근 주기 길이가 최대 {0}일 차이 납니다',
+      oAvg: '평균 주기는 {0}일로, 일반적인 범위(21~35일)를 벗어납니다',
+      oPer: '월경 기간이 평균 {0}일로 다소 깁니다',
+      oSym: '자주 나타나는 증상: {0}', oTimes: '{0}회',
+      oFlow: '월경량: 적음 {0}일 · 보통 {1}일 · 많음 {2}일',
+      oMood: '기분이 좋지 않은 날이 기록한 날의 {0}%',
+      oNone: '기록된 데이터에서 특별히 눈에 띄는 점은 없습니다',
+      foot: '이 리포트는 본인이 직접 기록한 데이터를 바탕으로 Luna가 정리한 것입니다. 주기와 배란일은 추정값이므로 오차가 있을 수 있으며, 피임 용도로 사용할 수 없고 의사의 진단을 대신하지 않습니다.',
+      sample: '샘플', fTitle: '진료 전에 작성해 주세요 (모두 선택 사항)',
+      fHint: '내 휴대폰에만 저장되며 업로드되지 않습니다. 비워 둔 칸은 줄로 표시되어 인쇄 후 손으로 쓸 수 있습니다.',
+      fGo: '리포트 만들기', fCancel: '취소', fClear: '저장된 정보 지우기', fEdit: '정보 수정'
+    };
+    DF.ko = function(d, y){ return y + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일'; };
+    DX.id = {
+      title: 'Laporan Siklus Menstruasi (untuk Dokter)', sub: 'Luna · {0} · 6 bulan terakhir · {1} hari tercatat', pinfo: 'Data Pasien',
+      name: 'Nama', age: 'Usia (tahun)', height: 'Tinggi (cm)', weight: 'Berat (kg)', bmi: 'BMI',
+      lmp: 'Menstruasi terakhir dimulai', preg: 'Jumlah kehamilan', contra: 'Kontrasepsi', cond: 'Penyakit / alergi', meds: 'Obat yang dikonsumsi', concern: 'Keluhan utama',
+      avgC: 'Siklus rata-rata', avgP: 'Lama menstruasi rata-rata', spread: 'Selisih siklus terbesar', days: ' hari', now: 'sekarang', dayN: 'Hari ke-{0}',
+      lgP: 'Hari menstruasi', lgO: 'Perkiraan ovulasi', lgR: 'Angka di kanan = panjang siklus',
+      noCyc: 'Catatan berurutan belum cukup untuk menampilkan panjang siklus penuh',
+      notes: 'Catatan', ques: 'Pertanyaan untuk dokter',
+      oSpread: 'Panjang siklus terakhir berbeda hingga {0} hari',
+      oAvg: 'Siklus rata-rata {0} hari, di luar kisaran umum (21–35 hari)',
+      oPer: 'Menstruasi berlangsung rata-rata {0} hari (lebih lama dari biasanya)',
+      oSym: 'Gejala yang sering muncul: {0}', oTimes: '{0} kali',
+      oFlow: 'Volume menstruasi: Sedikit {0} hari · Sedang {1} hari · Banyak {2} hari',
+      oMood: 'Suasana hati kurang baik pada {0}% hari yang dicatat',
+      oNone: 'Tidak ada hal yang menonjol dari data yang dicatat',
+      foot: 'Laporan ini disusun Luna dari data yang dicatat sendiri oleh pengguna. Tanggal menstruasi dan ovulasi hanyalah perkiraan dan bisa meleset. Tidak untuk kontrasepsi dan bukan pengganti diagnosis dokter.',
+      sample: 'Data contoh', fTitle: 'Isi sebelum konsultasi (semua opsional)',
+      fHint: 'Hanya disimpan di ponsel Anda dan tidak diunggah. Kolom yang dikosongkan menjadi garis yang bisa diisi tangan setelah dicetak.',
+      fGo: 'Buat laporan', fCancel: 'Batal', fClear: 'Hapus data tersimpan', fEdit: 'Ubah data'
+    };
+    DF.id = function(d, y){ return d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()] + ' ' + y; };
+    DX.es = {
+      title: 'Informe del ciclo menstrual (para el médico)', sub: 'Luna · {0} · últimos 6 meses · {1} días registrados', pinfo: 'Datos de la paciente',
+      name: 'Nombre', age: 'Edad (años)', height: 'Estatura (cm)', weight: 'Peso (kg)', bmi: 'IMC',
+      lmp: 'Inicio de la última menstruación', preg: 'Embarazos', contra: 'Método anticonceptivo', cond: 'Enfermedades / alergias', meds: 'Medicamentos actuales', concern: 'Motivo de consulta',
+      avgC: 'Ciclo promedio', avgP: 'Duración de la menstruación', spread: 'Mayor diferencia entre ciclos', days: ' días', now: 'en curso', dayN: 'Día {0}',
+      lgP: 'Días de menstruación', lgO: 'Ovulación estimada', lgR: 'Número a la derecha = duración del ciclo',
+      noCyc: 'Aún no hay suficientes registros seguidos para mostrar la duración completa de los ciclos',
+      notes: 'Observaciones', ques: 'Preguntas para el médico',
+      oSpread: 'Los ciclos recientes difieren hasta {0} días',
+      oAvg: 'Ciclo promedio de {0} días, fuera del rango habitual (21–35 días)',
+      oPer: 'La menstruación dura en promedio {0} días (más larga de lo habitual)',
+      oSym: 'Síntomas frecuentes: {0}', oTimes: '{0} veces',
+      oFlow: 'Flujo menstrual: Leve {0} d · Moderado {1} d · Abundante {2} d',
+      oMood: 'Ánimo bajo en el {0}% de los días con ánimo registrado',
+      oNone: 'No se observa nada fuera de lo común en los datos registrados',
+      foot: 'Informe elaborado por Luna con los datos registrados por la propia usuaria. Las fechas de la menstruación y de la ovulación son estimaciones y pueden no ser exactas. No sirve como anticonceptivo ni sustituye el diagnóstico médico.',
+      sample: 'Datos de ejemplo', fTitle: 'Completa antes de la consulta (todo es opcional)',
+      fHint: 'Se guarda solo en tu teléfono y no se sube a ningún servidor. Los campos vacíos quedan como líneas para completar a mano después de imprimir.',
+      fGo: 'Crear informe', fCancel: 'Cancelar', fClear: 'Borrar datos guardados', fEdit: 'Editar datos'
+    };
+    DF.es = function(d, y){ return d.getDate() + ' ' + ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sept.','oct.','nov.','dic.'][d.getMonth()] + ' ' + y; };
+    DX.pt = {
+      title: 'Relatório do ciclo menstrual (para o médico)', sub: 'Luna · {0} · últimos 6 meses · {1} dias registrados', pinfo: 'Dados da paciente',
+      name: 'Nome', age: 'Idade (anos)', height: 'Altura (cm)', weight: 'Peso (kg)', bmi: 'IMC',
+      lmp: 'Início da última menstruação', preg: 'Gestações', contra: 'Método contraceptivo', cond: 'Doenças / alergias', meds: 'Medicamentos em uso', concern: 'Motivo da consulta',
+      avgC: 'Ciclo médio', avgP: 'Duração média da menstruação', spread: 'Maior diferença entre ciclos', days: ' dias', now: 'em andamento', dayN: 'Dia {0}',
+      lgP: 'Dias de menstruação', lgO: 'Ovulação estimada', lgR: 'Número à direita = duração do ciclo',
+      noCyc: 'Ainda não há registros seguidos suficientes para mostrar a duração completa dos ciclos',
+      notes: 'Observações', ques: 'Perguntas para o médico',
+      oSpread: 'Os ciclos recentes diferem em até {0} dias',
+      oAvg: 'Ciclo médio de {0} dias, fora da faixa comum (21–35 dias)',
+      oPer: 'A menstruação dura em média {0} dias (mais longa que o habitual)',
+      oSym: 'Sintomas frequentes: {0}', oTimes: '{0} vezes',
+      oFlow: 'Fluxo menstrual: Leve {0} d · Moderado {1} d · Intenso {2} d',
+      oMood: 'Humor ruim em {0}% dos dias com humor registrado',
+      oNone: 'Nada fora do comum nos dados registrados',
+      foot: 'Relatório elaborado pela Luna com os dados registrados pela própria usuária. As datas da menstruação e da ovulação são estimativas e podem não ser exatas. Não serve como método contraceptivo nem substitui o diagnóstico médico.',
+      sample: 'Dados de exemplo', fTitle: 'Preencha antes da consulta (tudo é opcional)',
+      fHint: 'Fica salvo apenas no seu celular e não é enviado. Os campos vazios viram linhas para preencher à mão depois de imprimir.',
+      fGo: 'Criar relatório', fCancel: 'Cancelar', fClear: 'Apagar dados salvos', fEdit: 'Editar dados'
+    };
+    DF.pt = function(d, y){ return d.getDate() + ' ' + ['jan.','fev.','mar.','abr.','mai.','jun.','jul.','ago.','set.','out.','nov.','dez.'][d.getMonth()] + ' ' + y; };
+    DX.fr = {
+      title: 'Rapport du cycle menstruel (pour le médecin)', sub: 'Luna · {0} · 6 derniers mois · {1} jours enregistrés', pinfo: 'Informations patiente',
+      name: 'Nom', age: 'Âge (ans)', height: 'Taille (cm)', weight: 'Poids (kg)', bmi: 'IMC',
+      lmp: 'Début des dernières règles', preg: 'Grossesses', contra: 'Contraception', cond: 'Maladies / allergies', meds: 'Traitements en cours', concern: 'Motif de consultation',
+      avgC: 'Cycle moyen', avgP: 'Durée moyenne des règles', spread: 'Écart maximal entre cycles', days: ' jours', now: 'en cours', dayN: 'Jour {0}',
+      lgP: 'Jours de règles', lgO: 'Ovulation estimée', lgR: 'Nombre à droite = durée du cycle',
+      noCyc: 'Pas encore assez de données consécutives pour afficher la durée complète des cycles',
+      notes: 'Observations', ques: 'Questions pour le médecin',
+      oSpread: 'Les cycles récents varient jusqu’à {0} jours',
+      oAvg: 'Cycle moyen de {0} jours, hors de la plage habituelle (21–35 jours)',
+      oPer: 'Les règles durent en moyenne {0} jours (plus long que d’habitude)',
+      oSym: 'Symptômes fréquents : {0}', oTimes: '{0} fois',
+      oFlow: 'Flux menstruel : Léger {0} j · Moyen {1} j · Abondant {2} j',
+      oMood: 'Humeur basse sur {0} % des jours avec humeur renseignée',
+      oNone: 'Rien de particulier dans les données enregistrées',
+      foot: 'Rapport établi par Luna à partir des données saisies par l’utilisatrice elle-même. Les dates des règles et de l’ovulation sont des estimations et peuvent être inexactes. Ne constitue pas une méthode contraceptive et ne remplace pas un diagnostic médical.',
+      sample: 'Données d’exemple', fTitle: 'À remplir avant la consultation (tout est facultatif)',
+      fHint: 'Enregistré uniquement sur votre téléphone, jamais envoyé. Les champs vides deviennent des lignes à remplir à la main après impression.',
+      fGo: 'Créer le rapport', fCancel: 'Annuler', fClear: 'Effacer les données enregistrées', fEdit: 'Modifier les infos'
+    };
+    DF.fr = function(d, y){ return d.getDate() + ' ' + ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'][d.getMonth()] + ' ' + y; };
+    DX.tr = {
+      title: 'Regl Döngüsü Raporu (Doktor İçin)', sub: 'Luna · {0} · son 6 ay · {1} gün kayıtlı', pinfo: 'Hasta Bilgileri',
+      name: 'Ad Soyad', age: 'Yaş', height: 'Boy (cm)', weight: 'Kilo (kg)', bmi: 'VKİ',
+      lmp: 'Son regl başlangıcı', preg: 'Gebelik sayısı', contra: 'Korunma yöntemi', cond: 'Hastalıklar / alerjiler', meds: 'Kullanılan ilaçlar', concern: 'Başvuru nedeni',
+      avgC: 'Ortalama döngü', avgP: 'Ortalama regl süresi', spread: 'Döngüler arası en büyük fark', days: ' gün', now: 'devam ediyor', dayN: '{0}. gün',
+      lgP: 'Regl günleri', lgO: 'Tahmini yumurtlama', lgR: 'Sağdaki sayı = döngü uzunluğu',
+      noCyc: 'Tam döngü uzunluklarını göstermek için henüz yeterli ardışık kayıt yok',
+      notes: 'Gözlemler', ques: 'Doktora sorular',
+      oSpread: 'Son döngülerin uzunluğu en fazla {0} gün farklı',
+      oAvg: 'Ortalama döngü {0} gün, olağan aralığın (21–35 gün) dışında',
+      oPer: 'Regl süresi ortalama {0} gün (olağandan uzun)',
+      oSym: 'Sık görülen belirtiler: {0}', oTimes: '{0} kez',
+      oFlow: 'Regl akışı: Hafif {0} g · Orta {1} g · Yoğun {2} g',
+      oMood: 'Ruh hali kötü olan gün oranı: %{0}',
+      oNone: 'Kaydedilen verilerde dikkat çeken bir durum yok',
+      foot: 'Bu rapor, kullanıcının kendi kaydettiği verilerden Luna tarafından hazırlanmıştır. Regl ve yumurtlama tarihleri tahminidir, yanılma payı vardır. Doğum kontrolü için kullanılamaz ve doktor teşhisinin yerine geçmez.',
+      sample: 'Örnek veri', fTitle: 'Muayeneden önce doldurun (hepsi isteğe bağlı)',
+      fHint: 'Yalnızca telefonunuzda saklanır, yüklenmez. Boş bırakılan alanlar, yazdırdıktan sonra elle doldurabileceğiniz çizgilere dönüşür.',
+      fGo: 'Rapor oluştur', fCancel: 'İptal', fClear: 'Kayıtlı bilgileri sil', fEdit: 'Bilgileri düzenle'
+    };
+    DF.tr = function(d, y){ return d.getDate() + ' ' + ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][d.getMonth()] + ' ' + y; };
+    DX.ms = {
+      title: 'Laporan Kitaran Haid (untuk Doktor)', sub: 'Luna · {0} · 6 bulan terakhir · {1} hari direkodkan', pinfo: 'Maklumat Pesakit',
+      name: 'Nama', age: 'Umur (thn)', height: 'Tinggi (cm)', weight: 'Berat (kg)', bmi: 'BMI',
+      lmp: 'Haid terakhir bermula', preg: 'Kehamilan', contra: 'Kontraseptif', cond: 'Penyakit / alahan', meds: 'Ubat yang diambil', concern: 'Aduan utama',
+      avgC: 'Kitaran purata', avgP: 'Tempoh haid purata', spread: 'Beza kitaran terbesar', days: ' hari', now: 'sedang berlangsung', dayN: 'Hari ke-{0}',
+      lgP: 'Hari haid', lgO: 'Anggaran ovulasi', lgR: 'Nombor di kanan = panjang kitaran',
+      noCyc: 'Rekod berturut-turut belum mencukupi untuk menunjukkan panjang kitaran penuh',
+      notes: 'Pemerhatian', ques: 'Soalan untuk doktor',
+      oSpread: 'Panjang kitaran terkini berbeza sehingga {0} hari',
+      oAvg: 'Kitaran purata {0} hari, di luar julat biasa (21–35 hari)',
+      oPer: 'Haid berlangsung purata {0} hari (lebih lama daripada biasa)',
+      oSym: 'Simptom kerap berlaku: {0}', oTimes: '{0} kali',
+      oFlow: 'Aliran haid: Sedikit {0} hari · Sederhana {1} hari · Banyak {2} hari',
+      oMood: 'Mood kurang baik pada {0}% hari yang direkodkan',
+      oNone: 'Tiada perkara luar biasa dalam data yang direkodkan',
+      foot: 'Laporan ini disediakan oleh Luna berdasarkan data yang direkodkan sendiri oleh pengguna. Tarikh haid dan ovulasi hanyalah anggaran dan mungkin tidak tepat. Tidak boleh digunakan untuk kontrasepsi dan tidak menggantikan diagnosis doktor.',
+      sample: 'Data contoh', fTitle: 'Isi sebelum berjumpa doktor (semua pilihan)',
+      fHint: 'Hanya disimpan dalam telefon anda dan tidak dimuat naik. Ruang kosong menjadi garisan untuk diisi dengan tangan selepas dicetak.',
+      fGo: 'Cipta laporan', fCancel: 'Batal', fClear: 'Padam maklumat tersimpan', fEdit: 'Edit maklumat'
+    };
+    DF.ms = function(d, y){ return d.getDate() + ' ' + ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'][d.getMonth()] + ' ' + y; };
+    DX.fil = {
+      title: 'Ulat ng Siklo ng Regla (para sa Doktor)', sub: 'Luna · {0} · huling 6 na buwan · {1} araw na naitala', pinfo: 'Impormasyon ng Pasyente',
+      name: 'Pangalan', age: 'Edad', height: 'Taas (cm)', weight: 'Timbang (kg)', bmi: 'BMI',
+      lmp: 'Simula ng huling regla', preg: 'Pagbubuntis', contra: 'Contraception', cond: 'Sakit / allergy', meds: 'Iniinom na gamot', concern: 'Pangunahing reklamo',
+      avgC: 'Karaniwang cycle', avgP: 'Karaniwang haba ng regla', spread: 'Max na pagkakaiba ng cycle', days: ' araw', now: 'kasalukuyan', dayN: 'Araw {0}',
+      lgP: 'Araw ng regla', lgO: 'Tinatayang ovulation', lgR: 'Numero sa kanan = haba ng cycle',
+      noCyc: 'Kulang pa ang magkakasunod na tala para maipakita ang buong haba ng cycle',
+      notes: 'Mga obserbasyon', ques: 'Mga tanong para sa doktor',
+      oSpread: 'Hanggang {0} araw ang pagkakaiba ng mga huling cycle',
+      oAvg: 'Karaniwang cycle na {0} araw, labas sa karaniwang saklaw (21–35 araw)',
+      oPer: 'Tumatagal ang regla nang {0} araw sa karaniwan (mas mahaba kaysa karaniwan)',
+      oSym: 'Madalas na sintomas: {0}', oTimes: '{0} beses',
+      oFlow: 'Daloy ng regla (araw): Magaan {0} · Katamtaman {1} · Malakas {2}',
+      oMood: 'Masama ang mood sa {0}% ng mga araw na may naitalang mood',
+      oNone: 'Walang kapansin-pansin sa mga naitalang datos',
+      foot: 'Inihanda ng Luna mula sa datos na itinala mismo ng user. Tantiya lamang ang mga petsa ng regla at ovulation at maaaring hindi eksakto. Hindi para sa contraception at hindi kapalit ng diagnosis ng doktor.',
+      sample: 'Halimbawang datos', fTitle: 'Punan bago ang konsulta (lahat ay opsyonal)',
+      fHint: 'Nakaimbak lang sa iyong telepono at hindi ina-upload. Ang mga blangkong field ay magiging linya na maaaring sulatan ng kamay pagkatapos i-print.',
+      fGo: 'Gumawa ng ulat', fCancel: 'Kanselahin', fClear: 'Burahin ang nakaimbak na impormasyon', fEdit: 'I-edit ang impormasyon'
+    };
+    DF.fil = function(d, y){ return d.getDate() + ' ' + ['Ene','Peb','Mar','Abr','May','Hun','Hul','Ago','Set','Okt','Nob','Dis'][d.getMonth()] + ' ' + y; };
+    DX.hi = {
+      title: 'मासिक धर्म चक्र रिपोर्ट (डॉक्टर के लिए)', sub: 'Luna · {0} · पिछले 6 महीने · {1} दिन दर्ज', pinfo: 'रोगी की जानकारी',
+      name: 'नाम', age: 'आयु (वर्ष)', height: 'लंबाई (cm)', weight: 'वज़न (kg)', bmi: 'BMI',
+      lmp: 'पिछले पीरियड की शुरुआत', preg: 'गर्भावस्था', contra: 'गर्भनिरोधक', cond: 'बीमारी / एलर्जी', meds: 'चल रही दवाएँ', concern: 'मुख्य समस्या',
+      avgC: 'औसत चक्र', avgP: 'औसत पीरियड अवधि', spread: 'चक्रों में अधिकतम अंतर', days: ' दिन', now: 'जारी', dayN: 'दिन {0}',
+      lgP: 'पीरियड के दिन', lgO: 'अनुमानित ओव्यूलेशन', lgR: 'दाईं ओर की संख्या = चक्र की लंबाई',
+      noCyc: 'चक्र की पूरी लंबाई दिखाने के लिए अभी लगातार रिकॉर्ड पर्याप्त नहीं हैं',
+      notes: 'अवलोकन', ques: 'डॉक्टर से पूछने के सवाल',
+      oSpread: 'हाल के चक्रों की लंबाई में अधिकतम {0} दिन का अंतर है',
+      oAvg: 'औसत चक्र {0} दिन है, जो सामान्य सीमा (21–35 दिन) से बाहर है',
+      oPer: 'पीरियड औसतन {0} दिन चलता है (सामान्य से लंबा)',
+      oSym: 'अक्सर होने वाले लक्षण: {0}', oTimes: '{0} बार',
+      oFlow: 'पीरियड फ्लो: कम {0} दिन · सामान्य {1} दिन · ज़्यादा {2} दिन',
+      oMood: 'दर्ज दिनों में से {0}% दिन मूड खराब रहा',
+      oNone: 'दर्ज डेटा में कोई विशेष बात नज़र नहीं आई',
+      foot: 'यह रिपोर्ट Luna ने उपयोगकर्ता द्वारा स्वयं दर्ज किए गए डेटा से तैयार की है। पीरियड और ओव्यूलेशन की तारीखें अनुमान हैं और सटीक नहीं भी हो सकतीं। इसे गर्भनिरोध के लिए इस्तेमाल नहीं किया जा सकता और यह डॉक्टर के निदान का विकल्प नहीं है।',
+      sample: 'नमूना डेटा', fTitle: 'डॉक्टर के पास जाने से पहले भरें (सब वैकल्पिक)',
+      fHint: 'यह सिर्फ़ आपके फ़ोन में सेव रहता है, अपलोड नहीं होता। खाली छोड़े गए खाने प्रिंट के बाद हाथ से भरने के लिए लाइन बन जाते हैं।',
+      fGo: 'रिपोर्ट बनाएँ', fCancel: 'रद्द करें', fClear: 'सेव की गई जानकारी मिटाएँ', fEdit: 'जानकारी बदलें'
+    };
+    DF.hi = function(d, y){ return d.getDate() + ' ' + ['जनवरी','फ़रवरी','मार्च','अप्रैल','मई','जून','जुलाई','अगस्त','सितंबर','अक्टूबर','नवंबर','दिसंबर'][d.getMonth()] + ' ' + y; };
+    DX.bn = {
+      title: 'মাসিক চক্র রিপোর্ট (ডাক্তারের জন্য)', sub: 'Luna · {0} · গত 6 মাস · {1} দিন নথিভুক্ত', pinfo: 'রোগীর তথ্য',
+      name: 'নাম', age: 'বয়স (বছর)', height: 'উচ্চতা (cm)', weight: 'ওজন (kg)', bmi: 'BMI',
+      lmp: 'শেষ পিরিয়ড শুরু', preg: 'গর্ভধারণ', contra: 'জন্মনিয়ন্ত্রণ', cond: 'রোগ / অ্যালার্জি', meds: 'চলমান ওষুধ', concern: 'প্রধান সমস্যা',
+      avgC: 'গড় চক্র', avgP: 'গড় পিরিয়ডের সময়', spread: 'চক্রের সর্বোচ্চ পার্থক্য', days: ' দিন', now: 'চলমান', dayN: '{0} নম্বর দিন',
+      lgP: 'পিরিয়ডের দিন', lgO: 'আনুমানিক ডিম্বস্ফোটন', lgR: 'ডানের সংখ্যা = চক্রের দৈর্ঘ্য',
+      noCyc: 'চক্রের পূর্ণ দৈর্ঘ্য দেখানোর জন্য এখনো যথেষ্ট ধারাবাহিক রেকর্ড নেই',
+      notes: 'পর্যবেক্ষণ', ques: 'ডাক্তারকে প্রশ্ন',
+      oSpread: 'সাম্প্রতিক চক্রের দৈর্ঘ্যে সর্বোচ্চ {0} দিনের পার্থক্য আছে',
+      oAvg: 'গড় চক্র {0} দিন, যা স্বাভাবিক সীমার (21–35 দিন) বাইরে',
+      oPer: 'পিরিয়ড গড়ে {0} দিন স্থায়ী হয় (স্বাভাবিকের চেয়ে বেশি)',
+      oSym: 'ঘন ঘন লক্ষণ: {0}', oTimes: '{0} বার',
+      oFlow: 'পিরিয়ডের রক্তপাত: কম {0} দিন · মাঝারি {1} দিন · বেশি {2} দিন',
+      oMood: 'নথিভুক্ত দিনের {0}% মন খারাপ ছিল',
+      oNone: 'নথিভুক্ত তথ্যে বিশেষ কিছু চোখে পড়েনি',
+      foot: 'এই রিপোর্টটি ব্যবহারকারীর নিজের নথিভুক্ত তথ্য থেকে Luna তৈরি করেছে। পিরিয়ড ও ডিম্বস্ফোটনের তারিখ আনুমানিক, সঠিক নাও হতে পারে। এটি জন্মনিয়ন্ত্রণের জন্য ব্যবহার করা যাবে না এবং ডাক্তারের রোগ নির্ণয়ের বিকল্প নয়।',
+      sample: 'নমুনা তথ্য', fTitle: 'ডাক্তার দেখানোর আগে পূরণ করুন (সবই ঐচ্ছিক)',
+      fHint: 'শুধু আপনার ফোনে সংরক্ষিত থাকে, আপলোড হয় না। ফাঁকা রাখা ঘরগুলো প্রিন্টের পর হাতে লেখার জন্য লাইন হয়ে যায়।',
+      fGo: 'রিপোর্ট তৈরি করুন', fCancel: 'বাতিল', fClear: 'সংরক্ষিত তথ্য মুছুন', fEdit: 'তথ্য সম্পাদনা'
+    };
+    DF.bn = function(d, y){ return d.getDate() + ' ' + ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'][d.getMonth()] + ' ' + y; };
+    DX.ta = {
+      title: 'மாதவிடாய் சுழற்சி அறிக்கை (மருத்துவருக்காக)', sub: 'Luna · {0} · கடந்த 6 மாதங்கள் · {1} நாட்கள் பதிவு', pinfo: 'நோயாளி விவரங்கள்',
+      name: 'பெயர்', age: 'வயது', height: 'உயரம் (cm)', weight: 'எடை (kg)', bmi: 'BMI',
+      lmp: 'கடைசி மாதவிடாய் தொடக்கம்', preg: 'கர்ப்பங்கள்', contra: 'கருத்தடை முறை', cond: 'நோய்கள் / ஒவ்வாமை', meds: 'உட்கொள்ளும் மருந்துகள்', concern: 'முக்கிய பிரச்சினை',
+      avgC: 'சராசரி சுழற்சி', avgP: 'சராசரி மாதவிடாய் நாட்கள்', spread: 'சுழற்சிகளின் அதிகபட்ச வேறுபாடு', days: ' நாள்', now: 'தொடர்கிறது', dayN: 'நாள் {0}',
+      lgP: 'மாதவிடாய் நாட்கள்', lgO: 'கணிக்கப்பட்ட அண்டவிடுப்பு', lgR: 'வலப்பக்க எண் = சுழற்சி நீளம்',
+      noCyc: 'முழு சுழற்சி நீளத்தைக் காட்ட போதுமான தொடர்ச்சியான பதிவுகள் இன்னும் இல்லை',
+      notes: 'குறிப்புகள்', ques: 'மருத்துவரிடம் கேள்விகள்',
+      oSpread: 'சமீபத்திய சுழற்சிகளின் நீளம் அதிகபட்சம் {0} நாள் வேறுபடுகிறது',
+      oAvg: 'சராசரி சுழற்சி {0} நாள், வழக்கமான வரம்புக்கு (21–35 நாள்) வெளியே உள்ளது',
+      oPer: 'மாதவிடாய் சராசரியாக {0} நாள் நீடிக்கிறது (வழக்கத்தை விட அதிகம்)',
+      oSym: 'அடிக்கடி ஏற்படும் அறிகுறிகள்: {0}', oTimes: '{0} முறை',
+      oFlow: 'மாதவிடாய் ரத்தப்போக்கு: குறைவு {0} நாள் · மிதம் {1} நாள் · அதிகம் {2} நாள்',
+      oMood: 'பதிவு செய்த நாட்களில் {0}% மனநிலை சரியில்லை',
+      oNone: 'பதிவு செய்த தரவில் குறிப்பிடத்தக்கது எதுவும் இல்லை',
+      foot: 'பயனர் தானே பதிவு செய்த தரவிலிருந்து Luna இந்த அறிக்கையைத் தயாரித்துள்ளது. மாதவிடாய் மற்றும் அண்டவிடுப்பு தேதிகள் மதிப்பீடுகளே; துல்லியமாக இல்லாமல் இருக்கலாம். இது கருத்தடைக்கு பயன்படுத்தக்கூடாது; மருத்துவரின் நோயறிதலுக்கு மாற்றாகாது.',
+      sample: 'மாதிரி தரவு', fTitle: 'மருத்துவரைப் பார்க்கும் முன் நிரப்பவும் (அனைத்தும் விருப்பம்)',
+      fHint: 'உங்கள் தொலைபேசியில் மட்டுமே சேமிக்கப்படும், பதிவேற்றப்படாது. காலியாக விட்ட இடங்கள் அச்சிட்ட பிறகு கையால் எழுத கோடுகளாக மாறும்.',
+      fGo: 'அறிக்கையை உருவாக்கு', fCancel: 'ரத்து', fClear: 'சேமித்த தகவலை அழி', fEdit: 'தகவலைத் திருத்து'
+    };
+    DF.ta = function(d, y){ return d.getDate() + ' ' + ['ஜன','பிப்','மார்','ஏப்','மே','ஜூன்','ஜூலை','ஆக','செப்','அக்','நவ','டிச'][d.getMonth()] + ' ' + y; };
+    DX.uk = {
+      title: 'Звіт про менструальний цикл (для лікаря)', sub: 'Luna · {0} · останні 6 місяців · {1} дн. записів', pinfo: 'Дані пацієнтки',
+      name: 'Ім’я', age: 'Вік', height: 'Зріст (см)', weight: 'Вага (кг)', bmi: 'ІМТ',
+      lmp: 'Початок останніх місячних', preg: 'Вагітності', contra: 'Контрацепція', cond: 'Захворювання / алергії', meds: 'Ліки, що приймаються', concern: 'Головна скарга',
+      avgC: 'Середній цикл', avgP: 'Середня тривалість місячних', spread: 'Максимальна різниця між циклами', days: ' дн.', now: 'триває', dayN: 'день {0}',
+      lgP: 'Дні місячних', lgO: 'Прогноз овуляції', lgR: 'Число справа = довжина циклу',
+      noCyc: 'Поки недостатньо послідовних записів, щоб показати повну довжину циклу',
+      notes: 'Спостереження', ques: 'Запитання до лікаря',
+      oSpread: 'Довжина останніх циклів відрізняється максимум на {0} дн.',
+      oAvg: 'Середній цикл {0} дн. виходить за межі норми (21–35 дн.)',
+      oPer: 'Місячні тривають у середньому {0} дн. (довше за норму)',
+      oSym: 'Часті симптоми: {0}', oTimes: '{0} р.',
+      oFlow: 'Виділення під час місячних: слабкі {0} дн. · помірні {1} дн. · рясні {2} дн.',
+      oMood: 'Поганий настрій у {0}% записаних днів',
+      oNone: 'У записаних даних немає нічого помітного',
+      foot: 'Luna склала цей звіт за даними, які користувачка вносила сама. Дати місячних і овуляції є оцінками й можуть бути неточними. Не використовувати для контрацепції; не замінює діагностику лікаря.',
+      sample: 'Зразок даних', fTitle: 'Заповніть перед візитом до лікаря (усе за бажанням)',
+      fHint: 'Зберігається лише на вашому телефоні й не завантажується. Порожні поля стануть лініями, щоб дописати від руки після друку.',
+      fGo: 'Створити звіт', fCancel: 'Скасувати', fClear: 'Очистити збережене', fEdit: 'Редагувати дані'
+    };
+    DF.uk = function(d, y){ return d.getDate() + ' ' + ['січ','лют','бер','кві','тра','чер','лип','сер','вер','жов','лис','гру'][d.getMonth()] + ' ' + y; };
+    DX.ar = {
+      title: 'تقرير الدورة الشهرية (للطبيب)', sub: 'Luna · {0} · آخر 6 أشهر · {1} يومًا مسجّلًا', pinfo: 'بيانات المريضة',
+      name: 'الاسم', age: 'العمر (سنة)', height: 'الطول (سم)', weight: 'الوزن (كجم)', bmi: 'BMI',
+      lmp: 'بداية آخر دورة', preg: 'عدد مرات الحمل', contra: 'وسيلة منع الحمل', cond: 'الأمراض / الحساسية', meds: 'الأدوية الحالية', concern: 'الشكوى الرئيسية',
+      avgC: 'متوسط الدورة', avgP: 'متوسط مدة الحيض', spread: 'أكبر فرق بين الدورات', days: ' يوم', now: 'مستمرة', dayN: 'اليوم {0}',
+      lgP: 'أيام الحيض', lgO: 'الإباضة المتوقعة', lgR: 'الرقم على اليسار = طول الدورة',
+      noCyc: 'لا توجد سجلات متتابعة كافية لعرض طول الدورة الكامل',
+      notes: 'ملاحظات', ques: 'أسئلة للطبيب',
+      oSpread: 'يختلف طول الدورات الأخيرة بما يصل إلى {0} يومًا',
+      oAvg: 'متوسط الدورة {0} يومًا، خارج النطاق المعتاد (21–35 يومًا)',
+      oPer: 'تستمر الدورة في المتوسط {0} يومًا (أطول من المعتاد)',
+      oSym: 'الأعراض المتكررة: {0}', oTimes: '{0} مرة',
+      oFlow: 'غزارة الدم: خفيف {0} يوم · متوسط {1} يوم · غزير {2} يوم',
+      oMood: 'مزاج سيئ في {0}% من الأيام المسجّلة',
+      oNone: 'لا يوجد في البيانات المسجّلة ما يستدعي الانتباه',
+      foot: 'أعدّت Luna هذا التقرير من بيانات سجّلتها المستخدمة بنفسها. مواعيد الدورة والإباضة تقديرية وقد لا تكون دقيقة. لا يُستخدم لمنع الحمل ولا يغني عن تشخيص الطبيب.',
+      sample: 'بيانات تجريبية', fTitle: 'املئي قبل زيارة الطبيب (كل الحقول اختيارية)',
+      fHint: 'يُحفظ على هاتفك فقط ولا يتم رفعه. تتحول الحقول الفارغة إلى خطوط لتكتبي عليها بعد الطباعة.',
+      fGo: 'إنشاء التقرير', fCancel: 'إلغاء', fClear: 'مسح البيانات المحفوظة', fEdit: 'تعديل البيانات'
+    };
+    DF.ar = function(d, y){ return d.getDate() + ' ' + ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][d.getMonth()] + ' ' + y; };
+    DX.he = {
+      title: 'דוח מחזור הווסת (לרופא)', sub: 'Luna · {0} · 6 החודשים האחרונים · {1} ימים מתועדים', pinfo: 'פרטי המטופלת',
+      name: 'שם', age: 'גיל', height: 'גובה (ס״מ)', weight: 'משקל (ק״ג)', bmi: 'BMI',
+      lmp: 'תחילת הווסת האחרונה', preg: 'מספר הריונות', contra: 'אמצעי מניעה', cond: 'מחלות / אלרגיות', meds: 'תרופות קבועות', concern: 'התלונה העיקרית',
+      avgC: 'מחזור ממוצע', avgP: 'משך וסת ממוצע', spread: 'הפרש מרבי בין מחזורים', days: ' ימים', now: 'נמשכת', dayN: 'יום {0}',
+      lgP: 'ימי וסת', lgO: 'ביוץ משוער', lgR: 'המספר משמאל = אורך המחזור',
+      noCyc: 'אין עדיין מספיק תיעוד רציף להצגת אורך המחזור המלא',
+      notes: 'הערות', ques: 'שאלות לרופא',
+      oSpread: 'אורך המחזורים האחרונים שונה בעד {0} ימים',
+      oAvg: 'המחזור הממוצע הוא {0} ימים, מחוץ לטווח הרגיל (21–35 ימים)',
+      oPer: 'הווסת נמשכת בממוצע {0} ימים (ארוך מהרגיל)',
+      oSym: 'תסמינים שכיחים: {0}', oTimes: '{0} פעמים',
+      oFlow: 'עוצמת הדימום: קל {0} ימים · בינוני {1} ימים · חזק {2} ימים',
+      oMood: 'מצב רוח ירוד ב-{0}% מהימים המתועדים',
+      oNone: 'לא נמצא בנתונים המתועדים דבר חריג',
+      foot: 'הדוח הוכן על ידי Luna מנתונים שהמשתמשת תיעדה בעצמה. מועדי הווסת והביוץ הם הערכות ועלולים להיות לא מדויקים. אין להשתמש בו כאמצעי מניעה, והוא אינו מחליף אבחון רפואי.',
+      sample: 'נתוני דוגמה', fTitle: 'מלאי לפני הביקור אצל הרופא (הכול אופציונלי)',
+      fHint: 'נשמר רק בטלפון שלך ולא מועלה. שדות ריקים יהפכו לקווים לכתיבה ידנית אחרי ההדפסה.',
+      fGo: 'יצירת דוח', fCancel: 'ביטול', fClear: 'מחיקת הנתונים השמורים', fEdit: 'עריכת פרטים'
+    };
+    DF.he = function(d, y){ return d.getDate() + ' ' + ['ינו\'','פבר\'','מרץ','אפר\'','מאי','יוני','יולי','אוג\'','ספט\'','אוק\'','נוב\'','דצמ\''][d.getMonth()] + ' ' + y; };
+    DX.ur = {
+      title: 'ماہواری کی رپورٹ (ڈاکٹر کے لیے)', sub: 'Luna · {0} · پچھلے 6 ماہ · {1} دن کا ریکارڈ', pinfo: 'مریضہ کی معلومات',
+      name: 'نام', age: 'عمر (سال)', height: 'قد (cm)', weight: 'وزن (kg)', bmi: 'BMI',
+      lmp: 'آخری ماہواری کی شروعات', preg: 'حمل کی تعداد', contra: 'مانعِ حمل طریقہ', cond: 'بیماریاں / الرجی', meds: 'زیرِ استعمال ادویات', concern: 'بنیادی شکایت',
+      avgC: 'اوسط سائیکل', avgP: 'ماہواری کے اوسط دن', spread: 'سائیکلوں میں زیادہ سے زیادہ فرق', days: ' دن', now: 'جاری', dayN: 'دن {0}',
+      lgP: 'ماہواری کے دن', lgO: 'متوقع بیضہ ریزی', lgR: 'بائیں طرف کا عدد = سائیکل کی لمبائی',
+      noCyc: 'سائیکل کی مکمل لمبائی دکھانے کے لیے ابھی مسلسل ریکارڈ کافی نہیں',
+      notes: 'مشاہدات', ques: 'ڈاکٹر سے سوالات',
+      oSpread: 'حالیہ سائیکلوں کی لمبائی میں زیادہ سے زیادہ {0} دن کا فرق ہے',
+      oAvg: 'اوسط سائیکل {0} دن ہے، جو عام حد (21–35 دن) سے باہر ہے',
+      oPer: 'ماہواری اوسطاً {0} دن رہتی ہے (معمول سے زیادہ)',
+      oSym: 'اکثر ہونے والی علامات: {0}', oTimes: '{0} بار',
+      oFlow: 'ماہواری کا بہاؤ: ہلکا {0} دن · درمیانہ {1} دن · زیادہ {2} دن',
+      oMood: 'ریکارڈ شدہ دنوں میں سے {0}% میں موڈ خراب رہا',
+      oNone: 'ریکارڈ شدہ ڈیٹا میں کوئی خاص بات نظر نہیں آئی',
+      foot: 'یہ رپورٹ Luna نے صارف کے اپنے ریکارڈ کردہ ڈیٹا سے تیار کی ہے۔ ماہواری اور بیضہ ریزی کی تاریخیں اندازے ہیں اور درست نہ بھی ہو سکتی ہیں۔ یہ مانعِ حمل کے لیے استعمال نہ کریں اور ڈاکٹر کی تشخیص کا متبادل نہیں۔',
+      sample: 'نمونہ ڈیٹا', fTitle: 'ڈاکٹر کے پاس جانے سے پہلے بھریں (سب اختیاری)',
+      fHint: 'صرف آپ کے فون میں محفوظ ہوتا ہے، اپ لوڈ نہیں ہوتا۔ خالی خانے لکیریں بن جائیں گے تاکہ پرنٹ کے بعد ہاتھ سے لکھ سکیں۔',
+      fGo: 'رپورٹ بنائیں', fCancel: 'منسوخ', fClear: 'محفوظ معلومات مٹائیں', fEdit: 'معلومات میں ترمیم'
+    };
+    DF.ur = function(d, y){ return d.getDate() + ' ' + ['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر'][d.getMonth()] + ' ' + y; };
+
+    var DFONT = { ja: '"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans CJK JP","Noto Sans JP"', ko: '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans CJK KR","Noto Sans KR"' };
+    function L(k){
+      var dc = dCode(), a = arguments, j, s;
+      if(dc && DX[dc][k] != null){
+        s = DX[dc][k];
+        for(j = 1; j < a.length; j++) s = s.split('{' + (j - 1) + '}').join(a[j]);
+        return s;
+      }
+      var i = ({ zh: 0, th: 1, en: 2, vi: 3 })[dLang()]; s = DS[k][i];
+      for(j = 1; j < a.length; j++) s = s.split('{' + (j - 1) + '}').join(a[j]);
+      if(i === 0 && isTwUi() && typeof window.lunaS2T === 'function'){ try{ s = window.lunaS2T(s); }catch(e){} }
+      return s;
+    }
+    var DMON = { th: ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'], en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] };
+    function dFull(d){   // 带年份的日期：按界面语言
+      var l = dLang(), y = d.getFullYear(), dc = dCode();
+      if(dc && DF[dc]) return DF[dc](d, y);
+      if(l === 'zh') return y + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日';
+      if(l === 'th') return d.getDate() + ' ' + DMON.th[d.getMonth()] + ' ' + (y + 543);
+      if(l === 'vi') return d.getDate() + '/' + (d.getMonth() + 1) + '/' + y;
+      return d.getDate() + ' ' + DMON.en[d.getMonth()] + ' ' + y;
+    }
+    /* 个人信息（只存手机本地；年龄按保存时间自动加一岁） */
+    var PROF_KEY = 'luna_doc_profile';
+    function readProfile(){
+      var p = {}; try{ p = JSON.parse(localStorage.getItem(PROF_KEY) || '{}') || {}; }catch(e){ p = {}; }
+      var o = { name: String(p.name || ''), age: '', h: String(p.h || ''), w: String(p.w || ''), preg: String(p.preg || ''), contra: String(p.contra || ''), cond: String(p.cond || ''), meds: String(p.meds || ''), concern: '' };
+      var a = parseInt(p.age, 10);
+      if(a > 0 && a < 120){ var yrs = p.ageAt ? Math.floor((Date.now() - p.ageAt) / 31557600000) : 0; o.age = String(a + Math.max(0, yrs)); }
+      return o;
+    }
+    function saveProfile(o){
+      try{
+        var a = parseInt(o.age, 10);
+        localStorage.setItem(PROF_KEY, JSON.stringify({ name: o.name || '', age: a > 0 ? a : '', ageAt: Date.now(), h: o.h || '', w: o.w || '', preg: o.preg || '', contra: o.contra || '', cond: o.cond || '', meds: o.meds || '' }));
+      }catch(e){}
+    }
+    function bmiOf(info){
+      var h = parseFloat(info && info.h), w = parseFloat(info && info.w);
+      if(h > 100 && h < 250 && w > 20 && w < 300) return (w / ((h / 100) * (h / 100))).toFixed(1);
+      return '';
+    }
+    function dropP(ctx, cx, cy, s){
+      ctx.beginPath(); ctx.moveTo(cx, cy - s * 0.95);
+      ctx.bezierCurveTo(cx + s * 0.2, cy - s * 0.45, cx + s * 0.64, cy + s * 0.02, cx + s * 0.64, cy + s * 0.36);
+      ctx.arc(cx, cy + s * 0.36, s * 0.64, 0, Math.PI);
+      ctx.bezierCurveTo(cx - s * 0.64, cy + s * 0.02, cx - s * 0.2, cy - s * 0.45, cx, cy - s * 0.95); ctx.closePath(); ctx.fill();
+    }
+    function fitText(ctx, s, size, wt, maxW, minSz){
+      var sz = size; ctx.font = wt + ' ' + sz + 'px ' + FF;
+      while(sz > minSz && ctx.measureText(s).width > maxW){ sz--; ctx.font = wt + ' ' + sz + 'px ' + FF; }
+      if(ctx.measureText(s).width > maxW){ while(s.length > 2 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1); s += '…'; }
+      return { s: s, sz: sz };
+    }
+    function observe(r){
+      var o = [], i, top;
+      if(r.recentGaps.length >= 2 && r.spread > 7) o.push(L('oSpread', r.spread));
+      if(r.avgCycle && (r.avgCycle < 21 || r.avgCycle > 35)) o.push(L('oAvg', r.avgCycle));
+      if(r.avgPeriod && r.avgPeriod > 7) o.push(L('oPer', r.avgPeriod));
+      if(r.sym && r.sym.length){
+        top = []; for(i = 0; i < Math.min(4, r.sym.length); i++) top.push(symName(r.sym[i][0]) + ' ' + L('oTimes', r.sym[i][1]));
+        o.push({ head: L('oSym', '').replace(/\s+$/, ''), grid: top });
+      }
+      if(r.flow && (r.flow.l + r.flow.m + r.flow.h) > 0) { var fl = L('oFlow', r.flow.l, r.flow.m, r.flow.h), fm = fl.match(/^([^:：]+[:：])\s*(.*)$/); o.push(fm ? { head: fm[1], text: fm[2] } : { text: fl }); }
+      if(r.moodTotal >= 5 && r.moodNeg / r.moodTotal >= 0.4) o.push(L('oMood', Math.round(r.moodNeg * 100 / r.moodTotal)));
+      if(!o.length) o.push(L('oNone'));
+      return o.slice(0, 3);
+    }
     var scratch = null;
-    function draw(r, sample, q, prog){
-      var P = (prog === undefined || prog === null) ? 1 : prog;
-      var cv; if(P < 1 && scratch) cv = scratch; else { cv = document.createElement('canvas'); cv.width = W; cv.height = H; if(P < 1) scratch = cv; }
-      var ctx = cv.getContext('2d');
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    var FF0 = FF;
+    /* App 为英文/越南文等模式在 Canvas 上全局做“文字再翻译”；新语言表里的文字已经是目标语言，再翻一遍会把日期等弄乱。
+       所以新语言用浏览器原生的 fillText / measureText（取自一个干净的隐藏 iframe）。 */
+    var NAT = null;
+    function nativeText(){
+      if(NAT) return NAT;
+      NAT = {};
+      try{
+        var fr = document.createElement('iframe'); fr.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden;'; fr.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(fr);
+        var CPn = fr.contentWindow.CanvasRenderingContext2D.prototype; NAT = { ft: CPn.fillText, mt: CPn.measureText };
+      }catch(e){ NAT = {}; }
+      return NAT;
+    }
+    function rawText(ctx, on){
+      var n = on ? nativeText() : null;
+      if(n && n.ft && n.mt){ ctx.fillText = function(){ return n.ft.apply(this, arguments); }; ctx.measureText = function(){ return n.mt.apply(this, arguments); }; }
+      else { try{ delete ctx.fillText; delete ctx.measureText; }catch(e){} }
+    }
+    function draw(r, sample, info, prog, SC){
+      var dc0 = dCode(); FF = (dc0 && DFONT[dc0] ? DFONT[dc0] + ',' : '') + FF0;
+      RTL = (dc0 === 'ar' || dc0 === 'ur' || dc0 === 'he');
+      var S = SC || 1, P = (prog === undefined || prog === null) ? 1 : prog, I = info || {};
+      var cv; if(P < 1 && scratch && S === 1) cv = scratch; else { cv = document.createElement('canvas'); cv.width = Math.round(W * S); cv.height = Math.round(H * S); if(P < 1 && S === 1) scratch = cv; }
+      var ctx = cv.getContext('2d'); ctx.setTransform(S, 0, 0, S, 0, 0);
+      rawText(ctx, !!dc0);
+      if(RTL){ ctx.translate(W, 0); ctx.scale(-1, 1); }
+      var MX = 88, CW = W - 2 * MX, i, k;
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
       // 头部
-      var g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#7c5cbf'); g.addColorStop(1, '#d97fb0');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, 180);
-      txt(ctx, T('月经健康记录摘要', 'สรุปบันทึกสุขภาพประจำเดือน'), M, 92, 54, '#fff', 700);
-      txt(ctx, (window.lunaXT||String)(T('统计范围：最近 6 个月', 'ช่วงข้อมูล: 6 เดือนล่าสุด')) + '    ' + (window.lunaXT||String)(T('生成日期：', 'วันที่สร้าง: ')) + ' ' + mdy(r.today), M, 140, 26, 'rgba(255,255,255,.92)', 400);
-      txt(ctx, 'Luna', W - M, 92, 40, 'rgba(255,255,255,.95)', 700, 'right');
-
-      var y = 228;
-      // 关键数据
-      y = section(ctx, y, T('关键数据', 'ข้อมูลสำคัญ'));
-      var reg;
-      if(r.recentGaps.length < 3) reg = [T('数据不足', 'ข้อมูลยังน้อย'), T('已有 ' + r.recentGaps.length + ' 个周期', 'มี ' + r.recentGaps.length + ' รอบ')];
-      else if(r.spread <= 3) reg = [T('稳定', 'สม่ำเสมอ'), T('相差 ' + r.spread + ' 天', 'ต่างกัน ' + r.spread + ' วัน')];
-      else if(r.spread <= 7) reg = [T('基本规律', 'ค่อนข้างสม่ำเสมอ'), T('相差 ' + r.spread + ' 天', 'ต่างกัน ' + r.spread + ' วัน')];
-      else reg = [T('不太规律', 'ไม่ค่อยสม่ำเสมอ'), T('相差 ' + r.spread + ' 天', 'ต่างกัน ' + r.spread + ' วัน')];
-      var tiles = [
-        [T('平均周期', 'รอบเดือนเฉลี่ย'), r.avgCycle ? r.avgCycle + T(' 天', ' วัน') : '–', r.recentGaps.length ? T('基于 ' + r.recentGaps.length + ' 个周期', 'จาก ' + r.recentGaps.length + ' รอบ') : T('记录不足', 'ข้อมูลไม่พอ')],
-        [T('平均经期', 'ระยะมีประจำเดือน'), r.avgPeriod ? r.avgPeriod + T(' 天', ' วัน') : '–', (window.lunaXT||String)(T('最近 3 次', '3 ครั้งล่าสุด'))],
-        [T('周期规律', 'ความสม่ำเสมอ'), reg[0], reg[1]],
-        [T('上次月经开始', 'ประจำเดือนครั้งล่าสุด'), md(r.last.start), (window.lunaXT||String)(T('已第 ', 'วันที่ ') + (diff(r.last.start, r.today) + 1) + T(' 天', ' ของรอบ'))]
-      ];
-      var tw = (W - 2 * M - 3 * 20) / 4, i, tx;
-      for(i = 0; i < 4; i++){
-        tx = M + i * (tw + 20);
-        ctx.fillStyle = C.soft; rr(ctx, tx, y, tw, 150, 22); ctx.fill();
-        var tmax = tw - 40;   // 字太长（越南文、泰文）时自动缩小字号，保证不超出小方块
-        function fitSz(str, sz, wt){ ctx.font = wt + ' ' + sz + 'px ' + FF; while(sz > 14 && ctx.measureText(str).width > tmax){ sz--; ctx.font = wt + ' ' + sz + 'px ' + FF; } return sz; }
-        txt(ctx, tiles[i][0], tx + 22, y + 40, fitSz(tiles[i][0], 23, 400), C.mute, 400);
-        var vSz = tiles[i][1].length > 5 ? 38 : 46;
-        txt(ctx, tiles[i][1], tx + 22, y + 94, fitSz(tiles[i][1], vSz, 700), C.purple, 700);
-        txt(ctx, tiles[i][2], tx + 22, y + 130, fitSz(tiles[i][2], 21, 400), C.mute, 400);
+      txt(ctx, L('title'), MX, 84, 50, '#6a45b8', 700);
+      txt(ctx, L('sub', dFull(r.today), r.logDays || 0), MX, 128, 24, '#4f4966', 400);
+      ctx.fillStyle = '#6a45b8'; ctx.fillRect(0, 150, W, 5);
+      // 患者信息
+      var by0 = 182, px = MX + 30, pw = CW - 60, ry = by0 + 88;
+      function field(label, val, x, w, y){
+        txt(ctx, label, x, y, 24, '#4f4966', 400);
+        if(val){ var f = fitText(ctx, val, 31, 600, w, 20); txt(ctx, f.s, x, y + 42, f.sz, '#1f1a30', 600); }
+        ctx.fillStyle = '#b9aad9'; ctx.fillRect(x, y + 54, w, 2);
       }
-      y += 150 + 40;
-      txt(ctx, T('预计下次月经：', 'คาดว่าประจำเดือนครั้งถัดไป: ') + md(r.next) + T('（估计）', ' (โดยประมาณ)') + '     ' + T('预计排卵日：', 'คาดว่าตกไข่: ') + md(r.ovu) + T('（估计）', ' (โดยประมาณ)'), M, y, 26, C.ink, 400);
-      y += 66;
-
-      // 周期长度图（打开预览时柱子从 0 长到真实数字：P 是 0→1 的进度，保存 PDF 时恒为 1）
-      y = section(ctx, y, T('最近周期长度（天）', 'ความยาวรอบเดือนล่าสุด (วัน)'));
-      var gs = r.gaps.slice(-6), ch = 140, top0 = y + 2, base = top0 + ch, maxV = 40, minV = 15;
-      function yy(v){ return base - (Math.min(Math.max(v, minV), maxV) - minV) / (maxV - minV) * ch; }
-      if(!gs.length){
-        txt(ctx, T('还没有足够的连续记录来计算周期长度（至少需要 2 次月经开始日期）', 'ยังมีบันทึกต่อเนื่องไม่พอสำหรับคำนวณรอบ (ต้องมีวั'+'นเริ่มประจำเดือนอย่างน้อย 2 ครั้ง)'), M, y + 40, 26, C.mute, 400);
-        y = base + 40;
-      } else {
-        ctx.fillStyle = C.band; ctx.fillRect(M, yy(35), W - 2 * M, yy(21) - yy(35));
-        txt(ctx, T('常见范围 21–35 天', 'ช่วงที่พบบ่อย 21–35 วัน'), W - M, yy(35) - 12, 20, '#4f9a6c', 400, 'right');
-        var bw = 104, gap = 66, total = gs.length * bw + (gs.length - 1) * gap, sx = M + ((W - 2 * M) - total) / 2;
-        for(i = 0; i < gs.length; i++){
-          var v = gs[i].gap, bx = sx + i * (bw + gap), byF = yy(v), by = base - (base - byF) * P, out = v < 21 || v > 35;
-          if(base - by > 3){
-            var gr = ctx.createLinearGradient(0, by, 0, base); gr.addColorStop(0, out ? '#e57b7b' : '#9a7be3'); gr.addColorStop(1, out ? '#f0a6a6' : '#d7c7f4');
-            ctx.fillStyle = gr; rr(ctx, bx, by, bw, base - by, Math.min(14, (base - by) / 2)); ctx.fill();
-          }
-          txt(ctx, String(Math.round(v * P)), bx + bw / 2, by - 12, 28, out ? '#d05a5a' : C.purple, 700, 'center');
-          txt(ctx, md(gs[i].start), bx + bw / 2, base + 34, 22, C.ink, 400, 'center');
-          txt(ctx, T('经期 ', 'ประจำเดือน ') + gs[i].period + T(' 天', ' วัน'), bx + bw / 2, base + 62, 18, C.mute, 400, 'center');
-        }
-        ctx.fillStyle = C.line; ctx.fillRect(M, base, W - 2 * M, 2);
-        y = base + 70;
+      var gap = 26, wAge = 130, wH = 160, wW = 170, wB = 120, wName = pw - (wAge + wH + wW + wB) - 4 * gap;
+      var x1 = px; field(L('name'), I.name, x1, wName, ry); x1 += wName + gap;
+      field(L('age'), I.age, x1, wAge, ry); x1 += wAge + gap;
+      field(L('height'), I.h, x1, wH, ry); x1 += wH + gap;
+      field(L('weight'), I.w, x1, wW, ry); x1 += wW + gap;
+      field(L('bmi'), bmiOf(I), x1, wB, ry);
+      ry += 98;
+      var wLmp = Math.round(pw * 0.42), wPreg = Math.round(pw * 0.2), wCon = pw - wLmp - wPreg - 2 * gap;
+      field(L('lmp'), r.last ? dFull(r.last.start) : '', px, wLmp, ry);
+      field(L('preg'), I.preg, px + wLmp + gap, wPreg, ry);
+      field(L('contra'), I.contra, px + wLmp + wPreg + 2 * gap, wCon, ry);
+      ry += 98;
+      var w2 = Math.round((pw - gap) / 2);
+      field(L('cond'), I.cond, px, w2, ry); field(L('meds'), I.meds, px + w2 + gap, w2, ry);
+      ry += 98;
+      txt(ctx, L('concern'), px, ry, 24, '#4f4966', 400);
+      ctx.font = '600 29px ' + FF; var cl = I.concern ? wrap(ctx, String(I.concern), pw).slice(0, 2) : [];
+      for(i = 0; i < 2; i++){ if(cl[i]) txt(ctx, cl[i], px, ry + 42 + i * 46, 29, '#1f1a30', 600); ctx.fillStyle = '#b9aad9'; ctx.fillRect(px, ry + 54 + i * 46, pw, 2); }
+      var bh = ry + 54 + 46 + 26 - by0;
+      ctx.strokeStyle = '#e3d9f5'; ctx.lineWidth = 3; rr(ctx, MX, by0, CW, bh, 26); ctx.stroke();
+      txt(ctx, L('pinfo'), px, by0 + 44, 28, '#6a45b8', 700);
+      var y = by0 + bh + 34;
+      // 三个平均数
+      var av = [[L('avgC'), r.avgCycle ? r.avgCycle + L('days') : '–'], [L('avgP'), r.avgPeriod ? r.avgPeriod + L('days') : '–'], [L('spread'), (r.recentGaps.length >= 2) ? r.spread + L('days') : '–']];
+      var aw = Math.round((CW - 2 * 24) / 3);
+      for(i = 0; i < 3; i++){
+        var ax = MX + i * (aw + 24), f1 = fitText(ctx, av[i][0], 24, 400, aw, 18);
+        txt(ctx, f1.s, ax, y + 22, f1.sz, '#4f4966', 400);
+        txt(ctx, av[i][1], ax, y + 70, 40, '#1f1a30', 700);
+        ctx.fillStyle = '#e6dff5'; ctx.fillRect(ax, y + 84, aw, 3);
       }
-
-      // ───── 下面几块按“剩余版面”自动取舍：想问医生的问题（预留）> 情绪 > 流量 > 症状 > 近期备注 ─────
-      var LIM = H - 84 - 22 - 16, y0 = y, hasFlow = !!(r.flow && (r.flow.l + r.flow.m + r.flow.h) > 0);
-      var tot = 0; r.mood.forEach(function(m){ tot += m[1]; });
-      // 想问医生的问题：用户写了就用用户的；没写就按数据给 1–3 条建议，再留一行手写
-      var qLines = [], sugg = [], sugL = [];
-      if(q){ ctx.font = '400 28px ' + FF; String(q).split(/\n+/).forEach(function(p){ if(p.trim()) qLines = qLines.concat(wrap(ctx, p.trim(), W - 2 * M)); }); }
-      else {
-        sugg = suggest(r); ctx.font = '400 26px ' + FF;
-        sugg.forEach(function(s){ sugL.push(wrap(ctx, s, W - 2 * M - 52)); });
+      y += 100;
+      // 逐周期条形（最新在上）
+      // 观察 + 想问医生的问题（两栏，版面不够就缩字）
+      var FOOT = H - 128, colW = Math.round((CW - 30) / 2), fs = 25, oL, qL, hh, ob = observe(r), qs = suggest(r), best = null;
+      function layout(sz){
+        ctx.font = '400 ' + sz + 'px ' + FF; var a = [], b = [], h1 = 0, h2 = 0, lh = Math.round(sz * 1.5);
+        ob.forEach(function(n){
+          if(typeof n === 'string') n = { text: n };
+          var tw = colW - 44 - 26, w = n.text ? wrap(ctx, n.text, tw) : [], cols = 2, g = 0;
+          if(n.grid){ n.grid.forEach(function(t){ if(ctx.measureText(t).width > Math.round(tw / 2) - 10) cols = 1; }); if(cols === 1 && n.grid.length > 3) n = { head: n.head, text: n.text, grid: n.grid.slice(0, 3) }; g = Math.ceil(n.grid.length / cols); }
+          var hb = (n.head ? lh : 0) + (w.length + g) * lh + 14;
+          a.push({ head: n.head, lines: w, grid: n.grid || [], cols: cols, tw: tw, hb: hb }); h1 += hb;
+        });
+        qs.forEach(function(s){ var w = wrap(ctx, s, colW - 44 - 40); b.push(w); h2 += w.length * lh + 6; });
+        return { a: a, b: b, lh: lh, h: Math.max(h1, h2) + 30 + 46 };
       }
-      function sugH(){ var h = 0; sugL.forEach(function(a){ h += a.length * 40 + 12; }); return h; }
-      var G = 40, qH = G + 52 + (qLines.length ? Math.max(2, Math.min(7, qLines.length)) * 52 : sugH() + 30);
-      var moodH = tot ? G + 52 + 34 + 50 + (r.moodPh ? 40 : 10) : G + 52 + 44, flowH = hasFlow ? G + 52 + 34 + 70 : 0, symFix = G + 52 + 12 + (r.symPh ? 36 : 10);
-      while(!qLines.length && sugL.length > 1 && Math.floor((LIM - y0 - qH - moodH - flowH - symFix) / 48) < 3){ sugL.pop(); qH = G + 52 + sugH() + 30; }
-      var rowsAvail = Math.floor((LIM - y0 - qH - moodH - flowH - symFix) / 48);
-      var maxRows = Math.max(2, Math.min(r.sym.length, rowsAvail));
-
-      // 经期流量（有记录才画）
-      if(hasFlow){
-        y += G; y = section(ctx, y, X4('经期流量', 'ปริมาณประจำเดือน', 'Period flow', 'Lượng kinh'));
-        var fT = r.flow.l + r.flow.m + r.flow.h, fx = M, fFull = W - 2 * M;
-        var FP = [[r.flow.l, '#f6bccb', X4('少量', 'น้อย', 'Light', 'Ít')], [r.flow.m, '#e8799b', X4('中等', 'กลาง', 'Medium', 'Vừa')], [r.flow.h, '#c4405f', X4('较多', 'มาก', 'Heavy', 'Nhiều')]];
-        ctx.save(); rr(ctx, M, y, fFull, 34, 17); ctx.clip();
-        FP.forEach(function(f){ var w = fFull * f[0] / fT; if(w > 0){ ctx.fillStyle = f[1]; ctx.fillRect(fx, y, w + 1, 34); fx += w; } });
+      var nR = 4, RP = 126;
+      for(; nR > 3; nR--){ var endY = y + nR * RP + 8 + 52 + (nR < 2 ? 50 : 0); if(endY + 46 + layout(23).h <= FOOT) break; }
+      var cy = r.cycles || [], n = cy.length, rows = [], len, nxt;
+      for(i = n - 1; i >= 0 && rows.length < nR; i--){
+        if(i === n - 1){ len = diff(cy[i].start, r.today) + 1; rows.push({ s: cy[i].start, e: null, len: len, per: cy[i].period, cur: true }); }
+        else { nxt = cy[i + 1].start; len = diff(cy[i].start, nxt); rows.push({ s: cy[i].start, e: nxt, len: len, per: cy[i].period, cur: false }); }
+      }
+      var maxD = 40; rows.forEach(function(rw){ if(!rw.cur && rw.len > maxD) maxD = Math.min(60, rw.len); });
+      var tx0 = MX, trW = CW - 150, K = trW / maxD, ry2 = y;
+      ctx.fillStyle = '#e6dff5'; ctx.fillRect(MX, y - 6, CW, 2);
+      rows.forEach(function(rw){
+        var rngT = dFull(rw.s) + ' – ' + (rw.e ? dFull(rw.e) : L('now'));
+        txt(ctx, rngT, MX, ry2 + 28, 25, rw.cur ? '#1f1a30' : '#3f3a55', 700);
+        var ty = ry2 + 44, ph = 40, pw2 = Math.min(rw.per, 12) * K + 16, lw = Math.min(rw.len, maxD) * K * P;
+        ctx.save();
+        if(rw.cur){ ctx.setLineDash([12, 10]); ctx.strokeStyle = '#cfc8e0'; ctx.lineWidth = 8; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(tx0 + pw2, ty + ph / 2); ctx.lineTo(tx0 + Math.max(pw2, lw), ty + ph / 2); ctx.stroke(); }
+        else { ctx.fillStyle = '#d9d6e3'; rr(ctx, tx0, ty + ph / 2 - 4, Math.max(pw2, lw), 8, 4); ctx.fill(); }
         ctx.restore();
-        var flx = M, fly = y + 78;
-        FP.forEach(function(f){
-          if(!f[0]) return;
-          var nm = f[2] + ' ' + Math.round(f[0] * 100 / fT) + '%（' + f[0] + X4(' 天', ' วัน', ' d', ' ngày') + '）';
-          ctx.font = '400 24px ' + FF; var w = ctx.measureText(nm).width + 44;
-          if(flx + w > W - M){ flx = M; fly += 40; }
-          ctx.fillStyle = f[1]; ctx.beginPath(); ctx.arc(flx + 10, fly - 8, 9, 0, 7); ctx.fill();
-          txt(ctx, nm, flx + 28, fly, 24, C.ink, 400); flx += w + 18;
-        });
-        y = fly + 20;
-      }
-
-      // 症状（每项带“占记录日 %”）
-      y += G; y = section(ctx, y, (window.lunaXT||String)(T('常见症状（最近 6 个月，共记录 ' + r.logDays + ' 天）', 'อาการที่พบบ่อย (6 เดือนล่าสุด บันทึก ' + r.logDays + ' วัน)')));
-      if(!r.sym.length){
-        txt(ctx, T('这段时间还没有症状记录', 'ช่วงนี้ยังไม่มีบันทึกอาการ'), M, y + 30, 26, C.mute, 400);
-        y += 70;
-      } else {
-        var maxC = r.sym[0][1], lblW = 250, barW = W - 2 * M - lblW - 250;
-        for(i = 0; i < maxRows; i++){
-          var ry = y + i * 48, pc = r.logDays ? Math.min(100, Math.round(r.sym[i][1] * 100 / r.logDays)) : 0;
-          txt(ctx, symName(r.sym[i][0]), M, ry + 30, 26, C.ink, 400);
-          ctx.fillStyle = '#f0ecf8'; rr(ctx, M + lblW, ry + 8, barW, 28, 14); ctx.fill();
-          var fw = Math.max(28, barW * r.sym[i][1] / maxC);
-          var bg = ctx.createLinearGradient(M + lblW, 0, M + lblW + fw, 0); bg.addColorStop(0, '#9a7be3'); bg.addColorStop(1, '#e88fbd');
-          ctx.fillStyle = bg; rr(ctx, M + lblW, ry + 8, fw, 28, 14); ctx.fill();
-          txt(ctx, r.sym[i][1] + X4(' 次 · 占记录日 ', ' ครั้ง · ', '× · ', ' lần · ') + pc + '%', W - M, ry + 31, 22, C.mute, 400, 'right');
+        ctx.fillStyle = '#ef5b5b'; rr(ctx, tx0, ty, pw2, ph, ph / 2); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        var nd = Math.min(rw.per, 10), dsz = Math.min(11, (pw2 - 20) / nd / 1.5), dx0 = tx0 + (pw2 - nd * dsz * 1.9) / 2 + dsz * 0.95;
+        for(k = 0; k < nd; k++) dropP(ctx, dx0 + k * dsz * 1.9, ty + ph / 2 - 1, dsz);
+        if(!rw.cur && rw.len >= 18 && rw.len <= 60 && (rw.len - 14) * K > pw2 + 14 && P >= 1){
+          var ox = tx0 + (rw.len - 14) * K;
+          ctx.fillStyle = 'rgba(31,168,168,.2)'; ctx.beginPath(); ctx.arc(ox, ty + ph / 2, 19, 0, 7); ctx.fill();
+          ctx.fillStyle = '#1fa8a8'; ctx.beginPath(); ctx.arc(ox, ty + ph / 2, 13, 0, 7); ctx.fill();
         }
-        y += maxRows * 48 + 12;
-        if(r.symPh){ txt(ctx, (window.lunaXT||String)(T('症状多发阶段：', 'ช่วงที่มีอาการบ่อย: ') + PH[r.symPh.ph][zh() ? 0 : 1] + T('（占 ' + r.symPh.pct + '%）', ' (' + r.symPh.pct + '%)')), M, y + 10, 24, C.purple, 400); y += 36; }
-        else y += 10;
-      }
-
-      // 情绪
-      y += G; y = section(ctx, y, T('情绪记录', 'อารมณ์ที่บันทึก'));
-      if(!tot){ txt(ctx, T('这段时间还没有情绪记录', 'ช่วงนี้ยังไม่มีบันทึกอารมณ์'), M, y + 30, 26, C.mute, 400); y += 44; }
-      else {
-        var mx = M, full = W - 2 * M;
-        ctx.save(); rr(ctx, M, y, full, 34, 17); ctx.clip();
-        r.mood.forEach(function(m){ var w = full * m[1] / tot; ctx.fillStyle = MOOD_COL[m[0]] || '#bbb'; ctx.fillRect(mx, y, w + 1, 34); mx += w; });
-        ctx.restore();
-        var lx = M, ly = y + 78;
-        r.mood.forEach(function(m){
-          var nm = (zh() ? MOOD_ZH[m[0]] : m[0]) + ' ' + Math.round(m[1] * 100 / tot) + '%';
-          ctx.font = '400 24px ' + FF; var w = ctx.measureText(nm).width + 44;
-          if(lx + w > W - M){ lx = M; ly += 40; }
-          ctx.fillStyle = MOOD_COL[m[0]] || '#bbb'; ctx.beginPath(); ctx.arc(lx + 10, ly - 8, 9, 0, 7); ctx.fill();
-          txt(ctx, nm, lx + 28, ly, 24, C.ink, 400); lx += w + 18;
+        var lt = rw.cur ? L('dayN', rw.len) : (Math.round(rw.len * P) + L('days')),
+            pt = rw.per + L('days'), endX = tx0 + Math.max(pw2, lw);
+        txt(ctx, pt, tx0 + 6, ty + ph + 31, 28, '#d63c3c', 700);
+        txt(ctx, lt, Math.max(endX, tx0 + pw2 + 150), ty + ph + 31, 30, '#1f1a30', 700, 'right');
+        ctx.fillStyle = '#eee8f6'; ctx.fillRect(MX, ry2 + RP - 6, CW, 2);
+        ry2 += RP;
+      });
+      y = ry2 + 8;
+      if(rows.length < 2){ txt(ctx, L('noCyc'), MX, y + 24, 24, '#4f4966', 400); y += 50; }
+      // 图例
+      var lx = MX; ctx.font = '400 22px ' + FF;
+      [['#ef5b5b', L('lgP')], ['#1fa8a8', L('lgO')], [null, L('lgR')]].forEach(function(it){
+        if(it[0]){ ctx.fillStyle = it[0]; ctx.beginPath(); ctx.arc(lx + 9, y + 12, 9, 0, 7); ctx.fill(); lx += 26; }
+        txt(ctx, it[1], lx, y + 20, 22, '#3f3a55', 400); ctx.font = '400 22px ' + FF; lx += ctx.measureText(it[1]).width + 34;
+      });
+      y += 52;
+      for(fs = 25; fs >= 19; fs--){ best = layout(fs); if(y + 46 + best.h <= FOOT) break; }
+      if(fs < 19) fs = 19;
+      txt(ctx, L('notes'), MX, y + 26, 29, '#1f1a30', 700); txt(ctx, L('ques'), MX + colW + 30, y + 26, 29, '#1f1a30', 700);
+      var bx0 = y + 42, bhh = best.h - 46 + 16;
+      ctx.fillStyle = '#f4f0fb'; rr(ctx, MX, bx0, colW, bhh, 22); ctx.fill(); rr(ctx, MX + colW + 30, bx0, colW, bhh, 22); ctx.fill();
+      var cy1 = bx0 + 18 + fs; ctx.font = '400 ' + fs + 'px ' + FF;
+      best.a.forEach(function(n){
+        var bx = MX + 22, tx = bx + 26, first = cy1;
+        ctx.fillStyle = '#6a45b8'; ctx.beginPath(); ctx.arc(bx + 7, first - fs * 0.32, 6, 0, 7); ctx.fill();
+        if(n.head){ txt(ctx, n.head, tx, cy1, fs, '#1f1a30', 700); cy1 += best.lh; }
+        n.lines.forEach(function(t){ txt(ctx, t, tx, cy1, fs, '#2d2640', 400); cy1 += best.lh; });
+        n.grid.forEach(function(t, gi){
+          var gx = tx + (gi % n.cols) * Math.round(n.tw / 2), ft = fitText(ctx, t, fs, 400, (n.cols === 1 ? n.tw : Math.round(n.tw / 2) - 8), 17);
+          txt(ctx, ft.s, gx, cy1, ft.sz, '#2d2640', 400); ctx.font = '400 ' + fs + 'px ' + FF;
+          if((gi + 1) % n.cols === 0) cy1 += best.lh;
         });
-        y = ly + 20;
-        if(r.moodPh){ txt(ctx, (window.lunaXT||String)(T('情绪波动多在：', 'อารมณ์แปรปรวนบ่อยช่วง: ') + PH[r.moodPh.ph][zh() ? 0 : 1] + T('（占 ' + r.moodPh.pct + '%）', ' (' + r.moodPh.pct + '%)')), M, y + 30, 24, C.purple, 400); y += 48; }
-        else y += 24;
-      }
-
-      // 近期备注：用户自己写的备注（最近 30 天最多 3 条），版面有剩余才画
-      if(r.notes && r.notes.length){
-        var nRoom = Math.floor((LIM - qH - y - G - 52) / 46), nn = Math.min(r.notes.length, nRoom);
-        if(nn >= 1){
-          y += G; y = section(ctx, y, X4('近期备注', 'บันทึกล่าสุด', 'Recent notes', 'Ghi chú gần đây'));
-          for(i = 0; i < nn; i++){
-            var nd = parse(r.notes[i].d), ns = (nd ? md(nd) : r.notes[i].d) + '   ' + r.notes[i].t;
-            ctx.font = '400 26px ' + FF;
-            while(ns.length > 4 && ctx.measureText(ns).width > W - 2 * M){ ns = ns.slice(0, -2) + '…'; }
-            txt(ctx, ns, M, y + 30 + i * 46, 26, C.ink, 400);
-          }
-          y += nn * 46 + 6;
-        }
-      }
-
-      // 想问医生的问题
-      y += G - 6; y = section(ctx, y, T('想问医生的问题', 'คำถามที่อยากถามแพทย์'));
-      if(qLines.length){
-        ctx.font = '400 28px ' + FF;
-        var qMax = Math.max(2, Math.min(7, Math.floor(((H - 84 - 22) - y - 14) / 52)));
-        if(qLines.length > qMax){ qLines = qLines.slice(0, qMax); qLines[qMax - 1] = qLines[qMax - 1].replace(/.{0,1}$/, '…'); }
-        for(i = 0; i < qLines.length; i++){ txt(ctx, qLines[i], M, y + 34 + i * 52, 28, C.ink, 400); ctx.fillStyle = C.line; ctx.fillRect(M, y + 46 + i * 52, W - 2 * M, 2); }
-      } else {
-        // 根据数据自动列出的建议（带小方框，看诊时可以打勾），最后留一行手写
-        var sy = y + 8;
-        sugL.forEach(function(lines){
-          ctx.strokeStyle = C.purple; ctx.lineWidth = 3; rr(ctx, M, sy + 6, 26, 26, 6); ctx.stroke();
-          lines.forEach(function(ln, li){ txt(ctx, ln, M + 48, sy + 28 + li * 40, 26, C.ink, 400); });
-          sy += lines.length * 40 + 12;
-        });
-        if(sy + 46 < LIM) { ctx.fillStyle = C.line; ctx.fillRect(M, sy + 46, W - 2 * M, 2); }
-      }
-
+        if(n.grid.length % n.cols) cy1 += best.lh;
+        cy1 += 14;
+      });
+      var cy2 = bx0 + 18 + fs, qx = MX + colW + 30 + 22;
+      best.b.forEach(function(ls){
+        ctx.strokeStyle = '#6a45b8'; ctx.lineWidth = 3; rr(ctx, qx, cy2 - fs + 3, fs - 3, fs - 3, 5); ctx.stroke();
+        ls.forEach(function(t){ txt(ctx, t, qx + 40, cy2, fs, '#2d2640', 400); cy2 += best.lh; }); cy2 += 6;
+      });
       // 页脚
-      var fy = H - 84;
-      ctx.fillStyle = C.line; ctx.fillRect(M, fy - 22, W - 2 * M, 2);
-      ctx.font = '400 20px ' + FF;
-      var note = T('本报告由 Luna 根据本人自行记录的数据整理，周期与排卵日为估计值，可能有误差，不能用于避孕，也不能代替医生的诊断。',
-                   'รายงานนี้สรุปจากข้อมูลที่ผู้ใช้บันทึกเอง วันที่ประจำเดือนและวันตกไข่เป็นค่าประมาณ อาจคลาดเคลื่อน ไม่ใช้คุมกำเนิดและไม่แทนการวินิจฉัยของแพทย์');
-      var ls = wrap(ctx, (window.lunaXT||String)(note), W - 2 * M);
-      for(i = 0; i < ls.length && i < 3; i++) txt(ctx, ls[i], M, fy + 8 + i * 30, 20, C.mute, 400);
-      if(sample){   // 示例水印：斜着铺满整页
-        ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(-0.42);
-        var wm = T('示例数据', 'ข้อมูลตัวอย่าง'), yy2, xx2;
+      var fy = H - 96; ctx.fillStyle = '#e6dff5'; ctx.fillRect(MX, fy - 20, CW, 2);
+      ctx.font = '400 21px ' + FF; var ls2 = wrap(ctx, L('foot'), CW);
+      for(i = 0; i < ls2.length && i < 3; i++) txt(ctx, ls2[i], MX, fy + 10 + i * 30, 21, '#4f4966', 400);
+      if(sample){
+        ctx.save(); if(RTL){ ctx.translate(W, 0); ctx.scale(-1, 1); } ctx.translate(W / 2, H / 2); ctx.rotate(-0.42);
+        var wm = L('sample'), yy2, xx2;
         ctx.font = '700 96px ' + FF; ctx.fillStyle = 'rgba(124,92,191,.13)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         for(yy2 = -1500; yy2 <= 1500; yy2 += 330){ for(xx2 = -1500; xx2 <= 1500; xx2 += 560){ ctx.fillText(wm, xx2 + ((yy2 / 330) % 2 ? 280 : 0), yy2); } }
         ctx.restore();
@@ -34453,6 +35072,28 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     function toast(m){ try{ if(typeof window.showToast === 'function') window.showToast(m); }catch(e){} }
     function cancelled(err){ var m = ((err && (err.message || err.code)) || String(err) || '').toUpperCase(); return m.indexOf('CANCEL') !== -1; }
 
+    /* 🎁 免费试用 1 次（月经 / 备孕 / 怀孕 / 产后共用）。
+       点开报告预览的那一刻就由后端登记（按账号 + 设备 ID），不是等到保存才算——否则截图就能白拿。
+       本机只缓存"已用过"，真正以服务器为准；联网失败 / 没登录一律当作没有试用，走会员页。 */
+    var sessTrial = false;
+    function trialLeft(){ try{ return !localStorage.getItem('luna_docrep_trial'); }catch(e){ return false; } }
+    function canUse(){ return pro() || sessTrial || trialLeft(); }
+    function useTrial(){}
+    function endTrial(){ sessTrial = false; }
+    function claimTrial(cb){
+      if(pro() || sessTrial) return cb(true);
+      if(!trialLeft()) return cb(false);
+      var a = null; try{ a = window.auth || ((typeof auth !== 'undefined') ? auth : null); }catch(e){}
+      if(!a || !a.currentUser){ toast(T('请先登录后再使用免费试用', 'กรุณาเข้าสู่ระบบก่อนใช้สิทธิ์ทดลองฟรี')); return cb(false, true); }
+      var dev = ''; try{ dev = localStorage.getItem('luna_trial_dev') || ''; }catch(e){}
+      a.currentUser.getIdToken().then(function(tok){
+        return fetch('https://asia-southeast1-sasomboon.cloudfunctions.net/docReportTrial', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }, body: JSON.stringify({ dev: dev }) });
+      }).then(function(r){ return r.json().catch(function(){ return {}; }); }).then(function(d){
+        if(d && d.ok){ sessTrial = true; try{ localStorage.setItem('luna_docrep_trial', String(Date.now())); }catch(e){} cb(true); }
+        else if(d && d.used){ try{ localStorage.setItem('luna_docrep_trial', 'used'); }catch(e){} cb(false); }
+        else { toast(T('网络不稳定，请稍后再试', 'เครือข่ายไม่เสถียร ลองใหม่อีกครั้ง')); cb(false, true); }
+      }).catch(function(){ toast(T('网络不稳定，请稍后再试', 'เครือข่ายไม่เสถียร ลองใหม่อีกครั้ง')); cb(false, true); });
+    }
     async function savePdf(pdf, name){
       try{ if(window.lunaHrHistAdd && !window.__lunaHrReplay) window.lunaHrHistAdd(pdf, name); }catch(e){}
       var isNative = false; try{ isNative = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()); }catch(e){}
@@ -34461,7 +35102,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         try{
           if(!P.FileSharer || typeof P.FileSharer.save !== 'function') throw new Error('FileSharer plugin not found');
           await P.FileSharer.save({ filename: name, contentType: 'application/pdf', base64Data: b64, android: { saveDirectory: 'downloads' } });
-          toast(T('📄 已保存', '📄 บันทึกแล้ว')); return;
+          toast(T('📄 已保存', '📄 บันทึกแล้ว')); useTrial(); return true;
         }catch(e1){
           if(cancelled(e1)) return;
           try{
@@ -34469,59 +35110,66 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
             await P.Filesystem.writeFile({ path: name, data: b64, directory: 'CACHE' });
             var ur = await P.Filesystem.getUri({ path: name, directory: 'CACHE' });
             await P.Share.share({ title: T('医生报告', 'รายงานสำหรับพบแพทย์'), files: [ur.uri] });
+            useTrial(); return true;
           }catch(e2){ if(cancelled(e2)) return; toast(T('保存失败，请重试', 'บันทึกไม่สำเร็จ กรุณาลองใหม่')); }
         }
       } else {
-        try{ var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' })); a.download = name; a.click(); toast(T('📄 已保存', '📄 บันทึกแล้ว')); }
+        try{ var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([pdf], { type: 'application/pdf' })); a.download = name; a.click(); toast(T('📄 已保存', '📄 บันทึกแล้ว')); useTrial(); return true; }
         catch(e3){ toast(T('保存失败，请重试', 'บันทึกไม่สำเร็จ กรุณาลองใหม่')); }
       }
     }
 
     /* ───── 预览窗口 ───── */
     function close(){ var m = document.getElementById('lpgDocModal'); if(m) m.remove(); try{ document.body.style.overflow = ''; }catch(e){} }
-    /* ───── 生成前先问一句：要不要写想问医生的问题 ───── */
-    function askQuestion(prefill, cb, direct){
+    /* ───── 生成前：填一下医生常问的信息（全部选填，只存手机本地） ───── */
+    function askInfo(prefill, cb){
       var old = document.getElementById('lpgDocAsk'); if(old) old.remove();
+      var p = prefill || {};
       var m = document.createElement('div'); m.id = 'lpgDocAsk';
-      m.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(44,36,64,.55);display:flex;align-items:center;justify-content:center;padding:28px;font-family:inherit;';
-      var card = '<div style="background:#fff;border-radius:24px;padding:24px 20px 18px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(124,92,191,.28);">';
-      var btn = function(id, label, primary){ return '<button id="' + id + '" style="flex:1;padding:13px 8px;border:none;border-radius:14px;font-size:14.5px;font-weight:' + (primary ? 700 : 600) + ';cursor:pointer;font-family:inherit;background:' + (primary ? 'linear-gradient(135deg,#7c5cbf,#d97fb0)' : '#f0ecfa') + ';color:' + (primary ? '#fff' : '#6B6585') + ';">' + label + '</button>'; };
-      function stepAsk(){
-        m.innerHTML = card
-          + '<div style="font-size:17px;font-weight:700;color:#2d2640;text-align:center;line-height:1.5;">' + T('要写下想问医生的问题吗？', 'อยากจดคำถามที่จะถามแพทย์ไหม?') + '</div>'
-          + '<div style="font-size:13px;color:#6B6585;text-align:center;line-height:1.7;margin:8px 0 20px;">' + T('写下来会放进报告里，看诊时就不容易忘。', 'จะใส่ไว้ในรายงาน ช่วยให้ไม่ลืมตอนพบแพทย์') + '</div>'
-          + '<div style="display:flex;gap:10px;">' + btn('lpgAskLater', T('下次再说', 'ไว้ทีหลัง'), false) + btn('lpgAskWrite', T('写一下', 'เขียนเลย'), true) + '</div></div>';
-        document.getElementById('lpgAskLater').onclick = function(){ m.remove(); cb(''); };
-        document.getElementById('lpgAskWrite').onclick = stepWrite;
-      }
-      function stepWrite(){
-        m.innerHTML = card
-          + '<div style="font-size:16px;font-weight:700;color:#2d2640;margin-bottom:10px;">' + T('想问医生什么？', 'อยากถามแพทย์ว่าอะไร?') + '</div>'
-          + '<textarea id="lpgAskTxt" maxlength="200" rows="5" placeholder="' + T('例如：经期越来越痛，需要检查吗？', 'เช่น ปวดประจำเดือนมากขึ้น ต้องตรวจไหม?') + '" style="width:100%;box-sizing:border-box;border:1.5px solid #e8e4f0;border-radius:14px;padding:12px;font-size:15px;line-height:1.6;color:#2d2640;font-family:inherit;resize:none;outline:none;"></textarea>'
-          + '<div id="lpgAskCnt" style="text-align:end;font-size:11.5px;color:#6B6585;margin:4px 0 14px;">0 / 200</div>'
-          + '<div style="display:flex;gap:10px;">' + btn('lpgAskSkip', direct ? T('取消', 'ยกเลิก') : T('不写了', 'ไม่เขียน'), false) + btn('lpgAskDone', T('完成', 'เสร็จ'), true) + '</div></div>';
-        var ta = document.getElementById('lpgAskTxt'), cnt = document.getElementById('lpgAskCnt');
-        ta.value = prefill || ''; cnt.textContent = ta.value.length + ' / 200';
-        ta.oninput = function(){ cnt.textContent = ta.value.length + ' / 200'; };
-        document.getElementById('lpgAskSkip').onclick = function(){ m.remove(); if(!direct) cb(''); };
-        document.getElementById('lpgAskDone').onclick = function(){ var v = ta.value.trim(); m.remove(); cb(v); };
-        setTimeout(function(){ try{ ta.focus(); }catch(e){} }, 120);
-      }
+      m.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(44,36,64,.55);display:flex;align-items:center;justify-content:center;padding:18px;font-family:inherit;';
+      function esc2(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+      var inp = 'width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid #ddd3f1;border-radius:12px;font-size:15px;font-family:inherit;color:#2d2640;background:#fff;outline:none;';
+      function fld(id, label, val, extra, mode, max){ return '<div style="' + (extra || '') + '"><div style="font-size:12.5px;color:#6B6585;margin:0 0 4px 2px;">' + esc2(label) + '</div><input id="' + id + '" value="' + esc2(val) + '" maxlength="' + (max || 60) + '"' + (mode ? ' inputmode="' + mode + '"' : '') + ' autocomplete="off" style="' + inp + '"></div>'; }
+      m.innerHTML = '<div style="background:#fff;border-radius:24px;padding:20px 18px 14px;width:100%;max-width:380px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(124,92,191,.28);">'
+        + '<div style="font-size:17px;font-weight:700;color:#2d2640;text-align:center;line-height:1.5;">' + esc2(L('fTitle')) + '</div>'
+        + '<div style="font-size:12px;color:#6B6585;text-align:center;line-height:1.6;margin:6px 4px 12px;">' + esc2(L('fHint')) + '</div>'
+        + '<div style="overflow:auto;-webkit-overflow-scrolling:touch;padding:2px 2px 4px;display:flex;flex-direction:column;gap:10px;">'
+        + fld('lpgIfName', L('name'), p.name, '', '', 40)
+        + '<div style="display:flex;gap:8px;">' + fld('lpgIfAge', L('age'), p.age, 'flex:1;min-width:0;', 'numeric', 3) + fld('lpgIfH', L('height'), p.h, 'flex:1;min-width:0;', 'decimal', 5) + fld('lpgIfW', L('weight'), p.w, 'flex:1;min-width:0;', 'decimal', 5) + '</div>'
+        + '<div style="display:flex;gap:8px;">' + fld('lpgIfPreg', L('preg'), p.preg, 'flex:1;min-width:0;', 'numeric', 2) + fld('lpgIfContra', L('contra'), p.contra, 'flex:2;min-width:0;', '', 30) + '</div>'
+        + fld('lpgIfCond', L('cond'), p.cond, '', '', 60)
+        + fld('lpgIfMeds', L('meds'), p.meds, '', '', 60)
+        + '<div><div style="font-size:12.5px;color:#6B6585;margin:0 0 4px 2px;">' + esc2(L('concern')) + '</div><textarea id="lpgIfCon" maxlength="120" rows="2" style="' + inp + 'resize:none;line-height:1.5;">' + esc2(p.concern) + '</textarea></div>'
+        + '</div>'
+        + '<div style="display:flex;gap:10px;margin-top:12px;">'
+        + '<button id="lpgIfNo" style="flex:1;padding:13px 8px;border:none;border-radius:14px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit;background:#f3effa;color:#6B6585;">' + esc2(L('fCancel')) + '</button>'
+        + '<button id="lpgIfGo" style="flex:1.6;padding:13px 8px;border:none;border-radius:14px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;background:linear-gradient(135deg,#7c5cbf,#d97fb0);color:#fff;">' + esc2(L('fGo')) + '</button></div>'
+        + '<div id="lpgIfClr" style="text-align:center;font-size:12px;color:#8b84a0;text-decoration:underline;margin:10px 0 2px;cursor:pointer;">' + esc2(L('fClear')) + '</div></div>';
       document.body.appendChild(m);
-      if(direct) stepWrite(); else stepAsk();
+      function g(id){ var e = document.getElementById(id); return e ? e.value.trim() : ''; }
+      document.getElementById('lpgIfNo').onclick = function(){ m.remove(); };
+      document.getElementById('lpgIfClr').onclick = function(){
+        try{ localStorage.removeItem(PROF_KEY); }catch(e){}
+        ['lpgIfName','lpgIfAge','lpgIfH','lpgIfW','lpgIfPreg','lpgIfContra','lpgIfCond','lpgIfMeds'].forEach(function(id){ var e = document.getElementById(id); if(e) e.value = ''; });
+      };
+      document.getElementById('lpgIfGo').onclick = function(){
+        var o = { name: g('lpgIfName'), age: g('lpgIfAge'), h: g('lpgIfH'), w: g('lpgIfW'), preg: g('lpgIfPreg'), contra: g('lpgIfContra'), cond: g('lpgIfCond'), meds: g('lpgIfMeds'), concern: g('lpgIfCon') };
+        m.remove(); cb(o);
+      };
     }
     function start(){
-      if(!pro()) return open();
+      if(!canUse()) return open();
       var r = null; try{ r = analyse(); }catch(e){ r = null; }
       if(!r) return open();
-      askQuestion('', function(q){ open(q); }, false);
+      askInfo(readProfile(), function(info){ saveProfile(info); open(info); });
     }
 
     function open(qIn){
-      if(!pro()){ try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
+      if(!canUse()){ try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
+      var WM = !pro();   /* 试用用户预览带水印，保存时才登记试用并生成无水印 PDF，截图只能拿到水印版 */
       var r = null; try{ r = analyse(); }catch(e){ r = null; }
       if(!r){ toast(T('还没有月经记录，先在日历里记录一次吧', 'ยังไม่มีบันทึกประจำเดือน ไปบันทึกในปฏิทินก่อนนะ')); return; }
-      var cv = draw(r, false, qIn), jpg = cv.toDataURL('image/jpeg', 0.92);
+      var cv = draw(r, WM, qIn), jpg = cv.toDataURL('image/jpeg', 0.9);
       close();
       var m = document.createElement('div'); m.id = 'lpgDocModal';
       m.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#2d2640;display:flex;flex-direction:column;font-family:inherit;';
@@ -34531,7 +35179,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         + '<button id="lpgDocX" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;">✕</button></div>'
         + '<div style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 14px 14px;"><img id="lpgDocImg" alt="" style="display:block;width:100%;max-width:560px;margin:0 auto;border-radius:10px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.35);"></div>'
         + '<div style="padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 16px);background:#241d38;">'
-        + '<button id="lpgDocEdit" style="width:100%;padding:10px;margin-bottom:8px;border:1.5px solid rgba(255,255,255,.28);border-radius:14px;background:transparent;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;">✎ ' + T(qIn ? '修改想问医生的问题' : '添加想问医生的问题', qIn ? 'แก้ไขคำถามถึงแพทย์' : 'เพิ่มคำถามถึงแพทย์') + '</button>'
+        + '<button id="lpgDocEdit" style="width:100%;padding:10px;margin-bottom:8px;border:1.5px solid rgba(255,255,255,.28);border-radius:14px;background:transparent;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;">✎ ' + L('fEdit') + '</button>'
         + '<button id="lpgDocSave" style="width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#d97fb0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">'
         + T('保存 / 分享 PDF', 'บันทึก / แชร์ PDF') + '</button>'
         + '<div style="text-align:center;font-size:11.5px;color:rgba(255,255,255,.55);margin-top:8px;">' + T('可直接给医生看；报告只在你的手机上生成，不会上传。', 'ให้แพทย์ดูได้ทันที รายงานสร้างในเครื่องของคุณ ไม่อัปโหลด') + '</div></div>';
@@ -34548,23 +35196,105 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
           if(pvT0 === null) pvT0 = ts;
           var p = (ts - pvT0 - PV_DELAY) / PV_DUR; if(p < 0) p = 0;
           if(p >= 1){ pvDone(); return; }
-          if(ts - pvLast >= 30){ pvLast = ts; try{ pvX.drawImage(draw(r, false, qIn, 1 - Math.pow(1 - p, 3)), 0, 0); }catch(e4){ pvDone(); return; } }
+          if(ts - pvLast >= 30){ pvLast = ts; try{ pvX.drawImage(draw(r, WM, qIn, 1 - Math.pow(1 - p, 3)), 0, 0); }catch(e4){ pvDone(); return; } }
           requestAnimationFrame(pvFrame);
         };
-        pvX.drawImage(draw(r, false, qIn, 0), 0, 0); requestAnimationFrame(pvFrame);
+        pvX.drawImage(draw(r, WM, qIn, 0), 0, 0); requestAnimationFrame(pvFrame);
       }catch(e5){ try{ pvImg.style.display = 'block'; var oc = document.getElementById('lpgDocCv'); if(oc) oc.remove(); }catch(e6){} }
-      document.getElementById('lpgDocX').onclick = close;
-      document.getElementById('lpgDocEdit').onclick = function(){ askQuestion(qIn || '', function(q2){ open(q2); }, true); };
+      document.getElementById('lpgDocX').onclick = function(){ close(); endTrial(); };
+      document.getElementById('lpgDocEdit').onclick = function(){ askInfo(qIn || readProfile(), function(q2){ saveProfile(q2); open(q2); }); };
       document.getElementById('lpgDocSave').onclick = function(){
-        var pdf = buildPdf(dataUrlToU8(jpg), W, H);
-        savePdf(pdf, 'Luna-report-' + fmt(r.today) + '.pdf');
+        var go = function(){
+          var big = draw(r, false, qIn, 1, 2), pdf = buildPdf(dataUrlToU8(big.toDataURL('image/jpeg', 0.9)), big.width, big.height);
+          savePdf(pdf, 'Luna-report-' + fmt(r.today) + '.pdf');
+        };
+        if(pro() || sessTrial) return go();
+        claimTrial(function(ok, soft){ if(ok) return go(); if(soft) return; try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} });
       };
       try{ if(typeof window.trackEvent === 'function') window.trackEvent('doctor_report_open'); }catch(e){}
     }
-    window.LunaDoctorReport = { open: start, close: close, _analyse: analyse, _draw: draw, _buildPdf: buildPdf, _sampleR: sampleR, sampleImage: function(){ return draw(sampleR(), true).toDataURL('image/jpeg', 0.82); }, savePdf: savePdf, dataUrlToU8: dataUrlToU8 };
+    window.LunaDoctorReport = { claimTrial: claimTrial, endTrial: endTrial, trialLeft: function(){ return !pro() && trialLeft(); }, t: function(k){ try{ return L(k); }catch(e){ return ''; } }, open: start, close: close, _analyse: analyse, _draw: draw, _buildPdf: buildPdf, _sampleR: sampleR, sampleImage: function(){ return draw(sampleR(), true).toDataURL('image/jpeg', 0.82); }, savePdf: savePdf, dataUrlToU8: dataUrlToU8 };
   }catch(e){ try{ console.warn('LunaDoctorReport', e); }catch(_){} }
 })();
 </script>
+<script id="lunaDocTileJs">
+/* 📄 月经模式的「医生报告」入口：磁贴 + 样张页。标题/按钮文字直接用医生报告自己的 21 种语言表（LunaDoctorReport.t），只多一句说明。 */
+(function(){
+  if(window.LunaDocTile) return;
+  try{
+    var SUB = {
+      zh:'带去看医生的周期报告，一页 A4，可导出 PDF',
+      th:'รายงานรอบเดือนสำหรับพบแพทย์ 1 หน้า A4 ส่งออกเป็น PDF ได้',
+      en:'A one-page cycle report for your doctor, export as PDF',
+      vi:'Báo cáo chu kỳ 1 trang để mang đến bác sĩ, xuất PDF',
+      tw:'帶去看醫生的週期報告，一頁 A4，可匯出 PDF',
+      id:'Laporan siklus 1 halaman untuk dokter, bisa diekspor ke PDF',
+      ja:'受診用の周期レポート（A4・1ページ）。PDFで書き出せます',
+      ko:'진료용 주기 리포트 (A4 1장), PDF로 내보내기',
+      es:'Informe del ciclo de una página para el médico, exportable en PDF',
+      pt:'Relatório do ciclo em uma página para o médico, exportável em PDF',
+      fr:'Rapport de cycle d’une page pour le médecin, exportable en PDF',
+      tr:'Doktor için tek sayfalık döngü raporu, PDF olarak dışa aktarılır',
+      ms:'Laporan kitaran satu muka surat untuk doktor, boleh eksport PDF',
+      fil:'Isang pahinang ulat ng siklo para sa doktor, puwedeng i-export bilang PDF',
+      hi:'डॉक्टर के लिए एक पन्ने की चक्र रिपोर्ट, PDF में निर्यात करें',
+      bn:'ডাক্তারের জন্য এক পৃষ্ঠার চক্র রিপোর্ট, PDF হিসেবে এক্সপোর্ট করা যায়',
+      ta:'மருத்துவருக்கான ஒரு பக்க சுழற்சி அறிக்கை, PDF ஆக ஏற்றுமதி செய்யலாம்',
+      uk:'Звіт про цикл на одну сторінку для лікаря, експорт у PDF',
+      ar:'تقرير دورة من صفحة واحدة للطبيب، قابل للتصدير بصيغة PDF',
+      ur:'ڈاکٹر کے لیے ایک صفحے کی سائیکل رپورٹ، PDF میں ایکسپورٹ کریں',
+      he:'דוח מחזור של עמוד אחד לרופא, אפשר לייצא כ-PDF'
+    };
+    var RTL = { ar:1, ur:1, he:1 };
+    function g(k){ try{ return localStorage.getItem(k) === '1'; }catch(e){ return false; } }
+    function code(){
+      try{
+        if(g('luna_ui_en')) return 'en';
+        if(g('luna_ui_vi')) return 'vi';
+        if(g('luna_ui_id')){ var cs = ['ja','ko','es','pt','fr','tr','ms','fil','hi','bn','ta','uk','ar','ur','he'], i; for(i = 0; i < cs.length; i++) if(g('luna_ui_' + cs[i])) return cs[i]; return 'id'; }
+        if(g('luna_ui_tw') && localStorage.getItem('luna_lang') === 'zh') return 'tw';
+        return window._appLang === 'zh' ? 'zh' : 'th';
+      }catch(e){ return 'th'; }
+    }
+    function pro(){ try{ return !!(window.isPro && window.isPro()); }catch(e){ return false; } }
+    function R(k){ try{ return window.LunaDoctorReport && window.LunaDoctorReport.t ? window.LunaDoctorReport.t(k) : ''; }catch(e){ return ''; } }
+    function $(i){ return document.getElementById(i); }
+    function fill(){
+      try{
+        var a = $('docRepTileT'), b = $('docRepTileS'), c = $('docRepTileBadge'); if(!a || !b) return;
+        var t = R('title') || '📄', s = SUB[code()] || SUB.en;
+        if(a.textContent !== t) a.textContent = t;
+        if(b.textContent !== s) b.textContent = s;
+        if(c){ var tl = false; try{ tl = window.LunaDoctorReport.trialLeft(); }catch(e){}
+          c.style.display = pro() ? 'none' : '';
+          var want = tl ? '🎁 FREE ×1' : 'VIP'; if(c.textContent !== want) c.textContent = want; }
+      }catch(e){}
+    }
+    function close(){ var p = $('docRepPage'); if(p) p.remove(); try{ document.body.style.overflow = ''; }catch(e){} }
+    function open(){
+      try{ if(window.trackEvent) window.trackEvent('doctor_report_tile_open'); }catch(e){}
+      close();
+      var c = code(), p = document.createElement('div'); p.id = 'docRepPage';
+      if(RTL[c]) p.setAttribute('dir', 'rtl');
+      p.style.cssText = 'position:fixed;inset:0;z-index:160;background:var(--stat-bg);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(30px + env(safe-area-inset-bottom,0px));';
+      p.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:52px 20px 12px;"><button class="back-btn" id="docRepBack">‹</button>'
+        + '<span style="font-size:20px;font-weight:600;color:var(--stat-fg);font-family:Georgia,\'Songti SC\',serif;">📄 ' + R('title').replace(/</g, '&lt;') + '</span></div>'
+        + '<div style="padding:4px 16px 0;">'
+        + '<div style="font-size:13px;line-height:1.7;color:var(--stat-fg-muted);margin:0 4px 14px;text-align:center;">' + (SUB[c] || SUB.en) + '</div>'
+        + '<img class="dr-img" id="docRepImg" alt="">'
+        + '<button class="dr-go" id="docRepGo">' + R('fGo').replace(/</g, '&lt;') + (pro() ? '' : (window.LunaDoctorReport.trialLeft() ? ' 🎁' : ' 👑')) + '</button></div>';
+      document.body.appendChild(p);
+      try{ document.body.style.overflow = 'hidden'; }catch(e){}
+      $('docRepBack').onclick = close;
+      $('docRepGo').onclick = function(){ try{ window.LunaDoctorReport.open(); }catch(e){} };
+      setTimeout(function(){ try{ var im = $('docRepImg'); if(im && window.LunaDoctorReport) im.src = window.LunaDoctorReport.sampleImage(); }catch(e){} }, 30);
+    }
+    window.LunaDocTile = { open: open, close: close, _fill: fill };
+    setInterval(fill, 1500); setTimeout(fill, 600);
+  }catch(e){ try{ console.warn('LunaDocTile', e); }catch(_){} }
+})();
+</script>
+
 
 <script>
 /* 🌸 经期健康度（会员）：用你自己的记录按规则算一个参考分，加雷达图和"为什么是这个分数"。
@@ -41460,10 +42190,18 @@ window.__LUNA_TW_T="喫茶小舖>喫茶小舖|張棟樑>張棟樑|林國樑>林�
   function preview(q){
     var r = gather(); if(!r){ toast(T('还没有可导出的信息', 'ยังไม่มีข้อมูลให้ส่งออก', 'Nothing to export yet', 'Chưa có thông tin để xuất')); return; }
     var HD = heads(r), cvs = draw(r, q), jpgs = cvs.map(function(c){ return c.toDataURL('image/jpeg', 0.92); });
+    /* 试用用户：预览带"示例"水印（截图只能拿到水印版），保存时才登记试用并出无水印 PDF */
+    var WM = !pro(), shown = jpgs;
+    if(WM){ try{ shown = cvs.map(function(c){
+      var k = document.createElement('canvas'); k.width = c.width; k.height = c.height; var x = k.getContext('2d'); x.drawImage(c, 0, 0);
+      var t = (window.LunaDoctorReport && window.LunaDoctorReport.t('sample')) || 'SAMPLE';
+      x.save(); x.translate(k.width / 2, k.height / 2); x.rotate(-0.42); x.font = '700 96px sans-serif'; x.fillStyle = 'rgba(124,92,191,.16)'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      for(var yy = -1500; yy <= 1500; yy += 330){ for(var xx = -1500; xx <= 1500; xx += 560){ x.fillText(t, xx + ((yy / 330) % 2 ? 280 : 0), yy); } }
+      x.restore(); return k.toDataURL('image/jpeg', 0.9); }); }catch(e){ shown = jpgs; } }
     close();
     var m = document.createElement('div'); m.id = 'lpgPregDocModal';
     m.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#2d2640;display:flex;flex-direction:column;font-family:inherit;';
-    var imgs = jpgs.map(function(j, i){ return '<img alt="" src="' + j + '" style="display:block;width:100%;max-width:560px;margin:' + (i ? '14px' : '0') + ' auto 0;border-radius:10px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.35);">'; }).join('');
+    var imgs = shown.map(function(j, i){ return '<img alt="" src="' + j + '" style="display:block;width:100%;max-width:560px;margin:' + (i ? '14px' : '0') + ' auto 0;border-radius:10px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.35);">'; }).join('');
     m.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px;color:#fff;"><div style="font-size:16px;font-weight:700;">📄 ' + HD.prev + '</div>'
       + '<button id="lpgPregDocX" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;">✕</button></div>'
@@ -41473,19 +42211,26 @@ window.__LUNA_TW_T="喫茶小舖>喫茶小舖|張棟樑>張棟樑|林國樑>林�
       + '<button id="lpgPregDocSave" style="width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#d97fb0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">' + T('保存 / 分享 PDF', 'บันทึก / แชร์ PDF', 'Save / share PDF', 'Lưu / chia sẻ PDF') + '</button>'
       + '<div style="text-align:center;font-size:11.5px;color:rgba(255,255,255,.55);margin-top:8px;">' + T('可直接给医生看；报告只在你的手机上生成，不会上传。', 'ให้แพทย์ดูได้ทันที รายงานสร้างบนเครื่องของคุณเท่านั้น ไม่ถูกอัปโหลด', 'Ready to show your doctor; generated on your phone only, never uploaded.', 'Có thể đưa bác sĩ xem; chỉ tạo trên điện thoại của bạn, không tải lên.') + '</div></div>';
     document.body.appendChild(m); try{ document.body.style.overflow = 'hidden'; }catch(e){}
-    document.getElementById('lpgPregDocX').onclick = close;
+    document.getElementById('lpgPregDocX').onclick = function(){ close(); try{ window.LunaDoctorReport.endTrial(); }catch(e){} };
     document.getElementById('lpgPregDocEdit').onclick = function(){ ask(q || '', function(q2){ preview(q2); }, HD.ph); };
     document.getElementById('lpgPregDocSave').onclick = function(){
+      var go = function(){
       var pdf = buildPdf(jpgs.map(dataUrlToU8)), name = HD.file + fmt(r.today) + '.pdf';
       try{ if(window.LunaDoctorReport && window.LunaDoctorReport.savePdf) window.LunaDoctorReport.savePdf(pdf, name); }catch(e){ toast(T('保存失败，请重试', 'บันทึกไม่สำเร็จ กรุณาลองใหม่', 'Save failed, please try again', 'Lưu không thành công, hãy thử lại')); }
+      };
+      var DR = window.LunaDoctorReport;
+      if(pro() || !DR || !DR.claimTrial) return go();
+      DR.claimTrial(function(ok, soft){ if(ok) return go(); if(soft) return; try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} });
     };
     try{ if(typeof window.trackEvent === 'function') window.trackEvent(({ ttc: 'ttc_doctor_report_open', pp: 'pp_doctor_report_open', ppEnded: 'pp_doctor_report_open' })[r.mode] || 'preg_doctor_report_open'); }catch(e){}
   }
   function open(){
-    if(!pro()){ try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
+    var DR = window.LunaDoctorReport;
+    if(!pro() && !(DR && DR.trialLeft && DR.trialLeft())){ try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
     if(!gather()){ toast(T('还没有可导出的信息', 'ยังไม่มีข้อมูลให้ส่งออก', 'Nothing to export yet', 'Chưa có thông tin để xuất')); return; }
     var HD0 = heads(gather());
-    ask('', function(q){ preview(q); }, HD0.ph);
+    ask('', function(q){ preview(q);
+    }, HD0.ph);
   }
   window.LunaPregDoctor = { open: open, close: close, _gather: gather, _draw: draw, _buildPdf: buildPdf };
 
@@ -44266,6 +45011,10 @@ window.lunaCollapse=function(el,done,keep){
 #lunaModeCards .lmc-d { font-size:11.5px; color:var(--text-muted); margin-top:2px; line-height:1.4; padding:0 4px; }
 #lunaModeCards .lmc-chk { position:absolute; top:8px; inset-inline-end:8px; width:22px; height:22px; border-radius:50%; background:#f07fa0; display:none; align-items:center; justify-content:center; }
 #lunaModeCards .lmc-card.on .lmc-chk { display:flex; }
+/* 点「记录经期」卡想退出当前模式时：把对应的「退出…模式」按钮做出呼吸感，提示按这里 */
+@keyframes lmcBreath{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(224,96,126,0);background-color:rgba(224,96,126,.06)}50%{transform:scale(1.04);box-shadow:0 0 0 9px rgba(224,96,126,.13);background-color:rgba(224,96,126,.15)}}
+.lmc-breath{animation:lmcBreath 2.2s ease-in-out infinite !important;border-radius:14px !important;color:#e0607e !important;font-weight:600 !important;will-change:transform}
+@media (prefers-reduced-motion:reduce){.lmc-breath{animation:none !important;background-color:rgba(224,96,126,.12) !important}}
 </style>
 <script id="lunaModeCardsJs">
 (function(){
@@ -44349,8 +45098,35 @@ window.lunaCollapse=function(el,done,keep){
     if(typeof window._lunaConfirm === 'function') window._lunaConfirm(msg, { okText: tx(TP.ok) }, doIt);
     else { try{ if(window.confirm(msg)) doIt(); }catch(e){} }   // 拿不到确认框就用系统确认框；取消/拿不到都不会结束怀孕
   }
+  // ── 退出按钮呼吸提示：每次从模式卡进到当前模式的设置时都提醒一次（点一下按钮或 20 秒后停） ──
+  var breathT = null;
+  function exitBtn(mode){
+    try{
+      if(mode === 'preg') return $('pregEndBtn');
+      if(mode === 'ttc') return $('ttcEndBtn');
+      if(mode === 'baby'){ var s = $('ppMgLeaveTxt'); return s ? (s.closest ? s.closest('button') : s.parentNode) : null; }
+    }catch(e){}
+    return null;
+  }
+  function unbreathe(){
+    try{ if(breathT){ clearTimeout(breathT); breathT = null; } var a = document.querySelectorAll('.lmc-breath'), i; for(i = 0; i < a.length; i++) a[i].classList.remove('lmc-breath'); }catch(e){}
+  }
+  function breathe(mode){
+    unbreathe();
+    setTimeout(function(){
+      try{
+        var b = exitBtn(mode); if(!b) return;
+        void b.offsetWidth; b.classList.add('lmc-breath');
+        try{ b.scrollIntoView({ block:'nearest', behavior:'smooth' }); }catch(e){}
+        var stop = function(){ unbreathe(); b.removeEventListener('click', stop); };
+        b.addEventListener('click', stop);
+        breathT = setTimeout(unbreathe, 20000);
+      }catch(e){}
+    }, 500);
+  }
   function onTap(k){
     var mode = curMode();
+    try{ unbreathe(); }catch(e){}
     try{
       if(k === 'period'){
         if(mode === 'period'){ toast(tx(T.already)); return; }
@@ -44358,17 +45134,19 @@ window.lunaCollapse=function(el,done,keep){
         if(mode === 'ttc' && window.openTtcSetting) window.openTtcSetting();
         else if(mode === 'preg' && window.openPregSetting) window.openPregSetting();
         else if(mode === 'baby'){ var P = ppObj(); if(P && P.openManage) P.openManage(); }
+        breathe(mode);
         return;
       }
       if(k === 'ttc'){
         if(mode === 'preg'){ switchPregToTtc(); return; }
         if(window.openTtcSetting) window.openTtcSetting();
+        if(mode === 'ttc') breathe('ttc');
         return;
       }
-      if(k === 'preg'){ if(window.openPregSetting) window.openPregSetting(); return; }
+      if(k === 'preg'){ if(window.openPregSetting) window.openPregSetting(); if(mode === 'preg') breathe('preg'); return; }
       if(k === 'baby'){
         var P2 = ppObj();
-        if(P2 && P2.openManage){ P2.openManage(); return; }
+        if(P2 && P2.openManage){ P2.openManage(); breathe('baby'); return; }
         if(pregOn() && window.LunaPreg && window.LunaPreg.post && window.LunaPreg.post.openEvent){ window.LunaPreg.post.openEvent('birth'); return; }
         toast(tx(T.needPreg));
       }
@@ -44828,8 +45606,8 @@ body.theme-moonlotus #lunaFeelCard div,body.theme-aurora #lunaFeelCard div,body.
 /* 统计页：功能合并成一张卡，分割线中间亮两端渐隐+柔光 */
 #statsPanel .lunaStGrp{flex-shrink:0 !important;gap:0 !important;background:var(--stat-insight-bg);border:1px solid rgba(var(--lsd,124,92,191),.22);border-radius:22px;overflow:hidden}
 #statsPanel .lunaStGrp>.stat-tile{background:none !important;border:0 !important;border-radius:0 !important;box-shadow:none !important;position:relative}
-#statsPanel .lunaStGrp>.stat-tile+.stat-tile::before{content:"";position:absolute;top:0;inset-inline-start:6%;inset-inline-end:6%;height:1px;background:linear-gradient(90deg,transparent 0,rgba(var(--lsd,124,92,191),1) 50%,transparent 100%)}
-#statsPanel .lunaStGrp>.stat-tile+.stat-tile::after{content:"";position:absolute;top:-3px;inset-inline-start:18%;inset-inline-end:18%;height:6px;background:radial-gradient(ellipse at center,rgba(var(--lsd,124,92,191),1) 0,transparent 70%);pointer-events:none}
+#statsPanel .lunaStGrp>.stat-tile~.stat-tile::before{content:"";position:absolute;top:0;inset-inline-start:6%;inset-inline-end:6%;height:1px;background:linear-gradient(90deg,transparent 0,rgba(var(--lsd,124,92,191),1) 50%,transparent 100%)}
+#statsPanel .lunaStGrp>.stat-tile~.stat-tile::after{content:"";position:absolute;top:-3px;inset-inline-start:18%;inset-inline-end:18%;height:6px;background:radial-gradient(ellipse at center,rgba(var(--lsd,124,92,191),1) 0,transparent 70%);pointer-events:none}
 body.theme-moonlotus{--lsd:190,230,255}body.theme-aurora{--lsd:215,195,255}body.theme-amber{--lsd:255,214,150}
 </style>
 <script id="lunaStatDivJs">(function(){try{var t=document.getElementById('lunaHrTile')||document.getElementById('insightCard');if(t&&t.parentNode)t.parentNode.className+=' lunaStGrp'}catch(e){}})();</script>

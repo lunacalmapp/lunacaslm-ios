@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
+<head><script>try{window.__lunaHadStore=localStorage.getItem("luna_lang")!==null}catch(e){window.__lunaHadStore=false}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="google" content="notranslate">
@@ -74,6 +74,23 @@ body{font-family:-apple-system,'PingFang SC','Hiragino Sans GB',sans-serif;
 .langbar .langmenu button:not(.on):active{background:var(--purple-pale)}
 </style>
 <style id="rtlx">[dir=rtl] ul{padding-left:0 !important;padding-right:18px;} [dir=rtl] .lang-content,[dir=rtl] .section{text-align:right;} [dir=rtl] .langbar .langmenu{text-align:right;} [dir=rtl] .langbar .langmenu .lang-btn{text-align:right;}</style>
+<style id="lunaLangPageCss">
+html,body{overflow-x:hidden}
+/* 选语言整页：样式对齐 App「我的」页的语言列表（白底圆角列表 + 旗帜 + 语言名 + ✓，从右侧滑入） */
+#lpOv{position:fixed;inset:0;z-index:99999;background:#f6f1fb;transform:translateX(100%);visibility:hidden;transition:transform .28s cubic-bezier(.3,.8,.3,1),visibility 0s .28s;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:inherit}
+[dir=rtl] #lpOv{transform:translateX(-100%)}
+#lpOv.on{transform:translateX(0)!important;visibility:visible;transition:transform .28s cubic-bezier(.3,.8,.3,1),visibility 0s}
+#lpOv .lph{position:sticky;top:0;z-index:2;background:#f6f1fb;padding:max(26px,calc(14px + env(safe-area-inset-top,0px))) 12px 10px;display:flex;align-items:center;justify-content:center;min-height:calc(56px + env(safe-area-inset-top,0px))}
+#lpOv .lpb{position:absolute;inset-inline-start:10px;bottom:6px;width:44px;height:44px;border:none;background:none;font-size:34px;line-height:40px;color:#2d2640;cursor:pointer;-webkit-tap-highlight-color:transparent}
+[dir=rtl] #lpOv .lpb{transform:scaleX(-1)}
+#lpOv .lpt{font-size:18px;font-weight:700;color:#2d2640}
+#lpOv .lpl{max-width:560px;margin:8px auto calc(30px + env(safe-area-inset-bottom,0px));background:#fff;border-radius:18px;box-shadow:0 2px 12px rgba(124,92,208,.10);overflow:hidden}
+@media (max-width:592px){#lpOv .lpl{margin-left:16px;margin-right:16px}}
+#lpOv .lpr{display:flex;align-items:center;gap:14px;width:100%;border:none;background:none;font-family:inherit;text-align:start;padding:15px 18px;font-size:16px;color:#2d2640;cursor:pointer;border-bottom:1px solid #f0ebf7;-webkit-tap-highlight-color:transparent}
+#lpOv .lpr:last-child{border-bottom:none}#lpOv .lpr:active{background:#f6f1fb}
+#lpOv .lpf{font-size:24px;line-height:1}#lpOv .lpn{flex:1}
+#lpOv .lpr.on .lpn{font-weight:700;color:#7c5cd0}#lpOv .lpk{color:#7c5cd0;font-size:20px;font-weight:700;display:none}#lpOv .lpr.on .lpk{display:inline}
+</style>
 </head>
 <body>
 <div class="wrap" style="position:relative;">
@@ -88,35 +105,7 @@ body{font-family:-apple-system,'PingFang SC','Hiragino Sans GB',sans-serif;
     </div>
   </div>
 
-  <div class="langbar" id="langBar">
-    <button class="langbtn" id="langToggle" type="button" onclick="toggleLangMenu()" aria-haspopup="true" aria-expanded="false">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 6 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-6-3.8-9s1.3-6.3 3.8-9z"/></svg>
-      <span id="langCurrent">ไทย</span>
-      <svg class="chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-    </button>
-    <div class="langmenu" id="langMenu" role="menu">
-      <button class="lang-btn on" onclick="setLang('th')" role="menuitem">🇹🇭 ภาษาไทย</button>
-      <button class="lang-btn" onclick="setLang('zh')" role="menuitem">🇨🇳 中文</button>
-      <button class="lang-btn" onclick="setLang('en')" role="menuitem">🇺🇸 English</button>
-      <button class="lang-btn" onclick="setLang('vi')" role="menuitem">🇻🇳 Tiếng Việt</button>
-      <button class="lang-btn" onclick="setLang('id')" role="menuitem">🇮🇩 Bahasa Indonesia</button>
-      <button class="lang-btn" onclick="setLang('fil')" role="menuitem">🇵🇭 Filipino</button>
-      <button class="lang-btn" onclick="setLang('ja')" role="menuitem">🇯🇵 日本語</button>
-      <button class="lang-btn" onclick="setLang('ko')" role="menuitem">🇰🇷 한국어</button>
-      <button class="lang-btn" onclick="setLang('es')" role="menuitem">🇪🇸 Español</button>
-      <button class="lang-btn" onclick="setLang('pt')" role="menuitem">🇧🇷 Português</button>
-      <button class="lang-btn" onclick="setLang('tr')" role="menuitem">🇹🇷 Türkçe</button>
-      <button class="lang-btn" onclick="setLang('fr')" role="menuitem">🇫🇷 Français</button>
-      <button class="lang-btn" onclick="setLang('ms')" role="menuitem">🇲🇾 Bahasa Melayu</button>
-      <button class="lang-btn" onclick="setLang('hi')" role="menuitem">🇮🇳 हिन्दी</button>
-      <button class="lang-btn" onclick="setLang('ar')" role="menuitem">🇸🇦 العربية</button>
-      <button class="lang-btn" onclick="setLang('ur')" role="menuitem">🇵🇰 اردو</button>
-      <button class="lang-btn" onclick="setLang('bn')" role="menuitem">🇧🇩 বাংলা</button>
-      <button class="lang-btn" onclick="setLang('he')" role="menuitem">🇮🇱 עברית</button>
-      <button class="lang-btn" onclick="setLang('uk')" role="menuitem">🇺🇦 Українська</button>
-      <button class="lang-btn" onclick="setLang('ta')" role="menuitem">🇮🇳 தமிழ்</button>
-    </div>
-  </div>
+  <div class="langbar" id="langBar"><button class="langbtn" id="langToggle" type="button" onclick="openLangPage()" aria-haspopup="dialog"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z"/></svg><span id="langCurrent">ไทย</span></button><i id="btnTh" hidden></i><i id="btnZh" hidden></i></div>
 
   <div class="updated" id="updatedTxt">อัปเดตล่าสุด: 11 พฤศจิกายน 2026</div>
 
@@ -3528,6 +3517,62 @@ function setLang(lang) {
 let saved = 'th';
 try{ saved = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && saved==='zh') saved='en'; else if(localStorage.getItem('luna_ui_vi')==='1' && saved==='zh') saved='vi'; else if(localStorage.getItem('luna_ui_ta')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='ta'; else if(localStorage.getItem('luna_ui_uk')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='uk'; else if(localStorage.getItem('luna_ui_he')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='he'; else if(localStorage.getItem('luna_ui_bn')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='bn'; else if(localStorage.getItem('luna_ui_ur')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='ur'; else if(localStorage.getItem('luna_ui_ar')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='ar'; else if(localStorage.getItem('luna_ui_hi')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='hi'; else if(localStorage.getItem('luna_ui_ms')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='ms'; else if(localStorage.getItem('luna_ui_fr')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='fr'; else if(localStorage.getItem('luna_ui_tr')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='tr'; else if(localStorage.getItem('luna_ui_pt')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='pt'; else if(localStorage.getItem('luna_ui_es')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='es'; else if(localStorage.getItem('luna_ui_ko')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='ko'; else if(localStorage.getItem('luna_ui_ja')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='ja'; else if(localStorage.getItem('luna_ui_fil')==='1' && localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='fil'; else if(localStorage.getItem('luna_ui_id')==='1' && saved==='zh') saved='id'; }catch(e){}
 setLang(saved === 'zh' ? 'zh' : (saved === 'en' ? 'en' : (saved === 'vi' ? 'vi' : (saved === 'id' ? 'id' : (saved === 'fil' ? 'fil' : (saved === 'ja' ? 'ja' : (saved === 'ko' ? 'ko' : (saved === 'es' ? 'es' : (saved === 'pt' ? 'pt' : (saved === 'tr' ? 'tr' : (saved === 'fr' ? 'fr' : (saved === 'ms' ? 'ms' : (saved === 'hi' ? 'hi' : (saved === 'ar' ? 'ar' : (saved === 'ur' ? 'ur' : (saved === 'bn' ? 'bn' : (saved === 'he' ? 'he' : (saved === 'uk' ? 'uk' : (saved === 'ta' ? 'ta' : 'th')))))))))))))))))));
+</script>
+
+<div id="lpOv" role="dialog" aria-modal="true" aria-label="Language"><div class="lph"><button class="lpb" type="button" onclick="closeLangPage()" aria-label="Back">‹</button><div class="lpt" id="lpTitle">Language</div></div><div class="lpl" id="lpGrid"></div></div>
+
+<script id="lunaLangPage">
+(function(){
+  var LS=null; try{ LS=window.localStorage; }catch(e){}
+  var L=[['th','🇹🇭','ไทย','Thai'],['zh','🇨🇳','简体中文','Simplified Chinese'],['tw','🇹🇼','繁體中文','Traditional Chinese'],['en','🇺🇸','English','English'],
+    ['vi','🇻🇳','Tiếng Việt','Vietnamese'],['id','🇮🇩','Bahasa Indonesia','Indonesian'],['fil','🇵🇭','Filipino','Filipino'],['ja','🇯🇵','日本語','Japanese'],
+    ['ko','🇰🇷','한국어','Korean'],['es','🇪🇸','Español','Spanish'],['pt','🇧🇷','Português','Portuguese (Brasil)'],['tr','🇹🇷','Türkçe','Turkish'],
+    ['fr','🇫🇷','Français','French'],['ms','🇲🇾','Bahasa Melayu','Malay'],['hi','🇮🇳','हिन्दी','Hindi'],['ar','🇸🇦','العربية','Arabic'],
+    ['ur','🇵🇰','اردو','Urdu'],['bn','🇧🇩','বাংলা','Bengali'],['he','🇮🇱','עברית','Hebrew'],['uk','🇺🇦','Українська','Ukrainian'],['ta','🇮🇳','தமிழ்','Tamil']];
+  var has=function(c){ try{ if(typeof CONTENT!=='undefined') return !!CONTENT[c]; }catch(e){} try{ return !!document.querySelector('.lang-content#'+c); }catch(e){ return false; } };
+  var OPT=L.filter(function(x){ return has(x[0]); });
+  var NAME={}; L.forEach(function(x){ NAME[x[0]]=x[2]; }); NAME.tw=NAME.tw||'繁體中文';
+  var orig=window.setLang, cur='th';
+  function norm(s){
+    s=String(s||'').toLowerCase().replace(/_/g,'-');
+    if(s==='tw'||/^zh-(tw|hant|hk|mo)/.test(s)) return 'tw';
+    if(s.indexOf('zh')===0) return 'zh';
+    var b=s.split('-')[0]; if(b==='in') b='id'; else if(b==='tl') b='fil'; else if(b==='iw') b='he';
+    return b;
+  }
+  function pick(c){ if(c==='tw'&&!has('tw')) c='zh'; return has(c)?c:null; }
+  var TT={zh:'语言',tw:'語言',th:'ภาษา',en:'Language',vi:'Ngôn ngữ',id:'Bahasa',fil:'Wika',ja:'言語',ko:'언어',es:'Idioma',pt:'Idioma',tr:'Dil',fr:'Langue',ms:'Bahasa',hi:'भाषा',ar:'اللغة',ur:'زبان',bn:'ভাষা',he:'שפה',uk:'Мова',ta:'மொழி'};
+  function label(){ var el=document.getElementById('langCurrent'); if(el) el.textContent=NAME[cur]||cur;
+    var t=document.getElementById('lpTitle'); if(t) t.textContent=TT[cur]||TT.en;
+    [].forEach.call(document.querySelectorAll('#lpGrid .lpr'),function(b){ b.classList.toggle('on',b.getAttribute('data-l')===cur); }); }
+  window.setLang=function(l){ var c=pick(l)||'en'; cur=c; orig(c); label(); };
+  function build(){
+    var h=''; OPT.forEach(function(x){ h+='<button type="button" class="lpr" data-l="'+x[0]+'" onclick="lpChoose(\''+x[0]+'\')"><span class="lpf">'+x[1]+'</span><span class="lpn">'+x[2]+'</span><span class="lpk">✓</span></button>'; });
+    document.getElementById('lpGrid').innerHTML=h;
+  }
+  window.openLangPage=function(){ var o=document.getElementById('lpOv'); label(); void o.offsetWidth; o.classList.add('on'); document.documentElement.style.overflow='hidden'; o.scrollTop=0;
+    var s=o.querySelector('.lpr.on'); if(s){ try{ var d=s.getBoundingClientRect().top-o.getBoundingClientRect().top; o.scrollTop=Math.max(0,d-(o.clientHeight-s.offsetHeight)/2); }catch(e){} } };
+  window.closeLangPage=function(){ document.getElementById('lpOv').classList.remove('on'); document.documentElement.style.overflow=''; };
+  window.lpChoose=function(l){ if(l===cur){ window.closeLangPage(); return; } window.setLang(l);
+    try{ var u=new URL(location.href); u.searchParams.set('lang',l); history.replaceState(null,'',u.toString()); }catch(e){}
+    window.closeLangPage(); window.scrollTo(0,0); };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') window.closeLangPage(); });
+  build();
+  // ── 选语言的优先级：网址 ?lang= > 已保存的选择（含 App 内同步过来的）> 手机系统语言 > English ──
+  var q=null; try{ q=new URLSearchParams(location.search).get('lang'); }catch(e){}
+  var stored=!!window.__lunaHadStore;
+  var start=null;
+  if(q && q!=='zh') start=pick(norm(q));
+  if(start){ window.setLang(start); }
+  else if(q==='zh' || stored){ /* 沿用页面原有逻辑(App 内打开 / 之前选过) */ cur=(function(){ var d=document.documentElement.lang||'th'; if(d==='zh-CN') return 'zh'; return pick(norm(d))||'th'; })(); label(); }
+  else {
+    var list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'], auto='en';
+    for(var i=0;i<list.length;i++){ var c=pick(norm(list[i])); if(c){ auto=c; break; } }
+    window.setLang(auto);
+    // 自动判断的结果不当作"用户选择"保存，手机换语言后下次仍会跟着变
+    try{ if(LS){ var ks=[]; for(var k=0;k<LS.length;k++){ var n=LS.key(k); if(n==='luna_lang'||/^luna_ui_/.test(n)) ks.push(n); } ks.forEach(function(n){ LS.removeItem(n); }); } }catch(e){}
+  }
+})();
 </script>
 </body>
 </html>

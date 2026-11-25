@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
-<head>
+<head><script>try{window.__lunaHadStore=localStorage.getItem("luna_lang")!==null}catch(e){window.__lunaHadStore=false}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="google" content="notranslate">
@@ -91,6 +91,28 @@
   }
   .back-btn:active { opacity: 0.85; }
 </style>
+<style id="rtlx">[dir=rtl] ul{padding-left:0 !important;padding-right:18px;} [dir=rtl] .lang-content,[dir=rtl] .section{text-align:right;} [dir=rtl] .langbar .langmenu{text-align:right;} [dir=rtl] .langbar .langmenu .lang-btn{text-align:right;}</style>
+<style id="lunaLangPageCss">.langbar{position:relative;display:inline-flex}
+.langbar .langbtn{display:flex;align-items:center;gap:6px;border:none;font-family:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer;transition:.2s;-webkit-tap-highlight-color:transparent;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.4);color:#fff;}
+.langbar .langbtn:active{background:rgba(255,255,255,0.32)}
+.langbar .langbtn svg{flex:none;display:block}
+
+html,body{overflow-x:hidden}
+/* 选语言整页：样式对齐 App「我的」页的语言列表（白底圆角列表 + 旗帜 + 语言名 + ✓，从右侧滑入） */
+#lpOv{position:fixed;inset:0;z-index:99999;background:#f6f1fb;transform:translateX(100%);visibility:hidden;transition:transform .28s cubic-bezier(.3,.8,.3,1),visibility 0s .28s;overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:inherit}
+[dir=rtl] #lpOv{transform:translateX(-100%)}
+#lpOv.on{transform:translateX(0)!important;visibility:visible;transition:transform .28s cubic-bezier(.3,.8,.3,1),visibility 0s}
+#lpOv .lph{position:sticky;top:0;z-index:2;background:#f6f1fb;padding:max(26px,calc(14px + env(safe-area-inset-top,0px))) 12px 10px;display:flex;align-items:center;justify-content:center;min-height:calc(56px + env(safe-area-inset-top,0px))}
+#lpOv .lpb{position:absolute;inset-inline-start:10px;bottom:6px;width:44px;height:44px;border:none;background:none;font-size:34px;line-height:40px;color:#2d2640;cursor:pointer;-webkit-tap-highlight-color:transparent}
+[dir=rtl] #lpOv .lpb{transform:scaleX(-1)}
+#lpOv .lpt{font-size:18px;font-weight:700;color:#2d2640}
+#lpOv .lpl{max-width:560px;margin:8px auto calc(30px + env(safe-area-inset-bottom,0px));background:#fff;border-radius:18px;box-shadow:0 2px 12px rgba(124,92,208,.10);overflow:hidden}
+@media (max-width:592px){#lpOv .lpl{margin-left:16px;margin-right:16px}}
+#lpOv .lpr{display:flex;align-items:center;gap:14px;width:100%;border:none;background:none;font-family:inherit;text-align:start;padding:15px 18px;font-size:16px;color:#2d2640;cursor:pointer;border-bottom:1px solid #f0ebf7;-webkit-tap-highlight-color:transparent}
+#lpOv .lpr:last-child{border-bottom:none}#lpOv .lpr:active{background:#f6f1fb}
+#lpOv .lpf{font-size:24px;line-height:1}#lpOv .lpn{flex:1}
+#lpOv .lpr.on .lpn{font-weight:700;color:#7c5cd0}#lpOv .lpk{color:#7c5cd0;font-size:20px;font-weight:700;display:none}#lpOv .lpr.on .lpk{display:inline}
+</style>
 </head>
 <body>
 
@@ -99,12 +121,7 @@
   <div class="icon">🗑️</div>
   <h1 id="pageTitle">ลบบัญชีและข้อมูล</h1>
   <div class="sub" id="pageSubtitle">Luna Calm · วิธีลบบัญชีของคุณ</div>
-  <div class="lang-switch">
-    <button class="lang-btn inactive" id="btnZh" onclick="setLang('zh')">🇨🇳 中文</button>
-    <button class="lang-btn active"   id="btnTh" onclick="setLang('th')">🇹🇭 ภาษาไทย</button>
-    <button class="lang-btn inactive" id="btnEn" onclick="setLang('en')">🇺🇸 English</button>
-    <button class="lang-btn inactive" id="btnVi" onclick="setLang('vi')">🇻🇳 Tiếng Việt</button>
-  </div>
+  <div class="lang-switch"><div class="langbar" id="langBar"><button class="langbtn" id="langToggle" type="button" onclick="openLangPage()" aria-haspopup="dialog"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z"/></svg><span id="langCurrent">ไทย</span></button><i id="btnTh" hidden></i><i id="btnZh" hidden></i></div></div>
 </div>
 
 <div class="container">
@@ -266,27 +283,465 @@ const CONTENT = {
  "s6body": "Nếu bạn có bất kỳ câu hỏi nào về việc xóa tài khoản hoặc dữ liệu, hãy liên hệ với chúng tôi tại:",
  "s6email": "lunacalm00@gmail.com",
  "backBtn": "← Quay lại"
+},
+  id: {
+ "pageTitle": "Hapus Akun dan Data",
+ "pageSubtitle": "Luna Calm · Cara menghapus akun kamu",
+ "updatedTxt": "Terakhir diperbarui: Juni 2026 (v1)",
+ "s1title": "Tentang aplikasi ini",
+ "s1body": "Halaman ini menjelaskan cara menghapus data dan akun kamu di Luna Calm (Luna 月记), aplikasi untuk mencatat dan memantau siklus haid, gejala, dan suasana hati.",
+ "s2title": "Cara menghapus",
+ "s2step1": "<strong>Hapus data di aplikasi (hanya data):</strong> Buka Luna Calm lalu pilih \"Saya\" (Profil) → \"Hapus data\". Data kesehatan dan catatan pribadi kamu langsung dihapus, tetapi status keanggotaan kamu tetap dipertahankan.",
+ "s2step2": "<strong>Hapus akun permanen di aplikasi (disarankan):</strong> Buka Luna Calm lalu pilih \"Saya\" (Profil) → \"Hapus akun permanen\". Setelah kamu mengonfirmasi dua kali, seluruh data, keanggotaan, dan akun masuk kamu langsung dihapus. Tidak perlu menunggu dan tidak perlu menghubungi siapa pun.",
+ "s2step3": "<strong>Jika kamu tidak bisa membuka aplikasi:</strong> Kirim permintaan kamu lewat email ke <strong>lunacalm00@gmail.com</strong> dan beri tahu kami alamat email yang kamu gunakan untuk masuk. Kami akan menghapus akun tersebut secara manual (hanya untuk kasus ketika kamu tidak dapat membuka aplikasi).",
+ "s3title": "Apa saja yang dihapus",
+ "s3i1": "<strong>Hapus data di aplikasi</strong> menghapus: catatan haid, gejala, suasana hati, dan semua data pribadi lain yang kamu catat (keanggotaan kamu tetap dipertahankan).",
+ "s3i2": "<strong>Hapus akun permanen</strong> (di aplikasi atau lewat email) menghapus tambahan: informasi akun kamu (nama, email, foto profil), status keanggotaan beserta semua hak akses secara permanen, dan akun masuk itu sendiri.",
+ "s3note": "⚠️ Catatan: \"Hapus data\" di aplikasi hanya menghapus data pribadi/kesehatan kamu. Fitur ini <strong>tidak menghapus keanggotaan kamu</strong>, agar kamu tidak kehilangan keanggotaan yang sudah dibayar secara tidak sengaja. Untuk menghapus akun beserta keanggotaannya secara menyeluruh, gunakan \"Hapus akun permanen\" di aplikasi (langkah 2 di atas). Itu cara tercepat.",
+ "s4title": "Waktu pemrosesan",
+ "s4i1": "Hapus data di aplikasi / hapus akun permanen di aplikasi: berlaku seketika, tanpa menunggu.",
+ "s4i2": "Penghapusan akun lewat email (hanya jika kamu tidak bisa membuka aplikasi): selesai dalam 7 hari kerja sejak permintaan kamu kami terima.",
+ "s5title": "Informasi yang mungkin kami simpan sesuai hukum",
+ "s5body": "Untuk memenuhi ketentuan hukum (seperti audit transaksi dan pencegahan penipuan), kami dapat menyimpan sebagian catatan transaksi pembayaran untuk jangka waktu terbatas setelah akun kamu dihapus. Kami tidak menyimpan data kesehatan atau informasi pribadi kamu yang lain.",
+ "s6title": "Hubungi kami",
+ "s6body": "Jika kamu memiliki pertanyaan tentang penghapusan akun atau data kamu, hubungi kami di:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Kembali"
+},
+  fil: {
+ "pageTitle": "Pagbura ng Account at Data",
+ "pageSubtitle": "Luna Calm · Paano burahin ang account mo",
+ "updatedTxt": "Huling na-update: Hunyo 2026 (v1)",
+ "s1title": "Tungkol sa app na ito",
+ "s1body": "Ipinapaliwanag ng pahinang ito kung paano burahin ang data at account mo sa Luna Calm (Luna 月记), isang app para mag-record at magbantay ng menstrual cycle, mga sintomas, at mood.",
+ "s2title": "Paano magbura",
+ "s2step1": "<strong>Burahin ang data sa app (data lang):</strong> Buksan ang Luna Calm at piliin ang \"Ako\" (Profile) → \"I-clear ang data\". Agad na mabubura ang data sa kalusugan at mga personal na tala mo, pero mananatili ang status ng membership mo.",
+ "s2step2": "<strong>Permanenteng burahin ang account sa app (inirerekomenda):</strong> Buksan ang Luna Calm at piliin ang \"Ako\" (Profile) → \"Permanenteng burahin ang account\". Pagkatapos mong kumpirmahin nang dalawang beses, agad na mabubura ang lahat ng data, membership, at login account mo. Hindi na kailangang maghintay o makipag-ugnayan kaninuman.",
+ "s2step3": "<strong>Kung hindi mo mabuksan ang app:</strong> Ipadala ang kahilingan mo sa pamamagitan ng email sa <strong>lunacalm00@gmail.com</strong> at sabihin sa amin ang email address na ginamit mo sa pag-log in. Manu-mano naming buburahin ang account na iyon (para lang sa mga kasong hindi mo mabuksan ang app).",
+ "s3title": "Ano ang mabubura",
+ "s3i1": "Ang <strong>pagbura ng data sa app</strong> ay magbubura ng: mga tala ng regla, sintomas, mood, at lahat ng iba pang personal na data na na-record mo (mananatili ang membership mo).",
+ "s3i2": "Ang <strong>permanenteng pagbura ng account</strong> (sa app o sa email) ay magbubura rin ng: impormasyon ng account mo (pangalan, email, profile photo), status ng membership at lahat ng karapatan sa access nito nang permanente, at ang login account mismo.",
+ "s3note": "⚠️ Tandaan: Ang \"I-clear ang data\" sa app ay nagbubura lang ng personal/health data mo. Hindi nito <strong>binubura ang membership mo</strong>, para hindi mo aksidenteng mawala ang bayad nang membership. Para ganap na burahin ang account kasama ang membership, gamitin ang \"Permanenteng burahin ang account\" sa app (hakbang 2 sa itaas). Ito ang pinakamabilis na paraan.",
+ "s4title": "Oras ng pagproseso",
+ "s4i1": "Pagbura ng data sa app / permanenteng pagbura ng account sa app: agad na epektibo, walang paghihintay.",
+ "s4i2": "Pagbura ng account sa pamamagitan ng email (kung hindi mo lang mabuksan ang app): matatapos sa loob ng 7 araw ng trabaho mula nang matanggap namin ang kahilingan mo.",
+ "s5title": "Impormasyong maaari naming itago ayon sa batas",
+ "s5body": "Para matupad ang mga legal na kinakailangan (tulad ng audit ng transaksyon at pag-iwas sa panloloko), maaari naming itago ang ilang talaan ng bayad sa limitadong panahon pagkatapos mabura ang account mo. Hindi namin iniingatan ang data sa kalusugan o iba pang personal na impormasyon mo.",
+ "s6title": "Makipag-ugnayan sa amin",
+ "s6body": "Kung may tanong ka tungkol sa pagbura ng account o data mo, makipag-ugnayan sa amin sa:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Bumalik"
+},
+  ja: {
+ "pageTitle": "アカウントとデータの削除",
+ "pageSubtitle": "Luna Calm · アカウントの削除方法",
+ "updatedTxt": "最終更新：2026年6月（v1）",
+ "s1title": "このアプリについて",
+ "s1body": "このページでは、Luna Calm（Luna 月记）のデータとアカウントを削除する方法をご説明します。Luna Calmは、月経周期・症状・気分を記録し、見守るためのアプリです。",
+ "s2title": "削除の方法",
+ "s2step1": "<strong>アプリ内でデータを消去する（データのみ）：</strong>Luna Calmを開き、「マイページ」（プロフィール）→「データを消去」を選びます。健康データと個人的なメモがすぐに削除されますが、メンバーシップの状態は残ります。",
+ "s2step2": "<strong>アプリ内でアカウントを完全に削除する（おすすめ）：</strong>Luna Calmを開き、「マイページ」（プロフィール）→「アカウントを完全に削除」を選びます。2回確認すると、すべてのデータ、メンバーシップ、ログインアカウントがすぐに削除されます。お待ちいただく必要も、どなたかに連絡する必要もありません。",
+ "s2step3": "<strong>アプリを開けない場合：</strong><strong>lunacalm00@gmail.com</strong> までメールでご請求ください。その際、ログインに使用したメールアドレスをお知らせください。該当のアカウントを当社で手動で削除します（アプリを開けない場合に限ります）。",
+ "s3title": "削除される内容",
+ "s3i1": "<strong>アプリ内のデータ消去</strong>で削除されるもの：月経、症状、気分の記録、およびあなたが記録したその他すべての個人データ（メンバーシップは残ります）。",
+ "s3i2": "<strong>アカウントの完全削除</strong>（アプリ内またはメール）では、さらに次のものも削除されます：アカウント情報（氏名、メールアドレス、プロフィール写真）、メンバーシップの状態とそれに伴うすべての利用権（元に戻せません）、およびログインアカウント自体。",
+ "s3note": "⚠️ ご注意：アプリ内の「データを消去」で削除されるのは、個人データ・健康データのみです。<strong>メンバーシップは削除されません</strong>。お支払い済みのメンバーシップを誤って失わないようにするためです。メンバーシップを含めてアカウントを完全に削除するには、アプリ内の「アカウントを完全に削除」（上記の手順2）をご利用ください。これが最も早い方法です。",
+ "s4title": "処理にかかる時間",
+ "s4i1": "アプリ内でのデータ消去／アカウントの完全削除：すぐに反映されます。お待ちいただく必要はありません。",
+ "s4i2": "メールでのアカウント削除（アプリを開けない場合のみ）：ご請求を受け取ってから7営業日以内に完了します。",
+ "s5title": "法令に基づき保管することがある情報",
+ "s5body": "法令上の要請（取引の監査や不正防止など）に対応するため、アカウント削除後も、一部の決済記録を限られた期間保管することがあります。健康データやその他の個人情報は保管しません。",
+ "s6title": "お問い合わせ",
+ "s6body": "アカウントやデータの削除についてご不明な点がございましたら、こちらまでご連絡ください：",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← 戻る"
+},
+  ko: {
+ "pageTitle": "계정 및 데이터 삭제",
+ "pageSubtitle": "Luna Calm · 계정 삭제 방법",
+ "updatedTxt": "최종 업데이트: 2026년 6월 (v1)",
+ "s1title": "이 앱에 대해",
+ "s1body": "이 페이지에서는 Luna Calm(Luna 월기)의 데이터와 계정을 삭제하는 방법을 안내합니다. Luna Calm은 생리 주기, 증상, 기분을 기록하고 살펴보는 앱입니다.",
+ "s2title": "삭제 방법",
+ "s2step1": "<strong>앱에서 데이터 삭제(데이터만):</strong> Luna Calm을 열고 '마이'(프로필) → '데이터 삭제'를 선택합니다. 건강 데이터와 개인 메모가 바로 삭제되며 멤버십 상태는 유지됩니다.",
+ "s2step2": "<strong>앱에서 계정 완전 삭제(권장):</strong> Luna Calm을 열고 '마이'(프로필) → '계정 완전 삭제'를 선택합니다. 두 번 확인하면 모든 데이터, 멤버십, 로그인 계정이 바로 삭제됩니다. 기다리거나 누구에게 연락할 필요가 없습니다.",
+ "s2step3": "<strong>앱을 열 수 없는 경우:</strong> <strong>lunacalm00@gmail.com</strong>으로 이메일을 보내 요청하세요. 이때 로그인에 사용한 이메일 주소를 알려 주세요. 해당 계정을 저희가 직접 삭제합니다(앱을 열 수 없는 경우에 한합니다).",
+ "s3title": "삭제되는 내용",
+ "s3i1": "<strong>앱에서 데이터 삭제</strong>로 지워지는 것: 생리, 증상, 기분 기록과 이용자가 기록한 그 밖의 모든 개인 데이터(멤버십은 유지됩니다).",
+ "s3i2": "<strong>계정 완전 삭제</strong>(앱 또는 이메일)에서는 다음도 함께 삭제됩니다: 계정 정보(이름, 이메일 주소, 프로필 사진), 멤버십 상태와 그에 따른 모든 이용 권한(되돌릴 수 없습니다), 그리고 로그인 계정 자체.",
+ "s3note": "⚠️ 안내: 앱의 '데이터 삭제'는 개인 데이터와 건강 데이터만 지웁니다. <strong>멤버십은 삭제되지 않습니다</strong>. 결제한 멤버십을 실수로 잃지 않도록 하기 위해서입니다. 멤버십까지 포함해 계정을 완전히 삭제하려면 앱의 '계정 완전 삭제'(위 2번)를 이용하세요. 가장 빠른 방법입니다.",
+ "s4title": "처리 시간",
+ "s4i1": "앱에서 데이터 삭제/계정 완전 삭제: 즉시 반영됩니다. 기다릴 필요가 없습니다.",
+ "s4i2": "이메일로 계정 삭제(앱을 열 수 없는 경우에 한함): 요청을 받은 날부터 영업일 기준 7일 이내에 처리됩니다.",
+ "s5title": "법령에 따라 보관할 수 있는 정보",
+ "s5body": "법령상 요구(거래 감사, 부정 이용 방지 등)에 대응하기 위해 계정 삭제 후에도 일부 결제 기록을 제한된 기간 동안 보관할 수 있습니다. 건강 데이터와 그 밖의 개인정보는 보관하지 않습니다.",
+ "s6title": "문의",
+ "s6body": "계정이나 데이터 삭제에 대해 궁금한 점이 있으면 다음으로 연락해 주세요:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← 뒤로"
+},
+  es: {
+ "pageTitle": "Eliminación de cuenta y datos",
+ "pageSubtitle": "Luna Calm · Cómo eliminar tu cuenta",
+ "updatedTxt": "Última actualización: junio de 2026 (v1)",
+ "s1title": "Sobre esta app",
+ "s1body": "Esta página explica cómo eliminar los datos y la cuenta de Luna Calm (Luna 月记). Luna Calm es una app para registrar y entender tu ciclo menstrual, tus síntomas y tu estado de ánimo.",
+ "s2title": "Cómo eliminar",
+ "s2step1": "<strong>Eliminar datos en la app (solo los datos):</strong> abre Luna Calm y ve a \"Perfil\" → \"Eliminar datos\". Tus datos de salud y notas personales se borran de inmediato; el estado de tu membresía se conserva.",
+ "s2step2": "<strong>Eliminar la cuenta definitivamente en la app (recomendado):</strong> abre Luna Calm y ve a \"Perfil\" → \"Eliminar cuenta definitivamente\". Tras confirmar dos veces, se eliminan al instante todos tus datos, tu membresía y tu cuenta de inicio de sesión. No tienes que esperar ni contactar a nadie.",
+ "s2step3": "<strong>Si no puedes abrir la app:</strong> envía un correo a <strong>lunacalm00@gmail.com</strong> con tu solicitud e indica el correo con el que iniciaste sesión. Nosotros eliminaremos esa cuenta (solo para quienes no pueden abrir la app).",
+ "s3title": "Qué se elimina",
+ "s3i1": "Con <strong>Eliminar datos en la app</strong> se borran: tus registros de periodo, síntomas y ánimo, y todos los demás datos personales que registraste (la membresía se conserva).",
+ "s3i2": "Con <strong>Eliminar cuenta definitivamente</strong> (en la app o por correo) también se eliminan: los datos de la cuenta (nombre, correo electrónico y foto de perfil), el estado de la membresía y todos los beneficios asociados (no se puede deshacer) y la propia cuenta de inicio de sesión.",
+ "s3note": "⚠️ Aviso: \"Eliminar datos\" en la app solo borra tus datos personales y de salud. <strong>No elimina la membresía</strong>, para que no pierdas por error una membresía que ya pagaste. Si quieres eliminar la cuenta por completo, incluida la membresía, usa \"Eliminar cuenta definitivamente\" en la app (paso 2 arriba): es la forma más rápida.",
+ "s4title": "Tiempos de procesamiento",
+ "s4i1": "Eliminar datos / eliminar cuenta definitivamente en la app: se aplica de inmediato. No hay que esperar.",
+ "s4i2": "Eliminación de la cuenta por correo (solo si no puedes abrir la app): se procesa en un máximo de 7 días hábiles desde que recibamos tu solicitud.",
+ "s5title": "Información que podemos conservar por obligación legal",
+ "s5body": "Para cumplir con obligaciones legales (auditorías de transacciones, prevención de fraude, etc.), podemos conservar por un tiempo limitado algunos registros de pago después de eliminar tu cuenta. No conservamos tus datos de salud ni otros datos personales.",
+ "s6title": "Contacto",
+ "s6body": "Si tienes preguntas sobre la eliminación de tu cuenta o tus datos, escríbenos a:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Volver"
+},
+  pt: {
+ "pageTitle": "Exclusão de conta e dados",
+ "pageSubtitle": "Luna Calm · Como excluir a sua conta",
+ "updatedTxt": "Última atualização: junho de 2026 (v1)",
+ "s1title": "Sobre este app",
+ "s1body": "Esta página explica como excluir os dados e a conta do Luna Calm (Luna 月记). O Luna Calm é um app para registrar e entender o seu ciclo menstrual, os seus sintomas e o seu humor.",
+ "s2title": "Como excluir",
+ "s2step1": "<strong>Excluir dados no app (só os dados):</strong> abra o Luna Calm e vá em \"Perfil\" → \"Excluir dados\". Os seus dados de saúde e anotações pessoais são apagados na hora; o status da sua assinatura é mantido.",
+ "s2step2": "<strong>Excluir a conta definitivamente no app (recomendado):</strong> abra o Luna Calm e vá em \"Perfil\" → \"Excluir conta definitivamente\". Depois de confirmar duas vezes, todos os seus dados, a sua assinatura e a sua conta de login são excluídos na hora. Você não precisa esperar nem falar com ninguém.",
+ "s2step3": "<strong>Se você não consegue abrir o app:</strong> envie um e-mail para <strong>lunacalm00@gmail.com</strong> com o seu pedido e informe o e-mail com que você entrou. Nós excluiremos essa conta (apenas para quem não consegue abrir o app).",
+ "s3title": "O que é excluído",
+ "s3i1": "Com <strong>Excluir dados no app</strong>, são apagados: os seus registros de menstruação, sintomas e humor, e todos os outros dados pessoais que você registrou (a assinatura é mantida).",
+ "s3i2": "Com <strong>Excluir conta definitivamente</strong> (no app ou por e-mail), também são excluídos: os dados da conta (nome, e-mail e foto de perfil), o status da assinatura e todos os benefícios associados (não dá para desfazer) e a própria conta de login.",
+ "s3note": "⚠️ Aviso: \"Excluir dados\" no app só apaga os seus dados pessoais e de saúde. <strong>Não exclui a assinatura</strong>, para você não perder por engano uma assinatura que já pagou. Se quiser excluir a conta por completo, incluindo a assinatura, use \"Excluir conta definitivamente\" no app (passo 2 acima): é o jeito mais rápido.",
+ "s4title": "Prazos de processamento",
+ "s4i1": "Excluir dados / excluir conta definitivamente no app: vale na hora. Não é preciso esperar.",
+ "s4i2": "Exclusão da conta por e-mail (só se você não consegue abrir o app): processada em até 7 dias úteis desde que recebermos o seu pedido.",
+ "s5title": "Informações que podemos manter por obrigação legal",
+ "s5body": "Para cumprir obrigações legais (auditorias de transações, prevenção a fraudes etc.), podemos manter por um tempo limitado alguns registros de pagamento depois que você excluir a sua conta. Não mantemos os seus dados de saúde nem outros dados pessoais.",
+ "s6title": "Contato",
+ "s6body": "Se você tiver dúvidas sobre a exclusão da sua conta ou dos seus dados, escreva para:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Voltar"
+},
+  tr: {
+ "pageTitle": "Hesap ve veri silme",
+ "pageSubtitle": "Luna Calm · Hesabını nasıl silersin",
+ "updatedTxt": "Son güncelleme: Haziran 2026 (v1)",
+ "s1title": "Bu uygulama hakkında",
+ "s1body": "Bu sayfa, Luna Calm (Luna 月记) verilerinin ve hesabının nasıl silineceğini açıklar. Luna Calm; regl döngünü, belirtilerini ve ruh hâlini kaydetmene ve anlamana yardım eden bir uygulamadır.",
+ "s2title": "Nasıl silinir",
+ "s2step1": "<strong>Uygulamada verileri sil (yalnızca veriler):</strong> Luna Calm'i aç ve \"Ben\" → \"Verileri sil\"e git. Sağlık verilerin ve kişisel notların hemen silinir; üyelik durumun korunur.",
+ "s2step2": "<strong>Uygulamada hesabı kalıcı olarak sil (önerilen):</strong> Luna Calm'i aç ve \"Ben\" → \"Hesabı kalıcı olarak sil\"e git. İki kez onayladıktan sonra tüm verilerin, üyeliğin ve giriş hesabın hemen silinir. Beklemene ya da kimseyle konuşmana gerek yok.",
+ "s2step3": "<strong>Uygulamayı açamıyorsan:</strong> talebinle birlikte giriş yaptığın e-postayı belirterek <strong>lunacalm00@gmail.com</strong> adresine e-posta gönder. O hesabı sileriz (yalnızca uygulamayı açamayanlar için).",
+ "s3title": "Neler silinir",
+ "s3i1": "<strong>Uygulamada verileri sil</strong> ile şunlar silinir: regl, belirti ve ruh hâli kayıtların ile kaydettiğin diğer tüm kişisel veriler (üyelik korunur).",
+ "s3i2": "<strong>Hesabı kalıcı olarak sil</strong> ile (uygulamada ya da e-postayla) ayrıca şunlar da silinir: hesap verileri (ad, e-posta ve profil fotoğrafı), üyelik durumu ve ilişkili tüm haklar (geri alınamaz) ve giriş hesabının kendisi.",
+ "s3note": "⚠️ Uyarı: Uygulamadaki \"Verileri sil\" yalnızca kişisel ve sağlık verilerini siler. <strong>Üyeliği silmez</strong>; böylece zaten ödediğin bir üyeliği yanlışlıkla kaybetmezsin. Üyelik dahil hesabı tamamen silmek istersen uygulamada \"Hesabı kalıcı olarak sil\"i kullan (yukarıdaki 2. adım): en hızlı yol budur.",
+ "s4title": "İşlem süreleri",
+ "s4i1": "Uygulamada verileri sil / hesabı kalıcı olarak sil: hemen geçerli olur. Beklemek gerekmez.",
+ "s4i2": "E-postayla hesap silme (yalnızca uygulamayı açamıyorsan): talebini aldığımız tarihten itibaren en geç 7 iş günü içinde işlenir.",
+ "s5title": "Yasal yükümlülük nedeniyle saklayabileceğimiz bilgiler",
+ "s5body": "Yasal yükümlülükleri yerine getirmek (işlem denetimleri, dolandırıcılığı önleme vb.) için hesabını sildikten sonra bazı ödeme kayıtlarını sınırlı bir süre saklayabiliriz. Sağlık verilerini ya da diğer kişisel verilerini saklamayız.",
+ "s6title": "İletişim",
+ "s6body": "Hesabının ya da verilerinin silinmesiyle ilgili sorularını şu adrese yazabilirsin:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Geri"
+},
+  fr: {
+ "pageTitle": "Suppression du compte et des données",
+ "pageSubtitle": "Luna Calm · Comment supprimer ton compte",
+ "updatedTxt": "Dernière mise à jour : novembre 2026 (v1)",
+ "s1title": "À propos de cette application",
+ "s1body": "Cette page explique comment supprimer les données et le compte Luna Calm (Luna 月记). Luna Calm est une application qui t'aide à enregistrer et à mieux comprendre ton cycle menstruel, tes symptômes et ton humeur.",
+ "s2title": "Comment supprimer",
+ "s2step1": "<strong>Supprimer les données dans l'application (données uniquement) :</strong> ouvre Luna Calm et va dans « Moi » → « Supprimer les données ». Tes données de santé et tes notes personnelles sont supprimées immédiatement ; ton statut d'abonnement est conservé.",
+ "s2step2": "<strong>Supprimer définitivement le compte dans l'application (recommandé) :</strong> ouvre Luna Calm et va dans « Moi » → « Supprimer définitivement le compte ». Après deux confirmations, toutes tes données, ton abonnement et ton compte de connexion sont supprimés immédiatement. Tu n'as pas à attendre ni à parler à qui que ce soit.",
+ "s2step3": "<strong>Si tu ne peux pas ouvrir l'application :</strong> envoie un e-mail à <strong>lunacalm00@gmail.com</strong> en indiquant l'adresse e-mail avec laquelle tu te connectes. Nous supprimerons ce compte (uniquement pour les personnes qui ne peuvent pas ouvrir l'application).",
+ "s3title": "Ce qui est supprimé",
+ "s3i1": "<strong>« Supprimer les données » dans l'application</strong> supprime : tes enregistrements de règles, de symptômes et d'humeur, ainsi que toutes les autres données personnelles que tu as enregistrées (l'abonnement est conservé).",
+ "s3i2": "<strong>« Supprimer définitivement le compte »</strong> (dans l'application ou par e-mail) supprime en plus : les données du compte (nom, e-mail et photo de profil), le statut d'abonnement et tous les droits associés (irréversible), ainsi que le compte de connexion lui-même.",
+ "s3note": "⚠️ Attention : « Supprimer les données » dans l'application supprime uniquement les données personnelles et de santé. <strong>Il ne supprime pas l'abonnement</strong>, pour que tu ne perdes pas par erreur un abonnement déjà payé. Si tu veux supprimer entièrement ton compte, abonnement compris, utilise « Supprimer définitivement le compte » dans l'application (étape 2 ci-dessus) : c'est le moyen le plus rapide.",
+ "s4title": "Délais de traitement",
+ "s4i1": "Supprimer les données / supprimer définitivement le compte dans l'application : effet immédiat. Aucune attente.",
+ "s4i2": "Suppression du compte par e-mail (uniquement si tu ne peux pas ouvrir l'application) : traitée au plus tard dans un délai d'un mois à compter de la réception de ta demande, et en principe sous 7 jours ouvrés.",
+ "s5title": "Informations que nous pouvons conserver pour des raisons légales",
+ "s5body": "Pour respecter nos obligations légales (contrôles des transactions, prévention de la fraude, etc.), nous pouvons conserver certains justificatifs de paiement pendant une durée limitée après la suppression de ton compte. Nous ne conservons ni tes données de santé ni tes autres données personnelles.",
+ "s6title": "Contact",
+ "s6body": "Pour toute question sur la suppression de ton compte ou de tes données, écris-nous à :",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Retour"
+},
+  ms: {
+ "pageTitle": "Pemadaman Akaun dan Data",
+ "pageSubtitle": "Luna Calm · Cara memadam akaun awak",
+ "updatedTxt": "Dikemas kini: November 2026 (v1)",
+ "s1title": "Tentang aplikasi ini",
+ "s1body": "Halaman ini menerangkan cara memadam data dan akaun Luna Calm (Luna 月记). Luna Calm ialah aplikasi yang membantu awak merekod dan memahami kitaran haid, gejala dan mood awak.",
+ "s2title": "Cara memadam",
+ "s2step1": "<strong>Padam data dalam aplikasi (data sahaja):</strong> buka Luna Calm dan pergi ke \"Profil\" → \"Padam data\". Data kesihatan dan nota peribadi awak dipadam serta-merta; status langganan awak dikekalkan.",
+ "s2step2": "<strong>Padam akaun secara kekal dalam aplikasi (disyorkan):</strong> buka Luna Calm dan pergi ke \"Profil\" → \"Padam akaun secara kekal\". Selepas dua pengesahan, semua data, langganan dan akaun log masuk awak dipadam serta-merta. Awak tidak perlu menunggu atau bercakap dengan sesiapa.",
+ "s2step3": "<strong>Jika awak tidak dapat membuka aplikasi:</strong> hantar e-mel ke <strong>lunacalm00@gmail.com</strong> dengan menyatakan alamat e-mel yang awak gunakan untuk log masuk. Kami akan memadam akaun itu (hanya untuk mereka yang tidak dapat membuka aplikasi).",
+ "s3title": "Apa yang dipadam",
+ "s3i1": "<strong>\"Padam data\" dalam aplikasi</strong> memadam: rekod haid, gejala dan mood awak, serta semua data peribadi lain yang awak rekodkan (langganan dikekalkan).",
+ "s3i2": "<strong>\"Padam akaun secara kekal\"</strong> (dalam aplikasi atau melalui e-mel) turut memadam: data akaun (nama, e-mel dan gambar profil), status langganan dan semua hak berkaitan (tidak boleh dipulihkan), serta akaun log masuk itu sendiri.",
+ "s3note": "⚠️ Perhatian: \"Padam data\" dalam aplikasi hanya memadam data peribadi dan kesihatan. <strong>Ia tidak memadam langganan</strong>, supaya awak tidak kehilangan langganan yang telah dibayar secara tidak sengaja. Jika awak mahu memadam akaun sepenuhnya, termasuk langganan, gunakan \"Padam akaun secara kekal\" dalam aplikasi (langkah 2 di atas): ini cara paling cepat.",
+ "s4title": "Tempoh pemprosesan",
+ "s4i1": "Padam data / padam akaun secara kekal dalam aplikasi: berkuat kuasa serta-merta. Tiada penantian.",
+ "s4i2": "Pemadaman akaun melalui e-mel (hanya jika awak tidak dapat membuka aplikasi): diproses selewat-lewatnya dalam masa 21 hari selepas permintaan diterima, dan biasanya dalam 7 hari bekerja.",
+ "s5title": "Maklumat yang mungkin kami simpan atas sebab undang-undang",
+ "s5body": "Untuk mematuhi kewajipan undang-undang kami (semakan transaksi, pencegahan penipuan dan sebagainya), kami mungkin menyimpan sesetengah bukti pembayaran untuk tempoh terhad selepas akaun awak dipadam. Kami tidak menyimpan data kesihatan atau data peribadi awak yang lain.",
+ "s6title": "Hubungi kami",
+ "s6body": "Untuk sebarang soalan tentang pemadaman akaun atau data awak, tulis kepada kami di:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Kembali"
+},
+  hi: {
+ "pageTitle": "खाता और डेटा हटाना",
+ "pageSubtitle": "Luna Calm · अपना खाता कैसे हटाएँ",
+ "updatedTxt": "अपडेट: नवंबर 2026 (v1)",
+ "s1title": "इस ऐप के बारे में",
+ "s1body": "यह पेज बताता है कि Luna Calm (Luna 月记) का डेटा और खाता कैसे हटाएँ। Luna Calm एक ऐप है जो आपको अपने पीरियड चक्र, लक्षणों और मूड को दर्ज करने और समझने में मदद करता है।",
+ "s2title": "हटाने का तरीका",
+ "s2step1": "<strong>ऐप में डेटा हटाएँ (सिर्फ़ डेटा):</strong> Luna Calm खोलें और \"प्रोफ़ाइल\" → \"डेटा हटाएँ\" पर जाएँ। आपका स्वास्थ्य डेटा और निजी नोट तुरंत हट जाते हैं; आपकी सब्सक्रिप्शन स्थिति बनी रहती है।",
+ "s2step2": "<strong>ऐप में खाता स्थायी रूप से हटाएँ (सुझाया गया):</strong> Luna Calm खोलें और \"प्रोफ़ाइल\" → \"खाता स्थायी रूप से हटाएँ\" पर जाएँ। दो बार पुष्टि के बाद आपका सारा डेटा, सब्सक्रिप्शन और लॉगिन खाता तुरंत हट जाता है। आपको इंतज़ार करने या किसी से बात करने की ज़रूरत नहीं।",
+ "s2step3": "<strong>यदि आप ऐप नहीं खोल पा रहीं:</strong> <strong>lunacalm00@gmail.com</strong> पर ईमेल भेजें और बताएँ कि आप किस ईमेल पते से लॉग इन करती थीं। हम वह खाता हटा देंगे (केवल उनके लिए जो ऐप नहीं खोल सकते)।",
+ "s3title": "क्या हटाया जाता है",
+ "s3i1": "<strong>ऐप में \"डेटा हटाएँ\"</strong> से हटता है: आपके पीरियड, लक्षण और मूड के रिकॉर्ड, और आपके दर्ज किए बाकी सारे निजी डेटा (सब्सक्रिप्शन बना रहता है)।",
+ "s3i2": "<strong>\"खाता स्थायी रूप से हटाएँ\"</strong> (ऐप में या ईमेल से) इसके अलावा यह भी हटाता है: खाता डेटा (नाम, ईमेल और प्रोफ़ाइल फ़ोटो), सब्सक्रिप्शन की स्थिति और उससे जुड़े सभी अधिकार (वापस नहीं मिल सकते), और लॉगिन खाता भी।",
+ "s3note": "⚠️ ध्यान दें: ऐप में \"डेटा हटाएँ\" सिर्फ़ निजी और स्वास्थ्य डेटा हटाता है। <strong>यह सब्सक्रिप्शन नहीं हटाता</strong>, ताकि आपका चुकाया हुआ सब्सक्रिप्शन गलती से न चला जाए। यदि आप सब्सक्रिप्शन सहित खाता पूरी तरह हटाना चाहती हैं, तो ऐप में \"खाता स्थायी रूप से हटाएँ\" इस्तेमाल करें (ऊपर चरण 2): यह सबसे तेज़ तरीका है।",
+ "s4title": "प्रोसेसिंग का समय",
+ "s4i1": "ऐप में डेटा हटाना / खाता स्थायी रूप से हटाना: तुरंत लागू होता है। कोई इंतज़ार नहीं।",
+ "s4i2": "ईमेल से खाता हटाना (केवल जब आप ऐप न खोल सकें): अनुरोध मिलने के बाद अधिकतम 21 दिनों में, आमतौर पर 7 कार्य दिवसों में पूरा होता है।",
+ "s5title": "कानूनी कारणों से हम जो जानकारी रख सकते हैं",
+ "s5body": "अपने कानूनी दायित्व निभाने (लेन-देन की जाँच, धोखाधड़ी की रोकथाम आदि) के लिए, खाता हटने के बाद हम कुछ भुगतान प्रमाण सीमित समय तक रख सकते हैं। हम आपका स्वास्थ्य डेटा या कोई और व्यक्तिगत डेटा नहीं रखते।",
+ "s6title": "संपर्क करें",
+ "s6body": "अपने खाते या डेटा हटाने के बारे में किसी भी प्रश्न के लिए हमें यहाँ लिखें:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← वापस"
+},
+  ar: {
+ "pageTitle": "حذف الحساب والبيانات",
+ "pageSubtitle": "Luna Calm · كيف تحذفين حسابكِ",
+ "updatedTxt": "آخر تحديث: نوفمبر 2026 (v1)",
+ "s1title": "عن هذا التطبيق",
+ "s1body": "تشرح هذه الصفحة كيفية حذف بيانات حساب Luna Calm (Luna 月记) وحسابه. Luna Calm تطبيق يساعدكِ على تسجيل دورتكِ الشهرية وأعراضكِ ومزاجكِ وفهمها بشكل أفضل.",
+ "s2title": "كيفية الحذف",
+ "s2step1": "<strong>حذف البيانات من التطبيق (البيانات فقط):</strong> افتحي Luna Calm وانتقلي إلى «أنا» ← «حذف البيانات». تُحذف بياناتكِ الصحية وملاحظاتكِ الشخصية فورًا، وتبقى حالة اشتراككِ.",
+ "s2step2": "<strong>حذف الحساب نهائيًا من التطبيق (موصى به):</strong> افتحي Luna Calm وانتقلي إلى «أنا» ← «حذف الحساب نهائيًا». وبعد تأكيدين تُحذف كل بياناتكِ واشتراككِ وحساب تسجيل الدخول فورًا. لا حاجة إلى الانتظار ولا إلى التحدث مع أحد.",
+ "s2step3": "<strong>إن تعذّر عليكِ فتح التطبيق:</strong> أرسلي رسالة إلى <strong>lunacalm00@gmail.com</strong> مع ذكر البريد الإلكتروني الذي تسجلين الدخول به. سنحذف ذلك الحساب (لمن يتعذر عليهن فتح التطبيق فقط).",
+ "s3title": "ما الذي يُحذف",
+ "s3i1": "<strong>«حذف البيانات» في التطبيق</strong> يحذف: سجلات دورتكِ وأعراضكِ ومزاجكِ، وكل البيانات الشخصية الأخرى التي سجلتِها (ويبقى الاشتراك).",
+ "s3i2": "<strong>«حذف الحساب نهائيًا»</strong> (من التطبيق أو بالبريد الإلكتروني) يحذف إضافةً إلى ذلك: بيانات الحساب (الاسم والبريد الإلكتروني وصورة الملف الشخصي) وحالة الاشتراك وكل الاستحقاقات المرتبطة به (ولا يمكن التراجع)، وحساب تسجيل الدخول نفسه.",
+ "s3note": "⚠️ تنبيه: «حذف البيانات» في التطبيق يحذف البيانات الشخصية والصحية فقط. <strong>ولا يحذف الاشتراك</strong> حتى لا تفقدي اشتراكًا مدفوعًا بالخطأ. وإن أردتِ حذف حسابكِ بالكامل بما في ذلك الاشتراك فاستخدمي «حذف الحساب نهائيًا» في التطبيق (الخطوة 2 أعلاه)، فهي أسرع طريقة.",
+ "s4title": "مدد المعالجة",
+ "s4i1": "حذف البيانات / حذف الحساب نهائيًا من التطبيق: يسري فورًا ودون انتظار.",
+ "s4i2": "حذف الحساب عبر البريد الإلكتروني (فقط إن تعذّر عليكِ فتح التطبيق): يُعالَج خلال 30 يومًا كحد أقصى من استلام طلبكِ، وفي العادة خلال 7 أيام عمل.",
+ "s5title": "معلومات قد نحتفظ بها لأسباب نظامية",
+ "s5body": "للوفاء بالتزاماتنا النظامية (مراجعة المعاملات ومنع الاحتيال وما إلى ذلك) قد نحتفظ ببعض إثباتات الدفع لمدة محدودة بعد حذف حسابكِ. ولا نحتفظ ببياناتكِ الصحية ولا ببقية بياناتكِ الشخصية.",
+ "s6title": "اتصلي بنا",
+ "s6body": "لأي سؤال عن حذف حسابكِ أو بياناتكِ راسلينا على:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "→ رجوع"
+},
+  ur: {
+ "pageTitle": "اکاؤنٹ اور ڈیٹا حذف کرنا",
+ "pageSubtitle": "Luna Calm · اپنا اکاؤنٹ کیسے حذف کریں",
+ "updatedTxt": "آخری اپ ڈیٹ: نومبر 2026 (v1)",
+ "s1title": "اس ایپ کے بارے میں",
+ "s1body": "یہ صفحہ بتاتا ہے کہ Luna Calm (Luna 月记) کا اکاؤنٹ اور اس کا ڈیٹا کیسے حذف کیا جائے۔ Luna Calm ایک ایسی ایپ ہے جو آپ کو اپنی ماہواری، علامات اور موڈ کو درج کرنے اور بہتر سمجھنے میں مدد دیتی ہے۔",
+ "s2title": "حذف کرنے کا طریقہ",
+ "s2step1": "<strong>ایپ سے ڈیٹا حذف کریں (صرف ڈیٹا):</strong> Luna Calm کھولیں اور “میرا” ← “ڈیٹا حذف کریں” پر جائیں۔ آپ کا صحت کا ڈیٹا اور ذاتی نوٹس فوراً حذف ہو جاتے ہیں، اور آپ کی سبسکرپشن کی حالت برقرار رہتی ہے۔",
+ "s2step2": "<strong>ایپ سے اکاؤنٹ مستقل طور پر حذف کریں (تجویز کردہ):</strong> Luna Calm کھولیں اور “میرا” ← “اکاؤنٹ مستقل طور پر حذف کریں” پر جائیں۔ دو بار تصدیق کرنے کے بعد آپ کا تمام ڈیٹا، سبسکرپشن اور سائن ان اکاؤنٹ فوراً حذف ہو جاتے ہیں۔ انتظار کرنے یا کسی سے بات کرنے کی ضرورت نہیں۔",
+ "s2step3": "<strong>اگر آپ ایپ نہیں کھول سکتیں:</strong> <strong>lunacalm00@gmail.com</strong> پر پیغام بھیجیں اور وہ ای میل بتائیں جس سے آپ سائن ان کرتی ہیں۔ ہم وہ اکاؤنٹ حذف کر دیں گے (صرف ان کے لیے جو ایپ نہیں کھول سکتیں)۔",
+ "s3title": "کیا حذف ہوتا ہے",
+ "s3i1": "<strong>ایپ میں “ڈیٹا حذف کریں”</strong> حذف کرتا ہے: آپ کے سائیکل، علامات اور موڈ کے ریکارڈ، اور آپ کا درج کردہ باقی تمام ذاتی ڈیٹا (سبسکرپشن برقرار رہتی ہے)۔",
+ "s3i2": "<strong>“اکاؤنٹ مستقل طور پر حذف کریں”</strong> (ایپ سے یا ای میل سے) اس کے علاوہ یہ بھی حذف کرتا ہے: اکاؤنٹ کا ڈیٹا (نام، ای میل اور پروفائل تصویر)، سبسکرپشن کی حالت اور اس سے جڑے تمام استحقاق (واپس نہیں ہو سکتا)، اور سائن ان اکاؤنٹ خود۔",
+ "s3note": "⚠️ نوٹ: ایپ میں “ڈیٹا حذف کریں” صرف ذاتی اور صحت کا ڈیٹا حذف کرتا ہے۔ <strong>یہ سبسکرپشن حذف نہیں کرتا</strong> تاکہ آپ غلطی سے ادا شدہ سبسکرپشن نہ کھو دیں۔ اگر آپ سبسکرپشن سمیت پورا اکاؤنٹ حذف کرنا چاہتی ہیں تو ایپ میں “اکاؤنٹ مستقل طور پر حذف کریں” استعمال کریں (اوپر مرحلہ 2)، جو سب سے تیز طریقہ ہے۔",
+ "s4title": "پروسیسنگ کا وقت",
+ "s4i1": "ایپ سے ڈیٹا حذف کرنا / اکاؤنٹ مستقل طور پر حذف کرنا: فوراً نافذ ہوتا ہے، انتظار کی ضرورت نہیں۔",
+ "s4i2": "ای میل کے ذریعے اکاؤنٹ حذف کرنا (صرف اگر آپ ایپ نہ کھول سکیں): آپ کی درخواست ملنے سے زیادہ سے زیادہ 30 دن کے اندر، عموماً 7 کاروباری دنوں میں پروسیس ہوتا ہے۔",
+ "s5title": "وہ معلومات جو ہم قانونی وجوہات سے رکھ سکتے ہیں",
+ "s5body": "اپنی قانونی ذمہ داریاں پوری کرنے کے لیے (لین دین کے جائزے، دھوکہ دہی کی روک تھام وغیرہ) ہم آپ کا اکاؤنٹ حذف ہونے کے بعد کچھ ادائیگی کے ثبوت محدود مدت تک رکھ سکتے ہیں۔ ہم آپ کا صحت کا ڈیٹا اور باقی ذاتی ڈیٹا نہیں رکھتے۔",
+ "s6title": "ہم سے رابطہ کریں",
+ "s6body": "اپنے اکاؤنٹ یا ڈیٹا کو حذف کرنے سے متعلق کسی بھی سوال کے لیے ہمیں لکھیں:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "→ واپس"
+},
+  bn: {
+ "pageTitle": "অ্যাকাউন্ট ও তথ্য মুছে ফেলা",
+ "pageSubtitle": "Luna Calm · আপনার অ্যাকাউন্ট কীভাবে মুছবেন",
+ "updatedTxt": "সর্বশেষ হালনাগাদ: নভেম্বর ২০২৬ (v1)",
+ "s1title": "এই অ্যাপ সম্পর্কে",
+ "s1body": "এই পেজে ব্যাখ্যা করা হয়েছে Luna Calm (Luna 月记)-এর অ্যাকাউন্ট ও তার তথ্য কীভাবে মুছে ফেলবেন। Luna Calm এমন একটি অ্যাপ, যা আপনাকে আপনার মাসিক, লক্ষণ ও মেজাজ লিখে রাখতে এবং আরও ভালোভাবে বুঝতে সাহায্য করে।",
+ "s2title": "মুছে ফেলার উপায়",
+ "s2step1": "<strong>অ্যাপ থেকে তথ্য মুছুন (শুধু তথ্য):</strong> Luna Calm খুলে “আমি” → “তথ্য মুছুন”-এ যান। আপনার স্বাস্থ্য তথ্য ও ব্যক্তিগত নোট সঙ্গে সঙ্গে মুছে যায়, এবং আপনার সাবস্ক্রিপশনের অবস্থা অপরিবর্তিত থাকে।",
+ "s2step2": "<strong>অ্যাপ থেকে স্থায়ীভাবে অ্যাকাউন্ট মুছুন (প্রস্তাবিত):</strong> Luna Calm খুলে “আমি” → “স্থায়ীভাবে অ্যাকাউন্ট মুছুন”-এ যান। দুইবার নিশ্চিত করার পর আপনার সমস্ত তথ্য, সাবস্ক্রিপশন ও লগইন অ্যাকাউন্ট সঙ্গে সঙ্গে মুছে যায়। অপেক্ষা করা বা কারও সাথে কথা বলার দরকার নেই।",
+ "s2step3": "<strong>আপনি অ্যাপ খুলতে না পারলে:</strong> <strong>lunacalm00@gmail.com</strong>-এ বার্তা পাঠান এবং যে ইমেইল দিয়ে লগইন করেন তা জানান। আমরা সেই অ্যাকাউন্ট মুছে দেব (শুধু যাঁরা অ্যাপ খুলতে পারেন না তাঁদের জন্য)।",
+ "s3title": "কী কী মুছে যায়",
+ "s3i1": "<strong>অ্যাপে “তথ্য মুছুন”</strong> মুছে ফেলে: আপনার চক্র, লক্ষণ ও মেজাজের রেকর্ড এবং আপনার লেখা বাকি সব ব্যক্তিগত তথ্য (সাবস্ক্রিপশন অপরিবর্তিত থাকে)।",
+ "s3i2": "<strong>“স্থায়ীভাবে অ্যাকাউন্ট মুছুন”</strong> (অ্যাপ বা ইমেইল থেকে) এর পাশাপাশি আরও মুছে ফেলে: অ্যাকাউন্টের তথ্য (নাম, ইমেইল ও প্রোফাইল ছবি), সাবস্ক্রিপশনের অবস্থা ও তার সাথে যুক্ত সমস্ত সুবিধা (ফেরানো যায় না), এবং লগইন অ্যাকাউন্টটি নিজে।",
+ "s3note": "⚠️ নোট: অ্যাপে “তথ্য মুছুন” শুধু ব্যক্তিগত ও স্বাস্থ্য তথ্য মোছে। <strong>এটি সাবস্ক্রিপশন মোছে না</strong>, যাতে আপনি ভুল করে পরিশোধিত সাবস্ক্রিপশন হারিয়ে না ফেলেন। সাবস্ক্রিপশনসহ পুরো অ্যাকাউন্ট মুছতে চাইলে অ্যাপে “স্থায়ীভাবে অ্যাকাউন্ট মুছুন” ব্যবহার করুন (উপরে ধাপ ২), যা সবচেয়ে দ্রুত উপায়।",
+ "s4title": "প্রক্রিয়াকরণের সময়",
+ "s4i1": "অ্যাপ থেকে তথ্য মোছা / স্থায়ীভাবে অ্যাকাউন্ট মোছা: সঙ্গে সঙ্গে কার্যকর হয়, অপেক্ষার দরকার নেই।",
+ "s4i2": "ইমেইলের মাধ্যমে অ্যাকাউন্ট মোছা (শুধু আপনি অ্যাপ খুলতে না পারলে): আপনার অনুরোধ পাওয়ার সর্বোচ্চ ৩০ দিনের মধ্যে, সাধারণত ৭ কর্মদিবসে প্রক্রিয়া হয়।",
+ "s5title": "আইনগত কারণে আমরা যে তথ্য রাখতে পারি",
+ "s5body": "আমাদের আইনগত বাধ্যবাধকতা পূরণের জন্য (লেনদেন পর্যালোচনা, জালিয়াতি প্রতিরোধ ইত্যাদি) আপনার অ্যাকাউন্ট মোছার পর আমরা কিছু পেমেন্টের প্রমাণ সীমিত সময়ের জন্য রাখতে পারি। আমরা আপনার স্বাস্থ্য তথ্য ও বাকি ব্যক্তিগত তথ্য রাখি না।",
+ "s6title": "আমাদের সাথে যোগাযোগ",
+ "s6body": "আপনার অ্যাকাউন্ট বা তথ্য মুছে ফেলা নিয়ে যেকোনো প্রশ্নে আমাদের লিখুন:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← ফিরে যান"
+},
+  he: {
+ "pageTitle": "מחיקת חשבון ומידע",
+ "pageSubtitle": "Luna Calm · איך למחוק את החשבון שלך",
+ "updatedTxt": "עדכון אחרון: יוני 2026 (v1)",
+ "s1title": "על האפליקציה",
+ "s1body": "דף זה מסביר איך למחוק את המידע והחשבון שלך ב-Luna Calm (Luna 月记), אפליקציה למעקב אחר מחזור הווסת, התסמינים ומצב הרוח.",
+ "s2title": "איך מוחקים",
+ "s2step1": "<strong>מחיקת מידע באפליקציה (מידע בלבד):</strong> פתחי את Luna Calm והיכנסי אל ״אני״ (פרופיל) ← ״מחיקת נתונים״. המידע הבריאותי והרישומים האישיים שלך נמחקים מיד, אך מצב החברות נשמר.",
+ "s2step2": "<strong>מחיקת החשבון לצמיתות באפליקציה (מומלץ):</strong> פתחי את Luna Calm והיכנסי אל ״אני״ (פרופיל) ← ״מחיקת חשבון לצמיתות״. לאחר שתאשרי פעמיים, כל המידע שלך, החברות וחשבון ההתחברות עצמו נמחקים מיד. אין צורך לחכות ואין צורך לפנות לאף אחד.",
+ "s2step3": "<strong>אם אי אפשר לפתוח את האפליקציה:</strong> שלחי את הבקשה בדוא״ל אל <strong>lunacalm00@gmail.com</strong> וציני את כתובת הדוא״ל שבה את מתחברת. נמחק את החשבון עבורך ידנית (רק למקרים שבהם אי אפשר לפתוח את האפליקציה).",
+ "s3title": "מה נמחק",
+ "s3i1": "<strong>מחיקת נתונים באפליקציה</strong> מסירה: רישומי הווסת, התסמינים, מצבי הרוח וכל שאר המידע האישי שתיעדת (החברות נשמרת).",
+ "s3i2": "<strong>מחיקת חשבון לצמיתות</strong> (באפליקציה או בדוא״ל) מסירה בנוסף: את פרטי החשבון שלך (שם, דוא״ל, תמונת פרופיל), את מצב החברות וכל הרשאות הגישה לצמיתות, ואת חשבון ההתחברות עצמו.",
+ "s3note": "⚠️ שימי לב: ״מחיקת נתונים״ באפליקציה מסירה רק את המידע האישי והבריאותי שלך. היא <strong>אינה מסירה את החברות</strong>, כך שאי אפשר לאבד בטעות חברות ששילמת עליה. כדי למחוק את החשבון יחד עם החברות לגמרי, השתמשי ב״מחיקת חשבון לצמיתות״ באפליקציה (שלב 2 לעיל). זו הדרך המהירה ביותר.",
+ "s4title": "זמן הטיפול",
+ "s4i1": "מחיקת נתונים באפליקציה / מחיקת חשבון לצמיתות באפליקציה: נכנסת לתוקף מיד, ללא המתנה.",
+ "s4i2": "מחיקת חשבון בדוא״ל (רק אם אי אפשר לפתוח את האפליקציה): מושלמת תוך 7 ימי עבודה מקבלת הבקשה.",
+ "s5title": "מידע שאנחנו עשויים לשמור על פי דין",
+ "s5body": "כדי לעמוד בדרישות החוק (כגון ביקורת עסקאות ומניעת הונאות), ייתכן שנשמור רישומי עסקאות תשלום מסוימים לתקופה מוגבלת לאחר מחיקת החשבון. איננו שומרים את המידע הבריאותי שלך או מידע אישי אחר.",
+ "s6title": "יצירת קשר",
+ "s6body": "אם יש לך שאלות על מחיקת החשבון או המידע שלך, פני אלינו:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "→ חזרה"
+},
+  uk: {
+ "pageTitle": "Видалення акаунта й даних",
+ "pageSubtitle": "Luna Calm · Як видалити ваш акаунт",
+ "updatedTxt": "Останнє оновлення: червень 2026 (v1)",
+ "s1title": "Про застосунок",
+ "s1body": "Ця сторінка пояснює, як видалити ваші дані й акаунт у Luna Calm (Luna 月记), застосунку для відстеження менструального циклу, симптомів і настрою.",
+ "s2title": "Як видалити",
+ "s2step1": "<strong>Видалення даних у застосунку (лише дані):</strong> Відкрийте Luna Calm і перейдіть у «Профіль» → «Видалити дані». Ваші дані про здоров'я й особисті записи видаляються негайно, але статус членства зберігається.",
+ "s2step2": "<strong>Остаточне видалення акаунта в застосунку (рекомендовано):</strong> Відкрийте Luna Calm і перейдіть у «Профіль» → «Видалити акаунт назавжди». Після подвійного підтвердження всі ваші дані, членство й сам акаунт для входу видаляються негайно. Нічого чекати й нікому писати не потрібно.",
+ "s2step3": "<strong>Якщо ви не можете відкрити застосунок:</strong> Надішліть запит на електронну пошту <strong>lunacalm00@gmail.com</strong> і вкажіть адресу, з якою ви входите. Ми видалимо акаунт вручну (лише для випадків, коли ви не можете відкрити застосунок).",
+ "s3title": "Що видаляється",
+ "s3i1": "<strong>Видалення даних у застосунку</strong> прибирає: ваші записи менструацій, симптоми, настрій і всі інші особисті дані, які ви записували (членство зберігається).",
+ "s3i2": "<strong>Остаточне видалення акаунта</strong> (в застосунку або електронною поштою) додатково прибирає: дані вашого акаунта (ім'я, електронна пошта, фото профілю), ваш статус членства й усі права доступу назавжди, а також сам акаунт для входу.",
+ "s3note": "⚠️ Примітка: «Видалити дані» в застосунку прибирає лише ваші особисті дані / дані про здоров'я. Воно <strong>не видаляє ваше членство</strong>, тож ви не можете випадково втратити оплачене членство. Щоб повністю видалити акаунт разом із членством, скористайтеся «Видалити акаунт назавжди» в застосунку (крок 2 вище). Це найшвидший спосіб.",
+ "s4title": "Час обробки",
+ "s4i1": "Видалення даних у застосунку / остаточне видалення акаунта в застосунку: набуває чинності негайно, чекати не треба.",
+ "s4i2": "Видалення акаунта електронною поштою (лише якщо ви не можете відкрити застосунок): виконується протягом 7 робочих днів після отримання вашого запиту.",
+ "s5title": "Інформація, яку ми можемо зберігати за законом",
+ "s5body": "Щоб дотримуватися вимог закону (наприклад, аудит транзакцій і запобігання шахрайству), ми можемо зберігати деякі записи про платіжні транзакції протягом обмеженого часу після видалення вашого акаунта. Ми не зберігаємо ваші дані про здоров'я чи іншу персональну інформацію.",
+ "s6title": "Зв'язок із нами",
+ "s6body": "Якщо у вас є запитання щодо видалення акаунта чи даних, зв'яжіться з нами:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← Назад"
+},
+  ta: {
+ "pageTitle": "கணக்கு மற்றும் தரவை நீக்குதல்",
+ "pageSubtitle": "Luna Calm · உங்கள் கணக்கை நீக்குவது எப்படி",
+ "updatedTxt": "கடைசியாகப் புதுப்பித்தது: ஜூன் 2026 (v1)",
+ "s1title": "செயலியைப் பற்றி",
+ "s1body": "மாதவிடாய்ச் சுழற்சி, அறிகுறிகள், மனநிலையைக் கண்காணிக்கும் செயலியான Luna Calm-இல் (Luna 月记) உங்கள் தரவையும் கணக்கையும் எவ்வாறு நீக்குவது என்பதை இந்தப் பக்கம் விளக்குகிறது.",
+ "s2title": "நீக்குவது எப்படி",
+ "s2step1": "<strong>செயலிக்குள் தரவை நீக்குதல் (தரவு மட்டும்):</strong> Luna Calm-ஐத் திறந்து, \"சுயவிவரம்\" → \"தரவை நீக்கு\" என்பதற்குச் செல்லுங்கள். உங்கள் உடல்நலத் தரவும் தனிப்பட்ட பதிவுகளும் உடனே நீக்கப்படும்; ஆனால் உறுப்பினர் நிலை அப்படியே இருக்கும்.",
+ "s2step2": "<strong>செயலிக்குள் கணக்கை நிரந்தரமாக நீக்குதல் (பரிந்துரைக்கப்படுகிறது):</strong> Luna Calm-ஐத் திறந்து, \"சுயவிவரம்\" → \"கணக்கை நிரந்தரமாக நீக்கு\" என்பதற்குச் செல்லுங்கள். இரண்டு முறை உறுதிப்படுத்திய பிறகு, உங்கள் அனைத்துத் தரவும், உறுப்பினர் நிலையும், உள்நுழைவுக் கணக்கும் உடனே நீக்கப்படும். காத்திருக்கவோ யாருக்கும் எழுதவோ தேவையில்லை.",
+ "s2step3": "<strong>செயலியைத் திறக்க முடியாவிட்டால்:</strong> <strong>lunacalm00@gmail.com</strong> என்ற முகவரிக்கு மின்னஞ்சல் அனுப்பி, நீங்கள் உள்நுழையப் பயன்படுத்தும் முகவரியைக் குறிப்பிடுங்கள். கணக்கை நாங்களே நீக்குவோம் (செயலியைத் திறக்க முடியாத சூழலுக்கு மட்டும்).",
+ "s3title": "என்ன நீக்கப்படும்",
+ "s3i1": "<strong>செயலிக்குள் தரவை நீக்குதல்</strong>: உங்கள் மாதவிடாய்ப் பதிவுகள், அறிகுறிகள், மனநிலை, நீங்கள் பதிவு செய்த மற்ற எல்லாத் தனிப்பட்டத் தரவையும் நீக்கும் (உறுப்பினர் நிலை அப்படியே இருக்கும்).",
+ "s3i2": "<strong>கணக்கை நிரந்தரமாக நீக்குதல்</strong> (செயலியில் அல்லது மின்னஞ்சல் மூலம்): இதோடு உங்கள் கணக்குத் தரவு (பெயர், மின்னஞ்சல், சுயவிவரப் படம்), உங்கள் உறுப்பினர் நிலை, அனைத்து அணுகல் உரிமைகள் ஆகியவற்றையும், உள்நுழைவுக் கணக்கையும் நிரந்தரமாக நீக்கும்.",
+ "s3note": "⚠️ குறிப்பு: செயலியில் \"தரவை நீக்கு\" என்பது உங்கள் தனிப்பட்ட / உடல்நலத் தரவை மட்டுமே நீக்கும். அது <strong>உங்கள் உறுப்பினர் நிலையை நீக்காது</strong>; எனவே கட்டணம் செலுத்திய உறுப்பினர் நிலையை நீங்கள் தவறுதலாக இழக்க மாட்டீர்கள். உறுப்பினர் நிலையுடன் சேர்த்துக் கணக்கை முழுமையாக நீக்க, செயலியில் \"கணக்கை நிரந்தரமாக நீக்கு\" என்பதைப் பயன்படுத்துங்கள் (மேலே படி 2). இதுவே மிக விரைவான வழி.",
+ "s4title": "செயலாக்க நேரம்",
+ "s4i1": "செயலிக்குள் தரவை நீக்குதல் / செயலிக்குள் கணக்கை நிரந்தரமாக நீக்குதல்: உடனே நடைமுறைக்கு வரும்; காத்திருக்கத் தேவையில்லை.",
+ "s4i2": "மின்னஞ்சல் மூலம் கணக்கை நீக்குதல் (செயலியைத் திறக்க முடியாதபோது மட்டும்): உங்கள் கோரிக்கை கிடைத்த 7 வேலை நாட்களுக்குள் செய்யப்படும்.",
+ "s5title": "சட்டப்படி நாங்கள் வைத்திருக்கக்கூடிய தகவல்",
+ "s5body": "சட்டத் தேவைகளுக்கு இணங்க (எடுத்துக்காட்டாக, பரிவர்த்தனைத் தணிக்கை, மோசடித் தடுப்பு), உங்கள் கணக்கை நீக்கிய பிறகும் சில கட்டணப் பரிவர்த்தனைப் பதிவுகளை வரையறுக்கப்பட்ட காலத்துக்கு வைத்திருக்கலாம். உங்கள் உடல்நலத் தரவையோ பிற தனிப்பட்டத் தகவலையோ நாங்கள் வைத்திருப்பதில்லை.",
+ "s6title": "எங்களைத் தொடர்புகொள்ள",
+ "s6body": "கணக்கு அல்லது தரவை நீக்குவது குறித்துக் கேள்விகள் இருந்தால், எங்களைத் தொடர்புகொள்ளுங்கள்:",
+ "s6email": "lunacalm00@gmail.com",
+ "backBtn": "← திரும்பு"
 }
 };
 
 function setLang(lang) {
+  document.documentElement.dir = (lang==='ar'||lang==='ur'||lang==='he') ? 'rtl' : 'ltr';
   const d = CONTENT[lang];
   Object.keys(d).forEach(id => {
     const el = document.getElementById(id);
     if(el) el.innerHTML = d[id];
   });
-  ['Zh','Th','En','Vi'].forEach(k => { const b = document.getElementById('btn'+k); if(b) b.className = 'lang-btn ' + (lang===k.toLowerCase() ? 'active' : 'inactive'); });
+  ['Zh','Th','En','Vi','Id','Fil','Ja','Ko','Es','Pt','Tr','Fr','Ms','Hi','Ar','Ur','Bn','He','Uk','Ta'].forEach(k => { const b = document.getElementById('btn'+k); if(b) b.className = 'lang-btn ' + (lang===k.toLowerCase() ? 'active' : 'inactive'); });
   document.documentElement.lang = lang==='zh' ? 'zh-CN' : lang;
-  try{
-    if(lang==='en'){ localStorage.setItem('luna_ui_en','1'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang','zh'); }
-    else if(lang==='vi'){ localStorage.setItem('luna_ui_vi','1'); localStorage.removeItem('luna_ui_en'); localStorage.setItem('luna_lang','zh'); }
-    else { localStorage.removeItem('luna_ui_en'); localStorage.removeItem('luna_ui_vi'); localStorage.setItem('luna_lang', lang); }
-  }catch(e){}
+  const FL={en:'luna_ui_en',vi:'luna_ui_vi',id:'luna_ui_id',fil:'luna_ui_fil',ja:'luna_ui_ja',ko:'luna_ui_ko',es:'luna_ui_es',pt:'luna_ui_pt',tr:'luna_ui_tr',fr:'luna_ui_fr',ms:'luna_ui_ms',hi:'luna_ui_hi',ar:'luna_ui_ar',ur:'luna_ui_ur',bn:'luna_ui_bn',he:'luna_ui_he',uk:'luna_ui_uk',ta:'luna_ui_ta'};
+  try{ Object.keys(FL).forEach(k=>localStorage.removeItem(FL[k])); if(FL[lang]){ localStorage.setItem(FL[lang],'1'); localStorage.setItem('luna_lang','zh'); if(lang==='fil'||lang==='ja'||lang==='ko'||lang==='es'||lang==='pt'||lang==='tr'||lang==='fr'||lang==='ms'||lang==='hi'||lang==='ar'||lang==='ur'||lang==='bn'||lang==='he'||lang==='uk'||lang==='ta') localStorage.setItem('luna_ui_id','1'); } else { localStorage.setItem('luna_lang', lang); } }catch(e){}
 }
 
 let savedLang = 'th';
-try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; else if(localStorage.getItem('luna_ui_vi')==='1' && savedLang==='zh') savedLang='vi'; }catch(e){}
+try{ savedLang = localStorage.getItem('luna_lang') || 'th'; if(localStorage.getItem('luna_ui_en')==='1' && savedLang==='zh') savedLang='en'; else if(localStorage.getItem('luna_ui_vi')==='1' && savedLang==='zh') savedLang='vi'; else if(localStorage.getItem('luna_ui_ta')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='ta'; else if(localStorage.getItem('luna_ui_uk')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='uk'; else if(localStorage.getItem('luna_ui_he')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='he'; else if(localStorage.getItem('luna_ui_bn')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='bn'; else if(localStorage.getItem('luna_ui_ur')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='ur'; else if(localStorage.getItem('luna_ui_ar')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='ar'; else if(localStorage.getItem('luna_ui_hi')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='hi'; else if(localStorage.getItem('luna_ui_ms')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='ms'; else if(localStorage.getItem('luna_ui_fr')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='fr'; else if(localStorage.getItem('luna_ui_tr')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='tr'; else if(localStorage.getItem('luna_ui_pt')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='pt'; else if(localStorage.getItem('luna_ui_es')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='es'; else if(localStorage.getItem('luna_ui_ko')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='ko'; else if(localStorage.getItem('luna_ui_ja')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='ja'; else if(localStorage.getItem('luna_ui_fil')==='1' && localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='fil'; else if(localStorage.getItem('luna_ui_id')==='1' && savedLang==='zh') savedLang='id'; }catch(e){}
 setLang(savedLang);
+</script>
+
+<div id="lpOv" role="dialog" aria-modal="true" aria-label="Language"><div class="lph"><button class="lpb" type="button" onclick="closeLangPage()" aria-label="Back">‹</button><div class="lpt" id="lpTitle">Language</div></div><div class="lpl" id="lpGrid"></div></div>
+
+<script id="lunaLangPage">
+(function(){
+  var LS=null; try{ LS=window.localStorage; }catch(e){}
+  var L=[['th','🇹🇭','ไทย','Thai'],['zh','🇨🇳','简体中文','Simplified Chinese'],['tw','🇹🇼','繁體中文','Traditional Chinese'],['en','🇺🇸','English','English'],
+    ['vi','🇻🇳','Tiếng Việt','Vietnamese'],['id','🇮🇩','Bahasa Indonesia','Indonesian'],['fil','🇵🇭','Filipino','Filipino'],['ja','🇯🇵','日本語','Japanese'],
+    ['ko','🇰🇷','한국어','Korean'],['es','🇪🇸','Español','Spanish'],['pt','🇧🇷','Português','Portuguese (Brasil)'],['tr','🇹🇷','Türkçe','Turkish'],
+    ['fr','🇫🇷','Français','French'],['ms','🇲🇾','Bahasa Melayu','Malay'],['hi','🇮🇳','हिन्दी','Hindi'],['ar','🇸🇦','العربية','Arabic'],
+    ['ur','🇵🇰','اردو','Urdu'],['bn','🇧🇩','বাংলা','Bengali'],['he','🇮🇱','עברית','Hebrew'],['uk','🇺🇦','Українська','Ukrainian'],['ta','🇮🇳','தமிழ்','Tamil']];
+  var has=function(c){ try{ if(typeof CONTENT!=='undefined') return !!CONTENT[c]; }catch(e){} try{ return !!document.querySelector('.lang-content#'+c); }catch(e){ return false; } };
+  var OPT=L.filter(function(x){ return has(x[0]); });
+  var NAME={}; L.forEach(function(x){ NAME[x[0]]=x[2]; }); NAME.tw=NAME.tw||'繁體中文';
+  var orig=window.setLang, cur='th';
+  function norm(s){
+    s=String(s||'').toLowerCase().replace(/_/g,'-');
+    if(s==='tw'||/^zh-(tw|hant|hk|mo)/.test(s)) return 'tw';
+    if(s.indexOf('zh')===0) return 'zh';
+    var b=s.split('-')[0]; if(b==='in') b='id'; else if(b==='tl') b='fil'; else if(b==='iw') b='he';
+    return b;
+  }
+  function pick(c){ if(c==='tw'&&!has('tw')) c='zh'; return has(c)?c:null; }
+  var TT={zh:'语言',tw:'語言',th:'ภาษา',en:'Language',vi:'Ngôn ngữ',id:'Bahasa',fil:'Wika',ja:'言語',ko:'언어',es:'Idioma',pt:'Idioma',tr:'Dil',fr:'Langue',ms:'Bahasa',hi:'भाषा',ar:'اللغة',ur:'زبان',bn:'ভাষা',he:'שפה',uk:'Мова',ta:'மொழி'};
+  function label(){ var el=document.getElementById('langCurrent'); if(el) el.textContent=NAME[cur]||cur;
+    var t=document.getElementById('lpTitle'); if(t) t.textContent=TT[cur]||TT.en;
+    [].forEach.call(document.querySelectorAll('#lpGrid .lpr'),function(b){ b.classList.toggle('on',b.getAttribute('data-l')===cur); }); }
+  window.setLang=function(l){ var c=pick(l)||'en'; cur=c; orig(c); label(); };
+  function build(){
+    var h=''; OPT.forEach(function(x){ h+='<button type="button" class="lpr" data-l="'+x[0]+'" onclick="lpChoose(\''+x[0]+'\')"><span class="lpf">'+x[1]+'</span><span class="lpn">'+x[2]+'</span><span class="lpk">✓</span></button>'; });
+    document.getElementById('lpGrid').innerHTML=h;
+  }
+  window.openLangPage=function(){ var o=document.getElementById('lpOv'); label(); void o.offsetWidth; o.classList.add('on'); document.documentElement.style.overflow='hidden'; o.scrollTop=0;
+    var s=o.querySelector('.lpr.on'); if(s){ try{ var d=s.getBoundingClientRect().top-o.getBoundingClientRect().top; o.scrollTop=Math.max(0,d-(o.clientHeight-s.offsetHeight)/2); }catch(e){} } };
+  window.closeLangPage=function(){ document.getElementById('lpOv').classList.remove('on'); document.documentElement.style.overflow=''; };
+  window.lpChoose=function(l){ if(l===cur){ window.closeLangPage(); return; } window.setLang(l);
+    try{ var u=new URL(location.href); u.searchParams.set('lang',l); history.replaceState(null,'',u.toString()); }catch(e){}
+    window.closeLangPage(); window.scrollTo(0,0); };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') window.closeLangPage(); });
+  build();
+  // ── 选语言的优先级：网址 ?lang= > 已保存的选择（含 App 内同步过来的）> 手机系统语言 > English ──
+  var q=null; try{ q=new URLSearchParams(location.search).get('lang'); }catch(e){}
+  var stored=!!window.__lunaHadStore;
+  var start=null;
+  if(q && q!=='zh') start=pick(norm(q));
+  if(start){ window.setLang(start); }
+  else if(q==='zh' || stored){ /* 沿用页面原有逻辑(App 内打开 / 之前选过) */ cur=(function(){ var d=document.documentElement.lang||'th'; if(d==='zh-CN') return 'zh'; return pick(norm(d))||'th'; })(); label(); }
+  else {
+    var list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'], auto='en';
+    for(var i=0;i<list.length;i++){ var c=pick(norm(list[i])); if(c){ auto=c; break; } }
+    window.setLang(auto);
+    // 自动判断的结果不当作"用户选择"保存，手机换语言后下次仍会跟着变
+    try{ if(LS){ var ks=[]; for(var k=0;k<LS.length;k++){ var n=LS.key(k); if(n==='luna_lang'||/^luna_ui_/.test(n)) ks.push(n); } ks.forEach(function(n){ LS.removeItem(n); }); } }catch(e){}
+  }
+})();
 </script>
 </body>
 </html>

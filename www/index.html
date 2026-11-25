@@ -3122,6 +3122,10 @@ if(document.body)boot();else document.addEventListener('DOMContentLoaded',boot);
     show(cur());
     setTimeout(function(){ try{ location.reload(); }catch(e){} },350);
   };
+  // 不刷新的切换（泰文 / 中文之间）：也盖一下"请稍候"，让用户知道在切换，约 1.3 秒后淡出
+  window.__lunaLangFlash=function(ms, code){
+    try{ show(code||cur()); setTimeout(hide, ms||1300); }catch(e){}
+  };
   // 刷新后的新页面：一启动就继续盖着
   var t0=0; try{ t0=parseInt(sessionStorage.getItem(K)||'0',10)||0; }catch(e){}
   if(t0 && Date.now()-t0<MAX+3000){
@@ -34888,12 +34892,33 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       if(n && n.ft && n.mt){ ctx.fillText = function(){ return n.ft.apply(this, arguments); }; ctx.measureText = function(){ return n.mt.apply(this, arguments); }; }
       else { try{ delete ctx.fillText; delete ctx.measureText; }catch(e){} }
     }
+    /* 🎨 报告配色：classic = 现在的紫色（默认，保持不变）；另有 粉 / 青绿 / 蓝 / 橙。用户在预览页点色块切换，选择会记住 */
+    var THEMES = {
+      classic: null,
+      rose:  { p: '#c0457a', l1: '#e8a9c6', l1b: '#f2cfe0', l2: '#f9e1ec', l3: '#fdf1f6', rgb: '192,69,122' },
+      teal:  { p: '#16807c', l1: '#9fd3cf', l1b: '#c8e6e3', l2: '#dff2f0', l3: '#f1faf9', rgb: '22,128,124' },
+      blue:  { p: '#2b67b3', l1: '#a5c3e8', l1b: '#c9dcf2', l2: '#deeaf8', l3: '#f1f6fd', rgb: '43,103,179' },
+      amber: { p: '#c4661a', l1: '#eac79c', l1b: '#f3dcc0', l2: '#f9e8d3', l3: '#fdf5ec', rgb: '196,102,26' }
+    };
+    function themeName(){ try{ var t = localStorage.getItem('luna_docrep_theme'); return (t && THEMES[t]) ? t : 'classic'; }catch(e){ return 'classic'; } }
+    function setTheme(n){ try{ if(THEMES.hasOwnProperty(n)) localStorage.setItem('luna_docrep_theme', n); }catch(e){} try{ document.dispatchEvent(new CustomEvent('luna-docrep-theme')); }catch(e){} }
+    function themeMap(ctx){
+      var T = THEMES[themeName()]; if(!T) return;
+      var M = { '#6a45b8': T.p, '#7c5cbf': T.p, '#b9aad9': T.l1, '#ddd3f1': T.l1b, '#e6dff5': T.l2, '#e3d9f5': T.l2, '#eee8f6': T.l2, '#e8e3f2': T.l2, '#f4f0fb': T.l3, '#f6f2fc': T.l3, '#f3effa': T.l3,
+               'rgba(124,92,191,.13)': 'rgba(' + T.rgb + ',.13)', 'rgba(124,92,191,.28)': 'rgba(' + T.rgb + ',.28)' };
+      ['fillStyle', 'strokeStyle'].forEach(function(n){
+        var d = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, n); if(!d) return;
+        Object.defineProperty(ctx, n, { configurable: true, get: function(){ return d.get.call(ctx); },
+          set: function(v){ if(typeof v === 'string'){ var k = v.toLowerCase().replace(/\s+/g, ''); if(M[k]) v = M[k]; } d.set.call(ctx, v); } });
+      });
+    }
     function draw(r, sample, info, prog, SC){
       var dc0 = dCode(); FF = (dc0 && DFONT[dc0] ? DFONT[dc0] + ',' : '') + FF0;
       RTL = (dc0 === 'ar' || dc0 === 'ur' || dc0 === 'he');
       var S = SC || 1, P = (prog === undefined || prog === null) ? 1 : prog, I = info || {};
       var cv; if(P < 1 && scratch && S === 1) cv = scratch; else { cv = document.createElement('canvas'); cv.width = Math.round(W * S); cv.height = Math.round(H * S); if(P < 1 && S === 1) scratch = cv; }
       var ctx = cv.getContext('2d'); ctx.setTransform(S, 0, 0, S, 0, 0);
+      try{ themeMap(ctx); }catch(e){}
       rawText(ctx, !!dc0);
       if(RTL){ ctx.translate(W, 0); ctx.scale(-1, 1); }
       var MX = 88, CW = W - 2 * MX, i, k;
@@ -35164,6 +35189,12 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       askInfo(readProfile(), function(info){ saveProfile(info); open(info); });
     }
 
+    function swatchHtml(){
+      var cur = themeName(), h = '<div style="display:flex;justify-content:center;gap:14px;margin-bottom:12px;">';
+      Object.keys(THEMES).forEach(function(k){ var c = THEMES[k] ? THEMES[k].p : '#6a45b8';
+        h += '<span data-th="' + k + '" style="width:28px;height:28px;border-radius:50%;background:' + c + ';box-sizing:border-box;cursor:pointer;border:3px solid ' + (k === cur ? '#fff' : 'rgba(255,255,255,.18)') + ';box-shadow:' + (k === cur ? '0 0 0 2px ' + c : 'none') + ';"></span>'; });
+      return h + '</div>';
+    }
     function open(qIn){
       if(!canUse()){ try{ window._lunaPaySrc = 'doctor_report_pdf'; if(typeof window.showVipPaywall === 'function') window.showVipPaywall(); }catch(e){} return; }
       var WM = !pro();   /* 试用用户预览带水印，保存时才登记试用并生成无水印 PDF，截图只能拿到水印版 */
@@ -35179,6 +35210,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         + '<button id="lpgDocX" style="width:34px;height:34px;border-radius:50%;border:none;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;">✕</button></div>'
         + '<div style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 14px 14px;"><img id="lpgDocImg" alt="" style="display:block;width:100%;max-width:560px;margin:0 auto;border-radius:10px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.35);"></div>'
         + '<div style="padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 16px);background:#241d38;">'
+        + swatchHtml()
         + '<button id="lpgDocEdit" style="width:100%;padding:10px;margin-bottom:8px;border:1.5px solid rgba(255,255,255,.28);border-radius:14px;background:transparent;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;">✎ ' + L('fEdit') + '</button>'
         + '<button id="lpgDocSave" style="width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,#7c5cbf,#d97fb0);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">'
         + T('保存 / 分享 PDF', 'บันทึก / แชร์ PDF') + '</button>'
@@ -35202,6 +35234,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         pvX.drawImage(draw(r, WM, qIn, 0), 0, 0); requestAnimationFrame(pvFrame);
       }catch(e5){ try{ pvImg.style.display = 'block'; var oc = document.getElementById('lpgDocCv'); if(oc) oc.remove(); }catch(e6){} }
       document.getElementById('lpgDocX').onclick = function(){ close(); endTrial(); };
+      try{ var sw = document.querySelectorAll('#lpgDocModal [data-th]'), si; for(si = 0; si < sw.length; si++){ sw[si].onclick = function(){ var n = this.getAttribute('data-th'); if(n === themeName()) return; setTheme(n); open(qIn); }; } }catch(e){}
       document.getElementById('lpgDocEdit').onclick = function(){ askInfo(qIn || readProfile(), function(q2){ saveProfile(q2); open(q2); }); };
       document.getElementById('lpgDocSave').onclick = function(){
         var go = function(){
@@ -35213,7 +35246,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       };
       try{ if(typeof window.trackEvent === 'function') window.trackEvent('doctor_report_open'); }catch(e){}
     }
-    window.LunaDoctorReport = { claimTrial: claimTrial, endTrial: endTrial, trialLeft: function(){ return !pro() && trialLeft(); }, t: function(k){ try{ return L(k); }catch(e){ return ''; } }, open: start, close: close, _analyse: analyse, _draw: draw, _buildPdf: buildPdf, _sampleR: sampleR, sampleImage: function(){ return draw(sampleR(), true).toDataURL('image/jpeg', 0.82); }, savePdf: savePdf, dataUrlToU8: dataUrlToU8 };
+    window.LunaDoctorReport = { themes: THEMES, getTheme: themeName, setTheme: setTheme, themeMap: themeMap, claimTrial: claimTrial, endTrial: endTrial, trialLeft: function(){ return !pro() && trialLeft(); }, t: function(k){ try{ return L(k); }catch(e){ return ''; } }, open: start, close: close, _analyse: analyse, _draw: draw, _buildPdf: buildPdf, _sampleR: sampleR, sampleImage: function(){ return draw(sampleR(), true).toDataURL('image/jpeg', 0.82); }, savePdf: savePdf, dataUrlToU8: dataUrlToU8 };
   }catch(e){ try{ console.warn('LunaDoctorReport', e); }catch(_){} }
 })();
 </script>
@@ -35259,12 +35292,29 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     function pro(){ try{ return !!(window.isPro && window.isPro()); }catch(e){ return false; } }
     function R(k){ try{ return window.LunaDoctorReport && window.LunaDoctorReport.t ? window.LunaDoctorReport.t(k) : ''; }catch(e){ return ''; } }
     function $(i){ return document.getElementById(i); }
+    /* 🎨 入口磁贴跟着报告配色走：classic 保持现在的样子，其它配色把磁贴换成对应颜色的渐变底 + 实心图标 */
+    function applyTile(){
+      var t = $('docRepTile'); if(!t || !window.LunaDoctorReport) return;
+      var n = window.LunaDoctorReport.getTheme(), T = window.LunaDoctorReport.themes[n], ic = t.querySelector('.s-svg-icon'), bd = $('docRepTileBadge');
+      if(t.getAttribute('data-th') === n) return; t.setAttribute('data-th', n);
+      if(!T){ t.style.background = ''; t.style.borderColor = ''; if(ic){ ic.style.background = ''; ic.style.boxShadow = ''; } if(bd) bd.style.background = 'linear-gradient(135deg,#9d7bd6,#e98ab0)'; return; }
+      t.style.background = 'linear-gradient(135deg,' + T.l3 + ',' + T.l2 + ')'; t.style.borderColor = T.l1;
+      if(ic){ ic.style.background = 'linear-gradient(135deg,' + T.l1 + ',' + T.p + ')'; ic.style.boxShadow = '0 4px 10px rgba(' + T.rgb + ',.3)'; }
+      if(bd) bd.style.background = T.p;
+    }
+    function swatches(){
+      var R0 = window.LunaDoctorReport, cur = R0.getTheme(), h = '<div id="docRepSw" style="display:flex;justify-content:center;gap:16px;margin:0 0 14px;">';
+      Object.keys(R0.themes).forEach(function(k){ var c = R0.themes[k] ? R0.themes[k].p : '#6a45b8';
+        h += '<span data-th="' + k + '" style="width:30px;height:30px;border-radius:50%;background:' + c + ';box-sizing:border-box;cursor:pointer;border:3px solid var(--stat-surface-bg,#fff);box-shadow:' + (k === cur ? '0 0 0 2px ' + c : '0 1px 4px rgba(0,0,0,.15)') + ';transition:box-shadow .2s;"></span>'; });
+      return h + '</div>';
+    }
     function fill(){
       try{
         var a = $('docRepTileT'), b = $('docRepTileS'), c = $('docRepTileBadge'); if(!a || !b) return;
         var t = R('title') || '📄', s = SUB[code()] || SUB.en;
         if(a.textContent !== t) a.textContent = t;
         if(b.textContent !== s) b.textContent = s;
+        try{ applyTile(); }catch(e){}
         if(c){ var tl = false; try{ tl = window.LunaDoctorReport.trialLeft(); }catch(e){}
           c.style.display = pro() ? 'none' : '';
           var want = tl ? '🎁 FREE ×1' : 'VIP'; if(c.textContent !== want) c.textContent = want; }
@@ -35281,17 +35331,71 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
         + '<span style="font-size:20px;font-weight:600;color:var(--stat-fg);font-family:Georgia,\'Songti SC\',serif;">📄 ' + R('title').replace(/</g, '&lt;') + '</span></div>'
         + '<div style="padding:4px 16px 0;">'
         + '<div style="font-size:13px;line-height:1.7;color:var(--stat-fg-muted);margin:0 4px 14px;text-align:center;">' + (SUB[c] || SUB.en) + '</div>'
-        + '<img class="dr-img" id="docRepImg" alt="">'
+        + swatches()
+        + '<img class="dr-img" id="docRepImg" alt="" style="aspect-ratio:1240/1754;height:auto;opacity:0;transition:opacity .4s ease;background:var(--stat-surface-bg,#fff);">'
         + '<button class="dr-go" id="docRepGo">' + R('fGo').replace(/</g, '&lt;') + (pro() ? '' : (window.LunaDoctorReport.trialLeft() ? ' 🎁' : ' 👑')) + '</button></div>';
       document.body.appendChild(p);
       try{ document.body.style.overflow = 'hidden'; }catch(e){}
       $('docRepBack').onclick = close;
       $('docRepGo').onclick = function(){ try{ window.LunaDoctorReport.open(); }catch(e){} };
-      setTimeout(function(){ try{ var im = $('docRepImg'); if(im && window.LunaDoctorReport) im.src = window.LunaDoctorReport.sampleImage(); }catch(e){} }, 30);
+      function showImg(fade){ try{ var im = $('docRepImg'); if(im && window.LunaDoctorReport){ var key = c + (window._appLang || '') + window.LunaDoctorReport.getTheme(); if(!open._c || open._k !== key){ open._c = window.LunaDoctorReport.sampleImage(); open._k = key; } if(fade) im.style.opacity = '0'; im.onload = function(){ im.style.opacity = '1'; }; im.src = open._c; } }catch(e){} }
+      setTimeout(function(){ showImg(false); }, 60);
+      try{ var sw = document.querySelectorAll('#docRepSw [data-th]'), si; for(si = 0; si < sw.length; si++){ sw[si].onclick = function(){ var n = this.getAttribute('data-th'); if(n === window.LunaDoctorReport.getTheme()) return; window.LunaDoctorReport.setTheme(n); var all = document.querySelectorAll('#docRepSw [data-th]'), j; for(j = 0; j < all.length; j++){ var cc = window.LunaDoctorReport.themes[all[j].getAttribute('data-th')]; cc = cc ? cc.p : '#6a45b8'; all[j].style.boxShadow = (all[j].getAttribute('data-th') === n) ? '0 0 0 2px ' + cc : '0 1px 4px rgba(0,0,0,.15)'; } setTimeout(function(){ showImg(true); }, 30); applyTile(); }; } }catch(e){}
     }
     window.LunaDocTile = { open: open, close: close, _fill: fill };
     setInterval(fill, 1500); setTimeout(fill, 600);
   }catch(e){ try{ console.warn('LunaDocTile', e); }catch(_){} }
+})();
+</script>
+<script id="lunaSubFadeJs">
+/* ✨ 统计页各个功能页：进入淡入、退出淡出（只加动效，不改任何功能）。
+   进入：页面一显示就补一个"淡入 + 轻微右滑入"；退出：点左上角返回时，先淡出 0.2 秒再真正关闭。
+   不在这份名单里的页面一点不动。 */
+(function(){
+  if(window.__lunaSubFade) return; window.__lunaSubFade = true;
+  try{
+    var IDS = ['insightPanel','aiHistoryPanel','cyclePhasePanel','moodlogPanel','weekSummaryPanel','top5Panel','trendPanel','ratePanel','lunaDailyPage','docRepPage','ttcStatsPanel','pregWeightPanel','pregVisitPanel'];
+    var st = document.createElement('style');
+    st.textContent = '@keyframes lunaSubIn{from{opacity:0;transform:translate3d(28px,0,0)}to{opacity:1;transform:translate3d(0,0,0)}}'
+      + '@keyframes lunaSubOut{from{opacity:1;transform:translate3d(0,0,0)}to{opacity:0;transform:translate3d(18px,0,0)}}'
+      + '.lunaSubIn{animation:lunaSubIn .34s cubic-bezier(.32,.72,0,1)!important}'
+      + '.lunaSubOut{animation:lunaSubOut .2s ease forwards!important;pointer-events:none}'
+      + '@media (prefers-reduced-motion:reduce){.lunaSubIn,.lunaSubOut{animation:none!important}}';
+    document.head.appendChild(st);
+    function vis(el){ try{ return getComputedStyle(el).display !== 'none'; }catch(e){ return false; } }
+    function fadeIn(el){
+      el.classList.remove('subpage-anim', 'page-in', 'lunaSubOut'); el.classList.remove('lunaSubIn'); void el.offsetWidth; el.classList.add('lunaSubIn');
+      setTimeout(function(){ try{ el.classList.remove('lunaSubIn'); }catch(e){} }, 420);
+    }
+    var mo = new MutationObserver(function(list){
+      list.forEach(function(m){
+        var el = m.target; if(!el || IDS.indexOf(el.id) < 0) return;
+        var v = vis(el); if(v === el._lsv) return; el._lsv = v;
+        if(v) fadeIn(el); else el.classList.remove('lunaSubIn', 'lunaSubOut');
+      });
+    });
+    function watch(el){ if(!el || el._lsw) return; el._lsw = true; el._lsv = vis(el); mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }); }
+    function scan(){ IDS.forEach(function(id){ watch(document.getElementById(id)); }); }
+    try{ new MutationObserver(function(list){ list.forEach(function(m){ for(var k = 0; k < m.addedNodes.length; k++){ var n = m.addedNodes[k]; if(n && n.id && IDS.indexOf(n.id) >= 0){ watch(n); if(vis(n)) fadeIn(n); } } }); }).observe(document.body, { childList: true }); }catch(e){}
+    scan(); setInterval(scan, 1500);   // 有的页面是第一次打开时才创建的（样张页、每日记录页），定时补上
+    document.addEventListener('click', function(e){
+      try{
+        var b = e.target && e.target.closest ? e.target.closest('.back-btn') : null; if(!b) return;
+        var p = b.parentNode, i; for(i = 0; p && i < 6; i++, p = p.parentNode){ if(p.id && IDS.indexOf(p.id) >= 0) break; }
+        if(!p || !p.id || IDS.indexOf(p.id) < 0 || !vis(p)) return;
+        if(p._lsBypass) return;
+        if(p._lsFo){ e.stopPropagation(); e.preventDefault(); return; }
+        if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        e.stopPropagation(); e.preventDefault(); p._lsFo = true;
+        p.classList.remove('lunaSubIn'); p.classList.add('lunaSubOut');
+        setTimeout(function(){
+          p._lsFo = false; p._lsBypass = true;
+          try{ b.click(); }catch(e2){}
+          p._lsBypass = false; p.classList.remove('lunaSubOut');
+        }, 200);
+      }catch(e){}
+    }, true);
+  }catch(e){ try{ console.warn('lunaSubFade', e); }catch(_){} }
 })();
 </script>
 
@@ -46268,6 +46372,8 @@ html.lunaScrolling .lunaRowRing::before{animation-play-state:paused}
       d.style.opacity = '1';
       try{ sessionStorage.setItem('luna_lang_veil', color); }catch(e){}   // 如果接着要重新加载，新页面一开始就盖着同样的颜色
     }catch(e){}
+    /* 所有语言（含泰 / 中 / 英）切换时都显示"正在切换语言…请稍候"；要重新加载的，加载后新页面会接着盖着 */
+    try{ if(window.__lunaLangFlash) window.__lunaLangFlash(1500, lang); }catch(e){}
     var r;
     try{ r = prev.apply(this, arguments); }catch(e){ r = undefined; }
     // 能活到这里（没有重新加载）：说明是原地换字，换完淡出遮罩，并清掉标记

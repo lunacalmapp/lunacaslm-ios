@@ -22670,6 +22670,11 @@ window.setLang = setLang;
     // 🩹 兜底防线：正常情况下未满13岁用户根本看不到这个按钮（renderAiAnalysisGate已经拦在UI层），
     // 这里是双重保险，防止有别的路径能绕开UI直接调用这个函数
     if (typeof isAgeRestricted === 'function' && isAgeRestricted()) return;
+    // 备孕/怀孕/产后：周期分析不适用，避免给出不合适的内容（这些阶段请用 Luna 聊天）
+    try { if (window.LunaAiMode && window.LunaAiMode.mode() !== 'normal') {
+      if (typeof showToast === 'function') showToast(isTh ? 'ช่วงนี้ยังไม่มีการวิเคราะห์รอบเดือน ลองถาม Luna ในแชทได้เลยนะคะ 💜' : '当前阶段暂不提供周期分析，可以直接在聊天里问 Luna 💜');
+      return;
+    } } catch (e) {}
     if (!auth || !auth.currentUser) {
       if (typeof showToast === 'function') showToast(isTh ? 'กรุณาเข้าสู่ระบบก่อน' : '请先登录');
       return;
@@ -35413,7 +35418,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
     /* ───── 算分 ───── */
-    var W = { cycle: 22, regular: 28, period: 18, symptom: 17, mood: 15 };
+    var W = { cycle: 20, regular: 24, period: 16, symptom: 25, mood: 15 };
     function metrics(a){
       var m = [], s, d, per, neg;
       // 周期长度
@@ -35439,8 +35444,9 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
       // 症状
       if(a.logDays >= 5){
         per = a.symTotal / a.logDays;
-        s = clamp(Math.round(100 - per * 12), 40, 100);
-        m.push({ k: 'symptom', n: T('身体症状', 'อาการ'), s: s, note: T('平均每个记录日约 ' + per.toFixed(1) + ' 个症状', 'เฉลี่ยวันที่บันทึกมีราว ' + per.toFixed(1) + ' อาการ') });
+        var tf = (a.topSymCnt || 0) / a.logDays;   // 最常见的那个症状出现在多大比例的记录日里
+        s = clamp(Math.round(100 - per * 22 - Math.max(0, tf - 0.2) * 70), 30, 100);
+        m.push({ k: 'symptom', n: T('身体症状', 'อาการ'), s: s, note: T('平均每个记录日约 ' + per.toFixed(1) + ' 个症状' + (tf >= 0.3 ? '，同一症状反复出现' : ''), 'เฉลี่ยวันที่บันทึกมีราว ' + per.toFixed(1) + ' อาการ' + (tf >= 0.3 ? ' และมีอาการเดิมซ้ำบ่อย' : '')) });
       } else m.push({ k: 'symptom', n: T('身体症状', 'อาการ'), s: null, note: T('至少记录 5 天才能评估', 'ต้องบันทึกอย่างน้อย 5 วัน') });
       // 情绪
       if(a.moodTotal >= 3){
@@ -35547,7 +35553,7 @@ body.lpg-ai-open,html:has(body.lpg-ai-open){overflow:hidden !important;overscrol
     function realModel(){
       var a = null; try{ a = window.LunaDoctorReport && window.LunaDoctorReport._analyse(); }catch(e){}
       if(!a) return { insufficient: true };
-      return compute({ avgCycle: a.avgCycle, spread: a.spread, nGaps: a.recentGaps.length, avgPeriod: a.avgPeriod, logDays: a.logDays, symTotal: a.symTotal, moodTotal: a.moodTotal, moodNeg: a.moodNeg, nCycles: a.nCycles });
+      return compute({ avgCycle: a.avgCycle, spread: a.spread, nGaps: a.recentGaps.length, avgPeriod: a.avgPeriod, logDays: a.logDays, symTotal: a.symTotal, topSymCnt: (a.sym && a.sym[0] ? a.sym[0][1] : 0), moodTotal: a.moodTotal, moodNeg: a.moodNeg, nCycles: a.nCycles });
     }
     function sampleModel(){ return compute({ avgCycle: 32, spread: 8, nGaps: 5, avgPeriod: 6, logDays: 40, symTotal: 96, moodTotal: 20, moodNeg: 9, nCycles: 6 }); }
 
